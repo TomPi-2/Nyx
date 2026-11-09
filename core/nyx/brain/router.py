@@ -186,7 +186,8 @@ def _pause(m: re.Match[str], _: SystemIndex) -> Route:
 
 @rule(
     "media_play",
-    r"^(?:reanuda|reanudar|continua|play|dale al play|reproduce|quita la pausa)(?:\s+(?:la\s+|el\s+)?(?:musica|cancion|video))?$",
+    r"^(?:(?:reanuda|reanudar|continua|play|dale al play|reproduce|quita la pausa)(?:\s+(?:la\s+|el\s+)?(?:musica|cancion|video))?"
+    r"|(?:pon|ponme|quiero)\s+(?:algo de\s+|un poco de\s+|la\s+)?musica)$",
 )
 def _play(m: re.Match[str], _: SystemIndex) -> Route:
     return _call("media_play", "media_control", action="play_pause")

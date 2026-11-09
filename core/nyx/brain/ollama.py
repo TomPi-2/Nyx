@@ -21,7 +21,7 @@ from typing import Any
 
 import httpx
 
-from nyx.brain.base import ChatMessage, LLMError, LLMErrorKind
+from nyx.brain.base import ChatMessage, LLMError, LLMErrorKind, LLMToolCall
 
 log = logging.getLogger(__name__)
 
@@ -78,6 +78,17 @@ def launch_ollama() -> bool:
     return False
 
 
+def parse_tool_call(raw: dict[str, Any]) -> LLMToolCall:
+    function = raw.get("function", {})
+    arguments = function.get("arguments") or {}
+    if isinstance(arguments, str):  # algunos modelos devuelven el JSON como texto
+        try:
+            arguments = json.loads(arguments)
+        except json.JSONDecodeError:
+            arguments = {}
+    return LLMToolCall(str(function.get("name", "")), dict(arguments))
+
+
 class OllamaEngine:
     def __init__(
         self,
@@ -129,7 +140,9 @@ class OllamaEngine:
             await asyncio.sleep(0.5)
         return False
 
-    async def warmup(self, prefix: Sequence[ChatMessage] = ()) -> None:
+    async def warmup(
+        self, prefix: Sequence[ChatMessage] = (), *, tools: Sequence[dict[str, Any]] = ()
+    ) -> None:
         # Carga el modelo y procesa el prefijo fijo del prompt con 1 token de salida: la
         # primera petición real reutiliza ese prefijo de la caché. Mismas opciones que en
         # las peticiones (un num_ctx distinto obligaría a recargar el modelo).
@@ -141,6 +154,8 @@ class OllamaEngine:
             "messages": [{"role": m.role, "content": m.content} for m in prefix]
             + [{"role": "user", "content": "Hola"}],
         }
+        if tools:
+            body["tools"] = list(tools)
         for attempt in (1, 2):
             try:
                 resp = await self._client.post("/api/chat", json=body, timeout=120.0)
@@ -167,18 +182,36 @@ class OllamaEngine:
         if resp.status_code >= 400:
             raise LLMError(LLMErrorKind.OTHER, f"HTTP {resp.status_code}")
 
-    async def stream(
-        self, messages: Sequence[ChatMessage], *, schema: dict[str, Any] | None = None
-    ) -> AsyncIterator[str]:
-        body: dict[str, Any] = {
+    def _body(self, messages: Sequence[ChatMessage]) -> dict[str, Any]:
+        return {
             "model": self.model,
             "stream": True,
             "keep_alive": self._keep_alive,
             "options": self._options,
             "messages": [{"role": m.role, "content": m.content} for m in messages],
         }
+
+    async def stream(
+        self, messages: Sequence[ChatMessage], *, schema: dict[str, Any] | None = None
+    ) -> AsyncIterator[str]:
+        body = self._body(messages)
         if schema is not None:
             body["format"] = schema
+        async for piece in self._with_recovery(body):
+            if isinstance(piece, str):
+                yield piece
+
+    async def chat(
+        self, messages: Sequence[ChatMessage], *, tools: Sequence[dict[str, Any]] = ()
+    ) -> AsyncIterator[str | list[LLMToolCall]]:
+        """Texto a trozos o, si el modelo decide actuar, la lista de llamadas a herramientas."""
+        body = self._body(messages)
+        if tools:
+            body["tools"] = list(tools)
+        async for piece in self._with_recovery(body):
+            yield piece
+
+    async def _with_recovery(self, body: dict[str, Any]) -> AsyncIterator[str | list[LLMToolCall]]:
         for attempt in (1, 2):
             try:
                 async for piece in self._stream_once(body):
@@ -189,7 +222,7 @@ class OllamaEngine:
                     continue
                 raise LLMError(LLMErrorKind.UNAVAILABLE, str(e.__cause__)) from e
 
-    async def _stream_once(self, body: dict[str, Any]) -> AsyncIterator[str]:
+    async def _stream_once(self, body: dict[str, Any]) -> AsyncIterator[str | list[LLMToolCall]]:
         try:
             async with self._client.stream("POST", "/api/chat", json=body) as resp:
                 if resp.status_code >= 400:
@@ -201,9 +234,11 @@ class OllamaEngine:
                     chunk = json.loads(line)
                     if "error" in chunk:
                         raise LLMError(LLMErrorKind.OTHER, str(chunk["error"]))
-                    content = chunk.get("message", {}).get("content", "")
-                    if content:
+                    message = chunk.get("message", {})
+                    if content := message.get("content", ""):
                         yield content
+                    if calls := message.get("tool_calls"):
+                        yield [parse_tool_call(c) for c in calls]
                     if chunk.get("done"):
                         return
         # La conexión solo puede fallar antes del primer trozo: reintentar es seguro.

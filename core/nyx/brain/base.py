@@ -29,9 +29,20 @@ class LLMError(Exception):
         self.kind = kind
 
 
+@dataclass(frozen=True, slots=True)
+class LLMToolCall:
+    """Una llamada a herramienta decidida por el LLM (aún sin validar)."""
+
+    name: str
+    arguments: dict[str, Any]
+
+
 class LLMEngine(Protocol):
-    async def warmup(self, prefix: Sequence[ChatMessage] = ()) -> None:
-        """Carga el modelo en la GPU y procesa `prefix` para dejarlo en la caché de Ollama."""
+    async def warmup(
+        self, prefix: Sequence[ChatMessage] = (), *, tools: Sequence[dict[str, Any]] = ()
+    ) -> None:
+        """Carga el modelo en la GPU y procesa `prefix` (y las herramientas, que van en el
+        prompt de sistema) para dejarlo en la caché de Ollama."""
         ...
 
     async def unload(self) -> None:
@@ -42,4 +53,10 @@ class LLMEngine(Protocol):
         self, messages: Sequence[ChatMessage], *, schema: dict[str, Any] | None = None
     ) -> AsyncIterator[str]:
         """Texto de la respuesta a trozos según se genera."""
+        ...
+
+    def chat(
+        self, messages: Sequence[ChatMessage], *, tools: Sequence[dict[str, Any]] = ()
+    ) -> AsyncIterator[str | list[LLMToolCall]]:
+        """Como `stream`, pero con herramientas: texto a trozos o llamadas a herramientas."""
         ...

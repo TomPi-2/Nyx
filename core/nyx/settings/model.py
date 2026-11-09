@@ -63,7 +63,7 @@ class LLMSettings(_Section):
     model: str = "qwen2.5:7b"
     # -1 = siempre cargado mientras Nyx esté abierto (SPEC sección 6); se libera al salir.
     keep_alive: int | str = -1
-    num_ctx: int = Field(default=4096, ge=1024, le=32768)
+    num_ctx: int = Field(default=8192, ge=1024, le=32768)
     timeout_s: float = Field(default=8.0, ge=2.0, le=60.0)
 
 

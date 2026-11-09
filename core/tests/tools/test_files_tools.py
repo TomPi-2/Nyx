@@ -249,3 +249,45 @@ async def test_delete_can_be_undone_from_the_recycle_bin(
     undone = await ex.run(ToolCall("undo"))
     assert undone.ok and "Recuperado" in undone.message
     assert restored == [[downloads / "archivo5.txt"]] and (downloads / "archivo5.txt").exists()
+
+
+async def test_plan_create_folder_then_move_into_subfolder(
+    ctx: ToolContext, downloads: Path, tmp_path: Path
+) -> None:
+    """El plan de dos pasos del LLM: la subcarpeta nueva se resuelve como «Carpeta/Sub»."""
+    ex = executor(ctx)
+    results = await ex.run_plan(
+        [
+            ToolCall("create_folder", {"name": "Fondos", "parent": "documentos"}),
+            ToolCall(
+                "move_files",
+                {"folder": "descargas", "kind": "images", "destination": "Documentos/Fondos"},
+            ),
+        ]
+    )
+    assert all(r.ok for r in results)
+    assert (tmp_path / "Documentos" / "Fondos" / "foto.jpg").exists()
+    missing = await ex.run(
+        ToolCall(
+            "move_files", {"folder": "descargas", "all": True, "destination": "Documentos/Nada"}
+        )
+    )
+    assert not missing.ok and "No existe la carpeta" in missing.message
+
+
+async def test_find_files_by_extension_without_name(
+    ctx: ToolContext, monkeypatch: pytest.MonkeyPatch, downloads: Path
+) -> None:
+    seen: list[str] = []
+
+    def fake_search(query: str, roots: list[Path], limit: int) -> tuple[list[Path], str]:
+        seen.append(query)
+        return [downloads / "factura luz.pdf", downloads / "foto.jpg"], "windows"
+
+    monkeypatch.setattr(find_module.search, "search", fake_search)
+    ex = executor(ctx)
+    result = await ex.run(ToolCall("find_files", {"extension": "PDF", "folder": "descargas"}))
+    assert result.ok and result.display == "factura luz.pdf"
+    assert seen == [".pdf"]
+    # Sin nombre ni extensión el plan no es válido (el LLM lo corrige con el error).
+    assert "query" in ex.check([ToolCall("find_files", {"kind": "documents"})])

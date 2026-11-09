@@ -57,6 +57,29 @@ def cancelled_result(summary: str) -> ToolResult:
     )
 
 
+# Tras abrir una app, estas herramientas necesitan que su ventana ya exista.
+_NEEDS_WINDOW = {"focus_window", "window_layout", "close_app", "wait_for_window"}
+
+
+def with_waits(calls: list[ToolCall]) -> list[ToolCall]:
+    """SPEC sección 6: «el ejecutor hace las esperas, no el LLM». Tras open_app, si el paso
+    siguiente usa ventanas, se espera a que la app abra la suya."""
+    out: list[ToolCall] = []
+    for i, call in enumerate(calls):
+        out.append(call)
+        following = calls[i + 1] if i + 1 < len(calls) else None
+        name = call.arguments.get("name")
+        if (
+            call.name == "open_app"
+            and isinstance(name, str)
+            and following is not None
+            and following.name in _NEEDS_WINDOW
+            and following.name != "wait_for_window"
+        ):
+            out.append(ToolCall("wait_for_window", {"name": name}))
+    return out
+
+
 class Executor:
     def __init__(
         self,
@@ -93,6 +116,20 @@ class Executor:
             phrase=phrase,
             risk=str(tool.risk) if tool is not None else "",
         )
+
+    def check(self, calls: list[ToolCall]) -> str:
+        """Primer problema de un plan (herramienta desconocida o parámetros), o «»."""
+        for call in calls:
+            tool = self.registry.get(call.name)
+            if tool is None:
+                return f"la herramienta {call.name} no existe"
+            try:
+                tool.params_model.model_validate(call.arguments)
+            except ValidationError as e:
+                first = e.errors()[0]
+                where = ".".join(str(x) for x in first["loc"]) or "parámetros"
+                return f"{call.name}: {where}: {first['msg']}"
+        return ""
 
     async def run(self, call: ToolCall, *, phrase: str = "") -> ToolResult:
         tool = self.registry.get(call.name)
