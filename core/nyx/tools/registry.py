@@ -34,14 +34,23 @@ class ToolRegistry:
 
 
 def default_registry() -> ToolRegistry:
+    from nyx.tools.close_app import CloseApp
+    from nyx.tools.copy_files import CopyFiles
+    from nyx.tools.create_folder import CreateFolder
+    from nyx.tools.delete_files import DeleteFiles
+    from nyx.tools.find_files import FindFiles
     from nyx.tools.focus_window import FocusWindow
+    from nyx.tools.list_files import ListFiles
     from nyx.tools.media_control import MediaControl
+    from nyx.tools.move_files import MoveFiles
     from nyx.tools.open_app import OpenApp
     from nyx.tools.open_path import OpenPath
     from nyx.tools.open_settings import OpenSettings
     from nyx.tools.open_url import OpenUrl
+    from nyx.tools.rename_file import RenameFile
     from nyx.tools.screenshot import Screenshot
     from nyx.tools.set_volume import SetVolume
+    from nyx.tools.undo import UndoLast
     from nyx.tools.wait_for_window import WaitForWindow
     from nyx.tools.window_layout import WindowLayout
 
@@ -57,5 +66,14 @@ def default_registry() -> ToolRegistry:
             SetVolume(),
             MediaControl(),
             Screenshot(),
+            CloseApp(),
+            CreateFolder(),
+            ListFiles(),
+            FindFiles(),
+            MoveFiles(),
+            CopyFiles(),
+            RenameFile(),
+            DeleteFiles(),
+            UndoLast(),
         ]
     )

@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 2
+PROTOCOL_VERSION = 3
 
 
 class _Msg(BaseModel):
@@ -44,7 +44,14 @@ class TalkKeyMsg(_Msg):
     pressed: bool
 
 
-ClientMessage = Annotated[Hello | TextInput | TalkKeyMsg, Field(discriminator="type")]
+class ActionMsg(_Msg):
+    """Botón pulsado en una burbuja."""
+
+    type: Literal["action"] = "action"
+    id: str = Field(min_length=1, max_length=64)
+
+
+ClientMessage = Annotated[Hello | TextInput | TalkKeyMsg | ActionMsg, Field(discriminator="type")]
 client_adapter: TypeAdapter[ClientMessage] = TypeAdapter(ClientMessage)
 
 
@@ -69,10 +76,17 @@ class LevelMsg(_Msg):
     rms: float = Field(ge=0.0, le=1.0)
 
 
+class ActionButton(_Msg):
+    id: str
+    label: str
+    primary: bool = False
+
+
 class BubbleMsg(_Msg):
     type: Literal["bubble"] = "bubble"
     display: str
     secondary: str | None = None
+    actions: list[ActionButton] = []
 
 
 class BubbleHideMsg(_Msg):

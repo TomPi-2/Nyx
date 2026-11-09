@@ -8,8 +8,8 @@
   import { Spring } from "svelte/motion";
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
-  import { connectCore } from "$lib/core";
-  import type { NyxState, ServerMessage } from "$lib/protocol";
+  import { connectCore, type CoreConnection } from "$lib/core";
+  import type { ActionButton, NyxState, ServerMessage } from "$lib/protocol";
 
   const TOP = 12; // margen superior en px
   const MAX_WIDTH = 520;
@@ -17,7 +17,12 @@
 
   let status = $state<NyxState>("idle");
   let connected = $state(false);
-  let bubble = $state<{ display: string; secondary: string | null } | null>(null);
+  let bubble = $state<{
+    display: string;
+    secondary: string | null;
+    actions: ActionButton[];
+  } | null>(null);
+  let core: CoreConnection | undefined;
   let measuredW = $state(0);
   let measuredH = $state(0);
 
@@ -56,6 +61,26 @@
     }
   });
 
+  // Atraviesa los clics salvo con el ratón encima de un botón (SPEC sección 11). Mientras
+  // los deja pasar, la página no ve el ratón: Rust lo mira y aquí solo se le dice dónde
+  // están los botones (píxeles CSS de la ventana).
+  let actionsEl: HTMLDivElement | undefined = $state();
+  $effect(() => {
+    void width.current; // se recalcula mientras la isla se anima
+    void height.current;
+    const buttons = shown && actionsEl ? [...actionsEl.querySelectorAll("button")] : [];
+    const rects = buttons.map((b) => {
+      const r = b.getBoundingClientRect();
+      return [r.x, r.y, r.width, r.height];
+    });
+    void invoke("island_set_hit_rects", { rects });
+  });
+
+  function choose(id: string) {
+    core?.send({ type: "action", id });
+    if (bubble) bubble = { ...bubble, actions: [] }; // evita el doble clic
+  }
+
   function handle(msg: ServerMessage) {
     switch (msg.type) {
       case "state":
@@ -65,7 +90,7 @@
         level.target = msg.rms;
         break;
       case "bubble":
-        bubble = { display: msg.display, secondary: msg.secondary };
+        bubble = { display: msg.display, secondary: msg.secondary, actions: msg.actions };
         break;
       case "bubble_hide":
         bubble = null;
@@ -74,19 +99,20 @@
   }
 
   onMount(() => {
-    const core = connectCore(handle, (ok) => {
+    const connection = connectCore(handle, (ok) => {
       connected = ok;
       if (!ok) {
         status = "idle";
         bubble = null;
       }
     });
+    core = connection;
     // Atajo de hablar (Win+Alt+H): llega del proceso principal y se reenvía al núcleo.
     const offTalk = listen<boolean>("hotkey://talk", (event) => {
-      core.send({ type: "talk", pressed: event.payload });
+      connection.send({ type: "talk", pressed: event.payload });
     });
     return () => {
-      core.close();
+      connection.close();
       void offTalk.then((off) => off());
     };
   });
@@ -97,6 +123,13 @@
   <div class="bubble-content measure" bind:clientWidth={measuredW} bind:clientHeight={measuredH}>
     <span class="display">{bubble.display}</span>
     {#if bubble.secondary}<span class="secondary">{bubble.secondary}</span>{/if}
+    {#if bubble.actions.length}
+      <div class="actions">
+        {#each bubble.actions as action (action.id)}
+          <button class:primary={action.primary} tabindex="-1">{action.label}</button>
+        {/each}
+      </div>
+    {/if}
   </div>
 {/if}
 
@@ -114,6 +147,15 @@
     <div class="bubble-content">
       <span class="display">{bubble.display}</span>
       {#if bubble.secondary}<span class="secondary">{bubble.secondary}</span>{/if}
+      {#if bubble.actions.length}
+        <div class="actions" bind:this={actionsEl}>
+          {#each bubble.actions as action (action.id)}
+            <button class:primary={action.primary} onclick={() => choose(action.id)}>
+              {action.label}
+            </button>
+          {/each}
+        </div>
+      {/if}
     </div>
   {:else}
     <div
@@ -201,6 +243,42 @@
     max-width: 520px;
     white-space: nowrap;
     box-sizing: border-box;
+  }
+
+  /* Botones en pastilla, sin bordes (SPEC sección 12): el principal en control-active. */
+  .actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  button {
+    border: none;
+    outline: none;
+    border-radius: 9999px;
+    padding: 7px 18px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--control);
+    cursor: pointer;
+    transition:
+      filter 120ms ease,
+      scale 120ms ease;
+  }
+
+  button.primary {
+    color: var(--text-on-active);
+    background: var(--control-active);
+  }
+
+  button:hover {
+    filter: brightness(1.12);
+  }
+
+  button:active {
+    scale: 0.96;
   }
 
   .measure {

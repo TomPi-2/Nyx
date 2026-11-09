@@ -251,3 +251,12 @@ def is_maximized(hwnd: int) -> bool:
     import win32gui
 
     return bool(win32gui.GetWindowPlacement(hwnd)[1] == win32con.SW_SHOWMAXIMIZED)
+
+
+def close_window(hwnd: int) -> None:
+    """Pide a la ventana que se cierre (como pulsar la X): la app puede preguntar si guardar.
+    Nunca se mata el proceso."""
+    import win32con
+    import win32gui
+
+    win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)

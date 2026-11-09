@@ -9,7 +9,15 @@ from websockets.exceptions import ConnectionClosed, InvalidStatus
 from nyx.bridge.protocol import PROTOCOL_VERSION, server_adapter
 from nyx.bridge.server import CLOSE_UNAUTHORIZED, UIBridge
 from nyx.bus import EventBus
-from nyx.events import AudioLevel, BubbleShown, NyxState, StateChanged, TalkKey, TextEntered
+from nyx.events import (
+    ActionChosen,
+    AudioLevel,
+    BubbleShown,
+    NyxState,
+    StateChanged,
+    TalkKey,
+    TextEntered,
+)
 
 TOKEN = "secreto-de-prueba"
 ORIGIN = "http://localhost:1420"
@@ -51,6 +59,7 @@ async def test_handshake_and_events(bridge: tuple[EventBus, int]) -> None:
             "type": "bubble",
             "display": "Hallo",
             "secondary": "hola · alemán",
+            "actions": [],
         }
 
 
@@ -80,6 +89,7 @@ async def test_client_messages_are_published(bridge: tuple[EventBus, int]) -> No
 
     bus.subscribe(TextEntered, collect)
     bus.subscribe(TalkKey, collect)
+    bus.subscribe(ActionChosen, collect)
     async with connect(f"ws://127.0.0.1:{port}", origin=ORIGIN) as conn:  # type: ignore[arg-type]
         await _hello(conn)
         await _recv(conn)
@@ -88,8 +98,9 @@ async def test_client_messages_are_published(bridge: tuple[EventBus, int]) -> No
         await conn.send(json.dumps({"type": "talk", "pressed": True}))
         await conn.send(json.dumps({"type": "text", "text": ""}))  # no válido: se ignora
         await conn.send(json.dumps({"type": "talk", "pressed": False}))
+        await conn.send(json.dumps({"type": "action", "id": "confirm-1"}))
         for _ in range(50):
-            if len(got) == 3:
+            if len(got) == 4:
                 break
             await asyncio.sleep(0.01)
-    assert got == [TextEntered("hola"), TalkKey(True), TalkKey(False)]
+    assert got == [TextEntered("hola"), TalkKey(True), TalkKey(False), ActionChosen("confirm-1")]

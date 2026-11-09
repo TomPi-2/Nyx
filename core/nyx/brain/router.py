@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
+from contextvars import ContextVar
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from nyx.executor import ToolCall
 from nyx.index.aliases import normalize
@@ -74,6 +76,8 @@ def _clean(text: str) -> str:
     return _POLITE.sub("", normalize(text)).strip()
 
 
+_RAW: ContextVar[str] = ContextVar("router_raw", default="")
+
 Handler = Callable[[re.Match[str], SystemIndex], "Route | Miss | None"]
 _RULES: list[tuple[str, re.Pattern[str], Handler]] = []
 
@@ -88,6 +92,7 @@ def rule(name: str, pattern: str) -> Callable[[Handler], Handler]:
 
 def route(text: str, index: SystemIndex) -> Route | Miss | None:
     """Ruta para `text`, `Miss` si el patrón encaja sin destino claro, o None (→ LLM)."""
+    _RAW.set(text.strip().rstrip(".!¡?¿ "))
     # «marca.com» → «marca punto com»: la limpieza quita los puntos; open_url los recupera.
     clean = _clean(_DOMAIN_DOT.sub(" punto ", text))
     if _SEVERAL_ACTIONS.search(clean):
@@ -221,6 +226,170 @@ def _screenshot(m: re.Match[str], _: SystemIndex) -> Route:
     else:
         target = "current"
     return _call("screenshot", "screenshot", target=target)
+
+
+# --- deshacer, cerrar y archivos (bloque 3b) ---
+
+_NUMWORD = "|".join(sorted([*NUMBER_WORDS, *_TENS], key=len, reverse=True))
+_N = rf"\d{{1,3}}|(?:{_NUMWORD})(?: y (?:{_NUMWORD}))?"
+_COUNT = rf"(?:(?P<n1>{_N})\s+)?(?:ultim[oa]s?|mas recientes?)(?:\s+(?P<n2>{_N}))?"
+_WHAT = r"(?:\s+(?P<what>archivos?|ficheros?|fotos?|imagen(?:es)?|videos?|documentos?|pdfs?|capturas?|audios?|canciones|cancion|cosas))?"
+_KIND_WORDS = {
+    "fotos": "images",
+    "imagenes": "images",
+    "capturas": "images",
+    "videos": "videos",
+    "documentos": "documents",
+    "audios": "audio",
+    "canciones": "audio",
+}
+
+
+def _selection(m: re.Match[str]) -> dict[str, object] | None:
+    """newest/kind/extension de «los últimos 5 archivos», «las 3 últimas fotos», «los pdf»…"""
+    raw_n = m.group("n1") or m.group("n2")
+    newest = parse_number(raw_n) if raw_n else 1
+    if newest is None or not 1 <= newest <= 500:
+        return None
+    what = m.group("what") or ""
+    out: dict[str, object] = {"newest": newest}
+    kind = _KIND_WORDS.get(what) or _KIND_WORDS.get(what + "s") or _KIND_WORDS.get(what + "es")
+    if kind:
+        out["kind"] = kind
+    elif what.startswith("pdf"):
+        out["extension"] = "pdf"
+    return out
+
+
+def _raw_after(pattern: str) -> str | None:
+    """Trozo del texto original (con mayúsculas) tras una palabra clave."""
+    m = re.search(pattern, _RAW.get(), re.IGNORECASE)
+    return m.group(1).strip(" «»\"'") if m else None
+
+
+@rule(
+    "undo",
+    r"^(?:deshaz(?:lo)?|deshacer|deshaz eso|deshaz lo ultimo|vuelve atras|revierte(?:lo)?|anula(?:lo)?|anula eso|(?:recupera|restaura)(?:lo|la|los|las)?(?: (?:el|la|los|las) (?:archivos?|carpetas?|fotos?))?(?: de la papelera)?)$",
+)
+def _undo(m: re.Match[str], _: SystemIndex) -> Route:
+    return _call("undo", "undo")
+
+
+@rule("close", r"^(?:cierra(?:me)?|cerrar)\s+(?P<x>.+)$")
+def _close(m: re.Match[str], index: SystemIndex) -> Route | None:
+    target = m.group("x")
+    if target.startswith(("sesion", "la sesion", "el ordenador", "el pc")):
+        return None  # cerrar sesión / apagar: system_power (fase 6)
+    name = _window_name(target)
+    return _call("close", "close_app", name=name)
+
+
+@rule(
+    "create_folder",
+    r"^(?:crea(?:me)?|crear|haz(?:me)?)\s+(?:una|la)\s+(?:nueva\s+)?carpeta(?:\s+nueva)?(?:\s+en\s+(?P<p1>.+?))?\s+(?:llamada|que se llame|con el nombre(?: de)?|de nombre)\s+(?P<name>.+?)(?:\s+en\s+(?P<p2>.+))?$",
+)
+def _create_folder(m: re.Match[str], _: SystemIndex) -> Route | None:
+    name = _raw_after(
+        r"(?:llamada|que se llame|con el nombre(?: de)?|de nombre)\s+(.+?)(?:\s+en\s+[^,]+)?$"
+    )
+    parent = m.group("p1") or m.group("p2") or "documentos"
+    return _call("create_folder", "create_folder", name=name or m.group("name"), parent=parent)
+
+
+@rule(
+    "create_folder_named",
+    r"^(?:crea(?:me)?|crear)\s+la\s+carpeta\s+(?P<name>.+?)(?:\s+en\s+(?P<p>.+))?$",
+)
+def _create_folder_named(m: re.Match[str], _: SystemIndex) -> Route | None:
+    name = _raw_after(r"carpeta\s+(.+?)(?:\s+en\s+[^,]+)?$")
+    return _call(
+        "create_folder",
+        "create_folder",
+        name=name or m.group("name"),
+        parent=m.group("p") or "documentos",
+    )
+
+
+@rule(
+    "transfer",
+    rf"^(?P<verb>mueve(?:me)?|pasa(?:me)?|lleva(?:me)?|copia(?:me)?)\s+(?:los|las|el|la)\s+{_COUNT}{_WHAT}\s+(?:de|del|desde)\s+(?:la carpeta\s+(?:de\s+)?)?(?P<src>.+?)\s+(?:a|al|hasta)\s+(?:la carpeta\s+(?:de\s+)?)?(?P<dst>.+)$",
+)
+def _transfer(m: re.Match[str], _: SystemIndex) -> Route | None:
+    selection = _selection(m)
+    if selection is None:
+        return None
+    tool = "copy_files" if m.group("verb").startswith("copia") else "move_files"
+    return _call("transfer", tool, folder=m.group("src"), destination=m.group("dst"), **selection)
+
+
+@rule(
+    "transfer_named",
+    r"^(?P<verb>mueve(?:me)?|pasa(?:me)?|copia(?:me)?)\s+(?:el|la)\s+(?:archivo|fichero|documento|foto|video)\s+(?P<name>.+?)\s+(?:de|del|desde)\s+(?P<src>.+?)\s+(?:a|al)\s+(?P<dst>.+)$",
+)
+def _transfer_named(m: re.Match[str], _: SystemIndex) -> Route:
+    tool = "copy_files" if m.group("verb").startswith("copia") else "move_files"
+    return _call(
+        "transfer", tool, folder=m.group("src"), names=[m.group("name")], destination=m.group("dst")
+    )
+
+
+_DELETE = r"(?:borra(?:me)?|borrar|elimina(?:me)?|eliminar|(?:manda|tira|envia|mueve)(?:me)? a la papelera)"
+
+
+@rule("delete_folder", rf"^{_DELETE}\s+la\s+carpeta\s+(?P<x>.+)$")
+def _delete_folder(m: re.Match[str], index: SystemIndex) -> Route | Miss:
+    matches = index.resolve(m.group("x"), {Kind.FOLDER})
+    best = index.confident(matches)
+    if best is None:
+        return Miss(m.group("x"), matches)
+    path = Path(best.entry.launch.value)
+    return _call(
+        "delete", "delete_files", folder=str(path.parent), names=[path.name], include_folders=True
+    )
+
+
+@rule(
+    "delete_files",
+    rf"^{_DELETE}\s+(?:los|las|el|la)\s+{_COUNT}{_WHAT}\s+(?:de|del)\s+(?:la carpeta\s+(?:de\s+)?)?(?P<src>.+)$",
+)
+def _delete_files(m: re.Match[str], _: SystemIndex) -> Route | None:
+    selection = _selection(m)
+    if selection is None:
+        return None
+    return _call("delete", "delete_files", folder=m.group("src"), **selection)
+
+
+@rule(
+    "delete_named",
+    rf"^{_DELETE}\s+(?:el|la)\s+(?:archivo|fichero|documento|foto|video)\s+(?P<name>.+?)\s+(?:de|del)\s+(?P<src>.+)$",
+)
+def _delete_named(m: re.Match[str], _: SystemIndex) -> Route:
+    return _call("delete", "delete_files", folder=m.group("src"), names=[m.group("name")])
+
+
+@rule(
+    "find",
+    r"^(?:busca(?:me)?|buscar|encuentra(?:me)?|donde esta(?:n)?)\s+(?:el|la|los|las|un|una|mis|mi)?\s*(?P<what>archivos?|ficheros?|documentos?|fotos?|imagen(?:es)?|videos?|pdfs?)?\s*(?:de|del|que se llama|llamado|con)?\s*(?P<q>.+?)(?:\s+en\s+(?P<f>(?!google|internet|la web|youtube).+))?$",
+)
+def _find(m: re.Match[str], _: SystemIndex) -> Route | None:
+    if re.search(r"\ben (?:google|internet|la web|youtube)\b", m.group(0)):
+        return None  # búsqueda web (fase 6)
+    what = (m.group("what") or "").rstrip("s")
+    kind = {"foto": "images", "image": "images", "imagene": "images", "video": "videos"}.get(what)
+    query = m.group("q")
+    if what.startswith("pdf"):
+        query += " .pdf"  # el nombre del archivo acaba en .pdf
+    return _call("find", "find_files", query=query, kind=kind, folder=m.group("f"))
+
+
+@rule(
+    "list",
+    rf"^(?:que hay en|que tengo en|(?:lista(?:me)?|ensename|muestrame|dime)\s+(?:los|las)\s+(?:{_COUNT}\s+)?(?:archivos|ficheros|cosas)\s+(?:de|del|en))\s+(?:la carpeta\s+(?:de\s+)?)?(?P<f>.+)$",
+)
+def _list(m: re.Match[str], _: SystemIndex) -> Route | None:
+    raw_n = m.group("n1") or m.group("n2")
+    newest = parse_number(raw_n) if raw_n else None
+    return _call("list", "list_files", folder=m.group("f"), newest=newest)
 
 
 # --- ventanas ---

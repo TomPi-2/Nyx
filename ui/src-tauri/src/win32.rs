@@ -7,11 +7,12 @@ use windows::Win32::Graphics::Dwm::{DWMWA_BORDER_COLOR, DwmSetWindowAttribute};
 use windows::Win32::Graphics::Gdi::{
     GetMonitorInfoW, MONITOR_DEFAULTTONEAREST, MONITORINFO, MonitorFromPoint,
 };
-use windows::Win32::UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
+use windows::Win32::UI::HiDpi::{GetDpiForMonitor, GetDpiForWindow, MDT_EFFECTIVE_DPI};
 use windows::Win32::UI::WindowsAndMessaging::{
-    GWL_EXSTYLE, GetCursorPos, GetWindowLongPtrW, HWND_TOPMOST, SW_HIDE, SW_SHOWNOACTIVATE,
-    SWP_NOACTIVATE, SWP_NOOWNERZORDER, SetWindowLongPtrW, SetWindowPos, ShowWindow,
-    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
+    GWL_EXSTYLE, GetCursorPos, GetWindowLongPtrW, GetWindowRect, HWND_TOPMOST, SW_HIDE,
+    SW_SHOWNOACTIVATE, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE,
+    SWP_NOZORDER, SetWindowLongPtrW, SetWindowPos, ShowWindow, WS_EX_LAYERED, WS_EX_NOACTIVATE,
+    WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT,
 };
 
 /// Valor de DWMWA_BORDER_COLOR que quita el borde de 1 px de Windows 11.
@@ -119,5 +120,48 @@ pub fn show_no_activate(hwnd: HWND) {
 pub fn hide(hwnd: HWND) {
     unsafe {
         let _ = ShowWindow(hwnd, SW_HIDE);
+    }
+}
+
+/// Deja pasar los clics a lo que hay debajo (`WS_EX_TRANSPARENT | WS_EX_LAYERED`) o no.
+///
+/// Se cambia directamente el estilo y nada más: `set_ignore_cursor_events` de Tauri
+/// reescribe todos los estilos según lo que tao cree de la ventana y, como la isla se
+/// muestra con Win32, la ocultaba y le quitaba `WS_EX_NOACTIVATE`.
+pub fn set_click_through(hwnd: HWND, through: bool) {
+    unsafe {
+        let ex = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+        let bits = (WS_EX_TRANSPARENT.0 | WS_EX_LAYERED.0) as isize;
+        let new = if through { ex | bits } else { ex & !bits };
+        if new != ex {
+            SetWindowLongPtrW(hwnd, GWL_EXSTYLE, new);
+            let _ = SetWindowPos(
+                hwnd,
+                None,
+                0,
+                0,
+                0,
+                0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
+            );
+        }
+    }
+}
+
+/// ¿Está el ratón sobre alguno de estos rectángulos? Vienen de la página, en píxeles CSS
+/// relativos a la ventana: `[x, y, ancho, alto]`.
+pub fn cursor_in(hwnd: HWND, rects: &[[f64; 4]]) -> bool {
+    unsafe {
+        let mut pt = POINT::default();
+        let mut win = RECT::default();
+        if GetCursorPos(&mut pt).is_err() || GetWindowRect(hwnd, &mut win).is_err() {
+            return false;
+        }
+        let scale = f64::from(GetDpiForWindow(hwnd).max(96)) / 96.0;
+        let x = f64::from(pt.x - win.left) / scale;
+        let y = f64::from(pt.y - win.top) / scale;
+        rects
+            .iter()
+            .any(|[rx, ry, rw, rh]| x >= *rx && x <= rx + rw && y >= *ry && y <= ry + rh)
     }
 }

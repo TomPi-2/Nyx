@@ -22,6 +22,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             core_process::core_endpoint,
             island::island_set_visible,
+            island::island_set_hit_rects,
             input::input_hide,
         ])
         .setup(|app| {

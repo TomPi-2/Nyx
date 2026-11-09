@@ -74,7 +74,7 @@ async def test_plan_stops_at_first_failure(ctx: ToolContext) -> None:
 
 def test_default_registry_tools_are_complete() -> None:
     tools = default_registry().all()
-    assert len(tools) == 10
+    assert len(tools) == 19  # 18 de las 20 de la fase 3 + undo (faltan alarmas: 3c)
     for tool in tools:
         assert tool.description and tool.risk and tool.game_policy and tool.category
         assert tool.schema()["function"]["name"] == tool.name

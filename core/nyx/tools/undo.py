@@ -1,0 +1,31 @@
+"""undo: deshace la última acción amarilla de los últimos 30 s (verde). «Nyx, deshaz»."""
+
+from __future__ import annotations
+
+from pydantic import Field
+
+from nyx.tools.base import Category, GamePolicy, Params, Risk, Tool, ToolContext, ToolResult
+
+
+class UndoParams(Params):
+    id: str | None = Field(default=None, max_length=40, description="Vacío = la última acción")
+
+
+class UndoLast(Tool[UndoParams]):
+    name = "undo"
+    description = "Deshace la última acción (mover, copiar, renombrar, cerrar). Ej.: «deshaz»."
+    risk = Risk.GREEN
+    game_policy = GamePolicy.ALLOWED
+    category = Category.SYSTEM
+    params_model = UndoParams
+    timeout_s = 120.0
+
+    async def run(self, params: UndoParams, ctx: ToolContext) -> ToolResult:
+        entry = ctx.undo.take(params.id)
+        if entry is None:
+            return ToolResult.fail("No hay nada que deshacer", "solo se puede en los primeros 30 s")
+        try:
+            text = await entry.action()
+        except OSError as e:
+            return ToolResult.fail(f"No he podido deshacer: {entry.summary}", str(e))
+        return ToolResult(ok=True, message=text, display="Deshecho", secondary=text)

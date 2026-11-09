@@ -2,8 +2,8 @@
 //! donde está el ratón. Nunca toma el foco y se oculta del todo en reposo, para no
 //! quedarse encima de un juego cuando no hace falta.
 
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use tauri::{AppHandle, Manager, Runtime, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
@@ -17,9 +17,14 @@ const HEIGHT: f64 = 240.0;
 /// Frecuencia con la que se sigue al ratón entre monitores mientras la isla es visible.
 const FOLLOW_INTERVAL: Duration = Duration::from_millis(150);
 
+/// Con botones, se mira dónde está el ratón con esta frecuencia (debe sentirse inmediato).
+const HOVER_INTERVAL: Duration = Duration::from_millis(30);
+
 #[derive(Default)]
 pub struct IslandState {
     visible: AtomicBool,
+    /// Botones visibles, en píxeles CSS de la ventana: solo ahí la isla recibe clics.
+    hit_rects: Mutex<Vec<[f64; 4]>>,
 }
 
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
@@ -33,19 +38,58 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         .skip_taskbar(true)
         .resizable(false)
         .focused(false)
+        // Para tao también: si alguna vez reescribe los estilos, que no quite NOACTIVATE.
+        .focusable(false)
         .visible(false)
         .build()?;
-    // Fase 1: la isla aún no tiene botones, así que los clics siempre la atraviesan.
-    window.set_ignore_cursor_events(true)?;
     if let Some(hwnd) = win32::hwnd(&window) {
         win32::make_non_activating(hwnd);
         win32::remove_border(hwnd);
+        // Atraviesa los clics salvo con el ratón encima de un botón (ver hover).
+        win32::set_click_through(hwnd, true);
     }
 
     let state = Arc::new(IslandState::default());
     app.manage(state.clone());
-    tauri::async_runtime::spawn(follow_cursor(window, state));
+    tauri::async_runtime::spawn(follow_cursor(window.clone(), state.clone()));
+    tauri::async_runtime::spawn(hover(window, state));
     Ok(())
+}
+
+/// La página informa de dónde están los botones (vacío = no hay).
+#[tauri::command]
+pub fn island_set_hit_rects(state: State<'_, Arc<IslandState>>, rects: Vec<[f64; 4]>) {
+    if let Ok(mut current) = state.hit_rects.lock() {
+        *current = rects;
+    }
+}
+
+/// SPEC sección 11: la isla deja pasar los clics a lo de debajo salvo cuando el ratón está
+/// encima de un botón. Mientras deja pasar los clics la página no recibe el ratón, así que
+/// la posición se mira desde aquí.
+async fn hover<R: Runtime>(window: WebviewWindow<R>, state: Arc<IslandState>) {
+    let mut through = true;
+    loop {
+        let rects = state
+            .hit_rects
+            .lock()
+            .map(|r| r.clone())
+            .unwrap_or_default();
+        let visible = state.visible.load(Ordering::Relaxed);
+        if let Some(hwnd) = win32::hwnd(&window) {
+            let want = rects.is_empty() || !visible || !win32::cursor_in(hwnd, &rects);
+            if want != through {
+                win32::set_click_through(hwnd, want);
+                through = want;
+            }
+        }
+        let wait = if rects.is_empty() {
+            FOLLOW_INTERVAL
+        } else {
+            HOVER_INTERVAL
+        };
+        tokio::time::sleep(wait).await;
+    }
 }
 
 /// La interfaz la muestra al salir de reposo y la oculta al terminar su animación de salida.

@@ -1,4 +1,7 @@
-from nyx.tools.base import ToolContext
+import pytest
+
+from nyx.tools.base import Risk, ToolContext
+from nyx.tools.close_app import CloseApp, CloseAppParams, has_unsaved_changes
 from nyx.tools.focus_window import FocusWindow, FocusWindowParams
 from nyx.tools.wait_for_window import WaitForWindow, WaitForWindowParams
 from nyx.tools.window_layout import WindowLayout, WindowLayoutParams
@@ -78,3 +81,50 @@ async def test_wait_for_window(ctx: ToolContext, desktop: FakeDesktop) -> None:
     assert result.ok
     late = await WaitForWindow().run(WaitForWindowParams(name="Calculadora", timeout_s=0.5), ctx)
     assert not late.ok
+
+
+# --- close_app ---
+
+
+@pytest.mark.parametrize(
+    ("title", "unsaved"),
+    [
+        ("*Sin título: Bloc de notas", True),
+        ("● SPEC.md - Nyx - Visual Studio Code", True),
+        ("Documento1 - Word (sin guardar)", True),
+        ("SPEC.md - Nyx - Visual Studio Code", False),
+        ("@Txiki - Discord", False),
+    ],
+)
+def test_unsaved_changes(title: str, unsaved: bool) -> None:
+    assert has_unsaved_changes(title) is unsaved
+
+
+async def test_close_app_is_yellow_and_closes_all_its_windows(
+    ctx: ToolContext, desktop: FakeDesktop, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    closed: list[int] = []
+    monkeypatch.setattr(windows, "close_window", closed.append)
+    other = Window(9, "Otra - Google Chrome", "chrome.exe")
+    desktop.windows = [CHROME, other, CODE]
+    tool = CloseApp()
+    prepared = await tool.prepare(CloseAppParams(name="chrome"), ctx)
+    assert prepared.error is None and prepared.risk is None
+    result = await tool.execute(CloseAppParams(name="chrome"), ctx, prepared)
+    assert result.ok and closed == [1, 9]
+    assert result.undo is not None  # deshacer = volver a abrirla
+
+
+async def test_close_app_with_unsaved_changes_is_red(
+    ctx: ToolContext, desktop: FakeDesktop
+) -> None:
+    desktop.windows = [Window(5, "● SPEC.md - Nyx - Visual Studio Code", "code.exe")]
+    prepared = await CloseApp().prepare(CloseAppParams(name="vscode"), ctx)
+    assert prepared.risk is Risk.RED
+    assert "sin guardar" in prepared.detail
+
+
+async def test_close_active_window(ctx: ToolContext, desktop: FakeDesktop) -> None:
+    desktop.windows, desktop.fg = [DISCORD], 3
+    prepared = await CloseApp().prepare(CloseAppParams(), ctx)
+    assert prepared.summary == "Cerrar @Txiki - Discord"

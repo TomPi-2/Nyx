@@ -10,6 +10,8 @@ export interface NyxPalette {
   control: string;
   /** Interruptor encendido, botón principal */
   controlActive: string;
+  /** Texto sobre controlActive */
+  textOnActive: string;
   /** Texto principal */
   text: string;
   /** Texto secundario */
@@ -34,6 +36,7 @@ export const dark: NyxPalette = {
   glassRaised: "rgba(58, 58, 60, 0.45)",
   control: "rgba(118, 118, 128, 0.24)",
   controlActive: "rgba(229, 229, 234, 0.90)",
+  textOnActive: "#1C1C1E",
   text: "#F5F5F7",
   textSecondary: "rgba(235, 235, 245, 0.60)",
   textTertiary: "rgba(235, 235, 245, 0.30)",
@@ -48,6 +51,7 @@ export const light: NyxPalette = {
   glassRaised: "rgba(255, 255, 255, 0.55)",
   control: "rgba(118, 118, 128, 0.12)",
   controlActive: "rgba(72, 72, 74, 0.90)",
+  textOnActive: "#F5F5F7",
   text: "#1C1C1E",
   textSecondary: "rgba(60, 60, 67, 0.60)",
   textTertiary: "rgba(60, 60, 67, 0.30)",

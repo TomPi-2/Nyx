@@ -387,6 +387,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pywin32" },
     { name = "rapidfuzz" },
+    { name = "send2trash" },
     { name = "sounddevice" },
     { name = "vosk" },
     { name = "watchdog" },
@@ -401,6 +402,7 @@ dev = [
     { name = "ruff" },
     { name = "types-psutil" },
     { name = "types-pywin32" },
+    { name = "types-send2trash" },
 ]
 
 [package.metadata]
@@ -416,6 +418,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.9" },
     { name = "pywin32", specifier = ">=312" },
     { name = "rapidfuzz", specifier = ">=3.14.6" },
+    { name = "send2trash", specifier = ">=2.1.0" },
     { name = "sounddevice", specifier = ">=0.5.6" },
     { name = "vosk", specifier = ">=0.3.45" },
     { name = "watchdog", specifier = ">=7.1.0" },
@@ -430,6 +433,7 @@ dev = [
     { name = "ruff", specifier = ">=0.6" },
     { name = "types-psutil", specifier = ">=7.2.2.20260906" },
     { name = "types-pywin32", specifier = ">=312.0.0.20261104" },
+    { name = "types-send2trash", specifier = ">=2.1.0.20260408" },
 ]
 
 [[package]]
@@ -702,6 +706,15 @@ wheels = [
 ]
 
 [[package]]
+name = "send2trash"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c5/f0/184b4b5f8d00f2a92cf96eec8967a3d550b52cf94362dad1100df9e48d57/send2trash-2.1.0.tar.gz", hash = "sha256:1c72b39f09457db3c05ce1d19158c2cbef4c32b8bedd02c155e49282b7ea7459", size = 17255, upload-time = "2026-01-14T06:27:36.056Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1c/78/504fdd027da3b84ff1aecd9f6957e65f35134534ccc6da8628eb71e76d3f/send2trash-2.1.0-py3-none-any.whl", hash = "sha256:0da2f112e6d6bb22de6aa6daa7e144831a4febf2a87261451c4ad849fe9a873c", size = 17610, upload-time = "2026-01-14T06:27:35.218Z" },
+]
+
+[[package]]
 name = "sounddevice"
 version = "0.5.6"
 source = { registry = "https://pypi.org/simple" }
@@ -751,6 +764,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/91/41/61c0dd54dba24b80a8f6326a38cd9c80fd250225a027f88fe6931929f9d5/types_pywin32-312.0.0.20261104.tar.gz", hash = "sha256:2944bdb1ce11397eb78c4a0ff031d18c9871730aed111b1cc1c872e6c854eccc", size = 358795, upload-time = "2026-11-04T08:14:13.826Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/25/e1/3ca417219f3be15e8c9111c4dd6f3ea9335e6722ab5a53f7c5ab46674e46/types_pywin32-312.0.0.20261104-py3-none-any.whl", hash = "sha256:1652e70149c9febdaaab1d0224354d6be51cab2e2963ba5e0f34c758a17e5a5a", size = 419941, upload-time = "2026-11-04T08:14:12.493Z" },
+]
+
+[[package]]
+name = "types-send2trash"
+version = "2.1.0.20260408"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/dd/6f/b9d32edd71063a3eb516aeb5090a42119ddaa6c8371c5ed20e24b2cc8894/types_send2trash-2.1.0.20260408.tar.gz", hash = "sha256:caeea92ff46e6a5a5333f2558a773d8962c04d9b7a8fc5b4cb3d34f2962aba08", size = 7673, upload-time = "2026-04-08T04:32:33.673Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c8/6e/a5b49858cd85a4f207255b7f3482ea6e061c289b230e2e2401c0e558651e/types_send2trash-2.1.0.20260408-py3-none-any.whl", hash = "sha256:b118d896ec324436a554c2ae1b1dfda9487fd1a51b9049e209c2d42b9644ad61", size = 8277, upload-time = "2026-04-08T04:32:32.943Z" },
 ]
 
 [[package]]
