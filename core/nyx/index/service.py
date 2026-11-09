@@ -19,7 +19,7 @@ from rapidfuzz import fuzz, process
 from nyx.index.aliases import normalize, strip_articles
 from nyx.index.db import IndexDB
 from nyx.index.model import Entry, Kind
-from nyx.index.scanners import scan_all
+from nyx.index.scanners import ScanResult, scan_all
 from nyx.paths import local_dir
 
 log = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ class SystemIndex:
     def __init__(
         self,
         db: IndexDB,
-        scanner: Callable[[], list[Entry]] = scan_all,
+        scanner: Callable[[], list[Entry] | ScanResult] = scan_all,
         clock: Callable[[], float] = time.time,
     ) -> None:
         self._db = db
@@ -124,7 +124,16 @@ class SystemIndex:
         """Escanea todas las fuentes en un hilo y sustituye la caché. Devuelve cuántas hay."""
         async with self._lock:
             t0 = time.perf_counter()
-            entries = dedupe(await asyncio.to_thread(self._scanner))
+            scanned = await asyncio.to_thread(self._scanner)
+            if isinstance(scanned, ScanResult):
+                found, failed = scanned.entries, scanned.failed
+            else:
+                found, failed = scanned, set()
+            if failed:
+                kept = [e for e in self._entries.values() if e.source in failed]
+                log.warning("Se conservan %d entradas de %s (fallo al escanear)", len(kept), failed)
+                found += kept
+            entries = dedupe(found)
             await asyncio.to_thread(self._db.replace_entries, entries)
             self._set_entries(entries)
             log.info(

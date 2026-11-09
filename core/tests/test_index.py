@@ -6,7 +6,7 @@ import pytest
 from nyx.index.aliases import generate, normalize
 from nyx.index.db import IndexDB
 from nyx.index.model import Kind
-from nyx.index.scanners import folders, games
+from nyx.index.scanners import ScanResult, folders, games
 from nyx.index.scanners.tables import SETTINGS_PAGES, WEBSITES
 from nyx.index.service import SystemIndex
 from tests.conftest import sample_entries
@@ -183,3 +183,22 @@ async def test_load_from_disk_without_scanning(tmp_path: Path) -> None:
     assert len(second) == len(first)
     assert not second.needs_scan()
     second.close()
+
+
+async def test_failed_source_keeps_previous_entries(tmp_path: Path) -> None:
+    """Si un escáner falla (p. ej. COM sin inicializar), no se pierden sus entradas."""
+    for sub in ("Descargas", "Documentos", "Imagenes/Fondos"):
+        (tmp_path / sub).mkdir(parents=True)
+    index = SystemIndex(IndexDB(tmp_path / "i.db"), scanner=lambda: sample_entries(tmp_path))
+    await index.refresh()
+    before = len(index)
+    assert before
+    tests = sum(1 for e in index.entries() if e.source == "test")
+    others = [e for e in index.entries() if e.source != "test"]
+    index._scanner = lambda: ScanResult(others, failed={"test"})
+    await index.refresh()
+    assert len(index) == before and tests
+    index._scanner = lambda: ScanResult([])  # sin fallo: lo que no aparece, se va
+    await index.refresh()
+    assert len(index) == 0
+    index.close()

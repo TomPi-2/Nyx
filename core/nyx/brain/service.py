@@ -22,13 +22,24 @@ from nyx.brain.prompts import (
     system_message,
     user_message,
 )
-from nyx.brain.reply import Reply, ReplyEvent, TextReplyParser
+from nyx.brain.reply import MAX_HEADER, Reply, ReplyEvent, TextReplyParser
 from nyx.brain.textcalls import could_be_call, parse_text_calls
 
 log = logging.getLogger(__name__)
 
 # Principio de una respuesta aún sin decidir: nombre (posible herramienta) sin terminar.
 _UNDECIDED = re.compile(r"^\s*`*\s*[A-Za-z_]*\s*$")
+
+
+def _after_header(text: str) -> str | None:
+    """El texto tras la cabecera «[…]» si la hay; None si la cabecera aún no ha terminado."""
+    start = text.lstrip()
+    if not start.startswith("["):
+        return text
+    ends = [i for i in (start.find("]"), start.find("\n")) if i >= 0]
+    if not ends:
+        return None if len(start) <= MAX_HEADER else text
+    return start[min(ends) + 1 :]
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,9 +98,12 @@ class Brain:
                 continue
             if mode == "?":
                 held += piece
-                if _UNDECIDED.match(held):
+                # Lo que va tras una cabecera «[…]» también puede ser una llamada escrita
+                # («[acciones]\nset_timer({…})»).
+                body = _after_header(held)
+                if body is None or _UNDECIDED.match(body):
                     continue
-                mode = "call" if could_be_call(held, names) else "text"
+                mode = "call" if could_be_call(body, names) else "text"
                 piece, held = (held, "") if mode == "text" else ("", held)
             if mode == "call":
                 held += piece
@@ -97,7 +111,7 @@ class Brain:
             for event in parser.feed(piece):
                 yield event
         if not calls and held:
-            calls = parse_text_calls(held, names)
+            calls = parse_text_calls(_after_header(held) or held, names)
             if calls:
                 log.info("Llamadas escritas como texto: %r", held[:200])
             else:  # no lo era: se trata como respuesta normal
