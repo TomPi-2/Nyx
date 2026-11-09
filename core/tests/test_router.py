@@ -36,6 +36,9 @@ def call(text: str, index: SystemIndex) -> tuple[str, dict[str, object]]:
         ("Pausa la música", "media_control", {"action": "play_pause"}),
         ("reanuda", "media_control", {"action": "play_pause"}),
         ("Pon algo de música", "media_control", {"action": "play_pause"}),
+        ("Sube el volumen en Spotify", "set_volume", {"change": 10, "app": "Spotify"}),
+        ("baja el volumen de discord al 20", "set_volume", {"level": 20, "app": "Discord PTB"}),
+        ("sube el volumen al 50 en spotify", "set_volume", {"level": 50, "app": "Spotify"}),
         ("Pon un temporizador de 5 minutos", "set_timer", {"minutes": 5}),
         ("temporizador de diez segundos", "set_timer", {"seconds": 10}),
         ("Avísame en media hora", "set_timer", {"minutes": 30}),
@@ -76,7 +79,6 @@ async def test_open_folder_uses_its_path(index: SystemIndex) -> None:
         "¿Qué hora es?",
         "¿Cómo se dice hola en alemán?",
         "Recuérdame a las 10:50 llamar a mamá",
-        "abre una pestaña nueva",
         "Abre el bloc de notas y abre una nueva pestaña",  # varios pasos: LLM (3c)
         "pon el volumen al 300",
     ],
@@ -205,3 +207,33 @@ async def test_la_carpeta_de(index: SystemIndex) -> None:
 @pytest.mark.parametrize("text", ["recupéralo", "recupera el archivo de la papelera", "restáuralo"])
 async def test_restore_means_undo(index: SystemIndex, text: str) -> None:
     assert call(text, index) == ("undo", {})
+
+
+@pytest.mark.parametrize("open_now", [True, False])
+def test_new_tab_in_app(
+    index: SystemIndex, monkeypatch: pytest.MonkeyPatch, open_now: bool
+) -> None:
+    from nyx.brain import router as router_module
+
+    monkeypatch.setattr(
+        router_module, "_find_windows", lambda name, process: [1] if open_now else []
+    )
+    result = route("Abre una nueva pestaña dentro del bloc de notas", index)
+    assert isinstance(result, Route)
+    call = result.calls[0]
+    if open_now:  # ya abierto: Ctrl+T en su ventana
+        assert (call.name, call.arguments) == (
+            "send_hotkey",
+            {"keys": "ctrl+t", "app": "Bloc de notas"},
+        )
+    else:  # abrirlo ya deja una pestaña nueva
+        assert (call.name, call.arguments["name"]) == ("open_app", "Bloc de notas")
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["Pasa la siguiente canción en Spotify.", "pasa a la siguiente", "canción anterior en spotify"],
+)
+def test_media_with_app_suffix(index: SystemIndex, text: str) -> None:
+    result = route(text, index)
+    assert isinstance(result, Route) and result.calls[0].name == "media_control"

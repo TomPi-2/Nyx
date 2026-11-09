@@ -19,6 +19,7 @@ from nyx.index.model import Kind
 from nyx.index.service import Match, SystemIndex
 from nyx.stt.normalize import NUMBER_WORDS
 from nyx.tools.open_url import to_url
+from nyx.winapi import windows
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,26 +121,39 @@ def _call(rule_name: str, tool: str, **arguments: object) -> Route:
 # --- volumen (antes que «pon …» y «abre …») ---
 
 
-@rule(
-    "volume_up",
-    rf"^(?:sube|subir|subeme|aumenta)\s+(?:el\s+)?(?:volumen|sonido)(?:\s+(?:a|al|hasta(?:\s+el)?)\s+{_NUM})?(?P<much>\s+mucho)?(?:\s+un poco)?$",
+# «sube el volumen de Spotify», «baja el sonido en Discord al 20», «sube el volumen al 50 en Spotify»
+_APP_AT = r"(?:\s+(?:de|en|del)\s+(?P<app>[a-z0-9 ]+?))?"
+_APP_AFTER = r"(?:\s+(?:de|en|del|para)\s+(?P<app2>[a-z0-9 ]+?))?"
+_VOLUME_TAIL = (
+    rf"\s+(?:el\s+)?(?:volumen|sonido){_APP_AT}(?:\s+(?:a|al|hasta(?:\s+el)?)\s+{_NUM})?"
+    rf"{_APP_AFTER}(?P<much>\s+mucho)?(?:\s+un poco)?$"
 )
-def _volume_up(m: re.Match[str], _: SystemIndex) -> Route | None:
-    if m.group("n"):
-        level = parse_number(m.group("n"))
-        return _call("volume_up", "set_volume", level=level) if level is not None else None
-    return _call("volume_up", "set_volume", change=20 if m.group("much") else 10)
 
 
-@rule(
-    "volume_down",
-    rf"^(?:baja|bajar|bajame|reduce)\s+(?:el\s+)?(?:volumen|sonido)(?:\s+(?:a|al|hasta(?:\s+el)?)\s+{_NUM})?(?P<much>\s+mucho)?(?:\s+un poco)?$",
-)
-def _volume_down(m: re.Match[str], _: SystemIndex) -> Route | None:
+def _volume(rule_name: str, m: re.Match[str], index: SystemIndex, step: int) -> Route | None:
+    app_name = m.group("app") or m.group("app2")
+    app: str | None = None
+    if app_name:
+        best = index.confident(index.resolve(app_name, {Kind.APP, Kind.GAME}))
+        if best is None:
+            return None  # que lo intente el LLM
+        app = best.entry.name
     if m.group("n"):
         level = parse_number(m.group("n"))
-        return _call("volume_down", "set_volume", level=level) if level is not None else None
-    return _call("volume_down", "set_volume", change=-20 if m.group("much") else -10)
+        if level is None or level > 100:
+            return None
+        return _call(rule_name, "set_volume", level=level, app=app)
+    return _call(rule_name, "set_volume", change=step * (2 if m.group("much") else 1), app=app)
+
+
+@rule("volume_up", rf"^(?:sube|subir|subeme|aumenta){_VOLUME_TAIL}")
+def _volume_up(m: re.Match[str], index: SystemIndex) -> Route | None:
+    return _volume("volume_up", m, index, 10)
+
+
+@rule("volume_down", rf"^(?:baja|bajar|bajame|reduce){_VOLUME_TAIL}")
+def _volume_down(m: re.Match[str], index: SystemIndex) -> Route | None:
+    return _volume("volume_down", m, index, -10)
 
 
 @rule(
@@ -195,7 +209,8 @@ def _play(m: re.Match[str], _: SystemIndex) -> Route:
 
 @rule(
     "media_next",
-    r"^(?:(?:pon\s+)?(?:la\s+)?siguiente|pasa(?:\s+de)?|salta|skip)(?:\s+(?:cancion|tema|pista|video))?$",
+    r"^(?:(?:pon\s+)?(?:la\s+)?siguiente|pasa(?:\s+de|\s+a)?(?:\s+la\s+siguiente)?|salta|skip)(?:\s+(?:cancion|tema|pista|video))?"
+    r"(?:\s+(?:en|de|del)\s+[a-z0-9 ]+)?$",
 )
 def _next(m: re.Match[str], _: SystemIndex) -> Route:
     return _call("media_next", "media_control", action="next")
@@ -203,10 +218,34 @@ def _next(m: re.Match[str], _: SystemIndex) -> Route:
 
 @rule(
     "media_previous",
-    r"^(?:(?:pon\s+)?(?:la\s+)?anterior|(?:cancion|tema|pista) anterior|vuelve a la anterior)(?:\s+(?:cancion|tema|pista))?$",
+    r"^(?:(?:pon\s+)?(?:la\s+)?anterior|(?:cancion|tema|pista) anterior|vuelve a la anterior)(?:\s+(?:cancion|tema|pista))?"
+    r"(?:\s+(?:en|de|del)\s+[a-z0-9 ]+)?$",
 )
 def _previous(m: re.Match[str], _: SystemIndex) -> Route:
     return _call("media_previous", "media_control", action="previous")
+
+
+# --- atajos de teclado (send_hotkey) ---
+
+# Se mira si la app ya tiene ventana: si no, abrirla ya deja una pestaña nueva.
+_find_windows = windows.find_windows
+
+
+@rule(
+    "new_tab",
+    r"^(?:abre(?:me)?|crea(?:me)?|pon(?:me)?|haz(?:me)?)\s+(?:una\s+|otra\s+)?(?:nueva\s+(?:pestana|nota|ventana)|(?:pestana|nota)\s+nueva)"
+    r"(?:\s+(?:dentro del|dentro de|en|del|de)\s+(?:el\s+|la\s+)?(?P<app>.+))?$",
+)
+def _new_tab(m: re.Match[str], index: SystemIndex) -> Route | None:
+    if not m.group("app"):
+        return _call("new_tab", "send_hotkey", keys="ctrl+t")
+    best = index.confident(index.resolve(m.group("app"), {Kind.APP}))
+    if best is None:
+        return None
+    name = best.entry.name
+    if _find_windows(name, best.entry.process):
+        return _call("new_tab", "send_hotkey", keys="ctrl+t", app=name)
+    return _call("new_tab", "open_app", name=name)
 
 
 # --- capturas ---

@@ -74,14 +74,22 @@ class FakeDesktop:
             self.muted = mute
         return self.volume, self.muted
 
-    def _set_app(self, process: str, level: int | None = None, mute: bool | None = None) -> int:
+    def _set_app(
+        self,
+        process: str,
+        level: int | None = None,
+        mute: bool | None = None,
+        change: int | None = None,
+    ) -> int | None:
         if process not in self.sessions:
-            return 0
+            return None
+        if change is not None:
+            level = self.sessions[process] + change
         if level is not None:
-            self.sessions[process] = level
+            self.sessions[process] = max(0, min(100, level))
         if mute:
             self.sessions[process] = 0
-        return 1
+        return self.sessions[process]
 
 
 @pytest.fixture

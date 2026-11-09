@@ -202,3 +202,12 @@ async def test_failed_source_keeps_previous_entries(tmp_path: Path) -> None:
     await index.refresh()
     assert len(index) == 0
     index.close()
+
+
+def test_exe_aliases_for_translated_app_names() -> None:
+    from nyx.index.scanners.apps import exe_aliases
+
+    riot = exe_aliases(r"C:\Riot Games\Riot Client\RiotClientServices.exe")
+    assert "Riot Client" in riot and "Riot Client Services" in riot
+    assert exe_aliases(r"C:\Program Files\App\x.exe") == ()
+    assert exe_aliases("Microsoft.WindowsNotepad_8wekyb3d8bbwe!App") == ()

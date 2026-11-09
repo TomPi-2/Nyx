@@ -142,10 +142,30 @@ async fn run_once(app: &AppHandle, state: &CoreState) -> Result<String, String> 
     tokio::select! {
         status = child.wait() => status.map(|s| s.to_string()).map_err(|e| e.to_string()),
         _ = state.restart.notified() => {
+            kill_tree(&child);
             let _ = child.kill().await;
             Ok("reinicio solicitado".into())
         }
     }
+}
+
+/// Mata el núcleo con todos sus descendientes. `child` es `uv`, que lanza `nyx.exe` →
+/// `python.exe` → `whisper-server.exe`: matar solo `uv` dejaba vivo el núcleo de verdad y,
+/// tras «Reiniciar núcleo», había dos escuchando el micrófono a la vez.
+fn kill_tree(child: &tokio::process::Child) {
+    #[cfg(windows)]
+    if let Some(pid) = child.id() {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        let _ = std::process::Command::new("taskkill")
+            .args(["/PID", &pid.to_string(), "/T", "/F"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+    }
+    #[cfg(not(windows))]
+    let _ = child;
 }
 
 /// Orden para lanzar el núcleo.

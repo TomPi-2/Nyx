@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from pathlib import Path
 
 from nyx.index.aliases import generate
@@ -45,6 +46,43 @@ def shortcut_targets() -> dict[str, str]:
     return targets
 
 
+# Carpetas que no dicen nada del programa.
+_GENERIC_DIRS = {
+    "program files",
+    "program files (x86)",
+    "bin",
+    "app",
+    "apps",
+    "x64",
+    "x86",
+    "current",
+    "launcher",
+    "windows",
+    "system32",
+}
+_EXE_SUFFIXES = ("services", "service", "launcher", "app", "client64", "x64")
+
+
+def exe_aliases(path: str) -> tuple[str, ...]:
+    """Alias sacados de la ruta: «Cliente de Riot» → «Riot Client» (carpeta) y «Riot Client
+    Services» (RiotClientServices.exe). Así se encuentra también por su nombre en inglés."""
+    exe = Path(path)
+    if exe.suffix.lower() != ".exe":
+        return ()
+    out: list[str] = []
+    folder = exe.parent.name
+    if folder and folder.casefold() not in _GENERIC_DIRS and not re.search(r"\d", folder):
+        out.append(folder)
+    words = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", exe.stem).replace("_", " ").replace("-", " ")
+    if " " in words.strip():
+        out.append(words)
+        low = words.lower()
+        for suffix in _EXE_SUFFIXES:
+            if low.endswith(" " + suffix):
+                out.append(words[: -len(suffix) - 1])
+    return tuple(out)
+
+
 def scan() -> list[Entry]:
     import win32com.client
 
@@ -69,7 +107,7 @@ def scan() -> list[Entry]:
                 launch=Launch(LaunchKind.APPS_FOLDER, app_id),
                 source="apps",
                 process=process,
-                aliases=generate(name),
+                aliases=generate(name, exe_aliases(app_id)),
             )
         )
     return entries

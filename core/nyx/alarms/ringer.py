@@ -3,9 +3,9 @@ notificación de Windows).
 
 - Burbuja con el dato («10:50», «Tiempo», el texto del recordatorio) y el botón «Parar»;
   `alert=True` hace que la interfaz lance también la notificación de Windows.
-- Un timbre cada pocos segundos durante como mucho un minuto y, tras el primero, la frase
+- Un timbre durante unos segundos (RING_S) y, tras el primero, la frase
   («Son las 10:50.»).
-- Se calla con «Parar», al hablarle a Nyx (pasa a escuchar o a pensar) o al minuto. Un «para»
+- Se calla con «Parar», al hablarle a Nyx (pasa a escuchar o a pensar) o a los RING_S. Un «para»
   justo después se entiende dirigido a la alarma y no a la música (`swallow`).
 - Las alarmas que vencieron con Nyx cerrado se avisan una vez, con un solo timbre.
 """
@@ -38,9 +38,9 @@ from nyx.tts.base import TTSEngine, TTSError
 
 log = logging.getLogger(__name__)
 
-RING_S = 60.0  # como mucho suena esto
+RING_S = 5.0  # el aviso dura esto (timbre y burbuja) si no se para antes
 CHIME_EVERY_S = 2.5
-MISSED_BUBBLE_S = 30.0
+MISSED_BUBBLE_S = 5.0
 STOP_WINDOW_S = 15.0  # «para» tras callar la alarma se refiere a ella
 STOP_WORDS = {
     "para",

@@ -37,6 +37,8 @@ async def test_app_volume(ctx: ToolContext, desktop: FakeDesktop) -> None:
     desktop.sessions = {"spotify.exe": 100}
     result = await SetVolume().run(SetVolumeParams(app="spotify", level=30), ctx)
     assert result.ok and desktop.sessions["spotify.exe"] == 30
+    louder = await SetVolume().run(SetVolumeParams(app="spotify", change=10), ctx)
+    assert louder.ok and louder.data["level"] == 40 and desktop.sessions["spotify.exe"] == 40
     silent = await SetVolume().run(SetVolumeParams(app="discord", mute=True), ctx)
     assert not silent.ok  # no está sonando
 
