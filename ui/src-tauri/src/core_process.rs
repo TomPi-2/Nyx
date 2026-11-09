@@ -149,7 +149,7 @@ async fn run_once(app: &AppHandle, state: &CoreState) -> Result<String, String> 
 ///
 /// - `NYX_CORE_EXE`: ejecutable empaquetado (fase 6).
 /// - Si no, `uv run` sobre `NYX_CORE_DIR` o la carpeta `core/` del repositorio.
-/// - En compilaciones de depuración se añade `--demo` salvo con `NYX_DEMO=0`.
+/// - `NYX_DEMO=1` añade `--demo` (recorre los estados sin voz) en compilaciones de depuración.
 fn core_command() -> Command {
     let mut cmd = if let Ok(exe) = std::env::var("NYX_CORE_EXE") {
         Command::new(exe)
@@ -162,7 +162,7 @@ fn core_command() -> Command {
         c
     };
     cmd.arg("--parent-pipe");
-    if cfg!(debug_assertions) && std::env::var("NYX_DEMO").as_deref() != Ok("0") {
+    if cfg!(debug_assertions) && std::env::var("NYX_DEMO").as_deref() == Ok("1") {
         cmd.arg("--demo");
     }
     cmd

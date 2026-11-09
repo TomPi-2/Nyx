@@ -7,6 +7,7 @@
   import { onMount } from "svelte";
   import { Spring } from "svelte/motion";
   import { invoke } from "@tauri-apps/api/core";
+  import { listen } from "@tauri-apps/api/event";
   import { connectCore } from "$lib/core";
   import type { NyxState, ServerMessage } from "$lib/protocol";
 
@@ -72,15 +73,23 @@
     }
   }
 
-  onMount(() =>
-    connectCore(handle, (ok) => {
+  onMount(() => {
+    const core = connectCore(handle, (ok) => {
       connected = ok;
       if (!ok) {
         status = "idle";
         bubble = null;
       }
-    }),
-  );
+    });
+    // Atajo de hablar (Win+Alt+H): llega del proceso principal y se reenvía al núcleo.
+    const offTalk = listen<boolean>("hotkey://talk", (event) => {
+      core.send({ type: "talk", pressed: event.payload });
+    });
+    return () => {
+      core.close();
+      void offTalk.then((off) => off());
+    };
+  });
 </script>
 
 <!-- Medidor invisible: tamaño natural del contenido de la burbuja. -->
@@ -191,6 +200,7 @@
     padding: 14px 26px;
     max-width: 520px;
     white-space: nowrap;
+    box-sizing: border-box;
   }
 
   .measure {
@@ -209,9 +219,14 @@
     max-width: 100%;
   }
 
+  /* En las respuestas escritas (sin voz) lleva la respuesta entera: puede ocupar varias líneas. */
   .secondary {
+    max-width: 100%;
     font-size: 13px;
+    line-height: 1.35;
     color: var(--text-secondary);
+    text-align: center;
+    white-space: normal;
   }
 
   @keyframes sweep {

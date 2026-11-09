@@ -17,7 +17,7 @@ Eres el desarrollador principal de Nyx. La especificación completa está en [do
 
 ## Estado
 
-Fase actual: **2 — Bucle de voz** (en curso). Fase 1 cerrada el 2026-11-09.
+Fase actual: **3 — Acciones** (sin empezar: falta proponer el plan). Fases 1 y 2 cerradas el 2026-11-09.
 
 ## Decisiones tomadas
 
@@ -63,6 +63,8 @@ uv sync
 uv run ruff format . ; uv run ruff check .
 uv run mypy
 uv run pytest
+uv run nyx --download-models      # modelos de voz en %LOCALAPPDATA%\Nyx\models (SHA-256)
+uv run nyx --ask "¿Qué día es hoy?"   # una pregunta sin interfaz ni micrófono
 uv run nyx --demo --print-token   # núcleo suelto, recorre los estados
 uv run python scripts/check_ollama.py    # prueba de GPU (ver docs/benchmarks)
 ```
@@ -73,13 +75,15 @@ Desde `ui/`:
 
 ```powershell
 npm install
-npm run tauri dev        # app completa; en depuración lanza el núcleo en modo demo (NYX_DEMO=0 lo quita)
+npm run tauri dev        # app completa con el bucle de voz (NYX_DEMO=1: núcleo en modo demo)
 npm run check            # svelte-check
 npm run format           # prettier
 cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
 ```
 
 Arquitectura de procesos: `ui/src-tauri` (Rust) es el proceso principal. Lanza el núcleo con `uv run`, le pasa el token en `NYX_TOKEN` y lee el puerto de la línea `ready` en stdout. Las ventanas piden puerto y token con el comando `core_endpoint` y se conectan por WebSocket. El protocolo está duplicado en `core/nyx/bridge/protocol.py` y `ui/src/lib/protocol.ts`: cambia los dos a la vez.
+
+Ajustes en `%APPDATA%\Nyx\settings.json` (micrófono, voz, ruta de `whisper-server.exe`, modelo de Ollama, `responses.speak_typed` para responder también en voz a lo escrito); se leen al arrancar el núcleo (bandeja → Reiniciar núcleo). Atajos: `Win+Alt+N` escribir, `Win+Alt+H` hablar. Cada petición deja su latencia en el registro (`Latencia: fin de frase → voz …`).
 
 Problema conocido en este equipo: la caché de uv está en una carpeta sincronizada con la nube, así que `core/pyproject.toml` usa `link-mode = "copy"`. Si `uv` da "os error 32" o "396", borra `core/.venv` y repite.
 
