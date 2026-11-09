@@ -49,6 +49,8 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.open_url import OpenUrl
     from nyx.tools.rename_file import RenameFile
     from nyx.tools.screenshot import Screenshot
+    from nyx.tools.set_alarm import SetAlarm
+    from nyx.tools.set_timer import SetTimer
     from nyx.tools.set_volume import SetVolume
     from nyx.tools.undo import UndoLast
     from nyx.tools.wait_for_window import WaitForWindow
@@ -73,6 +75,8 @@ def default_registry() -> ToolRegistry:
             MoveFiles(),
             CopyFiles(),
             RenameFile(),
+            SetAlarm(),
+            SetTimer(),
             DeleteFiles(),
             UndoLast(),
         ]
