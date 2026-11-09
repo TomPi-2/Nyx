@@ -40,6 +40,10 @@ CREATE TABLE IF NOT EXISTS meta (
 """
 
 
+# Súbelo al cambiar lo que guardan los escáneres (alias…): la caché se rehace al arrancar.
+SCAN_VERSION = 2
+
+
 class IndexDB:
     def __init__(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -69,6 +73,13 @@ class IndexDB:
             self._conn.execute(
                 "INSERT OR REPLACE INTO meta VALUES ('last_scan', ?)", (str(time.time()),)
             )
+            self._conn.execute(
+                "INSERT OR REPLACE INTO meta VALUES ('scan_version', ?)", (str(SCAN_VERSION),)
+            )
+
+    def scan_version(self) -> int:
+        row = self._conn.execute("SELECT value FROM meta WHERE name = 'scan_version'").fetchone()
+        return int(row[0]) if row else 0
 
     def entries(self) -> list[Entry]:
         rows = self._conn.execute(

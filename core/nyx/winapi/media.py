@@ -65,19 +65,30 @@ def app_sessions() -> list[str]:
         )
 
 
-def set_app(process: str, level: int | None = None, mute: bool | None = None) -> int:
-    """Cambia el volumen de las sesiones de un proceso. Devuelve cuántas se cambiaron."""
+def set_app(
+    process: str,
+    level: int | None = None,
+    mute: bool | None = None,
+    change: int | None = None,
+) -> int | None:
+    """Cambia el volumen de las sesiones de un proceso (exacto o relativo, «sube Spotify»).
+
+    Devuelve el volumen resultante (0–100) o None si el proceso no tiene sesión de audio.
+    """
     from pycaw.pycaw import AudioUtilities
 
-    changed = 0
+    result: int | None = None
     with _com():
         for s in AudioUtilities.GetAllSessions():
             if not s.Process or s.Process.name().lower() != process:
                 continue
             volume = s.SimpleAudioVolume
-            if level is not None:
-                volume.SetMasterVolume(max(0, min(100, level)) / 100, None)
+            target = level
+            if change is not None:
+                target = round(volume.GetMasterVolume() * 100) + change
+            if target is not None:
+                volume.SetMasterVolume(max(0, min(100, target)) / 100, None)
             if mute is not None:
                 volume.SetMute(1 if mute else 0, None)
-            changed += 1
-    return changed
+            result = round(volume.GetMasterVolume() * 100)
+    return result

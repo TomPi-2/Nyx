@@ -109,6 +109,11 @@ async def run(args: argparse.Namespace) -> int:
     asyncio.get_running_loop().set_exception_handler(_quiet_connection_reset)
     token = args.token or os.environ.get("NYX_TOKEN") or secrets.token_urlsafe(32)
     settings = load_settings()
+    if args.parent_pipe and not args.demo:
+        # Lanzado por la app: nunca dos núcleos escuchando el micrófono a la vez.
+        from nyx.single import take_over
+
+        take_over()
 
     bus = EventBus()
     bridge = UIBridge(bus, token, port=args.port)

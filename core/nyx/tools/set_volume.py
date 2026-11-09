@@ -63,9 +63,16 @@ class SetVolume(Tool[SetVolumeParams]):
             wanted = next((s for s in sessions if name in s.replace(" ", "")), None)
         if wanted is None:
             return ToolResult.fail(f"{params.app} no está sonando ahora")
-        if params.change is not None:
-            return ToolResult.fail("Para una app, dime el volumen exacto", "por ejemplo, al 30")
-        changed = await asyncio.to_thread(media.set_app, wanted, params.level, params.mute)
-        if not changed:
+        level = await asyncio.to_thread(
+            media.set_app, wanted, params.level, params.mute, params.change
+        )
+        if level is None:
             return ToolResult.fail(f"{params.app} no está sonando ahora")
-        return ToolResult(ok=True, message=f"Volumen de {params.app} cambiado")
+        name = best.entry.name if best else params.app
+        shown = "silenciado" if params.mute else f"{level} %"
+        return ToolResult(
+            ok=True,
+            message=f"Volumen de {name}: {shown}",
+            display=f"{name} · {shown}",
+            data={"level": level},
+        )

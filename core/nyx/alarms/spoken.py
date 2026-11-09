@@ -61,7 +61,7 @@ def fired_text(alarm: Alarm) -> tuple[str, str, str]:
             return (
                 alarm.label,
                 f"temporizador de {short_duration(alarm.duration_s or 0)}",
-                (f"Ya han pasado los {length}: {alarm.label}."),
+                (f"Te recuerdo: {alarm.label}."),
             )
         return (
             "Tiempo",

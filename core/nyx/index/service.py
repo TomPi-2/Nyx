@@ -17,7 +17,7 @@ from pathlib import Path
 from rapidfuzz import fuzz, process
 
 from nyx.index.aliases import normalize, strip_articles
-from nyx.index.db import IndexDB
+from nyx.index.db import SCAN_VERSION, IndexDB
 from nyx.index.model import Entry, Kind
 from nyx.index.scanners import ScanResult, scan_all
 from nyx.paths import local_dir
@@ -118,7 +118,12 @@ class SystemIndex:
 
     def needs_scan(self) -> bool:
         last = self._db.last_scan()
-        return last is None or self._clock() - last > RESCAN_EVERY_S or not self._entries
+        return (
+            last is None
+            or self._clock() - last > RESCAN_EVERY_S
+            or not self._entries
+            or self._db.scan_version() != SCAN_VERSION
+        )
 
     async def refresh(self) -> int:
         """Escanea todas las fuentes en un hilo y sustituye la caché. Devuelve cuántas hay."""

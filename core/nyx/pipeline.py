@@ -63,6 +63,7 @@ VERIFY_CLIP_S = 2.0  # audio que whisper revisa para confirmar «Nyx»
 CONFIRM_TIMEOUT_S = 15.0  # SPEC sección 8: sin respuesta, se cancela
 CANCELLED_BUBBLE_S = 2.5
 UNDONE_BUBBLE_S = 4.0
+NOTICE_BUBBLE_S = 5.0  # avisos (alarma puesta…): se van solos
 MISS_LLM_MIN = 70.0  # «abre X» sin coincidencia: se consulta al LLM solo si algo se parece
 # Pausa tras la que se transcribe lo dicho para ver si la petición ya está completa.
 EARLY_PAUSE_S = 0.4
@@ -911,7 +912,9 @@ class Pipeline:
             (BubbleAction(button, "Deshacer"),),
         )
         self._actions = {button: lambda: self._spawn(self._undo(undo_id))}
-        self._schedule_bubble_hide(UNDO_TTL_S)
+        # Alarmas y temporizadores: aviso corto (se puede decir «deshaz» los 30 s igualmente).
+        short = "alarm_id" in result.data
+        self._schedule_bubble_hide(NOTICE_BUBBLE_S if short else UNDO_TTL_S)
 
     def _spawn(self, coro: Coroutine[Any, Any, None]) -> None:
         task = asyncio.create_task(coro)
