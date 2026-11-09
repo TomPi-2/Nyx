@@ -1,0 +1,36 @@
+{
+  "hardware": {
+    "machine": "TomPi",
+    "python": "3.12.16",
+    "cpu": "AMD Ryzen 7 7700X 8-Core Processor",
+    "ram_gb": 31.1,
+    "gpus": [
+      "AMD Radeon RX 7700 XT (32.0.32015.7029)",
+      "AMD Radeon(TM) Graphics (32.0.21045.16010)"
+    ],
+    "os": "Microsoft Windows 11 Pro build 26300"
+  },
+  "ollama": "0.40.15",
+  "models": {
+    "qwen2.5:7b": {
+      "load_s": 4.7,
+      "vram_gb": 4.43,
+      "gpu_percent": 100,
+      "ttft_s": 0.021,
+      "tokens_per_s": 77.0,
+      "tool_hits": "3/3",
+      "tool_call_s": 0.38,
+      "meets_ttft_1_5s": true
+    },
+    "llama3.1:8b": {
+      "load_s": 5.03,
+      "vram_gb": 4.92,
+      "gpu_percent": 100,
+      "ttft_s": 0.02,
+      "tokens_per_s": 72.3,
+      "tool_hits": "3/3",
+      "tool_call_s": 0.34,
+      "meets_ttft_1_5s": true
+    }
+  }
+}

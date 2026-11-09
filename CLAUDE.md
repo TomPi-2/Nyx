@@ -17,7 +17,7 @@ Eres el desarrollador principal de Nyx. La especificación completa está en [do
 
 ## Estado
 
-Fase actual: **1 — Base y pruebas técnicas** (en curso).
+Fase actual: **2 — Bucle de voz** (en curso). Fase 1 cerrada el 2026-11-09.
 
 ## Decisiones tomadas
 
@@ -30,6 +30,7 @@ Fase actual: **1 — Base y pruebas técnicas** (en curso).
 | 2026-11-09 | Python gestionado con `uv` (Python 3.12). |
 | 2026-11-09 | Sin cuenta. Datos de uso anónimos solo con permiso (SPEC sección 8). |
 | 2026-11-09 | Interfaz en ventanas flotantes propias, ocultas en reposo; el monitor se elige según ajustes y modo partida (SPEC sección 11). |
+| 2026-11-09 | LLM provisional `qwen2.5:7b`; Whisper large-v3-turbo q5 con Vulkan (0,17 s por frase). Falta la prueba del portátil para los requisitos mínimos. |
 
 El historial completo de decisiones está en la sección 18 de `docs/SPEC.md`.
 
@@ -85,6 +86,6 @@ Problema conocido en este equipo: la caché de uv está en una carpeta sincroniz
 ## Preguntas abiertas
 
 - Ajuste fino de la paleta de grises sobre fondos reales.
-- Modelo de LLM final tras la batería de pruebas (7–8B frente a 14B).
-- Viabilidad del Acrylic con esquinas muy redondeadas (prueba de la fase 1).
+- Modelo de LLM final tras la batería de pruebas (provisional: `qwen2.5:7b`).
+- Requisitos mínimos: faltan las pruebas del portátil (RTX 3070 Laptop).
 - Ubicación fija para el tiempo (ciudad).
