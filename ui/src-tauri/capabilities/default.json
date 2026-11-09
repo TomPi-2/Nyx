@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permisos de las ventanas de Nyx",
+  "windows": ["island", "glass-*"],
+  "permissions": ["core:default"]
+}

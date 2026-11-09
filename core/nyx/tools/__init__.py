@@ -1,1 +1,1 @@
-"""ToolRegistry y Executor: una herramienta por archivo, con esquema tipado, riesgo y política en partida."""
+"""ToolRegistry y Executor: una herramienta por archivo, con esquema, riesgo y política."""
