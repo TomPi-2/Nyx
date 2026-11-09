@@ -18,14 +18,23 @@ from nyx.audio.playback import Player
 from nyx.audio.vad import SileroVAD
 from nyx.brain.base import LLMError
 from nyx.brain.ollama import OllamaEngine, launch_ollama
+from nyx.brain.router import route
 from nyx.brain.service import Brain
 from nyx.bus import EventBus
 from nyx.events import BubbleHidden, BubbleShown
+from nyx.executor import Executor
+from nyx.index.scanners.apps import start_menu_dirs
+from nyx.index.scanners.folders import known_folders
+from nyx.index.scanners.games import steam_root
+from nyx.index.service import SystemIndex
+from nyx.index.watcher import IndexWatcher
 from nyx.models import MODELS
 from nyx.paths import local_dir
 from nyx.pipeline import Pipeline
 from nyx.settings.model import Settings
 from nyx.stt.whisper_server import WhisperServer
+from nyx.tools.base import ToolContext
+from nyx.tools.registry import default_registry
 from nyx.tts.kokoro import KokoroTTS
 from nyx.wake.vosk_engine import VoskWakeWord
 
@@ -40,20 +49,35 @@ def whisper_server_path(settings: Settings) -> Path:
 
 
 class Services:
-    def __init__(self, pipeline: Pipeline, llm: OllamaEngine, stt: WhisperServer | None) -> None:
+    def __init__(
+        self,
+        pipeline: Pipeline,
+        llm: OllamaEngine,
+        stt: WhisperServer | None,
+        index: SystemIndex,
+        watcher: IndexWatcher | None,
+    ) -> None:
         self.pipeline = pipeline
         self.llm = llm
         self.stt = stt
+        self.index = index
+        self.watcher = watcher
         self.notice: asyncio.Task[None] | None = None
+        self.background: set[asyncio.Task[int]] = set()
 
     async def close(self) -> None:
         if self.notice is not None:
             self.notice.cancel()
+        for task in self.background:
+            task.cancel()
+        if self.watcher is not None:
+            self.watcher.stop()
         await self.pipeline.close()
         if self.stt is not None:
             await self.stt.stop()
         await self.llm.unload()  # libera la VRAM al salir
         await self.llm.aclose()
+        self.index.close()
 
 
 async def _attempt[T](name: str, problems: list[str], load: Callable[[], Awaitable[T]]) -> T | None:
@@ -138,6 +162,13 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         capture = await _attempt("Micrófono", problems, open_mic)
 
     player = Player(tts.sample_rate, settings.audio.output_device) if tts is not None else None
+
+    # Caché del sistema: la de disco al instante; el escaneo, en segundo plano. La primera
+    # vez (caché vacía) se espera al escaneo (~1,5 s) para que «abre X» funcione desde ya.
+    index = SystemIndex.open()
+    if len(index) == 0:
+        await index.refresh()
+    executor = Executor(default_registry(), ToolContext(index=index, settings=settings))
     pipeline = Pipeline(
         bus,
         brain,
@@ -150,6 +181,8 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         stt=stt if capture is not None else None,
         tts=tts,
         player=player,
+        router=lambda text: route(text, index),
+        executor=executor,
     )
     log.info(
         "Servicios listos en %.1f s (voz: %s, activación: %s, respuesta hablada: %s)",
@@ -158,10 +191,28 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         "sí" if wake is not None else "no",
         "sí" if tts is not None else "no",
     )
-    services = Services(pipeline, llm, stt)
+    services = Services(pipeline, llm, stt, index, start_watcher(index))
+    if index.needs_scan():
+        task = asyncio.create_task(index.refresh(), name="index-scan")
+        services.background.add(task)
+        task.add_done_callback(services.background.discard)
     if problems:
         services.notice = asyncio.create_task(_notice(bus, problems), name="startup-notice")
     return services
+
+
+def start_watcher(index: SystemIndex) -> IndexWatcher | None:
+    """Reescanea al instalar apps o crear carpetas. Si no se puede vigilar, no es grave."""
+    watcher = IndexWatcher(index.refresh)
+    try:
+        recursive = start_menu_dirs()
+        if (steam := steam_root()) is not None:
+            recursive.append(steam / "steamapps")
+        watcher.start(recursive=recursive, shallow=list(known_folders().values()))
+    except Exception:
+        log.warning("No se pueden vigilar los cambios de apps y carpetas", exc_info=True)
+        return None
+    return watcher
 
 
 async def _notice(bus: EventBus, problems: list[str]) -> None:

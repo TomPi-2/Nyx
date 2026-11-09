@@ -17,7 +17,7 @@ Eres el desarrollador principal de Nyx. La especificación completa está en [do
 
 ## Estado
 
-Fase actual: **3 — Acciones** (sin empezar: falta proponer el plan). Fases 1 y 2 cerradas el 2026-11-09.
+Fase actual: **3 — Acciones**, bloque **3a** (caché, router rápido y herramientas verdes) en curso; después 3b (archivos y seguridad) y 3c (LLM con herramientas, alarmas). Probar entre bloques. Fases 1 y 2 cerradas el 2026-11-09.
 
 ## Decisiones tomadas
 

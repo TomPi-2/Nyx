@@ -62,5 +62,38 @@ def system_message() -> ChatMessage:
     return ChatMessage("system", SYSTEM)
 
 
+ADDRESSED = """\
+Clasificas frases oídas por un asistente de voz llamado Nyx justo después de que \
+respondiera, sin que el usuario dijera «Nyx».
+Decide si la frase va dirigida a Nyx (una pregunta, petición u orden para el asistente, o \
+que continúa lo anterior) o NO (el usuario habla con otra persona, comenta algo, se ríe, se \
+despide, ruido).
+Ejemplos:
+- «¿Y en francés?» → true
+- «¿Y mañana qué tiempo hará?» → true
+- «Ahora ciérralo» → true
+- «Pon otra canción» → true
+- «Tío, pásame el mando» → false
+- «Mañana quedamos con Laura» → false
+- «Jajaja qué dices» → false
+- «Vale, ahora vuelvo» → false
+- «No sé, lo que tú quieras» → false
+Responde solo con el JSON."""
+
+ADDRESSED_SCHEMA = {
+    "type": "object",
+    "properties": {"para_nyx": {"type": "boolean"}},
+    "required": ["para_nyx"],
+}
+
+
+def addressed_messages(text: str, previous: tuple[str, str] | None) -> list[ChatMessage]:
+    context = f"Nyx acaba de responder a «{previous[0]}» con «{previous[1]}».\n" if previous else ""
+    return [
+        ChatMessage("system", ADDRESSED),
+        ChatMessage("user", f"{context}Frase: «{text}»"),
+    ]
+
+
 def context_message(now: datetime) -> ChatMessage:
     return ChatMessage("system", f"Ahora es {spanish_datetime(now)}.")

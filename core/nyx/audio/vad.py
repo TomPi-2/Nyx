@@ -58,6 +58,7 @@ class EndReason(StrEnum):
     MAX_LENGTH = "max_length"  # 15 s
     NO_SPEECH = "no_speech"  # no llegó a hablar
     MANUAL = "manual"  # soltó el atajo de hablar
+    COMPLETE = "complete"  # la petición ya estaba entera tras una pausa corta
 
 
 @dataclass
@@ -73,17 +74,28 @@ class Endpointer:
     start_timeout_s: float = 4.0
     start_threshold: float = 0.5
     end_threshold: float = 0.35
+    # Ventana de seguimiento: solo cuenta una frase que empiece tras este silencio. Si el
+    # usuario ya estaba hablando (con otra persona), esa conversación no es para Nyx.
+    require_quiet_s: float = 0.0
     speech_started: bool = field(default=False, init=False)
     _elapsed: float = field(default=0.0, init=False)
     _silence: float = field(default=0.0, init=False)
+    _quiet: float = field(default=0.0, init=False)
+
+    @property
+    def pause_s(self) -> float:
+        """Silencio desde la última voz (0 si se está hablando o aún no se ha empezado)."""
+        return self._silence if self.speech_started else 0.0
 
     def push(self, prob: float) -> EndReason | None:
         self._elapsed += FRAME_S
         if not self.speech_started:
-            if prob >= self.start_threshold:
+            if prob >= self.start_threshold and self._quiet >= self.require_quiet_s:
                 self.speech_started = True
             elif self._elapsed >= self.start_timeout_s:
                 return EndReason.NO_SPEECH
+            else:
+                self._quiet = self._quiet + FRAME_S if prob < self.end_threshold else 0.0
         else:
             self._silence = self._silence + FRAME_S if prob < self.end_threshold else 0.0
             if self._silence * 1000 >= self.silence_ms:

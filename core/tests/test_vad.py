@@ -61,3 +61,25 @@ def test_silero_on_silence_and_tone() -> None:
     vad.reset()
     with pytest.raises(ValueError):
         vad(np.zeros(100, dtype=np.int16))
+
+
+def test_require_quiet_ignores_ongoing_speech() -> None:
+    # Ya estaba hablando cuando se abrió la ventana: no cuenta aunque siga hablando.
+    ep = Endpointer(start_timeout_s=2.0, require_quiet_s=0.3)
+    reason, _ = run(ep, [0.9] * frames(3.0))
+    assert reason is EndReason.NO_SPEECH and not ep.speech_started
+
+
+def test_require_quiet_accepts_speech_after_silence() -> None:
+    ep = Endpointer(start_timeout_s=3.0, require_quiet_s=0.3)
+    run(ep, [0.9] * frames(0.5) + [0.1] * frames(0.4) + [0.9] * 3)
+    assert ep.speech_started
+
+
+def test_pause_s() -> None:
+    ep = Endpointer()
+    assert ep.pause_s == 0.0
+    run(ep, [0.9] * 5 + [0.1] * frames(0.4))
+    assert ep.pause_s >= 0.4
+    ep.push(0.9)
+    assert ep.pause_s == 0.0

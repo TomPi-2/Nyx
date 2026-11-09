@@ -20,7 +20,7 @@ from nyx.events import (
     TalkKey,
     TextEntered,
 )
-from nyx.pipeline import VERIFY_CLIP_S, Mode, Pipeline
+from nyx.pipeline import Mode, Pipeline
 from nyx.settings.model import ListenSettings
 
 WAKE, SPEECH, SILENCE = 7, 5000, 0
@@ -62,7 +62,7 @@ class FakeVAD:
 
 
 class FakeSTT:
-    """El fragmento de verificación (≤ 2 s) y la frase completa pueden dar textos distintos."""
+    """El fragmento de verificación y la frase pueden dar textos distintos."""
 
     def __init__(
         self,
@@ -72,12 +72,14 @@ class FakeSTT:
         self.text = text
         self.clip_text = clip_text if clip_text is not None else text
         self.calls: list[int] = []
+        self.clips: list[bool] = []
+        self.script: list[str] = []
         # Si se activa, la verificación del fragmento espera (whisper ocupado o lento).
         self.clip_gate: asyncio.Event | None = None
 
     @property
     def full_calls(self) -> list[int]:
-        return [c for c in self.calls if c > VERIFY_CLIP_S * 16_000]
+        return [size for size, clip in zip(self.calls, self.clips, strict=True) if not clip]
 
     async def start(self) -> None:
         pass
@@ -86,11 +88,17 @@ class FakeSTT:
         pass
 
     async def transcribe(self, pcm: np.ndarray, prompt: str = "") -> str:
+        # El fragmento de verificación se toma al oír «Nyx», antes de que haya voz.
+        clip = int(pcm.max(initial=0)) < SPEECH
         self.calls.append(pcm.size)
-        if pcm.size <= VERIFY_CLIP_S * 16_000:
+        self.clips.append(clip)
+        if clip:
             if self.clip_gate is not None:
                 await self.clip_gate.wait()
             return self.clip_text
+        # `script`: textos sucesivos para cada transcripción con voz (la última se repite).
+        if self.script:
+            return self.script.pop(0) if len(self.script) > 1 else self.script[0]
         return self.text
 
 
@@ -100,6 +108,9 @@ REPLY = {"spoken": "En alemán se dice Hallo.", "display": "Hallo", "secondary":
 class FakeLLM:
     def __init__(self, reply: dict[str, str] | None = None, error: LLMError | None = None) -> None:
         self.raw = json.dumps(reply or REPLY, ensure_ascii=False)
+        self.replies: list[str] = []  # respuestas sucesivas (si no, siempre `raw`)
+        self.addressed = True  # veredicto del clasificador de la ventana de seguimiento
+        self.classified: list[str] = []
         self.error = error
         self.requests: list[list[ChatMessage]] = []
 
@@ -112,12 +123,18 @@ class FakeLLM:
     async def stream(
         self, messages: Sequence[ChatMessage], *, schema: dict[str, Any] | None = None
     ) -> AsyncIterator[str]:
+        if schema is not None and "para_nyx" in schema.get("properties", {}):
+            # Clasificador de la ventana de seguimiento (Brain.addressed).
+            self.classified.append(messages[-1].content)
+            yield json.dumps({"para_nyx": self.addressed})
+            return
         self.requests.append(list(messages))
         if self.error:
             raise self.error
-        for i in range(0, len(self.raw), 4):
+        raw = self.replies.pop(0) if self.replies else self.raw
+        for i in range(0, len(raw), 4):
             await asyncio.sleep(0)
-            yield self.raw[i : i + 4]
+            yield raw[i : i + 4]
 
 
 class FakeTTS:
