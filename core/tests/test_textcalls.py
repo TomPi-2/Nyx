@@ -108,3 +108,10 @@ async def test_normal_text_still_streams(chunks: list[str]) -> None:
     spoken = "".join(e.text for e in events if isinstance(e, SpokenDelta))
     assert spoken == "".join(chunks).split("\n")[-1]
     assert isinstance(events[-1], ReplyDone)
+
+
+async def test_written_call_after_a_header_line() -> None:
+    """Lo que pasó en la prueba real: «[acciones]» y debajo la llamada."""
+    events = await collect(["[acciones]", "\n", "closeapp(", '{"name": "Spotify"})'])
+    assert not [e for e in events if isinstance(e, SpokenDelta)]
+    assert events[-1] == ToolPlan([LLMToolCall("close_app", {"name": "Spotify"})])

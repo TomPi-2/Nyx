@@ -26,6 +26,7 @@ from nyx.brain.service import Brain
 from nyx.bus import EventBus
 from nyx.events import BubbleHidden, BubbleShown
 from nyx.executor import Executor
+from nyx.index.model import Kind
 from nyx.index.scanners.apps import start_menu_dirs
 from nyx.index.scanners.folders import known_folders
 from nyx.index.scanners.games import steam_root
@@ -193,7 +194,8 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     # Caché del sistema: la de disco al instante; el escaneo, en segundo plano. La primera
     # vez (caché vacía) se espera al escaneo (~1,5 s) para que «abre X» funcione desde ya.
     index = SystemIndex.open()
-    if len(index) == 0:
+    # Sin apps también se espera: una versión anterior podía guardar la caché sin ellas.
+    if len(index) == 0 or not index.entries({Kind.APP}):
         await index.refresh()
     # Rutas protegidas (SPEC sección 8): sistema, Nyx y las carpetas principales del usuario.
     paths = PathPolicy.default(list(known_folders().values()))

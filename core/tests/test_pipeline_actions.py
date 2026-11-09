@@ -81,6 +81,18 @@ async def test_miss_goes_to_llm_with_candidates(index: SystemIndex) -> None:
     await h.p.close()
 
 
+async def test_weak_miss_says_not_found_without_llm(index: SystemIndex) -> None:
+    # Nada se parece de verdad: respuesta directa, sin preguntar al LLM.
+    h = Harness()
+    miss = Miss("xyzzy", index.resolve("xyzzy"))
+    with_router(h, miss, [])
+    await h.bus.publish(TextEntered("abre xyzzy"))
+    await h.p.wait_idle()
+    assert h.llm.requests == []
+    assert any("No encuentro" in display for display, _ in h.bubbles)
+    await h.p.close()
+
+
 async def test_no_route_falls_back_to_llm() -> None:
     h = Harness()
     executor = with_router(h, None, [])

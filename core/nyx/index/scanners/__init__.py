@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass, field
 
 from nyx.index.model import Entry
 from nyx.index.scanners import apps, folders, games, tables
@@ -21,13 +22,37 @@ SCANNERS: dict[str, Callable[[], list[Entry]]] = {
     "settings": tables.scan_settings,
     "websites": tables.scan_websites,
 }
+# Fuentes (Entry.source) que produce cada escáner.
+SOURCES: dict[str, set[str]] = {
+    "apps": {"apps"},
+    "games": {"steam", "riot", "epic"},
+    "folders": {"folders"},
+    "settings": {"settings"},
+    "websites": {"websites"},
+}
 
 
-def scan_all() -> list[Entry]:
-    entries: list[Entry] = []
-    for name, scanner in SCANNERS.items():
-        try:
-            entries += scanner()
-        except Exception:
-            log.warning("Fallo en el escáner %s", name, exc_info=True)
-    return entries
+@dataclass
+class ScanResult:
+    entries: list[Entry]
+    # Fuentes que no se pudieron escanear: la caché conserva lo que tenía de ellas, para que
+    # un fallo pasajero no deje a Nyx sin apps («no encuentro Spotify»).
+    failed: set[str] = field(default_factory=set)
+
+
+def scan_all() -> ScanResult:
+    # Se ejecuta en un hilo: shell:AppsFolder es COM y cada hilo necesita CoInitialize.
+    import pythoncom
+
+    pythoncom.CoInitialize()
+    try:
+        result = ScanResult([])
+        for name, scanner in SCANNERS.items():
+            try:
+                result.entries += scanner()
+            except Exception:
+                log.warning("Fallo en el escáner %s", name, exc_info=True)
+                result.failed |= SOURCES[name]
+        return result
+    finally:
+        pythoncom.CoUninitialize()

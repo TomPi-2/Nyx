@@ -63,6 +63,7 @@ VERIFY_CLIP_S = 2.0  # audio que whisper revisa para confirmar «Nyx»
 CONFIRM_TIMEOUT_S = 15.0  # SPEC sección 8: sin respuesta, se cancela
 CANCELLED_BUBBLE_S = 2.5
 UNDONE_BUBBLE_S = 4.0
+MISS_LLM_MIN = 70.0  # «abre X» sin coincidencia: se consulta al LLM solo si algo se parece
 # Pausa tras la que se transcribe lo dicho para ver si la petición ya está completa.
 EARLY_PAUSE_S = 0.4
 # Ventana de seguimiento: silencio previo exigido para que una frase cuente como nueva.
@@ -616,6 +617,11 @@ class Pipeline:
             return
         hint = ""
         if isinstance(routed, Miss):
+            if not routed.candidates or routed.candidates[0].score < MISS_LLM_MIN:
+                # Nada se parece de verdad: «No encuentro Spotify» directo (el LLM, sin una
+                # pista útil, acababa diciendo «Aún no sé hacer eso»).
+                await self._not_found(routed, from_voice=from_voice)
+                return
             names = ", ".join(m.entry.name for m in routed.candidates[:3]) or "ninguno"
             hint = (
                 f"«{routed.target}» no coincide con nada instalado. Lo más parecido: {names}. "
