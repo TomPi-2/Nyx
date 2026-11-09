@@ -18,6 +18,7 @@ from nyx.index.aliases import normalize
 from nyx.index.model import Kind
 from nyx.index.service import Match, SystemIndex
 from nyx.stt.normalize import NUMBER_WORDS
+from nyx.tools.app_catalog import profile_for
 from nyx.tools.open_url import to_url
 from nyx.winapi import windows
 
@@ -125,14 +126,16 @@ def _call(rule_name: str, tool: str, **arguments: object) -> Route:
 _APP_AT = r"(?:\s+(?:de|en|del)\s+(?P<app>[a-z0-9 ]+?))?"
 _APP_AFTER = r"(?:\s+(?:de|en|del|para)\s+(?P<app2>[a-z0-9 ]+?))?"
 _VOLUME_TAIL = (
-    rf"\s+(?:el\s+)?(?:volumen|sonido){_APP_AT}(?:\s+(?:a|al|hasta(?:\s+el)?)\s+{_NUM})?"
+    rf"(?P<much0>\s+mucho)?(?:\s+un poco)?\s+(?:el\s+)?(?:volumen|sonido){_APP_AT}(?:\s+(?:a|al|hasta(?:\s+el)?)\s+{_NUM})?"
     rf"{_APP_AFTER}(?P<much>\s+mucho)?(?:\s+un poco)?$"
 )
 
 
 def _volume(rule_name: str, m: re.Match[str], index: SystemIndex, step: int) -> Route | None:
     app_name = m.group("app") or m.group("app2")
+    much = bool(m.group("much") or m.group("much0"))  # «sube mucho el volumen»
     app: str | None = None
+    best = None
     if app_name:
         best = index.confident(index.resolve(app_name, {Kind.APP, Kind.GAME}))
         if best is None:
@@ -143,7 +146,12 @@ def _volume(rule_name: str, m: re.Match[str], index: SystemIndex, step: int) -> 
         if level is None or level > 100:
             return None
         return _call(rule_name, "set_volume", level=level, app=app)
-    return _call(rule_name, "set_volume", change=step * (2 if m.group("much") else 1), app=app)
+    action = "volume_up" if step > 0 else "volume_down"
+    profile = profile_for(best.entry.process, app) if app_name and best else None
+    if profile is not None and action in profile.actions:
+        # Spotify tiene su propio volumen: se mueve su control (el del mezclador no se ve).
+        return _call(rule_name, "app_action", app=app, action=action, times=2 if much else 1)
+    return _call(rule_name, "set_volume", change=step * (2 if much else 1), app=app)
 
 
 @rule("volume_up", rf"^(?:sube|subir|subeme|aumenta){_VOLUME_TAIL}")
@@ -238,14 +246,57 @@ _find_windows = windows.find_windows
 )
 def _new_tab(m: re.Match[str], index: SystemIndex) -> Route | None:
     if not m.group("app"):
-        return _call("new_tab", "send_hotkey", keys="ctrl+t")
+        return _call("new_tab", "app_action", action="new_tab")
     best = index.confident(index.resolve(m.group("app"), {Kind.APP}))
     if best is None:
         return None
     name = best.entry.name
-    if _find_windows(name, best.entry.process):
+    if not _find_windows(name, best.entry.process):
+        return _call("new_tab", "open_app", name=name)  # abrirla ya deja una nueva
+    if profile_for(best.entry.process, name) is None:
         return _call("new_tab", "send_hotkey", keys="ctrl+t", app=name)
-    return _call("new_tab", "open_app", name=name)
+    return _call("new_tab", "app_action", app=name, action="new_tab")
+
+
+def _app_named(m: re.Match[str], index: SystemIndex) -> tuple[bool, str | None]:
+    """(válida, nombre de la app) para «… en Chrome»; sin app → la ventana activa."""
+    raw = m.groupdict().get("app")
+    if not raw:
+        return True, None
+    best = index.confident(index.resolve(raw, {Kind.APP}))
+    return (best is not None, best.entry.name if best else None)
+
+
+def _in_app(rule_name: str, action: str) -> Callable[[re.Match[str], SystemIndex], Route | None]:
+    def handler(m: re.Match[str], index: SystemIndex) -> Route | None:
+        ok, app = _app_named(m, index)
+        return _call(rule_name, "app_action", action=action, app=app) if ok else None
+
+    return handler
+
+
+_IN = r"(?:\s+(?:en|de|del|dentro del?)\s+(?:el\s+|la\s+)?(?P<app>.+))?$"
+rule("close_tab", r"^cierra(?:me)?\s+(?:la\s+|esta\s+)?pestana" + _IN)(
+    _in_app("close_tab", "close_tab")
+)
+rule(
+    "reopen_tab",
+    r"^(?:reabre|recupera|vuelve a abrir)\s+(?:la\s+)?(?:ultima\s+)?pestana(?:\s+cerrada)?" + _IN,
+)(_in_app("reopen_tab", "reopen_tab"))
+rule("reload", r"^(?:recarga|refresca)(?:\s+(?:la\s+)?(?:pagina|web))?" + _IN)(
+    _in_app("reload", "reload")
+)
+rule(
+    "incognito",
+    r"^abre(?:me)?\s+(?:una\s+)?(?:ventana\s+(?:de\s+)?)?(?:incognito|privada)" + _IN,
+)(_in_app("incognito", "incognito"))
+rule(
+    "discord_mute",
+    r"^(?:silencia|mutea|desmutea|desilencia|activa|desactiva|apaga|enciende)\s+(?:el\s+|mi\s+)?micro(?:fono)?(?:\s+(?:en|de)\s+discord)?$",
+)(lambda m, index: _call("discord_mute", "app_action", app="Discord", action="toggle_mute"))
+rule("discord_deafen", r"^ensordece(?:me)?(?:\s+(?:en|de)\s+discord)?$")(
+    lambda m, index: _call("discord_deafen", "app_action", app="Discord", action="toggle_deafen")
+)
 
 
 # --- capturas ---

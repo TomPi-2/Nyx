@@ -23,7 +23,7 @@ from nyx.tools.base import (
     ToolResult,
 )
 from nyx.tools.focus_window import process_for
-from nyx.winapi import keys, windows
+from nyx.winapi import games, keys, windows
 
 FOCUS_SETTLE_S = 0.15  # tras traer la ventana al frente, antes de pulsar
 _NOT_TARGETS = {"nyx-ui.exe", "nyx.exe"}
@@ -82,6 +82,15 @@ class SendHotkey(Tool[SendHotkeyParams]):
             target = fg
         if target.process in _NOT_TARGETS:
             return Prepared(summary=hotkey.label, error=ToolResult.fail("Eso no lo pulso en Nyx"))
+        from nyx.tools.app_action import game_processes
+
+        is_game = await asyncio.to_thread(
+            games.window_is_game, target.hwnd, target.process, game_processes(ctx)
+        )
+        if is_game:
+            return Prepared(
+                summary=hotkey.label, error=ToolResult.fail("Dentro de los juegos no toco nada")
+            )
         return Prepared(
             summary=f"Pulsar {hotkey.label} en {target.title}",
             payload=(target.hwnd, hotkey, target.title),

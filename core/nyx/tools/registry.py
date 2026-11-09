@@ -34,6 +34,7 @@ class ToolRegistry:
 
 
 def default_registry() -> ToolRegistry:
+    from nyx.tools.app_action import AppAction
     from nyx.tools.close_app import CloseApp
     from nyx.tools.copy_files import CopyFiles
     from nyx.tools.create_folder import CreateFolder
@@ -79,6 +80,7 @@ def default_registry() -> ToolRegistry:
             SetAlarm(),
             SetTimer(),
             SendHotkey(),
+            AppAction(),
             DeleteFiles(),
             UndoLast(),
         ]
