@@ -4,7 +4,8 @@ Lo lanza la app Tauri como proceso hijo. Contrato con el proceso principal:
 
 - Token de sesión en la variable de entorno NYX_TOKEN (o --token en desarrollo).
 - Al estar listo escribe en stdout una línea JSON: {"event": "ready", "port": N, "protocol": P}.
-- Con --parent-pipe, termina cuando se cierra su stdin (el proceso principal ha salido).
+- Con --parent-pipe, termina cuando muere el proceso principal: vigila el PID de
+  NYX_PARENT_PID (o, si no lo hay, el cierre de stdin).
 
 Sin --demo arranca el bucle de voz (fase 2). `nyx --ask "pregunta"` responde una vez y sale.
 """
@@ -64,8 +65,37 @@ def _quiet_connection_reset(loop: asyncio.AbstractEventLoop, context: dict[str, 
     loop.default_exception_handler(context)
 
 
-def _watch_parent(loop: asyncio.AbstractEventLoop, stop: asyncio.Event) -> None:
-    """Hilo que espera el fin de stdin: el proceso principal ha terminado."""
+PARENT_POLL_S = 1.0
+
+
+async def _watch_parent_pid(pid: int, stop: asyncio.Event) -> None:
+    """Sale cuando muere el proceso principal (Tauri), aunque muera de golpe.
+
+    No se lee stdin: en Windows, una lectura pendiente en una tubería bloquea cualquier otra
+    consulta sobre ella, y PyTorch (Pocket TTS) hace una al cargar: el núcleo se colgaba.
+    """
+    import psutil
+
+    try:
+        parent = psutil.Process(pid)
+        started = parent.create_time()
+    except psutil.Error:
+        stop.set()
+        return
+    while not stop.is_set():
+        try:
+            alive = parent.is_running() and parent.create_time() == started
+        except psutil.Error:
+            alive = False
+        if not alive:
+            log.info("El proceso principal (%d) ya no existe", pid)
+            stop.set()
+            return
+        await asyncio.sleep(PARENT_POLL_S)
+
+
+def _watch_stdin(loop: asyncio.AbstractEventLoop, stop: asyncio.Event) -> None:
+    """Respaldo sin NYX_PARENT_PID: espera el fin de stdin (no usar con PyTorch, ver arriba)."""
     with contextlib.suppress(Exception):
         while sys.stdin.buffer.read(1024):
             pass
@@ -90,9 +120,14 @@ async def run(args: argparse.Namespace) -> int:
     log.info("Nyx %s listo (puerto %d)", __version__, port)
 
     stop = asyncio.Event()
+    watcher: asyncio.Task[None] | None = None
     if args.parent_pipe:
-        loop = asyncio.get_running_loop()
-        threading.Thread(target=_watch_parent, args=(loop, stop), daemon=True).start()
+        parent_pid = os.environ.get("NYX_PARENT_PID", "")
+        if parent_pid.isdigit():
+            watcher = asyncio.create_task(_watch_parent_pid(int(parent_pid), stop), name="parent")
+        else:
+            loop = asyncio.get_running_loop()
+            threading.Thread(target=_watch_stdin, args=(loop, stop), daemon=True).start()
 
     tasks: list[asyncio.Task[None]] = []
     services: Services | None = None
@@ -112,6 +147,8 @@ async def run(args: argparse.Namespace) -> int:
         await stop.wait()
         log.info("Saliendo")
     finally:
+        if watcher is not None:
+            watcher.cancel()
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)

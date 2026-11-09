@@ -1,7 +1,7 @@
 //! Lanza y vigila el núcleo Python (proceso hijo).
 //!
 //! Contrato (ver core/nyx/main.py): token en NYX_TOKEN, línea JSON `{"event":"ready","port":N}`
-//! en stdout al estar listo, y el núcleo termina cuando se cierra su stdin.
+//! en stdout al estar listo, y el núcleo termina cuando muere este proceso (NYX_PARENT_PID).
 
 use std::path::PathBuf;
 use std::process::Stdio;
@@ -92,6 +92,9 @@ async fn run_once(app: &AppHandle, state: &CoreState) -> Result<String, String> 
     );
     let mut cmd = core_command();
     cmd.env("NYX_TOKEN", &token)
+        // El núcleo vigila este PID para salir si Nyx muere (no lee stdin: con PyTorch se
+        // colgaba). stdin sigue abierto como respaldo.
+        .env("NYX_PARENT_PID", std::process::id().to_string())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
