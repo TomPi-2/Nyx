@@ -1,0 +1,45 @@
+{
+  "hardware": {
+    "machine": "TomPi",
+    "python": "3.12.16",
+    "cpu": "AMD Ryzen 7 7700X 8-Core Processor",
+    "ram_gb": 31.1,
+    "gpus": [
+      "AMD Radeon RX 7700 XT (32.0.32015.7029)",
+      "AMD Radeon(TM) Graphics (32.0.21045.16010)"
+    ],
+    "os": "Microsoft Windows 11 Pro build 26300"
+  },
+  "model": "ggml-large-v3-turbo-q5_0.bin",
+  "load_s": 1.13,
+  "backend": [
+    "ggml_vulkan: Found 2 Vulkan devices:",
+    "ggml_vulkan: 0 = AMD Radeon RX 7700 XT (AMD proprietary driver) | uma: 0 | fp16: 1 | bf16: 1 | fp4: 0 | warp size: 64 | shared memory: 32768 | int dot: 1 | matrix cores: KHR_coopmat",
+    "ggml_vulkan: 1 = AMD Radeon(TM) Graphics (AMD proprietary driver) | uma: 1 | fp16: 1 | bf16: 0 | fp4: 0 | warp size: 32 | shared memory: 32768 | int dot: 1 | matrix cores: none",
+    "whisper_init_with_params_no_state: use gpu    = 1",
+    "whisper_init_with_params_no_state: gpu_device = 0",
+    "whisper_init_with_params_no_state: devices    = 3",
+    "whisper_init_with_params_no_state: backends   = 2",
+    "whisper_model_load:      Vulkan0 total size =   573.40 MB",
+    "whisper_backend_init_gpu: device 0: Vulkan0 (type: 1)",
+    "whisper_backend_init_gpu: found GPU device 0: Vulkan0 (type: 1, cnt: 0)"
+  ],
+  "results": [
+    {
+      "audio": "frase0.wav",
+      "latency_s": 0.168,
+      "text": "NYAX, abre Visual Studio Code."
+    },
+    {
+      "audio": "frase1.wav",
+      "latency_s": 0.17,
+      "text": "Pon una alarma a las 10 y 50."
+    },
+    {
+      "audio": "frase2.wav",
+      "latency_s": 0.18,
+      "text": "Mueve los últimos cinco archivos de descargas a documentos."
+    }
+  ],
+  "median_latency_s": 0.17
+}

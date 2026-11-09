@@ -684,7 +684,7 @@ Reglas de trabajo:
 **Preguntas abiertas para resolver con Claude durante el desarrollo:**
 
 - Ajuste fino de la paleta de grises sobre fondos reales.
-- Modelo de LLM final tras la batería de pruebas (7–8B frente a 14B).
+- Modelo de LLM final tras la batería de pruebas (7–8B frente a 14B). Provisional: `qwen2.5:7b` (sección 18).
 - ~~Viabilidad del Acrylic con esquinas muy redondeadas~~ Resuelta: no es viable; tinte gris translúcido al 84 % (sección 11).
 - Ubicación fija para el tiempo (ciudad).
 
@@ -698,3 +698,4 @@ Reglas de trabajo:
 | 2026-11-09 | Sin cuenta ni inicio de sesión. Datos de uso anónimos solo con permiso explícito. | 8, 13 |
 | 2026-11-09 | La interfaz son ventanas flotantes propias que se ocultan en reposo, en lugar de una capa a pantalla completa por monitor. Elección de monitor según ajustes y modo partida. | 9, 11 |
 | 2026-11-09 | Acrylic descartado (se ve sólido sin foco y con bordes en escalones). Fondo = tinte gris translúcido al 84 % en CSS, sin retraso al cambiar lo de detrás. Cristal real con motor propio más adelante. | 11, 12 |
+| 2026-11-09 | LLM provisional: `qwen2.5:7b` (Apache 2.0). En la RX 7700 XT: 100 % en GPU, 4,4 GB de VRAM, 77 tokens/s y 3/3 herramientas; Llama 3.1 8B rinde igual pero su licencia tiene más condiciones. 14B queda como opción. Whisper large-v3-turbo q5 con Vulkan: 0,17 s por frase. La elección final, tras la batería de frases (fase 6); requisitos mínimos pendientes de las pruebas del portátil. | 2, 6, 14 |

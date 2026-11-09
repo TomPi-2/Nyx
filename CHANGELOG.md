@@ -13,6 +13,7 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
   - Prueba de cristal (menú de la bandeja; `NYX_GLASS_TEST=1` la abre al arrancar).
   - Bandeja del sistema (prueba de cristal, reiniciar núcleo, salir) e instancia única.
   - Scripts de prueba de GPU para Ollama y whisper.cpp con informe por equipo en `docs/benchmarks/`.
+  - Resultados del PC de referencia (RX 7700 XT): Qwen 2.5 7B y Llama 3.1 8B al 100 % en GPU (77 y 72 tokens/s, 3/3 herramientas); whisper.cpp con Vulkan, 0,17 s por frase. LLM provisional: `qwen2.5:7b`.
   - CI en GitHub Actions (Windows): ruff, mypy, pytest, prettier, svelte-check, rustfmt y clippy.
 - Especificación en `docs/SPEC.md`, con la sección 18 (decisiones tomadas).
 - Estructura del repositorio según la sección 16: `core/` (paquete `nyx` con un subpaquete por servicio), `ui/` y `docs/`.
