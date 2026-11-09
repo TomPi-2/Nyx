@@ -22,6 +22,7 @@ from nyx.safety.paths import PathPolicy
 from nyx.safety.undo import Undo, UndoStack
 
 if TYPE_CHECKING:
+    from nyx.alarms.scheduler import AlarmScheduler
     from nyx.index.service import SystemIndex
     from nyx.settings.model import Settings
 
@@ -78,6 +79,7 @@ class ToolContext:
     settings: Settings
     undo: UndoStack = field(default_factory=UndoStack)
     paths: PathPolicy = field(default_factory=PathPolicy)
+    alarms: AlarmScheduler | None = None
 
 
 @dataclass
