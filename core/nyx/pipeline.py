@@ -23,6 +23,7 @@ from nyx.audio.playback import Player
 from nyx.audio.vad import Endpointer, EndReason, VoiceDetector
 from nyx.brain.base import LLMError, LLMErrorKind
 from nyx.brain.reply import BubbleReady, Reply, SpokenDelta, SpokenEnd
+from nyx.brain.router import Miss, Route
 from nyx.brain.service import Brain, ReplyDone
 from nyx.bus import EventBus
 from nyx.events import (
@@ -34,6 +35,8 @@ from nyx.events import (
     TalkKey,
     TextEntered,
 )
+from nyx.executor import Executor
+from nyx.index.aliases import normalize as normalize_alias
 from nyx.log import new_request_id
 from nyx.settings.model import ListenSettings
 from nyx.stt.base import STTEngine, STTError
@@ -50,6 +53,51 @@ THINKING_AFTER_S = 0.3  # «pensando» solo si la transcripción tarda (SPEC sec
 HOLD_S = 0.4  # mantener el atajo más que esto = hablar mientras se mantiene
 TALK_PREBUFFER_S = 0.3
 VERIFY_CLIP_S = 2.0  # audio que whisper revisa para confirmar «Nyx»
+# Pausa tras la que se transcribe lo dicho para ver si la petición ya está completa.
+EARLY_PAUSE_S = 0.4
+# Ventana de seguimiento: silencio previo exigido para que una frase cuente como nueva.
+FOLLOWUP_QUIET_S = 0.25
+# Una «pregunta» que acaba así está a medias («¿cómo se dice … de?»).
+_INCOMPLETE = "a al de del el la los las en con por para que y o u un una mi tu su como"
+INCOMPLETE_ENDINGS = frozenset(_INCOMPLETE.split(" "))
+# Coletillas que, en la ventana de seguimiento, casi nunca van dirigidas a Nyx.
+FILLERS = frozenset(
+    {
+        "si",
+        "no",
+        "vale",
+        "bueno",
+        "ok",
+        "okey",
+        "claro",
+        "ya",
+        "venga",
+        "gracias",
+        "muchas gracias",
+        "vale gracias",
+        "perfecto",
+        "genial",
+        "de acuerdo",
+        "entendido",
+        "aja",
+        "eh",
+        "ah",
+        "mm",
+        "pues",
+        "pues nada",
+        "nada",
+        "bien",
+        "si claro",
+        "vale vale",
+        "ya ya",
+        "que",
+        "como",
+        "hola",
+        "adios",
+        "jaja",
+        "jajaja",
+    }
+)
 LEVEL_HZ = 30
 ERROR_HOLD_S = 2.5
 
@@ -70,6 +118,10 @@ class _Listening:
     pressed_at: float = 0.0
     # Segunda verificación de «Nyx» con whisper (solo si la escucha empezó por la palabra).
     verify: asyncio.Task[bool] | None = None
+    # Transcripción anticipada en cada pausa corta (ver _speculate).
+    spec: asyncio.Task[None] | None = None
+    spec_text: str | None = None
+    spoke_since_spec: bool = True
 
 
 @dataclass
@@ -107,6 +159,10 @@ def text_bubble(reply: Reply) -> BubbleReady:
     if not spoken or spoken.rstrip(".!").casefold() == reply.display.rstrip(".!").casefold():
         return BubbleReady(reply.display, reply.secondary)
     return BubbleReady(reply.display, spoken)
+
+
+def is_filler(text: str) -> bool:
+    return normalize_alias(text) in FILLERS
 
 
 def bubble_duration(display: str, secondary: str) -> float:
@@ -176,6 +232,8 @@ class Pipeline:
         stt: STTEngine | None = None,
         tts: TTSEngine | None = None,
         player: Player | None = None,
+        router: Callable[[str], Route | Miss | None] | None = None,
+        executor: Executor | None = None,
         clock: Callable[[], float] = time.perf_counter,
     ) -> None:
         self.bus = bus
@@ -189,6 +247,8 @@ class Pipeline:
         self.stt = stt
         self.tts = tts
         self.player = player
+        self.router = router
+        self.executor = executor
         self._clock = clock
         self.mode = Mode.IDLE
         self.state = NyxState.IDLE
@@ -267,8 +327,10 @@ class Pipeline:
 
     def _drop_listening(self, *, cancel_verify: bool = True) -> None:
         listening, self._listening = self._listening, None
-        if listening is not None and listening.verify is not None and cancel_verify:
-            listening.verify.cancel()
+        if listening is not None and cancel_verify:
+            for task in (listening.verify, listening.spec):
+                if task is not None and task is not asyncio.current_task():
+                    task.cancel()
         if self.wake is not None:
             self.wake.reset()
 
@@ -286,6 +348,9 @@ class Pipeline:
                 silence_ms=self.listen.silence_ms,
                 max_s=self.listen.max_s,
                 start_timeout_s=timeout,
+                # En la ventana de seguimiento solo cuenta una frase nueva, no una
+                # conversación que ya estaba en marcha.
+                require_quiet_s=FOLLOWUP_QUIET_S if followup else 0.0,
             ),
             frames=list(frames),
             followup=followup,
@@ -301,28 +366,92 @@ class Pipeline:
         assert listening is not None and self.vad is not None
         listening.frames.append(frame)
         await self.bus.publish(AudioLevel(rms_level(frame)))
-        reason = listening.endpointer.push(self.vad(frame))
+        endpointer = listening.endpointer
+        prob = self.vad(frame)
+        reason = endpointer.push(prob)
+        if prob >= endpointer.start_threshold:
+            listening.spoke_since_spec = True
         if listening.key_held and reason in (EndReason.SILENCE, EndReason.NO_SPEECH):
             reason = None  # mientras se mantiene el atajo, las pausas no cortan
         if reason is not None:
             await self._end_listening(reason)
+            return
+        if (
+            endpointer.speech_started
+            and endpointer.pause_s >= EARLY_PAUSE_S
+            and listening.spoke_since_spec
+            and not listening.key_held
+            and self.stt is not None
+        ):
+            listening.spoke_since_spec = False
+            if listening.spec is not None:
+                listening.spec.cancel()
+            audio = np.concatenate(listening.frames).astype(np.int16)
+            listening.spec = asyncio.create_task(self._speculate(listening, audio), name="spec")
 
-    async def _end_listening(self, reason: EndReason) -> None:
+    async def _speculate(self, listening: _Listening, audio: Any) -> None:
+        """Transcribe lo dicho hasta una pausa corta (~0,4 s) mientras se sigue escuchando.
+
+        - Si ya es una petición completa («¿qué hora es?», «abre Spotify»), se deja de
+          escuchar ahí: lo que el usuario diga después (a otra persona) no cuenta.
+        - Si el usuario no vuelve a hablar, al cerrar la frase se reutiliza esta
+          transcripción y la respuesta llega antes.
+        """
+        assert self.stt is not None
+        try:
+            raw = await self.stt.transcribe(audio, prompt=STT_PROMPT)
+        except STTError:
+            return
+        listening.spec_text = raw
+        if self._listening is listening and self._is_complete(raw):
+            log.info("Petición completa tras una pausa: %r; dejo de escuchar", raw)
+            await self._end_listening(EndReason.COMPLETE, transcript=raw)
+
+    def _is_complete(self, raw: str) -> bool:
+        """¿Es ya una petición entera? Una orden que el router entiende o una pregunta."""
+        text = normalize(raw)
+        if not text:
+            return False
+        if self.router is not None and isinstance(self.router(text), Route):
+            return True
+        words = text.rstrip("?").split()
+        return (
+            text.endswith("?") and len(words) >= 2 and words[-1].lower() not in INCOMPLETE_ENDINGS
+        )
+
+    async def _end_listening(self, reason: EndReason, transcript: str | None = None) -> None:
         listening = self._listening
         self._drop_listening(cancel_verify=False)
         if listening is None:
             return
         if not listening.endpointer.speech_started:
             log.info("Escucha terminada sin voz (%s)", reason)
-            if listening.verify is not None:
-                listening.verify.cancel()
+            for task in (listening.verify, listening.spec):
+                if task is not None:
+                    task.cancel()
             await self._go_idle()
             return
+        # Si no ha vuelto a hablar desde la última transcripción anticipada, se reutiliza.
+        pending = None
+        if transcript is None and listening.spec is not None:
+            if listening.spoke_since_spec:
+                listening.spec.cancel()
+            else:
+                pending = listening.spec
         audio = np.concatenate(listening.frames).astype(np.int16)
         marks = _Marks(end=self._clock())
         log.debug("Frase de %.1f s (%s)", audio.size / 16_000, reason)
         self.mode = Mode.BUSY
-        self._start_request(self._handle_audio(audio, marks, listening.verify))
+        self._start_request(
+            self._handle_audio(
+                audio,
+                marks,
+                listening.verify,
+                transcript=transcript,
+                pending=pending,
+                listening=listening,
+            )
+        )
 
     # --- entradas de la interfaz ---
 
@@ -333,7 +462,7 @@ class Pipeline:
         self._drop_listening()
         await self._cancel_request()
         self.mode = Mode.BUSY
-        self._start_request(self._respond(text, _Marks(end=self._clock()), from_voice=False))
+        self._start_request(self._handle_text(text, _Marks(end=self._clock()), from_voice=False))
 
     async def _on_talk(self, event: TalkKey) -> None:
         if not self.voice_enabled:
@@ -379,12 +508,25 @@ class Pipeline:
             self.player.clear()
 
     async def _handle_audio(
-        self, audio: Any, marks: _Marks, verify: asyncio.Task[bool] | None = None
+        self,
+        audio: Any,
+        marks: _Marks,
+        verify: asyncio.Task[bool] | None = None,
+        *,
+        transcript: str | None = None,
+        pending: asyncio.Task[None] | None = None,
+        listening: _Listening | None = None,
     ) -> None:
         assert self.stt is not None
         thinking = asyncio.create_task(self._thinking_later())
         try:
-            raw = await self.stt.transcribe(audio, prompt=STT_PROMPT)
+            raw = transcript
+            if raw is None and pending is not None and listening is not None:
+                with contextlib.suppress(asyncio.CancelledError):
+                    await pending
+                raw = listening.spec_text
+            if raw is None:
+                raw = await self.stt.transcribe(audio, prompt=STT_PROMPT)
             # Vale si whisper oyó «Nyx» en el fragmento corto o al principio de la frase.
             verified = verify is None or await verify or has_wake_word(raw, first_words=3)
         except STTError:
@@ -403,11 +545,77 @@ class Pipeline:
         if not text:
             await self._go_idle()
             return
-        await self._respond(text, marks, from_voice=True)
+        followup = listening is not None and listening.followup
+        if followup and is_filler(text):
+            log.info("Seguimiento ignorado (coletilla): %r", text)
+            await self._go_idle()
+            return
+        await self._handle_text(text, marks, from_voice=True, followup=followup)
 
     async def _thinking_later(self) -> None:
         await asyncio.sleep(THINKING_AFTER_S)
         await self._set_state(NyxState.THINKING)
+
+    async def _handle_text(
+        self, text: str, marks: _Marks, *, from_voice: bool, followup: bool = False
+    ) -> None:
+        """Router rápido primero (acciones sin LLM); si no encaja, el LLM."""
+        if self.router is not None and self.executor is not None:
+            routed = self.router(text)
+            if isinstance(routed, Route):
+                await self._act(routed, marks, from_voice=from_voice)
+                return
+        else:
+            routed = None
+        # Ventana de seguimiento: lo que no es una orden clara solo se atiende si va dirigido
+        # a Nyx (el usuario puede estar hablando con otra persona).
+        if followup and not await self.brain.addressed(text):
+            log.info("Seguimiento ignorado: no iba dirigido a Nyx (%r)", text)
+            await self._go_idle()
+            return
+        if isinstance(routed, Miss):
+            await self._not_found(routed, from_voice=from_voice)
+            return
+        await self._respond(text, marks, from_voice=from_voice)
+
+    async def _act(self, routed: Route, marks: _Marks, *, from_voice: bool) -> None:
+        assert self.executor is not None
+        thinking = asyncio.create_task(self._thinking_later())
+        try:
+            results = await self.executor.run_plan(routed.calls)
+        finally:
+            thinking.cancel()
+        log.info(
+            "Latencia (acción, regla %s): fin de frase → hecho %d ms",
+            routed.rule,
+            _ms(self._clock() - marks.end),
+        )
+        speak = from_voice or self.speak_typed
+        failed = next((r for r in results if not r.ok), None)
+        if failed is not None:
+            spoken = failed.message if speak else None
+            await self._fail(failed.display or failed.message, failed.secondary or "", spoken)
+            return
+        # Éxito: en silencio, salvo que la herramienta tenga algo que enseñar (SPEC sección 3).
+        shown = next((r for r in results if r.display), None)
+        if shown is not None and shown.display:
+            await self._show_bubble(shown.display, shown.secondary or "")
+            self._schedule_bubble_hide(bubble_duration(shown.display, shown.secondary or ""))
+        if from_voice and self.listen.followup_s > 0 and self.capture is not None:
+            await self.start_listening(followup=True)
+        else:
+            await self._go_idle()
+
+    async def _not_found(self, miss: Miss, *, from_voice: bool) -> None:
+        best = miss.candidates[0].entry.name if miss.candidates else None
+        suggestion = f"¿quizá {best}?" if best else ""
+        log.info(
+            "Router: no encuentro %r (candidatos: %s)",
+            miss.target,
+            [m.entry.name for m in miss.candidates[:3]],
+        )
+        spoken = f"No encuentro {miss.target}." if from_voice or self.speak_typed else None
+        await self._fail(f"No encuentro «{miss.target}»", suggestion, spoken)
 
     async def _respond(self, text: str, marks: _Marks, *, from_voice: bool) -> None:
         await self._set_state(NyxState.THINKING)
@@ -439,26 +647,27 @@ class Pipeline:
             else None
         )
         try:
-            async for event in self.brain.respond(text):
-                if marks.first_token is None:
-                    marks.first_token = self._clock()
-                if isinstance(event, BubbleReady):
-                    bubble = event
-                    if bubble_shown:
-                        await show_bubble()
-                elif isinstance(event, SpokenDelta) and speech is not None:
-                    for sentence in splitter.feed(event.text):
-                        if marks.first_sentence is None:
-                            marks.first_sentence = self._clock()
-                        speech.say(sentence)
-                elif isinstance(event, SpokenEnd) and speech is not None:
-                    if rest := splitter.flush():
-                        marks.first_sentence = marks.first_sentence or self._clock()
-                        speech.say(rest)
-                elif isinstance(event, ReplyDone):
-                    log.info("Respuesta: %s", event.reply.model_dump_json())
-                    if speech is None:
-                        bubble = text_bubble(event.reply)
+            async with contextlib.aclosing(self.brain.respond(text)) as events:
+                async for event in events:
+                    if marks.first_token is None:
+                        marks.first_token = self._clock()
+                    if isinstance(event, BubbleReady):
+                        bubble = event
+                        if bubble_shown:
+                            await show_bubble()
+                    elif isinstance(event, SpokenDelta) and speech is not None:
+                        for sentence in splitter.feed(event.text):
+                            if marks.first_sentence is None:
+                                marks.first_sentence = self._clock()
+                            speech.say(sentence)
+                    elif isinstance(event, SpokenEnd) and speech is not None:
+                        if rest := splitter.flush():
+                            marks.first_sentence = marks.first_sentence or self._clock()
+                            speech.say(rest)
+                    elif isinstance(event, ReplyDone):
+                        log.info("Respuesta: %s", event.reply.model_dump_json())
+                        if speech is None:
+                            bubble = text_bubble(event.reply)
             if speech is not None and (rest := splitter.flush()):
                 marks.first_sentence = marks.first_sentence or self._clock()
                 speech.say(rest)

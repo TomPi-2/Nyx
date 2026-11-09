@@ -111,3 +111,10 @@ def test_spanish_datetime() -> None:
     from datetime import datetime
 
     assert spanish_datetime(datetime(2026, 11, 9, 18, 5)) == "lunes 9 de noviembre de 2026, 18:05"
+
+
+def test_memory_last_turn_reads_spoken() -> None:
+    memory = ShortMemory()
+    assert memory.last_turn() is None
+    memory.add("¿Qué hora es?", '{"spoken": "Son las siete.", "display": "19:00"}')
+    assert memory.last_turn() == ("¿Qué hora es?", "Son las siete.")

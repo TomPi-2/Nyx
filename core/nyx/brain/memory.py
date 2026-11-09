@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import time
 from collections import deque
 from collections.abc import Callable
@@ -40,6 +41,18 @@ class ShortMemory:
         for user, assistant in self._turns:
             out += [ChatMessage("user", user), ChatMessage("assistant", assistant)]
         return out
+
+    def last_turn(self) -> tuple[str, str] | None:
+        """(petición, lo que Nyx dijo) del último turno, si no ha caducado."""
+        self._expire()
+        if not self._turns:
+            return None
+        user, assistant = self._turns[-1]
+        try:
+            spoken = str(json.loads(assistant).get("spoken", assistant))
+        except (ValueError, AttributeError):
+            spoken = assistant
+        return user, spoken
 
     def clear(self) -> None:
         self._turns.clear()

@@ -40,7 +40,7 @@ Nyx se divide en dos procesos: un núcleo en Python que escucha, piensa y actúa
 | Capturas | mss | Windows Graphics Capture | Por monitor |
 | Grabación | FFmpeg (`ddagrab` + códec AMF de AMD) | OBS por WebSocket | Hardware de la GPU, casi sin impacto |
 | Búsqueda de archivos | Everything (es.exe / SDK) | Índice propio | Gratis e instantáneo en todo el disco |
-| Caché | SQLite + FTS5 + watchdog | — | Índice de apps, carpetas y alias |
+| Caché | SQLite + rapidfuzz + watchdog | — | Índice de apps, carpetas y alias; la búsqueda difusa en memoria (< 5 ms con miles de alias) sustituye a FTS5 |
 | Tiempo | Open-Meteo | — | Gratis, sin clave |
 | Empaquetado | Nuitka o PyInstaller + Velopack (instalación y actualizaciones desde GitHub) | — | Un solo instalador |
 
@@ -88,14 +88,14 @@ Lo frecuente va directo de la transcripción a la ejecución; solo lo nuevo o co
 1. El micrófono escucha en continuo; solo el detector de activación procesa el audio (bajo consumo).
 2. Al detectar "Nyx", la verificación confirma la palabra. La interfaz pasa a "escuchando".
 3. Se admite la frase de una tirada ("Nyx abre Valorant"): el audio posterior a la palabra en el mismo búfer forma parte del comando.
-4. El VAD cierra la grabación tras 700 ms de silencio (máximo 15 s).
+4. El VAD cierra la grabación tras 700 ms de silencio (máximo 15 s). En cada pausa de ~0,4 s se transcribe lo dicho: si ya es una petición completa (una pregunta o una orden que el router entiende), se deja de escuchar ahí y lo que el usuario siga diciendo (a otra persona) no cuenta.
 5. whisper.cpp transcribe. La interfaz pasa a "pensando" solo si tarda más de 300 ms.
 6. El router rápido compara con reglas y alias de la caché. Con confianza alta, ejecuta sin LLM.
 7. Si no, el LLM recibe el texto, el contexto (fecha, app activa, monitor, modo partida, últimos turnos) y las herramientas, y devuelve una o varias llamadas.
 8. `SafetyGuard` evalúa cada llamada; si hace falta, pide confirmación.
 9. `Executor` ejecuta y devuelve un resultado estructurado.
 10. Respuesta según el tipo de petición (tabla siguiente).
-11. Ventana de seguimiento de 5 s: se puede seguir hablando sin repetir "Nyx" (configurable).
+11. Ventana de seguimiento de 5 s: se puede seguir hablando sin repetir "Nyx" (configurable). Solo cuenta una frase que empiece tras un silencio (no una conversación que ya estaba en marcha); las coletillas («vale», «sí, claro») se ignoran, y lo que no es una orden clara pasa por un clasificador corto del LLM («¿va dirigido a Nyx?»): si no, Nyx no responde.
 
 | Tipo de petición | Voz | Burbuja | Ejemplo |
 | --- | --- | --- | --- |
@@ -180,7 +180,7 @@ El cerebro decide qué herramientas ejecutar en dos niveles: un router determini
 - Modelo siempre cargado (`keep_alive` largo) y contexto corto (4–8k tokens) para responder rápido.
 - **Prompt de sistema** con: identidad y tono de Nyx (breve, español, sin relleno), fecha y hora, app en primer plano, monitor activo, estado de modo partida, carpetas conocidas y reglas de seguridad.
 - **Herramientas expuestas de forma dinámica:** solo las relevantes según categoría detectada (máximo unas 15 por llamada) para no saturar un modelo pequeño.
-- **Salida estructurada:** llamadas a herramientas, o un JSON `{spoken, display, secondary}` para respuestas informativas. Ollama genera ese JSON con una gramática del esquema, así que siempre es válido; se lee a trozos para empezar a hablar con la primera frase. Las llamadas a herramientas se validan con pydantic y, si fallan, se reintenta una vez con el error (fase 3).
+- **Salida estructurada:** el LLM recibe las herramientas en cada llamada. Para una acción devuelve llamadas a herramientas; para una pregunta responde en texto que se lee a trozos: primera línea `[dato | contexto]` (la burbuja) y después lo que se dice en voz alta, para empezar a hablar con la primera frase (probado en la fase 3: Ollama no permite combinar el JSON con esquema y las herramientas). Sustituye a la herramienta `answer`. Las llamadas a herramientas se validan con pydantic y, si fallan, se reintenta una vez con el error (fase 3).
 - **Planes de varios pasos:** "Abre el bloc de notas y abre una nueva pestaña" = `open_app(notepad)` → `wait_for_window` → `send_hotkey(ctrl+n)`. El ejecutor hace las esperas, no el LLM.
 - **Memoria corta:** últimos 6 turnos para entender "y ahora ciérralo" o "muévelos también".
 - **Preferencias aprendidas:** si el usuario corrige ("no, el Chrome, no Edge"), se guarda como preferencia local.
@@ -195,7 +195,7 @@ Unas 35 herramientas genéricas cubren miles de peticiones al combinarse. Cada u
 
 | Herramienta | Qué hace | Riesgo | Implementación |
 | --- | --- | --- | --- |
-| `open_app` | Abre una app o juego de la caché | Verde | Acceso directo, AppUserModelID o lanzador (Steam, Riot, Epic) |
+| `open_app` | Abre una app o juego de la caché y le da el foco (salvo «en segundo plano») | Verde | Acceso directo, AppUserModelID o lanzador (Steam, Riot, Epic) |
 | `close_app` | Cierra una app | Amarillo (rojo si hay cambios sin guardar) | WM_CLOSE; nunca matar el proceso salvo confirmación |
 | `focus_window` | Trae una ventana al frente | Verde | pywin32 |
 | `window_layout` | Maximizar, minimizar, mover a otro monitor, dividir pantalla | Verde | pywin32 + atajos de Windows |
@@ -352,6 +352,8 @@ Nyx mantiene en SQLite un índice de apps, juegos, carpetas y alias para resolve
 | Páginas de Configuración | Tabla fija de URIs `ms-settings:` con sinónimos en español | URI, alias |
 | Webs frecuentes | Tabla editable (YouTube, Claude, Gmail…) | URL, alias |
 
+**Implementación (fase 3a):** el menú Inicio y las apps de la Store se leen juntos de `shell:AppsFolder` (la lista de Inicio → Todas las apps; 0,4 s) y cada app se abre por su AppID; los `.lnk` solo se leen para saber el ejecutable de cada acceso. El registro `Uninstall` queda para cuando aparezca un programa sin acceso directo. Todo lo que Nyx abre sale de su job object (si no, se cerraría al cerrar Nyx).
+
 **Alias:** se generan automáticamente (sin tildes, minúsculas, siglas como "vscode", nombre sin editor, transcripciones típicas de Whisper) y el usuario puede añadir los suyos ("el juego de disparos" → Valorant). Coincidencia difusa con rapidfuzz.
 
 **Actualización:**
@@ -363,7 +365,7 @@ Nyx mantiene en SQLite un índice de apps, juegos, carpetas y alias para resolve
 
 **Uso y estadísticas:** cada entrada guarda cuántas veces y cuándo se usó para desempatar ("abre Chrome" → el perfil más usado).
 
-**Archivos de todo el disco:** Everything (gratuito) se instala o detecta en la configuración inicial; si no está, búsqueda limitada a las carpetas del usuario con el índice de Windows.
+**Archivos de todo el disco:** por defecto, el índice de búsqueda de Windows (viene con el sistema, sin instalar nada: carpetas del usuario y lo que Windows tenga indexado). El asistente de primer arranque ofrece una casilla opcional "Búsqueda instantánea en todo el disco (Everything)": Nyx lo descarga e instala con su servicio (licencia tipo MIT, se incluye su aviso; pide permiso de administrador una sola vez, porque leer el índice NTFS lo exige) y desde entonces lo usa. `find_files` funciona con los dos motores.
 
 ## 11. Interfaz: overlay sin ventana
 
@@ -701,3 +703,5 @@ Reglas de trabajo:
 | 2026-11-09 | LLM provisional: `qwen2.5:7b` (Apache 2.0). En la RX 7700 XT: 100 % en GPU, 4,4 GB de VRAM, 77 tokens/s y 3/3 herramientas; Llama 3.1 8B rinde igual pero su licencia tiene más condiciones. 14B queda como opción. Whisper large-v3-turbo q5 con Vulkan: 0,17 s por frase. La elección final, tras la batería de frases (fase 6); requisitos mínimos pendientes de las pruebas del portátil. | 2, 6, 14 |
 | 2026-11-09 | Fase 2: respuesta `{spoken, display, secondary}` con `spoken` primero (la voz empieza ~250 ms antes); atajo de hablar `Win+Alt+H`; whisper.cpp elige la GPU por nombre (Vulkan también ve la integrada); Kokoro con un hilo por núcleo físico (máx. 8). | 3, 4, 5, 6 |
 | 2026-11-09 | Tras la primera prueba de la fase 2: las peticiones escritas se responden solo en la burbuja (sin voz); la segunda verificación de «Nyx» con whisper se adelanta de la fase 4 ("no existe" activaba a Nyx); si Ollama no responde, Nyx lo abre y repite la petición. | 3, 4, 14 |
+| 2026-11-09 | Fase 3: 20 herramientas (resto en la fase 6), en tres bloques con prueba entre ellos (3a caché, router y herramientas verdes; 3b archivos y seguridad; 3c LLM con herramientas, alarmas y aprendizaje). Respuestas informativas en texto a trozos con línea `[dato | contexto]`. Búsqueda de archivos: índice de Windows por defecto y Everything opcional desde el asistente. Sin FTS5 (rapidfuzz en memoria). | 2, 6, 7, 10 |
+| 2026-11-09 | Tras probar la 3a: lo que se abre recibe el foco salvo que se pida «en segundo plano»; se deja de escuchar cuando la petición ya está completa; la ventana de seguimiento ignora conversaciones con otras personas (silencio previo, coletillas y clasificador del LLM). | 3, 7 |

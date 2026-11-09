@@ -5,13 +5,20 @@ description = "Núcleo de Nyx: asistente de voz local para Windows 11"
 requires-python = ">=3.12,<3.13"
 # Las dependencias de cada fase se añaden al aprobar su plan (ver CLAUDE.md).
 dependencies = [
+    "comtypes>=1.4.17",
     "httpx>=0.27",
     "kokoro-onnx>=0.6.1",
+    "mss>=10.2.0",
     "numpy>=2.5.4",
     "onnxruntime>=1.31.1",
+    "psutil>=7.2.2",
+    "pycaw>=20260927",
     "pydantic>=2.9",
+    "pywin32>=312",
+    "rapidfuzz>=3.14.6",
     "sounddevice>=0.5.6",
     "vosk>=0.3.45",
+    "watchdog>=7.1.0",
     "websockets>=14",
 ]
 
@@ -21,6 +28,8 @@ dev = [
     "mypy>=1.11",
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
+    "types-pywin32>=312.0.0.20261104",
+    "types-psutil>=7.2.2.20260906",
 ]
 
 [project.scripts]
@@ -42,6 +51,10 @@ select = ["E", "F", "W", "I", "N", "UP", "B", "ASYNC", "SIM", "RUF"]
 # Textos en español: guiones, comillas latinas y signos de apertura son intencionados.
 ignore = ["RUF001", "RUF002", "RUF003"]
 
+[tool.ruff.lint.per-file-ignores]
+# Las reglas del router son expresiones regulares: se leen mejor en una línea.
+"nyx/brain/router.py" = ["E501"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true
@@ -58,5 +71,5 @@ link-mode = "copy"
 
 [[tool.mypy.overrides]]
 # Librerías sin anotaciones de tipos: se usan detrás de las interfaces de nyx.
-module = ["sounddevice", "vosk", "onnxruntime", "onnxruntime.*", "kokoro_onnx"]
+module = ["sounddevice", "vosk", "onnxruntime", "onnxruntime.*", "kokoro_onnx", "comtypes", "pycaw", "pycaw.*", "mss", "mss.*"]
 ignore_missing_imports = true

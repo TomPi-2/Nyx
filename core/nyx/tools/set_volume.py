@@ -1,0 +1,71 @@
+"""set_volume: volumen general o de una app, y silenciar (verde)."""
+
+from __future__ import annotations
+
+import asyncio
+from typing import Self
+
+from pydantic import Field, model_validator
+
+from nyx.index.model import Kind
+from nyx.tools.base import Category, GamePolicy, Params, Risk, Tool, ToolContext, ToolResult
+from nyx.winapi import media
+
+DEFAULT_STEP = 10
+
+
+class SetVolumeParams(Params):
+    level: int | None = Field(default=None, ge=0, le=100, description="Volumen exacto (0–100)")
+    change: int | None = Field(
+        default=None, ge=-100, le=100, description="Subir (+) o bajar (−) tantos puntos"
+    )
+    mute: bool | None = Field(default=None, description="true = silenciar, false = quitar silencio")
+    app: str | None = Field(default=None, max_length=100, description="Solo esta app (Spotify…)")
+
+    @model_validator(mode="after")
+    def one_action(self) -> Self:
+        if self.level is None and self.change is None and self.mute is None:
+            raise ValueError("indica level, change o mute")
+        if self.level is not None and self.change is not None:
+            raise ValueError("level y change no van juntos")
+        return self
+
+
+class SetVolume(Tool[SetVolumeParams]):
+    name = "set_volume"
+    description = (
+        "Cambia el volumen. Ej.: «sube el volumen» (change=10), «pon el volumen al 40» "
+        "(level=40), «silencia» (mute=true), «baja Spotify» (app=Spotify, change=-10)."
+    )
+    risk = Risk.GREEN
+    game_policy = GamePolicy.ALLOWED
+    category = Category.AUDIO
+    params_model = SetVolumeParams
+
+    async def run(self, params: SetVolumeParams, ctx: ToolContext) -> ToolResult:
+        if params.app:
+            return await self._app(params, ctx)
+        level = params.level
+        if params.change is not None:
+            current, _ = await asyncio.to_thread(media.get_master)
+            level = current + params.change
+        volume, muted = await asyncio.to_thread(media.set_master, level, params.mute)
+        text = "Silenciado" if muted else f"Volumen {volume}"
+        return ToolResult(ok=True, message=text, data={"level": volume, "muted": muted})
+
+    async def _app(self, params: SetVolumeParams, ctx: ToolContext) -> ToolResult:
+        assert params.app is not None
+        best = ctx.index.confident(ctx.index.resolve(params.app, {Kind.APP, Kind.GAME}))
+        sessions = await asyncio.to_thread(media.app_sessions)
+        wanted = best.entry.process if best and best.entry.process else None
+        if wanted not in sessions:
+            name = params.app.casefold().replace(" ", "")
+            wanted = next((s for s in sessions if name in s.replace(" ", "")), None)
+        if wanted is None:
+            return ToolResult.fail(f"{params.app} no está sonando ahora")
+        if params.change is not None:
+            return ToolResult.fail("Para una app, dime el volumen exacto", "por ejemplo, al 30")
+        changed = await asyncio.to_thread(media.set_app, wanted, params.level, params.mute)
+        if not changed:
+            return ToolResult.fail(f"{params.app} no está sonando ahora")
+        return ToolResult(ok=True, message=f"Volumen de {params.app} cambiado")

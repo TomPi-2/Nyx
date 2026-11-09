@@ -15,6 +15,13 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
   - Scripts de prueba de GPU para Ollama y whisper.cpp con informe por equipo en `docs/benchmarks/`.
   - Resultados del PC de referencia (RX 7700 XT): Qwen 2.5 7B y Llama 3.1 8B al 100 % en GPU (77 y 72 tokens/s, 3/3 herramientas); whisper.cpp con Vulkan, 0,17 s por frase. LLM provisional: `qwen2.5:7b`.
   - CI en GitHub Actions (Windows): ruff, mypy, pytest, prettier, svelte-check, rustfmt y clippy.
+- Fase 3a (en pruebas): caché del sistema, router rápido y herramientas verdes.
+  - Caché SQLite en `%LOCALAPPDATA%\Nyx\cache`: apps de Inicio y de la Store (shell:AppsFolder), juegos de Steam, Riot y Epic, carpetas del usuario y su primer nivel, páginas de Configuración y webs frecuentes. Alias automáticos («vscode», «el lol», «balorant»), búsqueda difusa en ~1 ms y desempate por uso. Se reescanea al instalar apps o crear carpetas (watchdog) y cada 24 h.
+  - Router rápido sin LLM: abrir apps, juegos, webs, carpetas y páginas de Configuración; volumen (general y por app), silencio, multimedia, capturas, maximizar/minimizar/media pantalla/otro monitor y cambiar de ventana. «No encuentro X» con sugerencia.
+  - 10 herramientas, cada una con su archivo, esquema, riesgo, política en partida y pruebas: `open_app`, `focus_window`, `window_layout`, `wait_for_window`, `open_url`, `open_settings`, `open_path`, `set_volume`, `media_control`, `screenshot`.
+  - Ejecutor con validación de parámetros, tiempo máximo por herramienta y planes que se detienen en el primer fallo; hasta el bloque 3b solo ejecuta herramientas verdes.
+  - Lo que Nyx abre sobrevive a Nyx (sale de su job object) y recibe el foco en cuanto aparece su ventana, salvo «en segundo plano», «sin enfocar», «de fondo»…
+  - Escucha: en cada pausa de ~0,4 s se transcribe lo dicho; si ya es una petición completa, Nyx deja de escuchar y responde a eso (y antes). La ventana de seguimiento solo acepta frases nuevas tras un silencio, ignora coletillas y, si no es una orden clara, pregunta al LLM si va dirigida a Nyx (14/15 aciertos en pruebas, ~250 ms).
 - Fase 2 (cerrada el 2026-11-09): bucle de voz.
   - Micrófono por WASAPI (16 kHz mono, bloques de 32 ms, 2 s de pre-grabación; se reabre si deja de dar audio). Dispositivos por nombre en los ajustes.
   - Activación provisional con Vosk (gramática con «nix» y palabras parecidas) y Silero VAD con corte a los 700 ms de silencio (máximo 15 s).
