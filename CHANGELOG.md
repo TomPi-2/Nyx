@@ -18,6 +18,8 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
 
 ### Cambiado
 
+- Prueba de cristal: el Acrylic queda descartado (se ve sólido en ventanas sin foco). La isla y las burbujas pasan a un gris opaco, siempre igual sea cual sea el fondo; un tinte translúcido cambiaba de tono con lo que hubiera detrás. La prueba muestra ahora el estilo final. El cristal con desenfoque real queda para un motor propio más adelante.
+
 - SPEC: sin cuenta de usuario; datos de uso anónimos solo con permiso (sección 8); interfaz en ventanas flotantes propias en lugar de capa a pantalla completa, con elección de monitor según ajustes y modo partida (secciones 9 y 11); Svelte 5 y `uv` en el stack (sección 2); repositorio público desde la fase 6 (sección 15).
 - Estructura del repositorio según la sección 16: `core/` (paquete `nyx` con un subpaquete por servicio), `ui/` y `docs/`.
 - `CLAUDE.md` con las reglas de trabajo y las decisiones tomadas.

@@ -3,13 +3,9 @@
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use tauri::{Runtime, WebviewWindow};
 use windows::Win32::Foundation::{HWND, POINT, RECT};
-use windows::Win32::Graphics::Dwm::{
-    DWM_WINDOW_CORNER_PREFERENCE, DWMWA_BORDER_COLOR, DWMWA_WINDOW_CORNER_PREFERENCE,
-    DwmSetWindowAttribute,
-};
+use windows::Win32::Graphics::Dwm::{DWMWA_BORDER_COLOR, DwmSetWindowAttribute};
 use windows::Win32::Graphics::Gdi::{
-    CreateRoundRectRgn, GetMonitorInfoW, MONITOR_DEFAULTTONEAREST, MONITORINFO, MonitorFromPoint,
-    SetWindowRgn,
+    GetMonitorInfoW, MONITOR_DEFAULTTONEAREST, MONITORINFO, MonitorFromPoint,
 };
 use windows::Win32::UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
 use windows::Win32::UI::WindowsAndMessaging::{
@@ -47,25 +43,6 @@ pub fn remove_border(hwnd: HWND) {
             &color as *const u32 as *const _,
             size_of::<u32>() as u32,
         );
-    }
-}
-
-pub fn set_corner_preference(hwnd: HWND, pref: DWM_WINDOW_CORNER_PREFERENCE) {
-    unsafe {
-        let _ = DwmSetWindowAttribute(
-            hwnd,
-            DWMWA_WINDOW_CORNER_PREFERENCE,
-            &pref as *const DWM_WINDOW_CORNER_PREFERENCE as *const _,
-            size_of::<DWM_WINDOW_CORNER_PREFERENCE>() as u32,
-        );
-    }
-}
-
-/// Recorta la ventana a un rectángulo redondeado (región GDI: bordes sin antialias).
-pub fn set_round_region(hwnd: HWND, width: i32, height: i32, radius: i32) {
-    unsafe {
-        let region = CreateRoundRectRgn(0, 0, width + 1, height + 1, radius * 2, radius * 2);
-        SetWindowRgn(hwnd, Some(region), true);
     }
 }
 

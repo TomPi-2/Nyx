@@ -1,53 +1,27 @@
 <!--
-  Prueba de cristal de la fase 1 (ver src-tauri/src/glass.rs).
-  A y B: la ventana tiene Acrylic de Windows; aquí solo se añade el tinte «glass» encima.
-  C: ventana transparente; el cristal se imita con tinte y degradado en CSS.
+  Prueba de cristal (ver src-tauri/src/glass.rs): muestra la isla y una burbuja con el
+  estilo definitivo de la fase 1 (gris opaco + degradado sutil + sombra) para revisar
+  la paleta sobre fondos reales.
 -->
-<script lang="ts">
-  import { page } from "$app/state";
-
-  const variant = page.url.searchParams.get("v") ?? "a";
-  const labels: Record<string, string> = {
-    a: "A · Acrylic + esquinas nativas de Windows",
-    b: "B · Acrylic + región redondeada (28 px)",
-    c: "C · Tinte en CSS, sin desenfoque real",
-  };
-</script>
-
-{#if variant === "c"}
-  <div class="c-stack">
-    <div class="c pill"><div class="orb"></div></div>
-    <div class="c panel"><span>{labels.c}</span></div>
+<div class="stack">
+  <div class="glass pill"><div class="orb"></div></div>
+  <div class="glass thinking"></div>
+  <div class="glass panel">
+    <span class="display">Hallo</span>
+    <span class="secondary">hola · alemán</span>
   </div>
-{:else}
-  <div class="acrylic" class:pill={variant === "b-pill"}>
-    {#if variant === "b-pill"}
-      <div class="orb"></div>
-    {:else}
-      <span>{labels[variant]}</span>
-    {/if}
-  </div>
-{/if}
+</div>
 
 <style>
-  .acrylic {
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--glass);
-  }
-
-  .c-stack {
+  .stack {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 24px;
-    padding-top: 8px;
+    gap: 28px;
+    padding: 24px 0 48px;
   }
 
-  .c {
+  .glass {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -55,22 +29,35 @@
     box-shadow: var(--shadow);
   }
 
-  .c.pill {
+  .pill {
+    width: 44px;
+    height: 44px;
+    border-radius: 22px;
+  }
+
+  .thinking {
     width: 120px;
     height: 44px;
     border-radius: 22px;
   }
 
-  .c.panel {
-    width: 520px;
-    height: 120px;
+  .panel {
+    flex-direction: column;
+    width: 400px;
+    height: 96px;
     border-radius: 28px;
   }
 
-  span {
-    font-size: 15px;
+  .display {
+    font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+    font-size: 28px;
     font-weight: 600;
     color: var(--text);
+  }
+
+  .secondary {
+    font-size: 13px;
+    color: var(--text-secondary);
   }
 
   .orb {
