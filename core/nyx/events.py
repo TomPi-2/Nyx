@@ -46,6 +46,7 @@ class BubbleShown:
     display: str
     secondary: str | None = None
     actions: tuple[BubbleAction, ...] = ()
+    alert: bool = False  # alarmas y avisos: además, notificación de Windows
 
 
 @dataclass(frozen=True, slots=True)

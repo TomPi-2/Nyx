@@ -8,6 +8,7 @@
   import { Spring } from "svelte/motion";
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
+  import { sendNotification } from "@tauri-apps/plugin-notification";
   import { connectCore, type CoreConnection } from "$lib/core";
   import type { ActionButton, NyxState, ServerMessage } from "$lib/protocol";
 
@@ -91,6 +92,10 @@
         break;
       case "bubble":
         bubble = { display: msg.display, secondary: msg.secondary, actions: msg.actions };
+        if (msg.alert) {
+          // Alarmas: también en el centro de notificaciones, por si no se mira la pantalla.
+          sendNotification({ title: msg.display, body: msg.secondary ?? "" });
+        }
         break;
       case "bubble_hide":
         bubble = null;

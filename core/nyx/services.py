@@ -13,6 +13,9 @@ import time
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
+from nyx.alarms.ringer import AlarmRinger
+from nyx.alarms.scheduler import AlarmScheduler
+from nyx.alarms.store import AlarmStore
 from nyx.audio.capture import AudioCapture
 from nyx.audio.playback import Player
 from nyx.audio.vad import SileroVAD
@@ -61,8 +64,13 @@ class Services:
         stt: WhisperServer | None,
         index: SystemIndex,
         watcher: IndexWatcher | None,
+        alarms: AlarmScheduler | None = None,
+        ringer: AlarmRinger | None = None,
     ) -> None:
         self.pipeline = pipeline
+        self.alarms = alarms
+        self.ringer = ringer
+        self.alarms_start: asyncio.Task[None] | None = None
         self.llm = llm
         self.stt = stt
         self.index = index
@@ -73,6 +81,13 @@ class Services:
     async def close(self) -> None:
         if self.notice is not None:
             self.notice.cancel()
+        if self.alarms_start is not None:
+            self.alarms_start.cancel()
+        if self.alarms is not None:
+            await self.alarms.close()
+            self.alarms.store.close()
+        if self.ringer is not None:
+            await self.ringer.close()
         for task in self.background:
             task.cancel()
         if self.watcher is not None:
@@ -182,7 +197,9 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         await index.refresh()
     # Rutas protegidas (SPEC sección 8): sistema, Nyx y las carpetas principales del usuario.
     paths = PathPolicy.default(list(known_folders().values()))
-    tools_ctx = ToolContext(index=index, settings=settings, paths=paths)
+    alarms = AlarmScheduler(AlarmStore.default(), bus)
+    tools_ctx = ToolContext(index=index, settings=settings, paths=paths, alarms=alarms)
+    ringer = AlarmRinger(bus, tts=tts, player=player)
     executor = Executor(registry, tools_ctx, action_log=ActionLog.default())
     # «Sí» / «no» por voz con el mismo modelo de Vosk que la activación.
     yesno = VoskYesNo(wake.model) if wake is not None else None
@@ -201,6 +218,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         router=lambda text: route(text, index),
         executor=executor,
         yesno=yesno,
+        ringer=ringer,
     )
     log.info(
         "Servicios listos en %.1f s (voz: %s, activación: %s, respuesta hablada: %s)",
@@ -209,7 +227,10 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         "sí" if wake is not None else "no",
         "sí" if tts is not None else "no",
     )
-    services = Services(pipeline, llm, stt, index, start_watcher(index))
+    services = Services(
+        pipeline, llm, stt, index, start_watcher(index), alarms=alarms, ringer=ringer
+    )
+    services.alarms_start = asyncio.create_task(_start_alarms(alarms), name="alarms-start")
     if index.needs_scan():
         task = asyncio.create_task(index.refresh(), name="index-scan")
         services.background.add(task)
@@ -231,6 +252,13 @@ def start_watcher(index: SystemIndex) -> IndexWatcher | None:
         log.warning("No se pueden vigilar los cambios de apps y carpetas", exc_info=True)
         return None
     return watcher
+
+
+async def _start_alarms(alarms: AlarmScheduler) -> None:
+    # Tras dar tiempo a que la interfaz se conecte: el aviso de las alarmas que vencieron
+    # con Nyx cerrado tiene que verse.
+    await asyncio.sleep(NOTICE_DELAY_S)
+    await alarms.start()
 
 
 async def _notice(bus: EventBus, problems: list[str]) -> None:

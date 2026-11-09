@@ -19,6 +19,8 @@ pub fn run() {
             eprintln!("[nyx] ya hay una instancia en marcha");
         }))
         .plugin(hotkeys::plugin())
+        // Alarmas y avisos: además de la burbuja, notificación de Windows (SPEC sección 11).
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             core_process::core_endpoint,
             island::island_set_visible,

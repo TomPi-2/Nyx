@@ -23,6 +23,7 @@ serde_json = "1"
 tokio = { version = "1", features = ["process", "io-util", "time", "sync", "macros"] }
 uuid = { version = "1", features = ["v4"] }
 raw-window-handle = "0.6"
+tauri-plugin-notification = "2"
 
 [target.'cfg(windows)'.dependencies]
 # Misma versión que usa Tauri para no compilar dos copias.

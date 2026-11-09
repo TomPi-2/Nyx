@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 3
+PROTOCOL_VERSION = 4
 
 
 class _Msg(BaseModel):
@@ -87,6 +87,7 @@ class BubbleMsg(_Msg):
     display: str
     secondary: str | None = None
     actions: list[ActionButton] = []
+    alert: bool = False  # v4: alarmas y avisos (la interfaz lanza la notificación de Windows)
 
 
 class BubbleHideMsg(_Msg):

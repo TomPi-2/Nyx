@@ -19,6 +19,7 @@ from typing import Any, Protocol
 
 import numpy as np
 
+from nyx.alarms.ringer import AlarmRinger
 from nyx.audio.capture import AudioCapture, Frame, rms_level
 from nyx.audio.playback import Player
 from nyx.audio.vad import Endpointer, EndReason, VoiceDetector
@@ -252,6 +253,7 @@ class Pipeline:
         router: Callable[[str], Route | Miss | None] | None = None,
         executor: Executor | None = None,
         yesno: YesNoDetector | None = None,
+        ringer: AlarmRinger | None = None,
         clock: Callable[[], float] = time.perf_counter,
     ) -> None:
         self.bus = bus
@@ -267,6 +269,7 @@ class Pipeline:
         self.player = player
         self.router = router
         self.executor = executor
+        self.ringer = ringer
         self._clock = clock
         self.mode = Mode.IDLE
         self.state = NyxState.IDLE
@@ -593,6 +596,11 @@ class Pipeline:
     ) -> None:
         """Router rápido primero (acciones sin LLM); si no encaja, el LLM."""
         marks.phrase = text
+        if self.ringer is not None and self.ringer.swallow(text):
+            # «Nyx, para» con la alarma sonando: es para ella, no para la música.
+            await self.ringer.stop()
+            await self._hide_bubble()
+            return
         if self.router is not None and self.executor is not None:
             routed = self.router(text)
             if isinstance(routed, Route):
