@@ -2,7 +2,7 @@
 
 Todo se carga en paralelo (objetivo: listo en menos de 10 s). Si una pieza falla, Nyx sigue
 con lo que tenga y lo avisa una vez (SPEC sección 2): sin whisper o sin micrófono queda la
-entrada por texto; sin Kokoro, las respuestas solo salen en la burbuja.
+entrada por texto; sin voz (Piper), las respuestas solo salen en la burbuja.
 """
 
 from __future__ import annotations
@@ -37,7 +37,8 @@ from nyx.settings.model import Settings
 from nyx.stt.whisper_server import WhisperServer
 from nyx.tools.base import ToolContext
 from nyx.tools.registry import default_registry
-from nyx.tts.kokoro import KokoroTTS
+from nyx.tts.piper import PiperTTS
+from nyx.tts.voices import voice_for
 from nyx.wake.vosk_engine import VoskWakeWord, VoskYesNo
 
 log = logging.getLogger(__name__)
@@ -124,13 +125,15 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         await stt.start()
         return stt
 
-    async def load_tts() -> KokoroTTS:
-        tts = KokoroTTS(
-            MODELS["tts-model"].path(),
-            MODELS["tts-voices"].path(),
-            voice=settings.tts.voice,
+    async def load_tts() -> PiperTTS:
+        voice = voice_for(settings.tts.voice)
+        if voice.id != settings.tts.voice:
+            log.warning("No existe la voz %r: uso %s", settings.tts.voice, voice.label)
+        tts = PiperTTS(
+            MODELS[voice.model].path(),
+            MODELS[voice.config].path(),
+            speaker=voice.speaker,
             speed=settings.tts.speed,
-            lang=settings.tts.lang,
         )
         await tts.load()
         return tts
@@ -148,7 +151,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     _, stt, tts, vad, wake = await asyncio.gather(
         load_llm(),
         _attempt("Transcripción (whisper)", problems, load_stt) if voice else nothing(),
-        _attempt("Voz (Kokoro)", problems, load_tts) if settings.tts.enabled else nothing(),
+        _attempt("Voz (Piper)", problems, load_tts) if settings.tts.enabled else nothing(),
         _attempt("Detección de voz (Silero)", problems, load_vad) if voice else nothing(),
         _attempt("Activación (Vosk)", problems, load_wake) if use_wake else nothing(),
     )

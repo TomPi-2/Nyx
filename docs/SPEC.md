@@ -34,7 +34,7 @@ Nyx se divide en dos procesos: un núcleo en Python que escucha, piensa y actúa
 | Detección de voz (VAD) | Silero VAD (ONNX) | WebRTC VAD | Corta la grabación al dejar de hablar |
 | Voz a texto | whisper.cpp con backend Vulkan | whisper.cpp en CPU | faster-whisper no acelera en AMD; usar large-v3-turbo cuantizado |
 | Cerebro | Ollama (ROCm o Vulkan) | LM Studio | Modelo instruct de 7–8B con tool calling; 14B cuantizado como opción |
-| Texto a voz | Kokoro (ONNX) | Piper | Voces en español; ambos rápidos en CPU |
+| Texto a voz | Piper (ONNX, GPL-3.0) | Chatterbox Multilingual (si algún día va en la GPU AMD) | Voz predeterminada de mujer con acento de España (sharvard F); ~0,04 s por frase en CPU |
 | Acciones Windows | pywin32, comtypes, pycaw, psutil, winsdk | PowerShell | Ventanas, audio, procesos, notificaciones |
 | Papelera | send2trash | — | Nunca borrado permanente |
 | Capturas | mss | Windows Graphics Capture | Por monitor |
@@ -142,7 +142,7 @@ Lo frecuente va directo de la transcripción a la ejecución; solo lo nuevo o co
 
 ## 5. Voz: reconocimiento y síntesis
 
-whisper.cpp transcribe en la GPU con Vulkan y Kokoro habla en la CPU, para no competir con el modelo de lenguaje ni con los juegos.
+whisper.cpp transcribe en la GPU con Vulkan y Piper habla en la CPU, para no competir con el modelo de lenguaje ni con los juegos.
 
 **Reconocimiento (STT):**
 
@@ -155,10 +155,10 @@ whisper.cpp transcribe en la GPU con Vulkan y Kokoro habla en la CPU, para no co
 
 **Síntesis (TTS):**
 
-- Kokoro como motor principal con voz en español; Piper como alternativa más rápida.
+- Piper como motor (prueba de escucha del 2026-11-09, `docs/benchmarks/tts-TomPi-20261109.jsonl`). Voz predeterminada de mujer con acento de España (sharvard F, CC BY 3.0); en Ajustes, davefx (hombre, España, CC0) y daniela (mujer, Argentina, CC BY-SA 4.0). Las licencias CC BY piden citar la autoría en los créditos. Kokoro sonaba robótico en español; Chatterbox Multilingual (MIT) suena más natural pero en la CPU tarda ~10 s por frase.
 - **Streaming por frases:** empezar a hablar en cuanto el LLM genera la primera frase, sin esperar la respuesta completa.
 - Texto adaptado para voz: el LLM genera `spoken` (corto y natural, primero para que la voz empiece antes), `display` (dato destacado de la burbuja) y `secondary` (línea pequeña). Ejemplo: voz "En alemán se dice Hallo", burbuja "Hallo" grande + "hola · alemán" pequeño.
-- Palabras en otros idiomas pronunciadas con la voz de ese idioma cuando exista (Kokoro tiene voces en varios idiomas).
+- Palabras en otros idiomas pronunciadas con la voz de ese idioma cuando exista (Piper tiene voces en muchos idiomas).
 - Audio por el dispositivo de salida elegido en ajustes (útil para separar del juego o del stream).
 - Atenuar el volumen de otras apps (ducking) mientras habla; desactivado por defecto en modo partida.
 - Velocidad, tono y voz configurables.
@@ -500,7 +500,7 @@ La ventana de Ajustes es la única ventana clásica de Nyx y sigue la misma iden
 | --- | --- |
 | General | Iniciar con Windows, idioma, ubicación para el tiempo, navegador preferido, carpeta de capturas y grabaciones |
 | Activación | Palabra ("Nyx" o personalizada con validación), sensibilidad, recalibrar con muestras, verificación de voz, ventana de seguimiento, atajos de hablar, escribir y silenciar |
-| Voz | Motor (Kokoro/Piper), voz, velocidad, volumen, dispositivo de entrada y de salida, atenuar otras apps |
+| Voz | Voz (mujer · España, hombre · España, mujer · Argentina), velocidad, volumen, dispositivo de entrada y de salida, atenuar otras apps |
 | Respuestas | Responder también en voz a lo escrito (desactivado por defecto), cuándo hablar (siempre, solo preguntas, nunca), cuándo mostrar burbuja, duración, confirmación visual de acciones silenciosas |
 | Apariencia | Monitor de destino, tema claro u oscuro, vista previa del indicador (estilos, ubicaciones y tamaños en la fase 7) |
 | Modo partida | Nyx en partida (desactivado, solo voz, normal), monitor alternativo para la interfaz, herramientas permitidas, diferidas y bloqueadas, lista de juegos manual, descargar el LLM en partida |
@@ -632,7 +632,7 @@ nyx/
       audio/             # AudioService, VAD
       wake/              # openWakeWord, Vosk, verificación
       stt/               # whisper.cpp
-      tts/               # Kokoro, Piper
+      tts/               # Piper y catálogo de voces
       brain/             # router, LLM, prompts, memoria corta
       tools/             # una herramienta por archivo + registry
       safety/            # SafetyGuard, listas de bloqueo, deshacer
@@ -707,3 +707,4 @@ Reglas de trabajo:
 | 2026-11-09 | Fase 3: 20 herramientas (resto en la fase 6), en tres bloques con prueba entre ellos (3a caché, router y herramientas verdes; 3b archivos y seguridad; 3c LLM con herramientas, alarmas y aprendizaje). Respuestas informativas en texto a trozos con línea `[dato | contexto]`. Búsqueda de archivos: índice de Windows por defecto y Everything opcional desde el asistente. Sin FTS5 (rapidfuzz en memoria). | 2, 6, 7, 10 |
 | 2026-11-09 | Tras probar la 3a: lo que se abre recibe el foco salvo que se pida «en segundo plano»; se deja de escuchar cuando la petición ya está completa; la ventana de seguimiento ignora conversaciones con otras personas (silencio previo, coletillas y clasificador del LLM). | 3, 7 |
 | 2026-11-09 | Bloque 3b: cada herramienta que toca archivos o ventanas prepara antes lo que va a hacer (SafetyGuard revisa eso y, si es roja, se confirma y ejecuta exactamente eso). Rutas protegidas: sistema, raíces de disco, carpetas de Nyx y las carpetas principales del usuario (se puede escribir dentro, no moverlas ni borrarlas). Confirmación en la isla con botones y por voz (Vosk, gramática cerrada «sí/vale/adelante…» / «no/cancela/espera…»; ante la duda, no). Deshacer 30 s en la burbuja o con «Nyx, deshaz»; cerrar una app se deshace reabriéndola. Búsqueda: Everything si está; si no, índice de Windows. Nuevo token `text-on-active`. | 7, 8, 10, 12 |
+| 2026-11-09 | Voz: Piper sustituye a Kokoro (más natural en español y ~10 veces más rápido: Nyx empieza a hablar ~0,3 s después de terminar la frase). Predeterminada mujer con acento de España; davefx y daniela en Ajustes. | 2, 5, 13 |
