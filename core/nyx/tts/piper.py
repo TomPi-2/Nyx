@@ -15,6 +15,7 @@ import numpy as np
 import numpy.typing as npt
 
 from nyx.tts.base import TTSError
+from nyx.tts.spoken import to_spoken
 
 log = logging.getLogger(__name__)
 
@@ -76,6 +77,6 @@ class PiperTTS:
             raise TTSError("la voz no está cargada")
         async with self._lock:
             try:
-                return await asyncio.to_thread(self._synth, text)
+                return await asyncio.to_thread(self._synth, to_spoken(text))
             except Exception as e:
                 raise TTSError(str(e)) from e

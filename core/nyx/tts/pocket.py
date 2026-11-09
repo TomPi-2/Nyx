@@ -23,6 +23,7 @@ import numpy.typing as npt
 
 from nyx.paths import models_dir
 from nyx.tts.base import TTSError
+from nyx.tts.spoken import to_spoken
 
 log = logging.getLogger(__name__)
 
@@ -96,6 +97,7 @@ class PocketTTS:
         """Trozos de audio según se generan. Si se deja de leer, la generación se para."""
         if self._model is None:
             raise TTSError("la voz no está cargada")
+        text = to_spoken(text)  # «1, 2, 3» → «uno, dos, tres» (la voz lee mal las cifras)
         loop = asyncio.get_running_loop()
         queue: asyncio.Queue[Samples | BaseException | None] = asyncio.Queue()
         stop = threading.Event()
