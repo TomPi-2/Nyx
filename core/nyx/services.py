@@ -21,7 +21,7 @@ from nyx.audio.playback import Player
 from nyx.audio.vad import SileroVAD
 from nyx.brain.base import LLMError
 from nyx.brain.ollama import OllamaEngine, launch_ollama
-from nyx.brain.router import route
+from nyx.brain.router import refusal, route
 from nyx.brain.service import Brain
 from nyx.brain.shortcuts import ShortcutStore
 from nyx.bus import EventBus
@@ -219,6 +219,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         tts=tts,
         player=player,
         router=lambda text: route(text, index),
+        refuse=lambda text: refusal(text, index),
         executor=executor,
         yesno=yesno,
         ringer=ringer,

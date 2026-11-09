@@ -265,3 +265,39 @@ def test_in_app_actions(index: SystemIndex, text: str, action: str, app: str | N
     call = result.calls[0]
     assert call.name == "app_action" and call.arguments["action"] == action
     assert call.arguments.get("app") == app
+
+
+@pytest.mark.parametrize(
+    ("text", "refused"),
+    [
+        ("vacía la papelera", True),
+        ("borra los archivos de descargas para siempre", True),
+        ("escribe en el chat del Valorant que voy", True),
+        ("abre el Valorant", False),
+        ("borra el último archivo de descargas", False),
+    ],
+)
+def test_refusals(index: SystemIndex, text: str, refused: bool) -> None:
+    from nyx.brain.router import refusal
+
+    assert (refusal(text, index) is not None) is refused
+
+
+@pytest.mark.parametrize(
+    ("text", "tool"),
+    [
+        ("abre Spotify y maximízalo", None),  # varios pasos → LLM
+        ("pon Chrome a la izquierda y Discord a la derecha", "window_layout"),
+        ("pon el aleatorio en Spotify", "app_action"),
+        ("dale a me gusta a esta canción", "app_action"),
+        ("busca un canal en Discord", None),
+        ("guarda el documento del bloc de notas", "app_action"),
+        ("pantalla completa", "app_action"),
+    ],
+)
+def test_battery_fixes(index: SystemIndex, text: str, tool: str | None) -> None:
+    result = route(text, index)
+    if tool is None:
+        assert result is None
+    else:
+        assert isinstance(result, Route) and result.calls[0].name == tool

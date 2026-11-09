@@ -63,7 +63,10 @@ _THIS_WINDOW = {"", "esta ventana", "la ventana", "esto", "esta", "la ventana ac
 
 _DOMAIN_DOT = re.compile(r"(?<=\w)\.(?=(?:com|es|org|net|io|ai|tv|dev|app|gg|co|eu|me)\b)", re.I)
 _VERBS = r"abre|abrir|pon|cierra|sube|baja|haz|hazme|mueve|crea|escribe|busca|silencia|pausa|cambia|maximiza|minimiza|lanza"
-_SEVERAL_ACTIONS = re.compile(rf"\s(?:y|y luego|luego|despues|y despues)\s+(?:{_VERBS})\b")
+# «abre Spotify y maximízalo»: el verbo puede llevar pronombre pegado.
+_SEVERAL_ACTIONS = re.compile(
+    rf"\s(?:y|y luego|luego|despues|y despues)\s+(?:{_VERBS})(?:melo|mela|lo|la|los|las|le)?\b"
+)
 
 
 _BACKGROUND = re.compile(
@@ -297,6 +300,87 @@ rule(
 rule("discord_deafen", r"^ensordece(?:me)?(?:\s+(?:en|de)\s+discord)?$")(
     lambda m, index: _call("discord_deafen", "app_action", app="Discord", action="toggle_deafen")
 )
+
+rule(
+    "save",
+    r"^guarda(?:me)?(?:\s+(?:el\s+|la\s+|los\s+)?(?:documento|archivo|cambios|nota|texto))?" + _IN,
+)(_in_app("save", "save"))
+
+
+@rule(
+    "fullscreen",
+    r"^(?:(?:pon(?:me)?|haz|deja)\s+(?:el\s+|la\s+)?(?P<x>.+?)\s+(?:en\s+)?|)pantalla completa$",
+)
+def _fullscreen(m: re.Match[str], index: SystemIndex) -> Route | None:
+    raw = m.group("x")
+    if raw in (None, "esto", "la ventana", "esta ventana"):
+        return _call("fullscreen", "app_action", action="fullscreen")
+    best = index.confident(index.resolve(raw, {Kind.APP}))
+    named = profile_for(best.entry.process if best else None, raw)
+    app = best.entry.name if best else None
+    if named is not None and "fullscreen" in named.actions:
+        return _call("fullscreen", "app_action", action="fullscreen", app=app or raw)
+    if app is None:
+        return None
+    return _call("fullscreen", "window_layout", action="maximize", name=app)
+
+
+_SPOTIFY = r"(?:\s+(?:en|de)\s+spotify)?$"
+rule(
+    "shuffle",
+    r"^(?:pon|activa|quita|desactiva)\s+(?:el\s+)?(?:modo\s+)?(?:aleatorio|shuffle)" + _SPOTIFY,
+)(lambda m, index: _call("shuffle", "app_action", app="Spotify", action="shuffle"))
+rule(
+    "repeat",
+    r"^(?:pon|activa|quita|desactiva)\s+(?:el\s+)?(?:modo\s+)?(?:repetir|bucle|repeticion)"
+    + _SPOTIFY,
+)(lambda m, index: _call("repeat", "app_action", app="Spotify", action="repeat"))
+rule(
+    "like",
+    r"^(?:dale\s+(?:a\s+)?(?:un\s+)?me gusta|me gusta esta cancion|guarda esta cancion)"
+    r"(?:\s+a\s+esta\s+cancion)?" + _SPOTIFY,
+)(lambda m, index: _call("like", "app_action", app="Spotify", action="like"))
+
+
+@rule(
+    "two_windows",
+    r"^(?:pon|mueve|coloca)\s+(?P<a>.+?)\s+a la (?P<s1>izquierda|derecha)\s+y\s+"
+    r"(?:a\s+)?(?P<b>.+?)\s+a la (?P<s2>izquierda|derecha)$",
+)
+def _two_windows(m: re.Match[str], _: SystemIndex) -> Route:
+    side = {"izquierda": "left", "derecha": "right"}
+    return Route(
+        [
+            ToolCall("window_layout", {"action": side[m.group("s1")], "name": m.group("a")}),
+            ToolCall("window_layout", {"action": side[m.group("s2")], "name": m.group("b")}),
+        ],
+        "two_windows",
+    )
+
+
+# --- lo que Nyx nunca hace (SPEC secciones 1 y 8) ---
+
+_EMPTY_BIN = re.compile(r"\b(?:vacia|vaciar|limpia|limpiar|borra|borrar)\w*\s+(?:la\s+)?papelera\b")
+_FOREVER = re.compile(
+    r"\b(?:borra|elimina|borrar|eliminar)\w*\b.*\b(?:para siempre|permanentemente|definitivamente)\b"
+)
+_IN_GAME = re.compile(
+    r"\b(?:escribe|pulsa|teclea|dispara|apunta|juega|mueve|compra|vende|chat|chatea|"
+    r"manda un mensaje)\b"
+)
+
+
+def refusal(text: str, index: SystemIndex) -> tuple[str, str] | None:
+    """(burbuja, línea secundaria) si es algo que Nyx no hace nunca; si no, None."""
+    clean = _clean(text)
+    if _EMPTY_BIN.search(clean) or _FOREVER.search(clean):
+        return "Eso no lo hago", "borraría para siempre: lo que borro va a la papelera"
+    if _IN_GAME.search(clean):
+        games = {a for e in index.entries({Kind.GAME}) for a in (*e.aliases, normalize(e.name))}
+        words = f" {clean} "
+        if any(f" {alias} " in words for alias in games if len(alias) > 2):
+            return "Dentro de los juegos no toco nada", "puedo abrirlos, la música y el volumen"
+    return None
 
 
 # --- capturas ---
@@ -535,7 +619,14 @@ def _delete_named(m: re.Match[str], _: SystemIndex) -> Route:
     "find",
     r"^(?:busca(?:me)?|buscar|encuentra(?:me)?|donde esta(?:n)?)\s+(?:el|la|los|las|un|una|mis|mi)?\s*(?P<what>archivos?|ficheros?|documentos?|fotos?|imagen(?:es)?|videos?|pdfs?)?\s*(?:de|del|que se llama|llamado|con)?\s*(?P<q>.+?)(?:\s+en\s+(?P<f>(?!google|internet|la web|youtube).+))?$",
 )
-def _find(m: re.Match[str], _: SystemIndex) -> Route | None:
+def _find(m: re.Match[str], index: SystemIndex) -> Route | None:
+    folder = m.group("f")
+    if (
+        folder
+        and index.confident(index.resolve(folder, {Kind.APP}))
+        and not index.confident(index.resolve(folder, {Kind.FOLDER}))
+    ):
+        return None  # «busca un canal en Discord»: dentro de una app (LLM)
     if re.search(r"\ben (?:google|internet|la web|youtube)\b", m.group(0)):
         return None  # búsqueda web (fase 6)
     what = (m.group("what") or "").rstrip("s")
@@ -574,7 +665,9 @@ def _window_state(m: re.Match[str], _: SystemIndex) -> Route:
 
 
 @rule("window_side", r"^(?:pon|mueve|coloca|pasa)\s+(?P<x>.+?)\s+a la (?P<side>izquierda|derecha)$")
-def _window_side(m: re.Match[str], _: SystemIndex) -> Route:
+def _window_side(m: re.Match[str], _: SystemIndex) -> Route | None:
+    if " y " in m.group("x"):
+        return None  # dos ventanas: plan de varios pasos (LLM)
     action = "left" if m.group("side") == "izquierda" else "right"
     return _call("window_side", "window_layout", action=action, name=_window_name(m.group("x")))
 

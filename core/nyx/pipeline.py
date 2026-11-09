@@ -258,6 +258,7 @@ class Pipeline:
         yesno: YesNoDetector | None = None,
         ringer: AlarmRinger | None = None,
         shortcuts: ShortcutStore | None = None,
+        refuse: Callable[[str], tuple[str, str] | None] | None = None,
         clock: Callable[[], float] = time.perf_counter,
     ) -> None:
         self.bus = bus
@@ -275,6 +276,7 @@ class Pipeline:
         self.executor = executor
         self.ringer = ringer
         self.shortcuts = shortcuts
+        self.refuse = refuse
         self._learned_last: tuple[str, float] | None = None  # (frase, cuándo) para olvidarla
         self._clock = clock
         self.mode = Mode.IDLE
@@ -606,6 +608,12 @@ class Pipeline:
             # «Nyx, para» con la alarma sonando: es para ella, no para la música.
             await self.ringer.stop()
             await self._hide_bubble()
+            return
+        if self.refuse is not None and (no := self.refuse(text)) is not None:
+            # Lo que Nyx no hace nunca (vaciar la papelera, actuar dentro de un juego…).
+            log.info("Negativa fija para %r: %s", text, no[0])
+            spoken = f"{no[0]}." if from_voice or self.speak_typed else None
+            await self._fail(no[0], no[1], spoken)
             return
         if self.router is not None and self.executor is not None:
             routed = self.router(text)

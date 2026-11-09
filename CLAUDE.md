@@ -17,7 +17,7 @@ Eres el desarrollador principal de Nyx. La especificación completa está en [do
 
 ## Estado
 
-Fase actual: **3 — Acciones**, bloque **3c** (LLM con herramientas, planes de varios pasos, alarmas y temporizadores, atajos aprendidos) pendiente; 3a y 3b hechos. Fases 1 y 2 cerradas el 2026-11-09.
+Fase actual: **3 — Acciones**: 3a, 3b y 3c hechos; falta la prueba del usuario de la 3c para cerrar la fase 3. Fases 1 y 2 cerradas el 2026-11-09.
 
 ## Decisiones tomadas
 
@@ -67,6 +67,7 @@ uv run nyx --download-models      # modelos de voz en %LOCALAPPDATA%\Nyx\models 
 uv run nyx --ask "¿Qué día es hoy?"   # una pregunta sin interfaz ni micrófono
 uv run nyx --demo --print-token   # núcleo suelto, recorre los estados
 uv run python scripts/check_ollama.py    # prueba de GPU (ver docs/benchmarks)
+uv run python scripts/battery.py        # batería de frases con Ollama (no ejecuta nada)
 ```
 
 ## Comandos (interfaz)
