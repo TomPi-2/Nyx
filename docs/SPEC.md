@@ -217,7 +217,7 @@ Unas 35 herramientas genéricas cubren miles de peticiones al combinarse. Cada u
 | `screen_record` | Iniciar o parar grabación | Verde | FFmpeg `ddagrab` + AMF; indicador discreto mientras graba |
 | `set_alarm` | Alarma a una hora | Verde | Planificador propio persistente + notificación y sonido |
 | `set_timer` | Temporizador | Verde | Igual que alarma |
-| `set_reminder` | Recordatorio con texto | Verde | Igual que alarma |
+| `set_reminder` | Recordatorio con texto | Verde | Dentro de `set_alarm` y `set_timer` (campo `label`) |
 | `get_weather` | Tiempo actual y previsión | Verde | Open-Meteo; ubicación fijada en ajustes |
 | `get_time_date` | Hora, fecha, cálculos de fechas | Verde | Local |
 | `answer` | Respuesta de conocimiento, traducción, cálculo | Verde | LLM |
@@ -710,3 +710,4 @@ Reglas de trabajo:
 | 2026-11-09 | Voz: Piper sustituye a Kokoro (más natural en español y ~10 veces más rápido: Nyx empieza a hablar ~0,3 s después de terminar la frase). Predeterminada mujer con acento de España; davefx y daniela en Ajustes. | 2, 5, 13 |
 | 2026-11-09 | La voz femenina de España de Piper (sharvard F) sonaba robótica: voz predeterminada «lola» con Pocket TTS (Kyutai), generada a trozos (~0,4 s del fin de la frase a la voz). Piper queda para davefx y daniela. | 2, 5, 13 |
 | 2026-11-09 | Bloque 3c, LLM con herramientas: se exponen las 20 herramientas en cada llamada (~3.400 tokens; la selección por categoría queda para cuando el catálogo crezca en la fase 6). `num_ctx` 8192. La hora y la ventana activa van en el mensaje del usuario, no en otro de sistema, para que Ollama reutilice el prefijo en caché (0,8 s en vez de 2,4 s). Si qwen escribe la llamada como texto, se interpreta como plan. Las subcarpetas se nombran «Carpeta/Subcarpeta». | 6 |
+| 2026-11-09 | Bloque 3c, alarmas: los recordatorios son alarmas o temporizadores con texto (`label`), sin herramienta `set_reminder` aparte. Al sonar: burbuja con «Parar», timbre generado (sin archivos de sonido con licencia) durante un minuto como mucho, frase hablada y notificación de Windows (`tauri-plugin-notification`, protocolo v4 con `alert`). Hablarle a Nyx la calla; «para» justo después se refiere a la alarma. | 7, 11, 14 |
