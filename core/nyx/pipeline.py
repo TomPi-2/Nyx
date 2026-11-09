@@ -11,10 +11,11 @@ import asyncio
 import contextlib
 import logging
 import time
+import uuid
 from collections.abc import Awaitable, Callable, Coroutine
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any
+from typing import Any, Protocol
 
 import numpy as np
 
@@ -27,7 +28,9 @@ from nyx.brain.router import Miss, Route
 from nyx.brain.service import Brain, ReplyDone
 from nyx.bus import EventBus
 from nyx.events import (
+    ActionChosen,
     AudioLevel,
+    BubbleAction,
     BubbleHidden,
     BubbleShown,
     NyxState,
@@ -35,12 +38,14 @@ from nyx.events import (
     TalkKey,
     TextEntered,
 )
-from nyx.executor import Executor
+from nyx.executor import Confirmation, Executor, ToolCall
 from nyx.index.aliases import normalize as normalize_alias
 from nyx.log import new_request_id
+from nyx.safety.undo import UNDO_TTL_S
 from nyx.settings.model import ListenSettings
 from nyx.stt.base import STTEngine, STTError
 from nyx.stt.normalize import has_wake_word, normalize
+from nyx.tools.base import ToolResult
 from nyx.tts.base import TTSEngine, TTSError
 from nyx.tts.sentences import SentenceSplitter
 from nyx.wake.base import WakeWordEngine
@@ -53,6 +58,9 @@ THINKING_AFTER_S = 0.3  # «pensando» solo si la transcripción tarda (SPEC sec
 HOLD_S = 0.4  # mantener el atajo más que esto = hablar mientras se mantiene
 TALK_PREBUFFER_S = 0.3
 VERIFY_CLIP_S = 2.0  # audio que whisper revisa para confirmar «Nyx»
+CONFIRM_TIMEOUT_S = 15.0  # SPEC sección 8: sin respuesta, se cancela
+CANCELLED_BUBBLE_S = 2.5
+UNDONE_BUBBLE_S = 4.0
 # Pausa tras la que se transcribe lo dicho para ver si la petición ya está completa.
 EARLY_PAUSE_S = 0.4
 # Ventana de seguimiento: silencio previo exigido para que una frase cuente como nueva.
@@ -106,6 +114,13 @@ class Mode(StrEnum):
     IDLE = "idle"
     LISTENING = "listening"
     BUSY = "busy"
+    CONFIRM = "confirm"  # esperando «sí» o «no» (o un clic)
+
+
+class YesNoDetector(Protocol):
+    def process(self, frame: Frame) -> bool | None: ...
+
+    def reset(self) -> None: ...
 
 
 @dataclass
@@ -133,6 +148,7 @@ class _Marks:
     first_token: float | None = None
     first_sentence: float | None = None
     first_audio: float | None = None
+    phrase: str = ""  # lo que pidió el usuario (para el registro de acciones)
 
 
 ERRORS: dict[LLMErrorKind, tuple[str, str, str]] = {
@@ -234,6 +250,7 @@ class Pipeline:
         player: Player | None = None,
         router: Callable[[str], Route | Miss | None] | None = None,
         executor: Executor | None = None,
+        yesno: YesNoDetector | None = None,
         clock: Callable[[], float] = time.perf_counter,
     ) -> None:
         self.bus = bus
@@ -253,11 +270,20 @@ class Pipeline:
         self.mode = Mode.IDLE
         self.state = NyxState.IDLE
         self._listening: _Listening | None = None
+        self.yesno = yesno
         self._request: asyncio.Task[None] | None = None
         self._bubble_timer: asyncio.Task[None] | None = None
+        # Botones de la burbuja visible: id → qué hacer al pulsarlo.
+        self._actions: dict[str, Callable[[], None]] = {}
+        self._answer: asyncio.Future[bool] | None = None  # confirmación pendiente
+        self._from_voice = False  # la petición en curso se hizo hablando
+        self._side_tasks: set[asyncio.Task[None]] = set()
+        if executor is not None and executor.confirm is None:
+            executor.confirm = self.confirm
         self._unsubscribe = [
             bus.subscribe(TextEntered, self._on_text),
             bus.subscribe(TalkKey, self._on_talk),
+            bus.subscribe(ActionChosen, self._on_action),
         ]
 
     @property
@@ -292,6 +318,11 @@ class Pipeline:
     # --- audio ---
 
     async def process_frame(self, frame: Frame) -> None:
+        if self.mode is Mode.CONFIRM:
+            if self.yesno is not None and (said := self.yesno.process(frame)) is not None:
+                log.info("Confirmación por voz: %s", "sí" if said else "no")
+                self._resolve(said)
+            return
         if self.mode is Mode.LISTENING:
             await self._listen_frame(frame)
         elif self.wake is not None and self.voice_enabled and self.wake.process(frame):
@@ -560,6 +591,7 @@ class Pipeline:
         self, text: str, marks: _Marks, *, from_voice: bool, followup: bool = False
     ) -> None:
         """Router rápido primero (acciones sin LLM); si no encaja, el LLM."""
+        marks.phrase = text
         if self.router is not None and self.executor is not None:
             routed = self.router(text)
             if isinstance(routed, Route):
@@ -582,7 +614,8 @@ class Pipeline:
         assert self.executor is not None
         thinking = asyncio.create_task(self._thinking_later())
         try:
-            results = await self.executor.run_plan(routed.calls)
+            self._from_voice = from_voice
+            results = await self.executor.run_plan(routed.calls, phrase=marks.phrase)
         finally:
             thinking.cancel()
         log.info(
@@ -592,13 +625,22 @@ class Pipeline:
         )
         speak = from_voice or self.speak_typed
         failed = next((r for r in results if not r.ok), None)
+        if failed is not None and failed.data.get("cancelled"):
+            await self._show_bubble("Cancelado", failed.secondary or "")
+            self._schedule_bubble_hide(CANCELLED_BUBBLE_S)
+            await self._go_idle()
+            return
         if failed is not None:
             spoken = failed.message if speak else None
             await self._fail(failed.display or failed.message, failed.secondary or "", spoken)
             return
-        # Éxito: en silencio, salvo que la herramienta tenga algo que enseñar (SPEC sección 3).
+        # Éxito: en silencio, salvo que la herramienta tenga algo que enseñar (SPEC sección 3)
+        # o que se pueda deshacer (amarillas: «Deshacer» durante 30 s).
+        undoable = next((r for r in reversed(results) if r.data.get("undo_id")), None)
         shown = next((r for r in results if r.display), None)
-        if shown is not None and shown.display:
+        if undoable is not None:
+            await self._offer_undo(undoable)
+        elif shown is not None and shown.display:
             await self._show_bubble(shown.display, shown.secondary or "")
             self._schedule_bubble_hide(bubble_duration(shown.display, shown.secondary or ""))
         if from_voice and self.listen.followup_s > 0 and self.capture is not None:
@@ -731,17 +773,102 @@ class Pipeline:
             self.state = state
             await self.bus.publish(StateChanged(state))
 
-    async def _show_bubble(self, display: str, secondary: str) -> None:
+    async def _show_bubble(
+        self, display: str, secondary: str, actions: tuple[BubbleAction, ...] = ()
+    ) -> None:
         if self._bubble_timer is not None:
             self._bubble_timer.cancel()
             self._bubble_timer = None
-        await self.bus.publish(BubbleShown(display=display, secondary=secondary or None))
+        if not actions:
+            self._actions.clear()  # una burbuja nueva sustituye a los botones anteriores
+        await self.bus.publish(
+            BubbleShown(display=display, secondary=secondary or None, actions=actions)
+        )
 
     async def _hide_bubble(self) -> None:
         if self._bubble_timer is not None:
             self._bubble_timer.cancel()
             self._bubble_timer = None
+        self._actions.clear()
         await self.bus.publish(BubbleHidden())
+
+    # --- confirmación y deshacer (SPEC sección 8) ---
+
+    async def confirm(self, request: Confirmation) -> bool:
+        """Pregunta antes de una acción roja: botones y, si se puede, «sí» / «no» por voz.
+        Sin respuesta en 15 s, se cancela."""
+        loop = asyncio.get_running_loop()
+        answer: asyncio.Future[bool] = loop.create_future()
+        self._answer = answer
+        yes, no = f"yes-{uuid.uuid4().hex[:8]}", f"no-{uuid.uuid4().hex[:8]}"
+        by_voice = not request.click_only and self.yesno is not None and self.capture is not None
+        hint = "solo con clic" if request.click_only else "di «sí» o «no»"
+        detail = " · ".join(part for part in (request.detail, hint if by_voice else "") if part)
+        await self._set_state(NyxState.CONFIRM)
+        await self._show_bubble(
+            request.summary,
+            detail,
+            (BubbleAction(yes, "Confirmar", primary=True), BubbleAction(no, "Cancelar")),
+        )
+        self._actions = {yes: lambda: self._resolve(True), no: lambda: self._resolve(False)}
+        try:
+            if self._from_voice and self.tts is not None and self.player is not None:
+                with contextlib.suppress(TTSError):
+                    self.player.enqueue(
+                        await self.tts.synthesize(f"{request.summary}. ¿Confirmas?")
+                    )
+                    await self.player.drain()
+            if by_voice and self.yesno is not None:
+                self.yesno.reset()
+                self.mode = Mode.CONFIRM
+            return await asyncio.wait_for(answer, CONFIRM_TIMEOUT_S)
+        except TimeoutError:
+            log.info("Confirmación caducada: %s", request.summary)
+            return False
+        finally:
+            self._answer = None
+            self._actions.clear()
+            if self.mode is Mode.CONFIRM:
+                self.mode = Mode.BUSY
+            await self._set_state(NyxState.THINKING)
+
+    def _resolve(self, value: bool) -> None:
+        if self._answer is not None and not self._answer.done():
+            self._answer.set_result(value)
+
+    async def _on_action(self, event: ActionChosen) -> None:
+        handler = self._actions.get(event.id)
+        if handler is None:
+            log.info("Botón %s ya no está activo", event.id)
+            return
+        handler()
+
+    async def _offer_undo(self, result: ToolResult) -> None:
+        undo_id = str(result.data["undo_id"])
+        button = f"undo-{undo_id}"
+        await self._show_bubble(
+            result.display or result.message,
+            result.secondary or "",
+            (BubbleAction(button, "Deshacer"),),
+        )
+        self._actions = {button: lambda: self._spawn(self._undo(undo_id))}
+        self._schedule_bubble_hide(UNDO_TTL_S)
+
+    def _spawn(self, coro: Coroutine[Any, Any, None]) -> None:
+        task = asyncio.create_task(coro)
+        self._side_tasks.add(task)
+        task.add_done_callback(self._side_tasks.discard)
+
+    async def _undo(self, undo_id: str) -> None:
+        """Botón «Deshacer» de la burbuja."""
+        if self.executor is None:
+            return
+        self._actions.clear()
+        result = await self.executor.run(
+            ToolCall("undo", {"id": undo_id}), phrase="(botón Deshacer)"
+        )
+        await self._show_bubble(result.display or result.message, result.secondary or "")
+        self._schedule_bubble_hide(UNDONE_BUBBLE_S)
 
     def _schedule_bubble_hide(self, seconds: float) -> None:
         async def hide_later() -> None:

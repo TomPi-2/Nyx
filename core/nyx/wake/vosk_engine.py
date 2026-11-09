@@ -30,8 +30,9 @@ class VoskWakeWord:
 
         SetLogLevel(-1)
         self._word = word
+        self.model: Any = Model(str(model_dir))
         grammar = [word, *(d for d in DISTRACTORS if d != word), "[unk]"]
-        self._rec: Any = KaldiRecognizer(Model(str(model_dir)), SAMPLE_RATE, json.dumps(grammar))
+        self._rec: Any = KaldiRecognizer(self.model, SAMPLE_RATE, json.dumps(grammar))
 
     def process(self, frame: Frame) -> bool:
         final = self._rec.AcceptWaveform(frame.tobytes())
@@ -45,3 +46,37 @@ class VoskWakeWord:
 
     def reset(self) -> None:
         self._rec.Reset()
+
+
+# Confirmación por voz (SPEC sección 8): gramática cerrada para que sea fiable.
+YES = ("si", "confirma", "confirmo", "adelante", "vale", "hazlo", "claro", "venga")
+NO = ("no", "cancela", "cancelar", "espera", "para", "nada", "dejalo")
+
+
+class VoskYesNo:
+    """«sí» / «no» con el mismo modelo de Vosk que la activación. Solo resultados finales
+    (tras una pausa corta): los parciales cambian mientras se habla."""
+
+    def __init__(self, model: Any) -> None:
+        from vosk import KaldiRecognizer
+
+        grammar = [*YES, *NO, "[unk]"]
+        self._rec: Any = KaldiRecognizer(model, SAMPLE_RATE, json.dumps(grammar))
+
+    def process(self, frame: Frame) -> bool | None:
+        """True = sí, False = no, None = aún nada claro."""
+        if not self._rec.AcceptWaveform(frame.tobytes()):
+            return None
+        return answer(str(json.loads(self._rec.Result()).get("text", "")))
+
+    def reset(self) -> None:
+        self._rec.Reset()
+
+
+def answer(text: str) -> bool | None:
+    words = text.casefold().split()
+    if any(w in NO for w in words):
+        return False  # ante la duda («sí… no, espera»), no
+    if any(w in YES for w in words):
+        return True
+    return None

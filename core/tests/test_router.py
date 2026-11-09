@@ -105,3 +105,92 @@ async def test_background_opens_without_focus(index: SystemIndex, text: str, too
 
 async def test_focus_is_default(index: SystemIndex) -> None:
     assert "focus" not in call("abre Discord", index)[1]  # la herramienta enfoca por defecto
+
+
+@pytest.mark.parametrize(
+    ("text", "tool", "args"),
+    [
+        ("Deshaz", "undo", {}),
+        ("deshazlo", "undo", {}),
+        ("Cierra Spotify", "close_app", {"name": "spotify"}),
+        ("cierra esta ventana", "close_app", {}),
+        (
+            "Crea una carpeta en Documentos llamada Fondos.",
+            "create_folder",
+            {"name": "Fondos", "parent": "documentos"},
+        ),
+        (
+            "crea una carpeta llamada Fotos Viaje en el escritorio",
+            "create_folder",
+            {"name": "Fotos Viaje", "parent": "el escritorio"},
+        ),
+        (
+            "Mueve los últimos 5 archivos de Descargas a Documentos",
+            "move_files",
+            {"folder": "descargas", "destination": "documentos", "newest": 5},
+        ),
+        (
+            "mueve las tres últimas fotos de descargas a imágenes",
+            "move_files",
+            {"folder": "descargas", "destination": "imagenes", "newest": 3, "kind": "images"},
+        ),
+        (
+            "copia los 2 últimos pdf de descargas a documentos",
+            "copy_files",
+            {"folder": "descargas", "destination": "documentos", "newest": 2, "extension": "pdf"},
+        ),
+        (
+            "mueve el último archivo de descargas al escritorio",
+            "move_files",
+            {"folder": "descargas", "destination": "escritorio", "newest": 1},
+        ),
+        (
+            "Borra los últimos 3 archivos de Descargas",
+            "delete_files",
+            {"folder": "descargas", "newest": 3},
+        ),
+        (
+            "elimina el archivo factura de descargas",
+            "delete_files",
+            {"folder": "descargas", "names": ["factura"]},
+        ),
+        ("Busca la factura de la luz", "find_files", {"query": "factura de la luz"}),
+        ("busca fotos de la playa", "find_files", {"query": "la playa", "kind": "images"}),
+        ("¿Qué hay en Descargas?", "list_files", {"folder": "descargas"}),
+        (
+            "enséñame los últimos 5 archivos de descargas",
+            "list_files",
+            {"folder": "descargas", "newest": 5},
+        ),
+    ],
+)
+async def test_file_routes(
+    index: SystemIndex, text: str, tool: str, args: dict[str, object]
+) -> None:
+    assert call(text, index) == (tool, args)
+
+
+async def test_delete_folder_by_name(index: SystemIndex) -> None:
+    name, args = call("Elimina la carpeta Fondos", index)
+    assert name == "delete_files"
+    assert args["names"] == ["Fondos"] and args["include_folders"] is True
+    assert str(args["folder"]).endswith("Imagenes")
+
+
+@pytest.mark.parametrize("text", ["busca recetas en google", "cierra sesión"])
+async def test_file_routes_left_for_later(index: SystemIndex, text: str) -> None:
+    assert route(text, index) is None
+
+
+async def test_la_carpeta_de(index: SystemIndex) -> None:
+    name, args = call(
+        "mueve los dos últimos archivos de la carpeta de descargas a la carpeta de documentos",
+        index,
+    )
+    assert name == "move_files"
+    assert args["folder"] == "descargas" and args["destination"] == "documentos"
+
+
+@pytest.mark.parametrize("text", ["recupéralo", "recupera el archivo de la papelera", "restáuralo"])
+async def test_restore_means_undo(index: SystemIndex, text: str) -> None:
+    assert call(text, index) == ("undo", {})

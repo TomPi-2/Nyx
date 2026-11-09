@@ -31,11 +31,21 @@ class AudioLevel:
 
 
 @dataclass(frozen=True, slots=True)
+class BubbleAction:
+    """Botón en pastilla de una burbuja (Confirmar, Cancelar, Deshacer)."""
+
+    id: str
+    label: str
+    primary: bool = False
+
+
+@dataclass(frozen=True, slots=True)
 class BubbleShown:
-    """Burbuja de respuesta: dato destacado grande + línea secundaria."""
+    """Burbuja de respuesta: dato destacado grande + línea secundaria (+ botones)."""
 
     display: str
     secondary: str | None = None
+    actions: tuple[BubbleAction, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,3 +68,10 @@ class TalkKey:
     """Atajo de hablar pulsado o soltado."""
 
     pressed: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ActionChosen:
+    """El usuario ha pulsado un botón de la burbuja."""
+
+    id: str

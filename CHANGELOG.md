@@ -15,7 +15,16 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
   - Scripts de prueba de GPU para Ollama y whisper.cpp con informe por equipo en `docs/benchmarks/`.
   - Resultados del PC de referencia (RX 7700 XT): Qwen 2.5 7B y Llama 3.1 8B al 100 % en GPU (77 y 72 tokens/s, 3/3 herramientas); whisper.cpp con Vulkan, 0,17 s por frase. LLM provisional: `qwen2.5:7b`.
   - CI en GitHub Actions (Windows): ruff, mypy, pytest, prettier, svelte-check, rustfmt y clippy.
-- Fase 3a (en pruebas): caché del sistema, router rápido y herramientas verdes.
+- Fase 3b (cerrada): archivos, SafetyGuard, confirmaciones, deshacer y registro.
+  - Herramientas: `create_folder`, `list_files`, `find_files` (Everything o índice de Windows), `move_files`, `copy_files`, `rename_file` (amarillas, con deshacer), `delete_files` (roja, siempre a la papelera) y `close_app` (amarilla; roja con cambios sin guardar; nunca mata el proceso), más `undo`.
+  - SafetyGuard con reglas fijas: rutas protegidas (sistema, raíces de disco, Nyx, carpetas principales del usuario), confirmación solo con clic si son más de 50 archivos o algo fuera de la carpeta del usuario. Nunca se sobrescribe un archivo: «nombre (2)».
+  - Confirmación en la isla con botones Confirmar / Cancelar y por voz («sí», «vale», «adelante» / «no», «cancela», «espera»), con 15 s de plazo. La isla recibe clics solo mientras muestra botones.
+  - Deshacer durante 30 s con el botón de la burbuja o «Nyx, deshaz».
+  - Registro de acciones en `%LOCALAPPDATA%\Nyx\actions` (un archivo por día, 30 días).
+  - Borrar también se puede deshacer 30 s: se recupera de la papelera («deshaz», «recupéralo» o el botón).
+  - La isla atraviesa los clics salvo con el ratón encima de un botón: Rust mira el ratón cada 30 ms y la página le dice dónde están los botones.
+  - Router: deshacer, cerrar, crear carpetas, mover/copiar/borrar «los últimos N archivos de X», borrar una carpeta, buscar y listar. Protocolo v3 (botones en las burbujas).
+- Fase 3a (cerrada): caché del sistema, router rápido y herramientas verdes.
   - Caché SQLite en `%LOCALAPPDATA%\Nyx\cache`: apps de Inicio y de la Store (shell:AppsFolder), juegos de Steam, Riot y Epic, carpetas del usuario y su primer nivel, páginas de Configuración y webs frecuentes. Alias automáticos («vscode», «el lol», «balorant»), búsqueda difusa en ~1 ms y desempate por uso. Se reescanea al instalar apps o crear carpetas (watchdog) y cada 24 h.
   - Router rápido sin LLM: abrir apps, juegos, webs, carpetas y páginas de Configuración; volumen (general y por app), silencio, multimedia, capturas, maximizar/minimizar/media pantalla/otro monitor y cambiar de ventana. «No encuentro X» con sugerencia.
   - 10 herramientas, cada una con su archivo, esquema, riesgo, política en partida y pruebas: `open_app`, `focus_window`, `window_layout`, `wait_for_window`, `open_url`, `open_settings`, `open_path`, `set_volume`, `media_control`, `screenshot`.
@@ -38,6 +47,11 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
 - Especificación en `docs/SPEC.md`, con la sección 18 (decisiones tomadas).
 - Estructura del repositorio según la sección 16: `core/` (paquete `nyx` con un subpaquete por servicio), `ui/` y `docs/`.
 - `CLAUDE.md` con las reglas de trabajo y las decisiones tomadas.
+
+### Corregido
+
+- La isla perdía `WS_EX_NOACTIVATE` y `WS_EX_TOOLWINDOW` al arrancar y se ocultaba al mostrar botones: `set_ignore_cursor_events` de Tauri reescribe todos los estilos según lo que tao cree de la ventana (que estaba oculta, porque se muestra con Win32). Ahora el paso de clics se cambia directamente con Win32. La ventana de texto recupera `WS_EX_TOOLWINDOW` después de que tao la muestre.
+- Router: «a la carpeta de Documentos» ya se entiende como «Documentos».
 
 ### Cambiado
 

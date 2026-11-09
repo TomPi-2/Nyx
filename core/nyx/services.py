@@ -31,12 +31,14 @@ from nyx.index.watcher import IndexWatcher
 from nyx.models import MODELS
 from nyx.paths import local_dir
 from nyx.pipeline import Pipeline
+from nyx.safety.action_log import ActionLog
+from nyx.safety.paths import PathPolicy
 from nyx.settings.model import Settings
 from nyx.stt.whisper_server import WhisperServer
 from nyx.tools.base import ToolContext
 from nyx.tools.registry import default_registry
 from nyx.tts.kokoro import KokoroTTS
-from nyx.wake.vosk_engine import VoskWakeWord
+from nyx.wake.vosk_engine import VoskWakeWord, VoskYesNo
 
 log = logging.getLogger(__name__)
 
@@ -168,7 +170,12 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     index = SystemIndex.open()
     if len(index) == 0:
         await index.refresh()
-    executor = Executor(default_registry(), ToolContext(index=index, settings=settings))
+    # Rutas protegidas (SPEC sección 8): sistema, Nyx y las carpetas principales del usuario.
+    paths = PathPolicy.default(list(known_folders().values()))
+    tools_ctx = ToolContext(index=index, settings=settings, paths=paths)
+    executor = Executor(default_registry(), tools_ctx, action_log=ActionLog.default())
+    # «Sí» / «no» por voz con el mismo modelo de Vosk que la activación.
+    yesno = VoskYesNo(wake.model) if wake is not None else None
     pipeline = Pipeline(
         bus,
         brain,
@@ -183,6 +190,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         player=player,
         router=lambda text: route(text, index),
         executor=executor,
+        yesno=yesno,
     )
     log.info(
         "Servicios listos en %.1f s (voz: %s, activación: %s, respuesta hablada: %s)",

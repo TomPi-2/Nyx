@@ -39,6 +39,14 @@ pub fn show<R: Runtime>(app: &AppHandle<R>) {
     };
     island::place_top_center(&window, WIDTH, HEIGHT);
     let _ = window.show();
+    // tao reescribe los estilos al mostrar la ventana y quita WS_EX_TOOLWINDOW: se vuelve a
+    // poner después, en el mismo hilo y en orden (fuera de Alt+Tab mientras se escribe).
+    if let Some(hwnd) = win32::hwnd(&window) {
+        let raw = hwnd.0 as isize;
+        let _ = window.run_on_main_thread(move || {
+            win32::make_tool_window(windows::Win32::Foundation::HWND(raw as *mut _));
+        });
+    }
     // El atajo global da permiso a Nyx para traer su ventana al frente.
     let _ = window.set_focus();
     let _ = window.emit("input://show", ());

@@ -440,6 +440,7 @@ Nyx tiene identidad propia, independiente de tepnyx.com: solo grises, cristal tr
 | `glass-raised` | rgba(58, 58, 60, 0.45) | rgba(255, 255, 255, 0.55) | Tarjetas y grupos dentro de un panel |
 | `control` | rgba(118, 118, 128, 0.24) | rgba(118, 118, 128, 0.12) | Botones, interruptores apagados, campos |
 | `control-active` | rgba(229, 229, 234, 0.90) | rgba(72, 72, 74, 0.90) | Interruptor encendido, botón principal |
+| `text-on-active` | #1C1C1E | #F5F5F7 | Texto sobre `control-active` |
 | `text` | #F5F5F7 | #1C1C1E | Texto principal |
 | `text-secondary` | rgba(235, 235, 245, 0.60) | rgba(60, 60, 67, 0.60) | Texto secundario |
 | `text-tertiary` | rgba(235, 235, 245, 0.30) | rgba(60, 60, 67, 0.30) | Pistas y desactivado |
@@ -705,3 +706,4 @@ Reglas de trabajo:
 | 2026-11-09 | Tras la primera prueba de la fase 2: las peticiones escritas se responden solo en la burbuja (sin voz); la segunda verificación de «Nyx» con whisper se adelanta de la fase 4 ("no existe" activaba a Nyx); si Ollama no responde, Nyx lo abre y repite la petición. | 3, 4, 14 |
 | 2026-11-09 | Fase 3: 20 herramientas (resto en la fase 6), en tres bloques con prueba entre ellos (3a caché, router y herramientas verdes; 3b archivos y seguridad; 3c LLM con herramientas, alarmas y aprendizaje). Respuestas informativas en texto a trozos con línea `[dato | contexto]`. Búsqueda de archivos: índice de Windows por defecto y Everything opcional desde el asistente. Sin FTS5 (rapidfuzz en memoria). | 2, 6, 7, 10 |
 | 2026-11-09 | Tras probar la 3a: lo que se abre recibe el foco salvo que se pida «en segundo plano»; se deja de escuchar cuando la petición ya está completa; la ventana de seguimiento ignora conversaciones con otras personas (silencio previo, coletillas y clasificador del LLM). | 3, 7 |
+| 2026-11-09 | Bloque 3b: cada herramienta que toca archivos o ventanas prepara antes lo que va a hacer (SafetyGuard revisa eso y, si es roja, se confirma y ejecuta exactamente eso). Rutas protegidas: sistema, raíces de disco, carpetas de Nyx y las carpetas principales del usuario (se puede escribir dentro, no moverlas ni borrarlas). Confirmación en la isla con botones y por voz (Vosk, gramática cerrada «sí/vale/adelante…» / «no/cancela/espera…»; ante la duda, no). Deshacer 30 s en la burbuja o con «Nyx, deshaz»; cerrar una app se deshace reabriéndola. Búsqueda: Everything si está; si no, índice de Windows. Nuevo token `text-on-active`. | 7, 8, 10, 12 |

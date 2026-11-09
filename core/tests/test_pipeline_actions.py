@@ -13,8 +13,9 @@ class FakeExecutor:
     def __init__(self, results: list[ToolResult]) -> None:
         self.results = results
         self.calls: list[ToolCall] = []
+        self.confirm = None
 
-    async def run_plan(self, calls: list[ToolCall]) -> list[ToolResult]:
+    async def run_plan(self, calls: list[ToolCall], *, phrase: str = "") -> list[ToolResult]:
         self.calls += calls
         return self.results
 

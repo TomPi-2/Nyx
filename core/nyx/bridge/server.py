@@ -20,6 +20,8 @@ from websockets.typing import Origin
 from nyx import __version__
 from nyx.bridge.protocol import (
     PROTOCOL_VERSION,
+    ActionButton,
+    ActionMsg,
     BubbleHideMsg,
     BubbleMsg,
     Hello,
@@ -33,6 +35,7 @@ from nyx.bridge.protocol import (
 )
 from nyx.bus import EventBus
 from nyx.events import (
+    ActionChosen,
     AudioLevel,
     BubbleHidden,
     BubbleShown,
@@ -148,6 +151,8 @@ class UIBridge:
             await self._bus.publish(TextEntered(msg.text.strip()))
         elif isinstance(msg, TalkKeyMsg):
             await self._bus.publish(TalkKey(msg.pressed))
+        elif isinstance(msg, ActionMsg):
+            await self._bus.publish(ActionChosen(msg.id))
 
     async def broadcast(self, msg: _Msg) -> None:
         if not self._clients:
@@ -167,7 +172,10 @@ class UIBridge:
         await self.broadcast(LevelMsg(rms=min(max(event.rms, 0.0), 1.0)))
 
     async def _on_bubble(self, event: BubbleShown) -> None:
-        await self.broadcast(BubbleMsg(display=event.display, secondary=event.secondary))
+        actions = [ActionButton(id=a.id, label=a.label, primary=a.primary) for a in event.actions]
+        await self.broadcast(
+            BubbleMsg(display=event.display, secondary=event.secondary, actions=actions)
+        )
 
     async def _on_bubble_hidden(self, _: BubbleHidden) -> None:
         await self.broadcast(BubbleHideMsg())
