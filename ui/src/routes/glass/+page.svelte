@@ -1,6 +1,6 @@
 <!--
   Prueba de cristal (ver src-tauri/src/glass.rs): muestra la isla y una burbuja con el
-  estilo definitivo de la fase 1 (gris opaco + degradado sutil + sombra) para revisar
+  estilo definitivo de la fase 1 (tinte gris al 84 % + degradado sutil + sombra) para revisar
   la paleta sobre fondos reales.
 -->
 <div class="stack">

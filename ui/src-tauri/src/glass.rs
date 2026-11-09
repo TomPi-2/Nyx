@@ -1,12 +1,12 @@
 //! Prueba de cristal de la fase 1 (SPEC sección 11).
 //!
 //! Primera ronda (2026-11-09): el Acrylic de Windows 11 se ve sólido en ventanas que
-//! nunca toman el foco, y recortarlo con una región deja bordes en escalones. Queda
-//! descartado: la isla usa un tinte gris dibujado en CSS.
+//! nunca toman el foco, actualiza lo de detrás con ~2 s de retraso y recortarlo con una
+//! región deja bordes en escalones. Queda descartado: la isla usa un tinte gris
+//! translúcido (84 %) dibujado en CSS, que Windows compone en el mismo fotograma.
 //!
-//! Segunda ronda: un tinte translúcido deja ver lo de detrás y el gris parece cambiar,
-//! así que el fondo pasa a ser gris opaco. La ventana muestra ese estilo final para
-//! revisar la paleta sobre fondos reales; queda encima y deja pasar los clics.
+//! La ventana muestra ese estilo final para revisar la paleta sobre fondos reales;
+//! queda encima y deja pasar los clics. NYX_GLASS_TEST=1 la abre al arrancar.
 
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
