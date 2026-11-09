@@ -1,0 +1,99 @@
+{"frase": "Abre Spotify", "tool": "open_app", "args": {"name": "Spotify"}}
+{"frase": "abre el bloc de notas", "tool": "open_app", "args": {"name": "Bloc de notas"}}
+{"frase": "Lanza el Valorant", "tool": "open_app", "args": {"name": "VALORANT"}}
+{"frase": "abre el lol", "tool": "open_app", "args": {"name": "League of Legends"}}
+{"frase": "Abre Riot Client", "tool": "open_app", "args": {"name": "Cliente de Riot"}}
+{"frase": "abre la calculadora", "tool": "open_app", "args": {"name": "Calculadora"}}
+{"frase": "Abre Discord en segundo plano", "tool": "open_app", "args": {"name": "Discord PTB", "focus": false}}
+{"frase": "abre el vscode", "tool": "open_app", "args": {"name": "Visual Studio Code"}}
+{"frase": "abre Steam", "tool": "open_app", "args": {"name": "Steam"}}
+{"frase": "abre OBS", "tool": "open_app", "args": {"name": "OBS Studio"}}
+{"frase": "Abre YouTube", "tool": "open_url", "args": {"target": "YouTube"}}
+{"frase": "abre twitch", "tool": "open_url", "args": {"target": "Twitch"}}
+{"frase": "abre marca.com", "tool": "open_url"}
+{"frase": "Abre la carpeta de descargas", "tool": "open_path"}
+{"frase": "abre documentos", "tool": "open_path"}
+{"frase": "abre los ajustes del bluetooth", "tool": "open_settings", "args": {"page": "bluetooth"}}
+{"frase": "abre la configuración de sonido", "tool": "open_settings", "args": {"page": "sonido"}}
+{"frase": "abre la configuración", "tool": "open_settings"}
+{"frase": "Cierra Spotify", "tool": "close_app", "args": {"name": "Spotify"}}
+{"frase": "cierra el bloc de notas", "tool": "close_app", "args": {"name": "bloc de notas"}}
+{"frase": "ve a Chrome", "tool": "focus_window", "args": {"name": "Chrome"}}
+{"frase": "cambia a Discord", "tool": "focus_window", "args": {"name": "Discord"}}
+{"frase": "maximiza la ventana", "tool": "window_layout", "args": {"action": "maximize"}}
+{"frase": "minimiza esto", "tool": "window_layout", "args": {"action": "minimize"}}
+{"frase": "pon Chrome a la izquierda", "tool": "window_layout", "args": {"action": "left"}}
+{"frase": "manda esta ventana al otro monitor", "tool": "window_layout"}
+{"frase": "Sube el volumen", "tool": "set_volume", "args": {"change": 10}}
+{"frase": "baja el volumen un poco", "tool": "set_volume", "args": {"change": -10}}
+{"frase": "pon el volumen al 30", "tool": "set_volume", "args": {"level": 30}}
+{"frase": "volumen al cuarenta y cinco", "tool": "set_volume", "args": {"level": 45}}
+{"frase": "silencia", "tool": "set_volume", "args": {"mute": true}}
+{"frase": "quita el silencio", "tool": "set_volume", "args": {"mute": false}}
+{"frase": "silencia Discord", "tool": "set_volume", "args": {"mute": true}}
+{"frase": "baja el volumen de Discord al 20", "tool": "set_volume", "args": {"level": 20}}
+{"frase": "sube el volumen de Spotify", "tool": "app_action", "args": {"app": "Spotify", "action": "volume_up"}}
+{"frase": "pausa la música", "tool": "media_control", "args": {"action": "play_pause"}}
+{"frase": "siguiente canción", "tool": "media_control", "args": {"action": "next"}}
+{"frase": "pasa la siguiente canción en Spotify", "tool": "media_control", "args": {"action": "next"}}
+{"frase": "pon la anterior", "tool": "media_control", "args": {"action": "previous"}}
+{"frase": "pon música", "tool": "media_control", "args": {"action": "play_pause"}}
+{"frase": "dale al play", "tool": "media_control", "args": {"action": "play_pause"}}
+{"frase": "pon el aleatorio en Spotify", "tool": "app_action", "args": {"app": "Spotify", "action": "shuffle"}}
+{"frase": "dale a me gusta a esta canción", "tool": "app_action", "args": {"action": "like"}}
+{"frase": "Haz una captura de pantalla", "tool": "screenshot"}
+{"frase": "captura esta ventana", "tool": "screenshot", "args": {"target": "window"}}
+{"frase": "abre una nota nueva en el bloc de notas", "tool": "app_action|open_app"}
+{"frase": "cierra esta pestaña", "tool": "app_action", "args": {"action": "close_tab"}}
+{"frase": "reabre la pestaña cerrada", "tool": "app_action", "args": {"action": "reopen_tab"}}
+{"frase": "recarga la página", "tool": "app_action", "args": {"action": "reload"}}
+{"frase": "abre una ventana de incógnito", "tool": "app_action", "args": {"action": "incognito"}}
+{"frase": "vuelve atrás en el navegador", "tool": "app_action", "args": {"action": "back"}}
+{"frase": "amplía la página", "tool": "app_action", "args": {"action": "zoom_in"}}
+{"frase": "silencia el micro en Discord", "tool": "app_action", "args": {"app": "Discord", "action": "toggle_mute"}}
+{"frase": "ensordéceme", "tool": "app_action", "args": {"action": "toggle_deafen"}}
+{"frase": "busca un canal en Discord", "tool": "app_action", "args": {"action": "quick_switcher"}}
+{"frase": "guarda el documento del bloc de notas", "tool": "app_action", "args": {"action": "save"}}
+{"frase": "pulsa control s", "tool": "send_hotkey|app_action"}
+{"frase": "pon el navegador en pantalla completa", "tool": "app_action|send_hotkey|window_layout"}
+{"frase": "crea una carpeta en Documentos llamada Facturas", "tool": "create_folder", "args": {"name": "Facturas"}}
+{"frase": "crea la carpeta Fondos en Imágenes", "tool": "create_folder", "args": {"name": "Fondos"}}
+{"frase": "¿qué hay en descargas?", "tool": "list_files"}
+{"frase": "busca la factura de la luz", "tool": "find_files"}
+{"frase": "busca los pdf de Documentos", "tool": "find_files"}
+{"frase": "mueve los tres últimos archivos de Descargas a Documentos", "tool": "move_files", "args": {"newest": 3}}
+{"frase": "copia las fotos de Descargas a Imágenes", "tool": "copy_files", "args": {"kind": "images"}}
+{"frase": "renombra informe.docx del Escritorio a informe final.docx", "tool": "rename_file"}
+{"frase": "borra el último archivo de Descargas", "tool": "delete_files", "args": {"newest": 1}}
+{"frase": "deshaz", "tool": "undo"}
+{"frase": "recupéralo", "tool": "undo"}
+{"frase": "Pon una alarma a las 10:50", "tool": "set_alarm", "args": {"time": "10:50"}}
+{"frase": "despiértame mañana a las siete y cuarto", "tool": "set_alarm", "args": {"time": "07:15", "day": "tomorrow"}}
+{"frase": "alarma a las 5 de la tarde", "tool": "set_alarm", "args": {"time": "17:00"}}
+{"frase": "pon un temporizador de 5 minutos", "tool": "set_timer", "args": {"minutes": 5}}
+{"frase": "avísame en media hora", "tool": "set_timer", "args": {"minutes": 30}}
+{"frase": "temporizador de un minuto y medio", "tool": "set_timer", "args": {"minutes": 1, "seconds": 30}}
+{"frase": "recuérdame en 10 minutos sacar la pizza", "tool": "set_timer", "args": {"minutes": 10}}
+{"frase": "recuérdame a las 6 de la tarde llamar a mamá", "tool": "set_alarm", "args": {"time": "18:00"}}
+{"frase": "abre el bloc de notas y pon el volumen a 20", "plan": ["open_app", "set_volume"]}
+{"frase": "crea la carpeta Fondos en Imágenes y mueve allí las fotos de Descargas", "plan": ["create_folder", "move_files"]}
+{"frase": "abre Spotify y maximízalo", "plan": ["open_app", "wait_for_window", "window_layout"]}
+{"frase": "pon Chrome a la izquierda y Discord a la derecha", "plan": ["window_layout", "window_layout"]}
+{"frase": "abre el bloc de notas y abre una pestaña nueva", "plan": ["open_app", "wait_for_window", "app_action|send_hotkey"]}
+{"frase": "¿Cómo se dice hola en alemán?", "tipo": "respuesta"}
+{"frase": "¿qué hora es?", "tipo": "respuesta"}
+{"frase": "¿qué día es hoy?", "tipo": "respuesta"}
+{"frase": "¿cuánto es 17 por 23?", "tipo": "respuesta"}
+{"frase": "¿quién escribió el Quijote?", "tipo": "respuesta"}
+{"frase": "¿qué es un agujero negro?", "tipo": "respuesta"}
+{"frase": "cuenta del 1 al 10", "tipo": "respuesta"}
+{"frase": "dime un sinónimo de bonito", "tipo": "respuesta"}
+{"frase": "¿cuántos días tiene febrero en un año bisiesto?", "tipo": "respuesta"}
+{"frase": "cuéntame un chiste", "tipo": "respuesta"}
+{"frase": "traduce buenos días al inglés", "tipo": "respuesta"}
+{"frase": "¿cuál es la capital de Australia?", "tipo": "respuesta"}
+{"frase": "manda un whatsapp a mi madre", "tipo": "no_sabe"}
+{"frase": "apaga el ordenador", "tipo": "no_sabe"}
+{"frase": "vacía la papelera", "tipo": "no_sabe"}
+{"frase": "compra unas zapatillas en Amazon", "tipo": "no_sabe"}
+{"frase": "escribe en el chat del Valorant que voy", "tipo": "no_sabe"}
