@@ -56,6 +56,8 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
 
 ### Corregido
 
+- El núcleo se colgaba al cargar Pocket TTS lanzado desde la app: en Windows, la lectura pendiente de stdin (para saber si la app había muerto) bloqueaba otra consulta que hace PyTorch al cargar. Ahora la app le pasa su PID (`NYX_PARENT_PID`) y el núcleo lo vigila cada segundo.
+
 - La isla perdía `WS_EX_NOACTIVATE` y `WS_EX_TOOLWINDOW` al arrancar y se ocultaba al mostrar botones: `set_ignore_cursor_events` de Tauri reescribe todos los estilos según lo que tao cree de la ventana (que estaba oculta, porque se muestra con Win32). Ahora el paso de clics se cambia directamente con Win32. La ventana de texto recupera `WS_EX_TOOLWINDOW` después de que tao la muestre.
 - Router: «a la carpeta de Documentos» ya se entiende como «Documentos».
 
