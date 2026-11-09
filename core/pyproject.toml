@@ -7,10 +7,10 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "comtypes>=1.4.17",
     "httpx>=0.27",
-    "kokoro-onnx>=0.6.1",
     "mss>=10.2.0",
     "numpy>=2.5.4",
     "onnxruntime>=1.31.1",
+    "piper-tts>=1.8.0",
     "psutil>=7.2.2",
     "pycaw>=20260927",
     "pydantic>=2.9",
@@ -73,5 +73,5 @@ link-mode = "copy"
 
 [[tool.mypy.overrides]]
 # Librerías sin anotaciones de tipos: se usan detrás de las interfaces de nyx.
-module = ["sounddevice", "vosk", "onnxruntime", "onnxruntime.*", "kokoro_onnx", "comtypes", "pycaw", "pycaw.*", "mss", "mss.*"]
+module = ["sounddevice", "vosk", "onnxruntime", "onnxruntime.*", "piper", "piper.*", "comtypes", "pycaw", "pycaw.*", "mss", "mss.*"]
 ignore_missing_imports = true

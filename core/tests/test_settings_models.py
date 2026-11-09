@@ -24,14 +24,14 @@ def test_settings_created_with_defaults(tmp_path: Path) -> None:
 def test_settings_roundtrip_and_unknown_keys(tmp_path: Path) -> None:
     path = tmp_path / "settings.json"
     s = Settings()
-    s.tts.voice = "em_alex"
+    s.tts.voice = "davefx"
     save_settings(s, path)
     data = json.loads(path.read_text(encoding="utf-8"))
     data["futuro"] = {"x": 1}
     data["listen"]["silence_ms"] = 900
     path.write_text(json.dumps(data), encoding="utf-8")
     loaded = load_settings(path)
-    assert loaded.tts.voice == "em_alex"
+    assert loaded.tts.voice == "davefx"
     assert loaded.listen.silence_ms == 900
 
 

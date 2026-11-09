@@ -1,0 +1,8 @@
+{"engine": "kokoro", "voice": "ef_dora", "device": "cpu", "first_s": 0.51, "mean_s": 1.097, "rtf": 0.281}
+{"engine": "kokoro", "voice": "em_alex", "device": "cpu", "first_s": 0.478, "mean_s": 0.965, "rtf": 0.244}
+{"engine": "kokoro", "voice": "em_santa", "device": "cpu", "first_s": 0.397, "mean_s": 1.01, "rtf": 0.252}
+{"engine": "piper", "voice": "davefx (es_ES)", "device": "cpu", "first_s": 0.039, "mean_s": 0.074, "rtf": 0.02}
+{"engine": "piper", "voice": "sharvard (es_ES)", "device": "cpu", "first_s": 0.034, "mean_s": 0.084, "rtf": 0.022}
+{"engine": "piper", "voice": "claude (es_MX)", "device": "cpu", "first_s": 0.042, "mean_s": 0.094, "rtf": 0.021}
+{"engine": "piper", "voice": "daniela (es_AR)", "device": "cpu", "first_s": 0.15, "mean_s": 0.357, "rtf": 0.105}
+{"engine": "chatterbox", "voice": "por defecto", "device": "cpu (8 hilos)", "first_s": 9.84, "mean_s": 16.51, "rtf": 3.808}

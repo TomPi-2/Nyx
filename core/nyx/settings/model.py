@@ -69,9 +69,10 @@ class LLMSettings(_Section):
 
 class TTSSettings(_Section):
     enabled: bool = True
-    voice: str = "ef_dora"
+    # sharvard_f (mujer, España; predeterminada), davefx (hombre, España), daniela (mujer,
+    # Argentina). Ver nyx/tts/voices.py.
+    voice: str = "sharvard_f"
     speed: float = Field(default=1.0, ge=0.5, le=2.0)
-    lang: str = "es"
 
 
 class ResponseSettings(_Section):
@@ -99,6 +100,10 @@ def settings_path() -> Path:
 def migrate(data: dict[str, Any]) -> dict[str, Any]:
     """Actualiza un archivo de una versión anterior. Hoy solo existe la versión 1."""
     version = data.get("version", SCHEMA_VERSION)
+    tts = data.get("tts")
+    if isinstance(tts, dict) and str(tts.get("voice", "")).startswith(("ef_", "em_")):
+        tts["voice"] = "sharvard_f"  # voces de Kokoro (hasta el 2026-11-09) → Piper
+        tts.pop("lang", None)
     if not isinstance(version, int) or version > SCHEMA_VERSION:
         log.warning("Ajustes de una versión desconocida (%r): se leen tal cual", version)
     data["version"] = SCHEMA_VERSION
