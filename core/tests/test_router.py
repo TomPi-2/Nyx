@@ -36,7 +36,16 @@ def call(text: str, index: SystemIndex) -> tuple[str, dict[str, object]]:
         ("Pausa la música", "media_control", {"action": "play_pause"}),
         ("reanuda", "media_control", {"action": "play_pause"}),
         ("Pon algo de música", "media_control", {"action": "play_pause"}),
-        ("Sube el volumen en Spotify", "set_volume", {"change": 10, "app": "Spotify"}),
+        (
+            "Sube el volumen en Spotify",
+            "app_action",
+            {"app": "Spotify", "action": "volume_up", "times": 1},
+        ),
+        (
+            "baja mucho el volumen de spotify",
+            "app_action",
+            {"app": "Spotify", "action": "volume_down", "times": 2},
+        ),
         ("baja el volumen de discord al 20", "set_volume", {"level": 20, "app": "Discord PTB"}),
         ("sube el volumen al 50 en spotify", "set_volume", {"level": 50, "app": "Spotify"}),
         ("Pon un temporizador de 5 minutos", "set_timer", {"minutes": 5}),
@@ -223,8 +232,8 @@ def test_new_tab_in_app(
     call = result.calls[0]
     if open_now:  # ya abierto: Ctrl+T en su ventana
         assert (call.name, call.arguments) == (
-            "send_hotkey",
-            {"keys": "ctrl+t", "app": "Bloc de notas"},
+            "app_action",
+            {"action": "new_tab", "app": "Bloc de notas"},
         )
     else:  # abrirlo ya deja una pestaña nueva
         assert (call.name, call.arguments["name"]) == ("open_app", "Bloc de notas")
@@ -237,3 +246,22 @@ def test_new_tab_in_app(
 def test_media_with_app_suffix(index: SystemIndex, text: str) -> None:
     result = route(text, index)
     assert isinstance(result, Route) and result.calls[0].name == "media_control"
+
+
+@pytest.mark.parametrize(
+    ("text", "action", "app"),
+    [
+        ("cierra esta pestaña", "close_tab", None),
+        ("reabre la última pestaña cerrada", "reopen_tab", None),
+        ("recarga la página", "reload", None),
+        ("abre una ventana de incógnito", "incognito", None),
+        ("silencia el micro en Discord", "toggle_mute", "Discord"),
+        ("ensordéceme", "toggle_deafen", "Discord"),
+    ],
+)
+def test_in_app_actions(index: SystemIndex, text: str, action: str, app: str | None) -> None:
+    result = route(text, index)
+    assert isinstance(result, Route)
+    call = result.calls[0]
+    assert call.name == "app_action" and call.arguments["action"] == action
+    assert call.arguments.get("app") == app

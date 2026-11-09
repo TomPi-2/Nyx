@@ -58,7 +58,14 @@ def cancelled_result(summary: str) -> ToolResult:
 
 
 # Tras abrir una app, estas herramientas necesitan que su ventana ya exista.
-_NEEDS_WINDOW = {"focus_window", "window_layout", "close_app", "wait_for_window", "send_hotkey"}
+_NEEDS_WINDOW = {
+    "focus_window",
+    "window_layout",
+    "close_app",
+    "wait_for_window",
+    "send_hotkey",
+    "app_action",
+}
 
 
 def with_waits(calls: list[ToolCall]) -> list[ToolCall]:
