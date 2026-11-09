@@ -23,6 +23,7 @@ from nyx.brain.base import LLMError
 from nyx.brain.ollama import OllamaEngine, launch_ollama
 from nyx.brain.router import route
 from nyx.brain.service import Brain
+from nyx.brain.shortcuts import ShortcutStore
 from nyx.bus import EventBus
 from nyx.events import BubbleHidden, BubbleShown
 from nyx.executor import Executor
@@ -221,6 +222,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         executor=executor,
         yesno=yesno,
         ringer=ringer,
+        shortcuts=ShortcutStore.default(),
     )
     log.info(
         "Servicios listos en %.1f s (voz: %s, activación: %s, respuesta hablada: %s)",

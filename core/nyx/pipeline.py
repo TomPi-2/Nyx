@@ -27,6 +27,7 @@ from nyx.brain.base import LLMError, LLMErrorKind
 from nyx.brain.reply import BubbleReady, Reply, SpokenDelta, SpokenEnd
 from nyx.brain.router import Miss, Route
 from nyx.brain.service import Brain, ReplyDone, ToolPlan
+from nyx.brain.shortcuts import ShortcutStore
 from nyx.bus import EventBus
 from nyx.events import (
     ActionChosen,
@@ -256,6 +257,7 @@ class Pipeline:
         executor: Executor | None = None,
         yesno: YesNoDetector | None = None,
         ringer: AlarmRinger | None = None,
+        shortcuts: ShortcutStore | None = None,
         clock: Callable[[], float] = time.perf_counter,
     ) -> None:
         self.bus = bus
@@ -272,6 +274,8 @@ class Pipeline:
         self.router = router
         self.executor = executor
         self.ringer = ringer
+        self.shortcuts = shortcuts
+        self._learned_last: tuple[str, float] | None = None  # (frase, cuándo) para olvidarla
         self._clock = clock
         self.mode = Mode.IDLE
         self.state = NyxState.IDLE
@@ -616,6 +620,14 @@ class Pipeline:
             log.info("Seguimiento ignorado: no iba dirigido a Nyx (%r)", text)
             await self._go_idle()
             return
+        if self.shortcuts is not None and self.executor is not None:
+            learned = self.shortcuts.lookup(text)
+            if learned is not None:
+                log.info("Atajo aprendido: %r → %s(%s)", text, learned.name, learned.arguments)
+                await self._act(
+                    Route(with_waits([learned]), "aprendido"), marks, from_voice=from_voice
+                )
+                return
         hint = ""
         if isinstance(routed, Miss):
             if not routed.candidates or routed.candidates[0].score < MISS_LLM_MIN:
@@ -630,8 +642,10 @@ class Pipeline:
             )
         await self._respond(text, marks, from_voice=from_voice, hint=hint)
 
-    async def _act(self, routed: Route, marks: _Marks, *, from_voice: bool) -> None:
+    async def _act(self, routed: Route, marks: _Marks, *, from_voice: bool) -> list[ToolResult]:
         assert self.executor is not None
+        if routed.rule == "undo":
+            self._forget_recent()
         thinking = asyncio.create_task(self._thinking_later())
         try:
             self._from_voice = from_voice
@@ -649,11 +663,11 @@ class Pipeline:
             await self._show_bubble("Cancelado", failed.secondary or "")
             self._schedule_bubble_hide(CANCELLED_BUBBLE_S)
             await self._go_idle()
-            return
+            return results
         if failed is not None:
             spoken = failed.message if speak else None
             await self._fail(failed.display or failed.message, failed.secondary or "", spoken)
-            return
+            return results
         # Éxito: en silencio, salvo que la herramienta tenga algo que enseñar (SPEC sección 3)
         # o que se pueda deshacer (amarillas: «Deshacer» durante 30 s).
         undoable = next((r for r in reversed(results) if r.data.get("undo_id")), None)
@@ -667,6 +681,26 @@ class Pipeline:
             await self.start_listening(followup=True)
         else:
             await self._go_idle()
+        return results
+
+    def _learn(self, text: str, call: ToolCall) -> None:
+        """SPEC sección 6: frase resuelta por el LLM con una sola acción → atajo."""
+        if self.shortcuts is None or self.executor is None:
+            return
+        tool = self.executor.registry.get(call.name)
+        key = self.shortcuts.learn(text, call, str(tool.risk) if tool else "red")
+        if key is not None:
+            self._learned_last = (key, self._clock())
+            log.info("Atajo aprendido: %r → %s(%s)", key, call.name, call.arguments)
+
+    def _forget_recent(self) -> None:
+        """Se deshizo justo después de aprender: el atajo estaba mal."""
+        if self.shortcuts is None or self._learned_last is None:
+            return
+        key, when = self._learned_last
+        self._learned_last = None
+        if self._clock() - when <= UNDO_TTL_S and self.shortcuts.forget(key):
+            log.info("Atajo olvidado (se deshizo): %r", key)
 
     async def _context(self) -> str:
         """Lo que el LLM necesita saber del momento: la ventana activa («ciérrala»)."""
@@ -689,7 +723,9 @@ class Pipeline:
                 hint = f"Tu llamada anterior no era válida: {invalid}. Corrígela."
                 await self._respond(text, marks, from_voice=from_voice, hint=hint, retried=True)
                 return
-        await self._act(Route(calls, "llm"), marks, from_voice=from_voice)
+        results = await self._act(Route(calls, "llm"), marks, from_voice=from_voice)
+        if len(plan.calls) == 1 and results and all(r.ok for r in results):
+            self._learn(text, ToolCall(plan.calls[0].name, plan.calls[0].arguments))
 
     async def _not_found(self, miss: Miss, *, from_voice: bool) -> None:
         best = miss.candidates[0].entry.name if miss.candidates else None
@@ -926,6 +962,7 @@ class Pipeline:
         if self.executor is None:
             return
         self._actions.clear()
+        self._forget_recent()
         result = await self.executor.run(
             ToolCall("undo", {"id": undo_id}), phrase="(botón Deshacer)"
         )
