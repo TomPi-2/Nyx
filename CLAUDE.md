@@ -17,7 +17,31 @@ Eres el desarrollador principal de Nyx. La especificación completa está en [do
 
 ## Estado
 
-Fase actual: **1 — Base y pruebas técnicas** (sin empezar). El repositorio solo tiene la estructura de carpetas.
+Fase actual: **1 — Base y pruebas técnicas** (en curso).
+
+## Decisiones tomadas
+
+| Fecha | Decisión |
+| --- | --- |
+| 2026-11-09 | Nyx será gratis y de código abierto (GPL-3.0 + CLA). El repositorio sigue privado hasta la fase 6. |
+| 2026-11-09 | Dos equipos: PC con RX 7700 XT (principal y de referencia) y portátil con RTX 3070 Laptop. Las pruebas de rendimiento se hacen en ambos para fijar los requisitos mínimos. Todo por Vulkan, nada de CUDA. |
+| 2026-11-09 | La app Tauri es el proceso principal (bandeja, instancia única) y lanza el núcleo Python como proceso hijo; lo reinicia si se cae. |
+| 2026-11-09 | Interfaz: Svelte 5 + TypeScript para la UI y WebGL/Canvas directo para el orbe. |
+| 2026-11-09 | Python gestionado con `uv` (Python 3.12). |
+| 2026-11-09 | Sin cuenta. Datos de uso anónimos solo con permiso (SPEC sección 8). |
+| 2026-11-09 | Interfaz en ventanas flotantes propias, ocultas en reposo; el monitor se elige según ajustes y modo partida (SPEC sección 11). |
+
+El historial completo de decisiones está en la sección 18 de `docs/SPEC.md`.
+
+## Antes de hacer público el repositorio (fase 6)
+
+Recuérdaselo al usuario al llegar a la fase 6.
+
+- [ ] `LICENSE` (GPL-3.0) y CLA para contribuciones
+- [ ] `SECURITY.md` y `CONTRIBUTING.md`
+- [ ] Revisar todo el historial de git en busca de secretos
+- [ ] Auditoría de licencias de dependencias y modelos (sección 2)
+- [ ] Cambiar la visibilidad en GitHub y configurar SignPath
 
 ## Estructura
 
@@ -34,10 +58,29 @@ docs/        SPEC.md (especificación)
 Desde `core/`:
 
 ```powershell
-ruff format . ; ruff check .
-mypy
-pytest
+uv sync
+uv run ruff format . ; uv run ruff check .
+uv run mypy
+uv run pytest
+uv run nyx --demo --print-token   # núcleo suelto, recorre los estados
+uv run python scripts/check_ollama.py    # prueba de GPU (ver docs/benchmarks)
 ```
+
+## Comandos (interfaz)
+
+Desde `ui/`:
+
+```powershell
+npm install
+npm run tauri dev        # app completa; en depuración lanza el núcleo en modo demo (NYX_DEMO=0 lo quita)
+npm run check            # svelte-check
+npm run format           # prettier
+cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+```
+
+Arquitectura de procesos: `ui/src-tauri` (Rust) es el proceso principal. Lanza el núcleo con `uv run`, le pasa el token en `NYX_TOKEN` y lee el puerto de la línea `ready` en stdout. Las ventanas piden puerto y token con el comando `core_endpoint` y se conectan por WebSocket. El protocolo está duplicado en `core/nyx/bridge/protocol.py` y `ui/src/lib/protocol.ts`: cambia los dos a la vez.
+
+Problema conocido en este equipo: la caché de uv está en una carpeta sincronizada con la nube, así que `core/pyproject.toml` usa `link-mode = "copy"`. Si `uv` da "os error 32" o "396", borra `core/.venv` y repite.
 
 ## Preguntas abiertas
 

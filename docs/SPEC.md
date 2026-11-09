@@ -27,7 +27,8 @@ Nyx se divide en dos procesos: un núcleo en Python que escucha, piensa y actúa
 | Pieza | Elección | Alternativa | Notas |
 | --- | --- | --- | --- |
 | Núcleo | Python 3.12, asyncio | — | Ecosistema de voz e IA más maduro |
-| Interfaz | Tauri 2 + TypeScript + Canvas/WebGL | PySide6 + QML | Animaciones y cristal con tecnología web; WebView2 viene con Windows 11 |
+| Interfaz | Tauri 2 + Svelte 5 + TypeScript + Canvas/WebGL | PySide6 + QML | Animaciones y cristal con tecnología web; WebView2 viene con Windows 11. Tauri es el proceso principal y lanza el núcleo |
+| Entorno Python | uv | — | Instala Python 3.12 y gestiona dependencias |
 | Efecto cristal | `window-vibrancy` (Acrylic/Mica) | CSS `backdrop-filter` | Translucidez nativa de Windows 11 |
 | Activación | openWakeWord (ONNX) | Vosk con gramática | Modelo propio para "Nyx"; Vosk para palabras personalizadas |
 | Detección de voz (VAD) | Silero VAD (ONNX) | WebRTC VAD | Corta la grabación al dejar de hablar |
@@ -272,7 +273,28 @@ Nada destructivo se ejecuta sin confirmación, y lo que se borra va siempre a la
 - **Sin escalado de privilegios:** Nyx se ejecuta como usuario normal. Lo que necesite administrador se rechaza con explicación.
 - **Registro de acciones:** cada acción guarda fecha, frase, herramientas, parámetros y resultado (local, rotación a 30 días), consultable desde ajustes.
 - **Contenido externo no da órdenes:** el texto de webs, archivos o el portapapeles nunca se interpreta como instrucciones (protección ante inyección de prompts).
-- **Privacidad:** el audio no se guarda salvo las muestras de calibración que el usuario grabe; nada sale del PC salvo las peticiones que lo requieren (tiempo, webs y nube opcional).
+- **Privacidad:** el audio no se guarda salvo las muestras de calibración que el usuario grabe; nada sale del PC salvo las peticiones que lo requieren (tiempo, webs y nube opcional) y los datos de uso anónimos si el usuario los activa.
+
+### Sin cuenta
+
+Nyx funciona entero sin registrarse ni iniciar sesión. Para llevar la configuración a otro PC: exportar e importar ajustes, alias y atajos aprendidos en un archivo, u opción de guardarlos en una carpeta sincronizada (por ejemplo OneDrive). Si en el futuro alguna función necesitara servidor, la cuenta sería opcional y solo para esa función; nada local dependería de ella.
+
+### Datos de uso anónimos (solo con permiso)
+
+Desactivados por defecto. El asistente de primer arranque pregunta "¿Ayudar a mejorar Nyx?" con la casilla sin marcar y un enlace a "ver exactamente qué se envía". Se puede cambiar en Ajustes → Privacidad.
+
+| Se envía (si el usuario lo activa) | Nunca se envía |
+| --- | --- |
+| Versión de Nyx y de Windows | Audio, transcripciones o frases |
+| GPU, VRAM y RAM (por tramos), backend (Vulkan, ROCm, CPU) y modelo de LLM | Nombres o rutas de archivos y carpetas |
+| Latencias: activación → acción, transcripción, primera palabra del LLM | Nombres de apps, ventanas o webs, y parámetros de las herramientas |
+| Uso de cada herramienta (solo el nombre) y aciertos del router rápido frente al LLM | Portapapeles, capturas o grabaciones |
+| Número de falsas activaciones marcadas como error | Ubicación (la ciudad del tiempo) |
+| Errores por tipo y firma de los cierres inesperados | Identificadores fijos o la IP (el servidor no la guarda) |
+
+- Envío agrupado una vez al día, con un identificador aleatorio que cambia cada mes como máximo.
+- Botón opcional "enviar esta frase" cuando Nyx no entiende algo: muestra el texto exacto antes de enviarlo y alimenta la batería de pruebas.
+- El servicio se elige en la fase 6 (por ejemplo Aptabase, pensado para apps de escritorio y sin datos personales).
 
 ## 9. Modo partida
 
@@ -291,7 +313,7 @@ Comprobación cada 2 s con histéresis (5 s) para no parpadear al hacer Alt+Tab.
 | Opción | Escucha | Voz | Interfaz |
 | --- | --- | --- | --- |
 | Desactivado | No (solo el atajo de teclado si se activa aparte) | No | No |
-| Solo voz (recomendado) | Sí | Sí | Nada en el monitor del juego; opcional en el secundario |
+| Solo voz (recomendado) | Sí | Sí | Nada en el monitor del juego; con varios monitores, en el alternativo (ver "Elección del monitor", sección 11) |
 | Normal | Sí | Sí | Indicadores mínimos, sin burbujas grandes |
 
 **Qué se puede hacer en partida:**
@@ -345,15 +367,27 @@ Nyx mantiene en SQLite un índice de apps, juegos, carpetas y alias para resolve
 
 ## 11. Interfaz: overlay sin ventana
 
-Nyx no tiene ventana principal: vive en una capa transparente sobre el escritorio que aparece en el monitor donde estés y muestra solo lo necesario para cada petición. La única ventana clásica es la de Ajustes.
+Nyx no tiene ventana principal: cada elemento (la isla, una burbuja, un aviso) es una ventana pequeña propia que aparece en el monitor y la posición que toque y desaparece al terminar. La única ventana clásica es la de Ajustes.
 
-**Capa (overlay):**
+**Ventanas flotantes** (decisión de la fase 1; sustituye a la capa transparente a pantalla completa por monitor):
 
-- Una ventana Tauri por monitor: sin bordes, transparente, siempre encima, fuera de la barra de tareas y de Alt+Tab, que nunca toma el foco (`WS_EX_NOACTIVATE`, `WS_EX_TOOLWINDOW`).
-- **Atraviesa los clics** salvo encima de una burbuja interactiva: se alterna `setIgnoreCursorEvents` según el puntero esté sobre un elemento.
-- **Monitor de destino** (ajuste): donde está el ratón (por defecto), donde está la ventana activa, o uno fijo. Si cambias de monitor durante una respuesta, la burbuja se desliza al nuevo.
+- Cada elemento es una ventana Tauri del tamaño de su contenido: sin bordes, transparente, siempre encima, fuera de la barra de tareas y de Alt+Tab, que nunca toma el foco (`WS_EX_NOACTIVATE`, `WS_EX_TOOLWINDOW`).
+- **En reposo no existe ninguna ventana visible.** Así Nyx nunca queda encima de un juego en ventana sin bordes cuando no hace falta: una ventana siempre encima, aunque sea transparente, puede obligar a Windows a componer el juego y costar rendimiento y latencia.
+- Se pueden colocar en cualquier monitor y posición: arriba en el centro (isla, por defecto), esquinas u otras ubicaciones (fase 7).
+- **Atraviesa los clics** salvo encima de un elemento interactivo: se alterna `setIgnoreCursorEvents` según el puntero esté sobre un botón.
 - DPI por monitor (Per-Monitor v2) para que se vea nítido en monitores con distinta escala.
-- Se adapta a cambios de monitores (conectar, desconectar, resolución) sin reiniciar.
+- Se adapta a cambios de monitores (conectar, desconectar, resolución, escala) sin reiniciar: la posición se recalcula cada vez que se muestra.
+
+**Elección del monitor** (se evalúa cada vez que Nyx va a mostrar algo, y de nuevo si cambia la situación mientras está visible):
+
+1. Monitor preferido según el ajuste "Monitor de destino": donde está el ratón (por defecto), donde está la ventana activa, o uno fijo.
+2. Si hay una partida (sección 9) y el monitor elegido es el del juego, se aplica el ajuste "Nyx en partida":
+    - **Solo voz** con un monitor: no se muestra nada; Nyx responde solo por voz.
+    - **Solo voz** con varios monitores: la interfaz va al monitor alternativo elegido en ajustes, o si no al principal que no tenga el juego.
+    - **Normal**: indicadores mínimos en el monitor del juego, sin burbujas grandes.
+    - **Desactivado**: no se muestra nada.
+3. Las confirmaciones de riesgo rojo que no se puedan mostrar quedan diferidas o se resuelven por voz, según la tabla de la sección 9.
+4. Si cambias de monitor o empieza una partida durante una respuesta, la burbuja se desliza al nuevo monitor o se oculta.
 
 **Elementos que pueden aparecer:**
 
@@ -468,9 +502,9 @@ La ventana de Ajustes es la única ventana clásica de Nyx y sigue la misma iden
 | Cerebro | Modelo local, nube opcional con clave propia, atajos aprendidos (ver y borrar), preferencias aprendidas |
 | Seguridad | Nivel de cada herramienta (sin poder bajar el de eliminar o PowerShell), rutas protegidas extra, registro de acciones |
 | Caché | Reescanear ahora, alias personalizados, webs frecuentes, estado de Everything |
-| Privacidad | Borrar historial, borrar muestras de voz, qué sale a internet |
+| Privacidad | Borrar historial, borrar muestras de voz, qué sale a internet, datos de uso anónimos (desactivados por defecto) con vista de lo que se envía, exportar e importar ajustes |
 
-**Primer arranque (asistente de 4 pasos):** descargar modelos → probar micrófono y grabar muestras de "Nyx" → ver el indicador y elegir monitor → escaneo del sistema. Todo con opción de saltar y volver más tarde.
+**Primer arranque (asistente de 5 pasos):** descargar modelos → probar micrófono y grabar muestras de "Nyx" → ver el indicador y elegir monitor → escaneo del sistema → ¿ayudar a mejorar Nyx con datos anónimos? (sin marcar por defecto). Todo con opción de saltar y volver más tarde. Sin registro ni inicio de sesión.
 
 Algunos ajustes se pueden cambiar por voz con `nyx_control` ("Nyx, modo silencio", "Nyx, ponte en la esquina de abajo").
 
@@ -577,7 +611,7 @@ Nyx se actualiza solo desde GitHub Releases con Velopack: descarga en segundo pl
 
 - Solo se instala lo que esté firmado con la clave de Nyx (la clave privada vive en los secretos de GitHub, nunca en el repositorio).
 - Descargas solo por HTTPS desde el repositorio oficial.
-- Si el repositorio es privado, las versiones se publican en un repositorio público aparte solo para releases (la app no debe llevar tokens).
+- El repositorio será público desde la fase 6 (código abierto, GPL-3.0), así que las versiones se publican en sus propias Releases. La app nunca lleva tokens.
 - Sin certificado de firma de código de Windows, SmartScreen avisará en la primera instalación. Los certificados cuestan dinero; si el proyecto es de código abierto, SignPath ofrece firma gratuita. Las actualizaciones posteriores no muestran ese aviso.
 
 ## 16. Estructura del proyecto y fases
@@ -651,3 +685,13 @@ Reglas de trabajo:
 - Modelo de LLM final tras la batería de pruebas (7–8B frente a 14B).
 - Viabilidad del Acrylic con esquinas muy redondeadas (prueba de la fase 1).
 - Ubicación fija para el tiempo (ciudad).
+
+## 18. Decisiones tomadas
+
+| Fecha | Decisión | Secciones afectadas |
+| --- | --- | --- |
+| 2026-11-09 | Nyx es gratis y de código abierto (GPL-3.0 + CLA). Repositorio privado hasta la fase 6. | 15 |
+| 2026-11-09 | Desarrollo y pruebas en dos equipos (RX 7700 XT y RTX 3070 Laptop) para fijar los requisitos mínimos. Todo por Vulkan. | 2, 14 |
+| 2026-11-09 | Tauri es el proceso principal y lanza el núcleo Python como proceso hijo. Svelte 5 para la UI, `uv` para Python. | 2 |
+| 2026-11-09 | Sin cuenta ni inicio de sesión. Datos de uso anónimos solo con permiso explícito. | 8, 13 |
+| 2026-11-09 | La interfaz son ventanas flotantes propias que se ocultan en reposo, en lugar de una capa a pantalla completa por monitor. Elección de monitor según ajustes y modo partida. | 9, 11 |
