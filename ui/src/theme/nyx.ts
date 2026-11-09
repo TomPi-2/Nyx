@@ -20,6 +20,10 @@ export interface NyxPalette {
   glow: string;
   /** Única forma de separar del fondo */
   shadow: string;
+  /** Alternativa sin desenfoque real: tinte gris al 80–85 % (SPEC sección 11) */
+  glassFallback: string;
+  /** Degradado muy sutil sobre glassFallback para imitar el cristal */
+  glassSheen: string;
 }
 
 export const dark: NyxPalette = {
@@ -32,6 +36,8 @@ export const dark: NyxPalette = {
   textTertiary: "rgba(235, 235, 245, 0.30)",
   glow: "rgba(255, 255, 255, 0.85)",
   shadow: "0 20px 60px rgba(0, 0, 0, 0.35)",
+  glassFallback: "rgba(36, 36, 38, 0.84)",
+  glassSheen: "linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 60%)",
 };
 
 export const light: NyxPalette = {
@@ -44,6 +50,8 @@ export const light: NyxPalette = {
   textTertiary: "rgba(60, 60, 67, 0.30)",
   glow: "rgba(255, 255, 255, 0.95)",
   shadow: "0 20px 60px rgba(0, 0, 0, 0.12)",
+  glassFallback: "rgba(242, 242, 247, 0.84)",
+  glassSheen: "linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 60%)",
 };
 
 /** Radios en px: paneles 24–28, tarjetas 16–20, controles en pastilla. */

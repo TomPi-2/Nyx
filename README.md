@@ -19,9 +19,19 @@ La especificación completa está en [docs/SPEC.md](docs/SPEC.md).
 ## Requisitos
 
 - Windows 11
-- Python 3.12
-- Node.js y Rust (para Tauri 2)
+- Node.js 22 y Rust (para Tauri 2)
+- uv (gestiona Python 3.12)
 - GPU con Vulkan (referencia: AMD Radeon RX 7700 XT, 12 GB VRAM)
+
+## Desarrollo
+
+```powershell
+cd ui
+npm install
+npm run tauri dev
+```
+
+Arranca la app completa: el icono de Nyx aparece en la bandeja y la isla recorre sus estados en modo demo. Desde la bandeja se abre la prueba de cristal. Necesita [uv](https://docs.astral.sh/uv/), que instala Python 3.12 solo.
 
 ## Fases
 
