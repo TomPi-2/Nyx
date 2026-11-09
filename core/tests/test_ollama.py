@@ -94,8 +94,10 @@ async def test_warmup_sends_prefix_with_same_options() -> None:
         return httpx.Response(200, json={"done": True})
 
     llm = engine(handler)
-    await llm.warmup([ChatMessage("system", "eres Nyx")])
+    tool = {"type": "function", "function": {"name": "open_app"}}
+    await llm.warmup([ChatMessage("system", "eres Nyx")], tools=[tool])
     assert seen["messages"][0] == {"role": "system", "content": "eres Nyx"}
+    assert seen["tools"] == [tool]  # van en el prompt de sistema: también se precalientan
     assert seen["options"]["num_ctx"] == 4096  # igual que en las peticiones: no recarga
     assert seen["options"]["num_predict"] == 1
 

@@ -24,7 +24,8 @@ class MediaControlParams(Params):
 class MediaControl(Tool[MediaControlParams]):
     name = "media_control"
     description = (
-        "Controla la música o el vídeo que suena. Ej.: «pausa» y «reanuda» (play_pause), "
+        "Controla la música o el vídeo que suena. Ej.: «pausa», «reanuda» y «pon música» "
+        "(play_pause), "
         "«siguiente canción» (next), «la anterior» (previous)."
     )
     risk = Risk.GREEN

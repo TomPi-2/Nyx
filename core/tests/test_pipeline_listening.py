@@ -15,7 +15,7 @@ async def test_keeps_talking_after_complete_question_is_ignored() -> None:
     await h.feed(SILENCE, n(0.45))  # pausa corta: la pregunta ya está completa
     await h.feed(SPEECH, n(3.0))  # sigue hablando, pero ya no a Nyx
     await h.p.wait_idle()
-    assert [r[-1].content for r in h.llm.requests] == ["¿Qué hora es?"]
+    assert h.llm.asked == ["¿Qué hora es?"]
     # Seguía hablando cuando se abrió la ventana de seguimiento: no cuenta.
     await h.feed(SPEECH, n(1.5))
     assert len(h.llm.requests) == 1
@@ -32,7 +32,7 @@ async def test_incomplete_phrase_keeps_listening() -> None:
     await h.feed(SPEECH, n(1.0))
     await h.feed(SILENCE, n(0.7))
     await h.p.wait_idle()
-    assert [r[-1].content for r in h.llm.requests] == ["¿Cómo se dice hola en alemán?"]
+    assert h.llm.asked == ["¿Cómo se dice hola en alemán?"]
     await h.p.close()
 
 

@@ -79,11 +79,16 @@ def resolve_folder(ctx: ToolContext, target: str) -> Path | ToolResult:
     path = Path(target)
     if path.is_absolute():
         return path if path.is_dir() else ToolResult.fail(f"No existe la carpeta {path}")
-    found = pick(ctx.index, target, {Kind.FOLDER}, "la carpeta")
+    # «Imágenes/Fondos»: la primera parte se busca en el índice y el resto se añade tal cual
+    # (las subcarpetas recién creadas en un plan aún no están indexadas).
+    head, *rest = path.parts
+    found = pick(ctx.index, head, {Kind.FOLDER}, "la carpeta")
     if isinstance(found, ToolResult):
         return found
-    path = Path(found.entry.launch.value)
-    return path if path.is_dir() else ToolResult.fail(f"La carpeta {found.entry.name} ya no existe")
+    path = Path(found.entry.launch.value, *rest)
+    if path.is_dir():
+        return path
+    return ToolResult.fail(f"No existe la carpeta {Path(found.entry.name, *rest)}")
 
 
 def _matches_name(path: Path, wanted: str) -> bool:

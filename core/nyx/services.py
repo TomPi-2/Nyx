@@ -107,7 +107,8 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         launcher=launch_ollama,
     )
 
-    brain = Brain(llm)
+    registry = default_registry()
+    brain = Brain(llm, tools=registry.schemas())
 
     async def load_llm() -> None:
         try:
@@ -182,7 +183,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     # Rutas protegidas (SPEC sección 8): sistema, Nyx y las carpetas principales del usuario.
     paths = PathPolicy.default(list(known_folders().values()))
     tools_ctx = ToolContext(index=index, settings=settings, paths=paths)
-    executor = Executor(default_registry(), tools_ctx, action_log=ActionLog.default())
+    executor = Executor(registry, tools_ctx, action_log=ActionLog.default())
     # «Sí» / «no» por voz con el mismo modelo de Vosk que la activación.
     yesno = VoskYesNo(wake.model) if wake is not None else None
     pipeline = Pipeline(

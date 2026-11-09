@@ -35,6 +35,7 @@ def call(text: str, index: SystemIndex) -> tuple[str, dict[str, object]]:
         ("quita el silencio", "set_volume", {"mute": False}),
         ("Pausa la música", "media_control", {"action": "play_pause"}),
         ("reanuda", "media_control", {"action": "play_pause"}),
+        ("Pon algo de música", "media_control", {"action": "play_pause"}),
         ("Siguiente canción", "media_control", {"action": "next"}),
         ("pon la anterior", "media_control", {"action": "previous"}),
         ("Haz una captura de pantalla", "screenshot", {"target": "current"}),

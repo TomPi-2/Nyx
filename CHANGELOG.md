@@ -15,6 +15,13 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
   - Scripts de prueba de GPU para Ollama y whisper.cpp con informe por equipo en `docs/benchmarks/`.
   - Resultados del PC de referencia (RX 7700 XT): Qwen 2.5 7B y Llama 3.1 8B al 100 % en GPU (77 y 72 tokens/s, 3/3 herramientas); whisper.cpp con Vulkan, 0,17 s por frase. LLM provisional: `qwen2.5:7b`.
   - CI en GitHub Actions (Windows): ruff, mypy, pytest, prettier, svelte-check, rustfmt y clippy.
+- Fase 3c (en curso): LLM con herramientas, alarmas y atajos aprendidos.
+  - El LLM recibe las 20 herramientas en cada petición: para una acción devuelve un plan (una o varias llamadas, en orden) que pasa por el mismo ejecutor que el router (SafetyGuard, confirmaciones, deshacer y registro); para una pregunta, texto a trozos con la línea `[dato | contexto]` para la burbuja.
+  - El ejecutor hace las esperas: tras abrir una app, si el paso siguiente usa su ventana, espera a que aparezca (`wait_for_window`). Un plan con parámetros no válidos se reintenta una vez con el error.
+  - Lo que el router no encuentra pasa al LLM con los candidatos más parecidos como pista. El LLM sabe cuál es la ventana activa («ciérrala»).
+  - Si el modelo escribe la llamada como texto (`close_app({...})`), se convierte en plan en vez de leerse en voz alta. Si se salta la frase hablada o el «]», se dice el dato de la burbuja.
+  - Rutas «Carpeta/Subcarpeta» («crea Fondos en Imágenes y mueve allí las fotos»). `find_files` busca por extensión («los pdf de Documentos»). «Pon música» va por el router.
+  - Contexto de 8192 tokens (las herramientas ocupan ~3.400). La hora y la ventana activa van con el mensaje del usuario para que el prompt de sistema y las herramientas sigan en la caché de Ollama: la primera petición baja de 2,4 s a 0,8 s.
 - Fase 3b (cerrada): archivos, SafetyGuard, confirmaciones, deshacer y registro.
   - Herramientas: `create_folder`, `list_files`, `find_files` (Everything o índice de Windows), `move_files`, `copy_files`, `rename_file` (amarillas, con deshacer), `delete_files` (roja, siempre a la papelera) y `close_app` (amarilla; roja con cambios sin guardar; nunca mata el proceso), más `undo`.
   - SafetyGuard con reglas fijas: rutas protegidas (sistema, raíces de disco, Nyx, carpetas principales del usuario), confirmación solo con clic si son más de 50 archivos o algo fuera de la carpeta del usuario. Nunca se sobrescribe un archivo: «nombre (2)».

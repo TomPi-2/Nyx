@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 from nyx.audio.capture import FRAME_S, FRAME_SAMPLES
-from nyx.brain.base import ChatMessage, LLMError, LLMErrorKind
+from nyx.brain.base import ChatMessage, LLMError, LLMErrorKind, LLMToolCall
 from nyx.brain.service import Brain
 from nyx.bus import EventBus
 from nyx.events import (
@@ -102,19 +102,27 @@ class FakeSTT:
         return self.text
 
 
-REPLY = {"spoken": "En alemán se dice Hallo.", "display": "Hallo", "secondary": "hola · alemán"}
+REPLY = "[Hallo | hola · alemán]\nEn alemán se dice Hallo."
 
 
 class FakeLLM:
-    def __init__(self, reply: dict[str, str] | None = None, error: LLMError | None = None) -> None:
-        self.raw = json.dumps(reply or REPLY, ensure_ascii=False)
+    def __init__(self, reply: str | None = None, error: LLMError | None = None) -> None:
+        self.raw = reply or REPLY
+        self.plans: list[list[LLMToolCall]] = []  # si hay, se devuelven como llamadas
         self.replies: list[str] = []  # respuestas sucesivas (si no, siempre `raw`)
         self.addressed = True  # veredicto del clasificador de la ventana de seguimiento
         self.classified: list[str] = []
         self.error = error
         self.requests: list[list[ChatMessage]] = []
 
-    async def warmup(self, prefix: Sequence[ChatMessage] = ()) -> None:
+    @property
+    def asked(self) -> list[str]:
+        """Lo que se preguntó al LLM, sin la línea de contexto («(Ahora es…)»)."""
+        return [r[-1].content.split(chr(10), 1)[-1] for r in self.requests]
+
+    async def warmup(
+        self, prefix: Sequence[ChatMessage] = (), *, tools: Sequence[dict[str, Any]] = ()
+    ) -> None:
         pass
 
     async def unload(self) -> None:
@@ -131,6 +139,21 @@ class FakeLLM:
         self.requests.append(list(messages))
         if self.error:
             raise self.error
+        raw = self.replies.pop(0) if self.replies else self.raw
+        for i in range(0, len(raw), 4):
+            await asyncio.sleep(0)
+            yield raw[i : i + 4]
+
+    async def chat(
+        self, messages: Sequence[ChatMessage], *, tools: Sequence[dict[str, Any]] = ()
+    ) -> AsyncIterator[str | list[LLMToolCall]]:
+        self.requests.append(list(messages))
+        self.tools = list(tools)
+        if self.error:
+            raise self.error
+        if self.plans:
+            yield self.plans.pop(0)
+            return
         raw = self.replies.pop(0) if self.replies else self.raw
         for i in range(0, len(raw), 4):
             await asyncio.sleep(0)
@@ -228,6 +251,11 @@ class Harness:
             clock=lambda: self.now,
         )
 
+        async def no_context() -> str:
+            return ""  # sin consultar la ventana activa real
+
+        self.p._context = no_context  # type: ignore[method-assign]
+
     async def feed(self, value: int, count: int = 1) -> None:
         for _ in range(count):
             f = frame(value)
@@ -281,7 +309,7 @@ async def test_voice_flow_with_followup_window() -> None:
     assert h.stt.full_calls[0] >= (n(1.0) + n(0.7)) * FRAME_SAMPLES
     assert h.tts.said == ["En alemán se dice Hallo."]
     assert h.bubbles == [("Hallo", "hola · alemán")]
-    assert h.llm.requests[0][-1].content == "¿Cómo se dice hola en alemán?"  # sin «Nix,»
+    assert h.llm.asked[0] == "¿Cómo se dice hola en alemán?"  # sin «Nix,»
     # Ventana de seguimiento: escucha sin repetir la palabra y, sin voz, vuelve a reposo.
     assert h.p.mode is Mode.LISTENING
     await h.feed(SILENCE, n(1.1))
@@ -320,7 +348,7 @@ async def test_wake_word_heard_only_in_full_sentence_is_accepted() -> None:
     assert h.p.mode is Mode.BUSY
     stt.clip_gate.set()
     await h.p.wait_idle()
-    assert h.llm.requests[0][-1].content == "¿Qué hora es?"
+    assert h.llm.asked[0] == "¿Qué hora es?"
     await h.p.close()
 
 
@@ -422,7 +450,7 @@ async def test_new_text_cancels_running_request() -> None:
     assert h.p.state is NyxState.SPEAKING
     await h.bus.publish(TextEntered("segunda"))
     await h.p.wait_idle()
-    assert [r[-1].content for r in h.llm.requests][-1] == "segunda"
+    assert h.llm.asked[-1] == "segunda"
     assert h.player.cleared >= 1
     assert h.p.mode is Mode.IDLE
     await h.p.close()

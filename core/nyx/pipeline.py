@@ -25,7 +25,7 @@ from nyx.audio.vad import Endpointer, EndReason, VoiceDetector
 from nyx.brain.base import LLMError, LLMErrorKind
 from nyx.brain.reply import BubbleReady, Reply, SpokenDelta, SpokenEnd
 from nyx.brain.router import Miss, Route
-from nyx.brain.service import Brain, ReplyDone
+from nyx.brain.service import Brain, ReplyDone, ToolPlan
 from nyx.bus import EventBus
 from nyx.events import (
     ActionChosen,
@@ -38,7 +38,7 @@ from nyx.events import (
     TalkKey,
     TextEntered,
 )
-from nyx.executor import Confirmation, Executor, ToolCall
+from nyx.executor import Confirmation, Executor, ToolCall, with_waits
 from nyx.index.aliases import normalize as normalize_alias
 from nyx.log import new_request_id
 from nyx.safety.undo import UNDO_TTL_S
@@ -49,6 +49,7 @@ from nyx.tools.base import ToolResult
 from nyx.tts.base import TTSEngine, TTSError
 from nyx.tts.sentences import SentenceSplitter
 from nyx.wake.base import WakeWordEngine
+from nyx.winapi import windows
 
 log = logging.getLogger(__name__)
 
@@ -605,10 +606,14 @@ class Pipeline:
             log.info("Seguimiento ignorado: no iba dirigido a Nyx (%r)", text)
             await self._go_idle()
             return
+        hint = ""
         if isinstance(routed, Miss):
-            await self._not_found(routed, from_voice=from_voice)
-            return
-        await self._respond(text, marks, from_voice=from_voice)
+            names = ", ".join(m.entry.name for m in routed.candidates[:3]) or "ninguno"
+            hint = (
+                f"«{routed.target}» no coincide con nada instalado. Lo más parecido: {names}. "
+                "Si es uno de ellos, úsalo; si no, di que no lo encuentras."
+            )
+        await self._respond(text, marks, from_voice=from_voice, hint=hint)
 
     async def _act(self, routed: Route, marks: _Marks, *, from_voice: bool) -> None:
         assert self.executor is not None
@@ -648,6 +653,29 @@ class Pipeline:
         else:
             await self._go_idle()
 
+    async def _context(self) -> str:
+        """Lo que el LLM necesita saber del momento: la ventana activa («ciérrala»)."""
+        try:
+            fg = await asyncio.to_thread(windows.foreground)
+        except Exception:
+            return ""
+        return f"Ventana activa: «{fg.title}» ({fg.process})." if fg else ""
+
+    async def _run_plan(
+        self, plan: ToolPlan, text: str, marks: _Marks, *, from_voice: bool, retried: bool
+    ) -> None:
+        calls = with_waits([ToolCall(c.name, c.arguments) for c in plan.calls])
+        log.info("Plan del LLM: %s", [(c.name, c.arguments) for c in calls])
+        if not retried and self.executor is not None:
+            # SPEC sección 6: si la llamada no es válida, se reintenta una vez con el error.
+            invalid = self.executor.check(calls)
+            if invalid:
+                log.info("Plan no válido (%s): se reintenta", invalid)
+                hint = f"Tu llamada anterior no era válida: {invalid}. Corrígela."
+                await self._respond(text, marks, from_voice=from_voice, hint=hint, retried=True)
+                return
+        await self._act(Route(calls, "llm"), marks, from_voice=from_voice)
+
     async def _not_found(self, miss: Miss, *, from_voice: bool) -> None:
         best = miss.candidates[0].entry.name if miss.candidates else None
         suggestion = f"¿quizá {best}?" if best else ""
@@ -659,8 +687,18 @@ class Pipeline:
         spoken = f"No encuentro {miss.target}." if from_voice or self.speak_typed else None
         await self._fail(f"No encuentro «{miss.target}»", suggestion, spoken)
 
-    async def _respond(self, text: str, marks: _Marks, *, from_voice: bool) -> None:
+    async def _respond(
+        self,
+        text: str,
+        marks: _Marks,
+        *,
+        from_voice: bool,
+        hint: str = "",
+        retried: bool = False,
+    ) -> None:
         await self._set_state(NyxState.THINKING)
+        plan: ToolPlan | None = None
+        extra = "\n".join(part for part in (await self._context(), hint) if part)
         bubble: BubbleReady | None = None
         bubble_shown = False
         splitter = SentenceSplitter()
@@ -689,11 +727,13 @@ class Pipeline:
             else None
         )
         try:
-            async with contextlib.aclosing(self.brain.respond(text)) as events:
+            async with contextlib.aclosing(self.brain.respond(text, extra)) as events:
                 async for event in events:
                     if marks.first_token is None:
                         marks.first_token = self._clock()
-                    if isinstance(event, BubbleReady):
+                    if isinstance(event, ToolPlan):
+                        plan = event
+                    elif isinstance(event, BubbleReady):
                         bubble = event
                         if bubble_shown:
                             await show_bubble()
@@ -710,6 +750,11 @@ class Pipeline:
                         log.info("Respuesta: %s", event.reply.model_dump_json())
                         if speech is None:
                             bubble = text_bubble(event.reply)
+            if plan is not None:
+                if speech is not None:
+                    await speech.abort()
+                await self._run_plan(plan, text, marks, from_voice=from_voice, retried=retried)
+                return
             if speech is not None and (rest := splitter.flush()):
                 marks.first_sentence = marks.first_sentence or self._clock()
                 speech.say(rest)

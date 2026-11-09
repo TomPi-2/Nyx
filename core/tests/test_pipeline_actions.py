@@ -1,8 +1,9 @@
 """Bucle de voz con el router rápido y el ejecutor (bloque 3a)."""
 
+from nyx.brain.base import LLMToolCall
 from nyx.brain.router import Miss, Route
 from nyx.events import NyxState, TextEntered
-from nyx.executor import ToolCall
+from nyx.executor import ToolCall, with_waits
 from nyx.index.service import SystemIndex
 from nyx.pipeline import Mode
 from nyx.tools.base import ToolResult
@@ -14,6 +15,10 @@ class FakeExecutor:
         self.results = results
         self.calls: list[ToolCall] = []
         self.confirm = None
+        self.invalid: list[str] = []  # respuestas sucesivas de check()
+
+    def check(self, calls: list[ToolCall]) -> str:
+        return self.invalid.pop(0) if self.invalid else ""
 
     async def run_plan(self, calls: list[ToolCall], *, phrase: str = "") -> list[ToolResult]:
         self.calls += calls
@@ -64,15 +69,15 @@ async def test_failed_action_is_explained() -> None:
     await h.p.close()
 
 
-async def test_miss_says_not_found_with_suggestion(index: SystemIndex) -> None:
+async def test_miss_goes_to_llm_with_candidates(index: SystemIndex) -> None:
+    # SPEC sección 6: si el router duda, pasa al LLM con los candidatos como pista.
     h = Harness()
     miss = Miss("spotifai premium", index.resolve("spotify"))
     with_router(h, miss, [])
     await h.bus.publish(TextEntered("abre spotifai premium"))
     await h.p.wait_idle()
-    assert h.bubbles[-1] == ("No encuentro «spotifai premium»", "¿quizá Spotify?")
-    assert h.tts.said == []  # escrito: sin voz
-    assert h.llm.requests == []
+    context = h.llm.requests[0][-1].content
+    assert "«spotifai premium» no coincide" in context and "Spotify" in context
     await h.p.close()
 
 
@@ -84,3 +89,45 @@ async def test_no_route_falls_back_to_llm() -> None:
     assert executor.calls == []
     assert len(h.llm.requests) == 1
     await h.p.close()
+
+
+async def test_llm_plan_runs_through_executor_with_waits() -> None:
+    h = Harness()
+    executor = with_router(h, None, [ToolResult(ok=True, message="ok")])
+    h.llm.plans = [
+        [
+            LLMToolCall("open_app", {"name": "Spotify"}),
+            LLMToolCall("window_layout", {"action": "maximize", "name": "Spotify"}),
+        ]
+    ]
+    await h.bus.publish(TextEntered("abre Spotify y maximízalo"))
+    await h.p.wait_idle()
+    assert [c.name for c in executor.calls] == ["open_app", "wait_for_window", "window_layout"]
+    assert h.tts.said == []  # acción: sin voz
+    # La memoria corta sabe qué se hizo («y ahora ciérralo»).
+    assert "[acciones] open_app" in h.p.brain.memory.messages()[-1].content
+    await h.p.close()
+
+
+async def test_invalid_plan_is_retried_once_with_the_error() -> None:
+    h = Harness()
+    executor = with_router(h, None, [ToolResult(ok=True, message="ok")])
+    executor.invalid = ["open_app: name: Field required"]
+    h.llm.plans = [[LLMToolCall("open_app", {})], [LLMToolCall("open_app", {"name": "Spotify"})]]
+    await h.bus.publish(TextEntered("abre Spotify"))
+    await h.p.wait_idle()
+    assert len(h.llm.requests) == 2
+    retry_context = h.llm.requests[1][-1].content
+    assert "no era válida" in retry_context
+    assert executor.calls == [ToolCall("open_app", {"name": "Spotify"})]
+    await h.p.close()
+
+
+def test_with_waits_only_when_next_step_needs_the_window() -> None:
+    plan = [ToolCall("open_app", {"name": "Spotify"}), ToolCall("set_volume", {"level": 30})]
+    assert with_waits(plan) == plan
+    plan2 = [
+        ToolCall("open_app", {"name": "Discord"}),
+        ToolCall("focus_window", {"name": "Discord"}),
+    ]
+    assert [c.name for c in with_waits(plan2)] == ["open_app", "wait_for_window", "focus_window"]
