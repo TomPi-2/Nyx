@@ -1,3 +1,4 @@
+import asyncio
 import json
 from collections.abc import AsyncIterator
 
@@ -8,7 +9,7 @@ from websockets.exceptions import ConnectionClosed, InvalidStatus
 from nyx.bridge.protocol import PROTOCOL_VERSION, server_adapter
 from nyx.bridge.server import CLOSE_UNAUTHORIZED, UIBridge
 from nyx.bus import EventBus
-from nyx.events import AudioLevel, BubbleShown, NyxState, StateChanged
+from nyx.events import AudioLevel, BubbleShown, NyxState, StateChanged, TalkKey, TextEntered
 
 TOKEN = "secreto-de-prueba"
 ORIGIN = "http://localhost:1420"
@@ -68,3 +69,27 @@ async def test_foreign_origin_is_rejected(bridge: tuple[EventBus, int]) -> None:
     with pytest.raises(InvalidStatus):
         async with connect(f"ws://127.0.0.1:{port}", origin="https://evil.example"):  # type: ignore[arg-type]
             pass
+
+
+async def test_client_messages_are_published(bridge: tuple[EventBus, int]) -> None:
+    bus, port = bridge
+    got: list[object] = []
+
+    async def collect(event: object) -> None:
+        got.append(event)
+
+    bus.subscribe(TextEntered, collect)
+    bus.subscribe(TalkKey, collect)
+    async with connect(f"ws://127.0.0.1:{port}", origin=ORIGIN) as conn:  # type: ignore[arg-type]
+        await _hello(conn)
+        await _recv(conn)
+        await _recv(conn)
+        await conn.send(json.dumps({"type": "text", "text": "  hola  "}))
+        await conn.send(json.dumps({"type": "talk", "pressed": True}))
+        await conn.send(json.dumps({"type": "text", "text": ""}))  # no válido: se ignora
+        await conn.send(json.dumps({"type": "talk", "pressed": False}))
+        for _ in range(50):
+            if len(got) == 3:
+                break
+            await asyncio.sleep(0.01)
+    assert got == [TextEntered("hola"), TalkKey(True), TalkKey(False)]

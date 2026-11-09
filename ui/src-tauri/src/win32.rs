@@ -34,6 +34,14 @@ pub fn make_non_activating(hwnd: HWND) {
     }
 }
 
+/// Fuera de Alt+Tab (WS_EX_TOOLWINDOW) pero sin WS_EX_NOACTIVATE: puede recibir el teclado.
+pub fn make_tool_window(hwnd: HWND) {
+    unsafe {
+        let ex = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+        SetWindowLongPtrW(hwnd, GWL_EXSTYLE, ex | WS_EX_TOOLWINDOW.0 as isize);
+    }
+}
+
 pub fn remove_border(hwnd: HWND) {
     let color = DWMWA_COLOR_NONE;
     unsafe {

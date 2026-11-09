@@ -2,6 +2,6 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Permisos de las ventanas de Nyx",
-  "windows": ["island", "glass-*"],
+  "windows": ["island", "input", "glass-*"],
   "permissions": ["core:default"]
 }

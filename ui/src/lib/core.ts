@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { PROTOCOL_VERSION, type Hello, type ServerMessage } from "./protocol";
+import { PROTOCOL_VERSION, type ClientMessage, type Hello, type ServerMessage } from "./protocol";
 
 interface CoreEndpoint {
   port: number;
@@ -9,16 +9,23 @@ interface CoreEndpoint {
 
 const RETRY_MS = 1000;
 
+export interface CoreConnection {
+  /** Envía un mensaje si la conexión está autenticada. Devuelve false si no se pudo. */
+  send(msg: ClientMessage): boolean;
+  close(): void;
+}
+
 /**
  * Conecta con el núcleo por WebSocket y se reconecta solo.
  * El puerto y el token cambian si el núcleo se reinicia, así que se piden de nuevo
- * al proceso principal en cada intento. Devuelve una función para desconectar.
+ * al proceso principal en cada intento.
  */
 export function connectCore(
   onMessage: (msg: ServerMessage) => void,
   onStatus: (connected: boolean) => void,
-): () => void {
+): CoreConnection {
   let socket: WebSocket | null = null;
+  let ready = false;
   let stopped = false;
   let retry: ReturnType<typeof setTimeout> | undefined;
 
@@ -40,12 +47,16 @@ export function connectCore(
     };
     ws.onmessage = (event) => {
       const msg = JSON.parse(String(event.data)) as ServerMessage;
-      if (msg.type === "welcome") onStatus(true);
+      if (msg.type === "welcome") {
+        ready = true;
+        onStatus(true);
+      }
       onMessage(msg);
     };
     ws.onclose = () => {
       if (socket !== ws) return; // sustituida por una conexión más nueva
       socket = null;
+      ready = false;
       onStatus(false);
       schedule();
     };
@@ -54,10 +65,17 @@ export function connectCore(
   const unlisten = listen("core://ready", () => void connect());
   void connect();
 
-  return () => {
-    stopped = true;
-    clearTimeout(retry);
-    socket?.close();
-    void unlisten.then((off) => off());
+  return {
+    send(msg) {
+      if (!ready || socket?.readyState !== WebSocket.OPEN) return false;
+      socket.send(JSON.stringify(msg));
+      return true;
+    },
+    close() {
+      stopped = true;
+      clearTimeout(retry);
+      socket?.close();
+      void unlisten.then((off) => off());
+    },
   };
 }

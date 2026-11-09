@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 1
+PROTOCOL_VERSION = 2
 
 
 class _Msg(BaseModel):
@@ -30,7 +30,21 @@ class Hello(_Msg):
     protocol: int
 
 
-ClientMessage = Hello
+class TextInput(_Msg):
+    """Petición escrita en el campo de texto."""
+
+    type: Literal["text"] = "text"
+    text: str = Field(min_length=1, max_length=2000)
+
+
+class TalkKeyMsg(_Msg):
+    """Atajo de hablar (pulsar o mantener)."""
+
+    type: Literal["talk"] = "talk"
+    pressed: bool
+
+
+ClientMessage = Annotated[Hello | TextInput | TalkKeyMsg, Field(discriminator="type")]
 client_adapter: TypeAdapter[ClientMessage] = TypeAdapter(ClientMessage)
 
 

@@ -2,6 +2,8 @@
 
 mod core_process;
 mod glass;
+mod hotkeys;
+mod input;
 mod island;
 mod tray;
 mod win32;
@@ -16,14 +18,18 @@ pub fn run() {
             // Fase 5: abrir la ventana de Ajustes.
             eprintln!("[nyx] ya hay una instancia en marcha");
         }))
+        .plugin(hotkeys::plugin())
         .invoke_handler(tauri::generate_handler![
             core_process::core_endpoint,
             island::island_set_visible,
+            input::input_hide,
         ])
         .setup(|app| {
             let handle = app.handle();
             core_process::start(handle);
             island::create(handle)?;
+            input::create(handle)?;
+            hotkeys::register(handle);
             tray::build(handle)?;
             // Ayuda de desarrollo: NYX_GLASS_TEST=1 abre la prueba de cristal al arrancar.
             if std::env::var("NYX_GLASS_TEST").as_deref() == Ok("1") {

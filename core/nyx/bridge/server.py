@@ -25,12 +25,22 @@ from nyx.bridge.protocol import (
     Hello,
     LevelMsg,
     StateMsg,
+    TalkKeyMsg,
+    TextInput,
     Welcome,
     _Msg,
     client_adapter,
 )
 from nyx.bus import EventBus
-from nyx.events import AudioLevel, BubbleHidden, BubbleShown, NyxState, StateChanged
+from nyx.events import (
+    AudioLevel,
+    BubbleHidden,
+    BubbleShown,
+    NyxState,
+    StateChanged,
+    TalkKey,
+    TextEntered,
+)
 
 log = logging.getLogger(__name__)
 
@@ -102,8 +112,8 @@ class UIBridge:
         try:
             await conn.send(Welcome(version=__version__).model_dump_json())
             await conn.send(StateMsg(state=self._state).model_dump_json())
-            async for _ in conn:
-                pass  # Fase 1: la interfaz aún no envía órdenes.
+            async for raw in conn:
+                await self._dispatch(raw)
         except ConnectionClosed:
             pass
         finally:
@@ -127,6 +137,17 @@ class UIBridge:
             await conn.close(CLOSE_BAD_PROTOCOL, f"protocolo {PROTOCOL_VERSION} requerido")
             return False
         return True
+
+    async def _dispatch(self, raw: str | bytes) -> None:
+        try:
+            msg = client_adapter.validate_json(raw)
+        except ValidationError:
+            log.warning("Mensaje de la interfaz no válido")
+            return
+        if isinstance(msg, TextInput):
+            await self._bus.publish(TextEntered(msg.text.strip()))
+        elif isinstance(msg, TalkKeyMsg):
+            await self._bus.publish(TalkKey(msg.pressed))
 
     async def broadcast(self, msg: _Msg) -> None:
         if not self._clients:

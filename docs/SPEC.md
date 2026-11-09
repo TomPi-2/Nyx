@@ -108,7 +108,7 @@ Lo frecuente va directo de la transcripción a la ejecución; solo lo nuevo o co
 **Reglas transversales:**
 
 - **Interrupción:** decir "Nyx" mientras habla corta la voz y escucha de nuevo.
-- **Entrada por texto:** un atajo de teclado (por defecto `Win+Alt+N`) abre una burbuja con campo de texto; mismo flujo desde el paso 6.
+- **Entrada por texto:** un atajo de teclado (por defecto `Win+Alt+N`) abre una burbuja con campo de texto; mismo flujo desde el paso 6, pero por defecto la respuesta va solo en la burbuja (sin voz): quien escribe suele querer silencio. Configurable en Ajustes → Respuestas ("Responder también en voz a lo escrito").
 - **Una sola petición a la vez:** las nuevas cancelan las pendientes que no hayan empezado a ejecutarse.
 
 ## 4. Palabra de activación
@@ -120,7 +120,7 @@ Lo frecuente va directo de la transcripción a la ejecución; solo lo nuevo o co
 1. **Entrenamiento:** miles de muestras sintéticas de "Nyx" con voces TTS variadas (pronunciación española /niks/ e inglesa), velocidades, tonos, ruido de fondo y reverberación.
 2. **Negativos difíciles:** nix, mix, six, fix, ni, nis, Nike, next, "ni se", "y ya", además de horas de habla genérica en español, música, audio de juegos y streams.
 3. **Muestras del usuario:** en la configuración inicial, el usuario graba "Nyx" de 20 a 30 veces (cerca, lejos, susurrando, normal). Se usan para ajustar el modelo o un clasificador ligero encima.
-4. **Segunda verificación:** al saltar el detector, whisper.cpp transcribe el fragmento (unos 1,5 s) y solo continúa si aparece "nyx", "nix" o "nics". Coste aproximado: 80–150 ms en GPU.
+4. **Segunda verificación** (activa desde la fase 2, también con Vosk): al saltar el detector, whisper.cpp transcribe los últimos 2 s mientras el usuario sigue hablando y solo continúa si aparece "nyx", "nix", "nics"… Si no, deja de escuchar sin decir nada. Si la verificación llega tarde, vale con que la frase completa empiece por "Nyx". Coste aproximado: 80–150 ms en GPU.
 5. **Contexto de la frase:** solo cuenta si va tras 300 ms de silencio o al principio de la frase. Si está en mitad de una conversación, se ignora.
 6. **Verificación de voz (opcional):** embedding de hablante (por ejemplo, un modelo ECAPA en ONNX) para reaccionar solo a la voz del usuario. Útil con Discord o el stream abiertos.
 7. **Calibración:** sensibilidad de 1 a 10 en ajustes. Registro local de activaciones con botón "esto fue un error" para ajustar el umbral automáticamente.
@@ -134,7 +134,7 @@ Lo frecuente va directo de la transcripción a la ejecución; solo lo nuevo o co
 
 **Alternativas siempre disponibles:**
 
-- Atajo de teclado para hablar (pulsar o mantener, configurable).
+- Atajo de teclado para hablar (por defecto `Win+Alt+H`): un toque escucha hasta que te callas; mantenerlo escucha mientras lo mantienes. Configurable.
 - Atajo para escribir (ver sección 3).
 - Silenciar el micrófono de Nyx con un atajo; el indicador lo muestra.
 
@@ -157,7 +157,7 @@ whisper.cpp transcribe en la GPU con Vulkan y Kokoro habla en la CPU, para no co
 
 - Kokoro como motor principal con voz en español; Piper como alternativa más rápida.
 - **Streaming por frases:** empezar a hablar en cuanto el LLM genera la primera frase, sin esperar la respuesta completa.
-- Texto adaptado para voz: el LLM genera dos campos, `spoken` (corto y natural) y `display` (lo que va en la burbuja). Ejemplo: voz "En alemán se dice Hallo", burbuja "Hallo" grande + "hola · alemán" pequeño.
+- Texto adaptado para voz: el LLM genera `spoken` (corto y natural, primero para que la voz empiece antes), `display` (dato destacado de la burbuja) y `secondary` (línea pequeña). Ejemplo: voz "En alemán se dice Hallo", burbuja "Hallo" grande + "hola · alemán" pequeño.
 - Palabras en otros idiomas pronunciadas con la voz de ese idioma cuando exista (Kokoro tiene voces en varios idiomas).
 - Audio por el dispositivo de salida elegido en ajustes (útil para separar del juego o del stream).
 - Atenuar el volumen de otras apps (ducking) mientras habla; desactivado por defecto en modo partida.
@@ -180,7 +180,7 @@ El cerebro decide qué herramientas ejecutar en dos niveles: un router determini
 - Modelo siempre cargado (`keep_alive` largo) y contexto corto (4–8k tokens) para responder rápido.
 - **Prompt de sistema** con: identidad y tono de Nyx (breve, español, sin relleno), fecha y hora, app en primer plano, monitor activo, estado de modo partida, carpetas conocidas y reglas de seguridad.
 - **Herramientas expuestas de forma dinámica:** solo las relevantes según categoría detectada (máximo unas 15 por llamada) para no saturar un modelo pequeño.
-- **Salida estructurada:** llamadas a herramientas, o un JSON `{spoken, display, highlight}` para respuestas informativas. Validar con esquemas (pydantic); si falla, reintentar una vez con el error.
+- **Salida estructurada:** llamadas a herramientas, o un JSON `{spoken, display, secondary}` para respuestas informativas. Ollama genera ese JSON con una gramática del esquema, así que siempre es válido; se lee a trozos para empezar a hablar con la primera frase. Las llamadas a herramientas se validan con pydantic y, si fallan, se reintenta una vez con el error (fase 3).
 - **Planes de varios pasos:** "Abre el bloc de notas y abre una nueva pestaña" = `open_app(notepad)` → `wait_for_window` → `send_hotkey(ctrl+n)`. El ejecutor hace las esperas, no el LLM.
 - **Memoria corta:** últimos 6 turnos para entender "y ahora ciérralo" o "muévelos también".
 - **Preferencias aprendidas:** si el usuario corrige ("no, el Chrome, no Edge"), se guarda como preferencia local.
@@ -498,7 +498,7 @@ La ventana de Ajustes es la única ventana clásica de Nyx y sigue la misma iden
 | General | Iniciar con Windows, idioma, ubicación para el tiempo, navegador preferido, carpeta de capturas y grabaciones |
 | Activación | Palabra ("Nyx" o personalizada con validación), sensibilidad, recalibrar con muestras, verificación de voz, ventana de seguimiento, atajos de hablar, escribir y silenciar |
 | Voz | Motor (Kokoro/Piper), voz, velocidad, volumen, dispositivo de entrada y de salida, atenuar otras apps |
-| Respuestas | Cuándo hablar (siempre, solo preguntas, nunca), cuándo mostrar burbuja, duración, confirmación visual de acciones silenciosas |
+| Respuestas | Responder también en voz a lo escrito (desactivado por defecto), cuándo hablar (siempre, solo preguntas, nunca), cuándo mostrar burbuja, duración, confirmación visual de acciones silenciosas |
 | Apariencia | Monitor de destino, tema claro u oscuro, vista previa del indicador (estilos, ubicaciones y tamaños en la fase 7) |
 | Modo partida | Nyx en partida (desactivado, solo voz, normal), monitor alternativo para la interfaz, herramientas permitidas, diferidas y bloqueadas, lista de juegos manual, descargar el LLM en partida |
 | Cerebro | Modelo local, nube opcional con clave propia, atajos aprendidos (ver y borrar), preferencias aprendidas |
@@ -699,3 +699,5 @@ Reglas de trabajo:
 | 2026-11-09 | La interfaz son ventanas flotantes propias que se ocultan en reposo, en lugar de una capa a pantalla completa por monitor. Elección de monitor según ajustes y modo partida. | 9, 11 |
 | 2026-11-09 | Acrylic descartado (se ve sólido sin foco y con bordes en escalones). Fondo = tinte gris translúcido al 84 % en CSS, sin retraso al cambiar lo de detrás. Cristal real con motor propio más adelante. | 11, 12 |
 | 2026-11-09 | LLM provisional: `qwen2.5:7b` (Apache 2.0). En la RX 7700 XT: 100 % en GPU, 4,4 GB de VRAM, 77 tokens/s y 3/3 herramientas; Llama 3.1 8B rinde igual pero su licencia tiene más condiciones. 14B queda como opción. Whisper large-v3-turbo q5 con Vulkan: 0,17 s por frase. La elección final, tras la batería de frases (fase 6); requisitos mínimos pendientes de las pruebas del portátil. | 2, 6, 14 |
+| 2026-11-09 | Fase 2: respuesta `{spoken, display, secondary}` con `spoken` primero (la voz empieza ~250 ms antes); atajo de hablar `Win+Alt+H`; whisper.cpp elige la GPU por nombre (Vulkan también ve la integrada); Kokoro con un hilo por núcleo físico (máx. 8). | 3, 4, 5, 6 |
+| 2026-11-09 | Tras la primera prueba de la fase 2: las peticiones escritas se responden solo en la burbuja (sin voz); la segunda verificación de «Nyx» con whisper se adelanta de la fase 4 ("no existe" activaba a Nyx); si Ollama no responde, Nyx lo abre y repite la petición. | 3, 4, 14 |

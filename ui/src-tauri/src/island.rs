@@ -83,14 +83,18 @@ async fn follow_cursor<R: Runtime>(window: WebviewWindow<R>, state: Arc<IslandSt
     }
 }
 
+fn place<R: Runtime>(window: &WebviewWindow<R>) {
+    place_top_center(window, WIDTH, HEIGHT);
+}
+
 /// Centra la ventana arriba del monitor del ratón. Se recalcula cada vez, así que los
 /// cambios de monitores, resolución o escala se aplican sin reiniciar.
-fn place<R: Runtime>(window: &WebviewWindow<R>) {
+pub fn place_top_center<R: Runtime>(window: &WebviewWindow<R>, width: f64, height: f64) {
     let (Some(hwnd), Some(m)) = (win32::hwnd(window), win32::cursor_monitor()) else {
         return;
     };
-    let width = (WIDTH * m.scale).round() as i32;
-    let height = (HEIGHT * m.scale).round() as i32;
+    let width = (width * m.scale).round() as i32;
+    let height = (height * m.scale).round() as i32;
     let x = m.left + (m.width - width) / 2;
     win32::place_topmost(hwnd, x, m.top, width, height);
 }

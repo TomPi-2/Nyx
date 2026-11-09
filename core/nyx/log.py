@@ -32,6 +32,9 @@ def new_request_id() -> str:
 
 
 def setup_logging(level: str = "INFO", log_dir: Path | None = None) -> None:
+    # La consola de Windows usa cp1252 por defecto; Tauri lee stderr como UTF-8.
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     handlers: list[logging.Handler] = [logging.StreamHandler(sys.stderr)]
     if log_dir is not None:
         log_dir.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,113 @@
+import hashlib
+import io
+import json
+import zipfile
+from pathlib import Path
+
+import httpx
+import pytest
+
+from nyx.brain.memory import ShortMemory
+from nyx.brain.prompts import spanish_datetime
+from nyx.models import DownloadError, ModelFile, download, safe_extract
+from nyx.settings import Settings, load_settings, save_settings
+
+
+def test_settings_created_with_defaults(tmp_path: Path) -> None:
+    path = tmp_path / "settings.json"
+    s = load_settings(path)
+    assert path.exists()
+    assert s.llm.model == "qwen2.5:7b"
+    assert s.listen.silence_ms == 700
+
+
+def test_settings_roundtrip_and_unknown_keys(tmp_path: Path) -> None:
+    path = tmp_path / "settings.json"
+    s = Settings()
+    s.tts.voice = "em_alex"
+    save_settings(s, path)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["futuro"] = {"x": 1}
+    data["listen"]["silence_ms"] = 900
+    path.write_text(json.dumps(data), encoding="utf-8")
+    loaded = load_settings(path)
+    assert loaded.tts.voice == "em_alex"
+    assert loaded.listen.silence_ms == 900
+
+
+def test_broken_settings_use_defaults_without_overwriting(tmp_path: Path) -> None:
+    path = tmp_path / "settings.json"
+    path.write_text("{ roto", encoding="utf-8")
+    assert load_settings(path) == Settings()
+    assert path.read_text(encoding="utf-8") == "{ roto"
+
+
+def test_invalid_value_uses_defaults(tmp_path: Path) -> None:
+    path = tmp_path / "settings.json"
+    path.write_text(json.dumps({"listen": {"silence_ms": 5}}), encoding="utf-8")
+    assert load_settings(path).listen.silence_ms == 700
+
+
+def _model(content: bytes, *, extract: bool = False, name: str = "m.bin") -> ModelFile:
+    return ModelFile(
+        key="t",
+        filename=name,
+        url="http://modelos/" + name,
+        sha256=hashlib.sha256(content).hexdigest(),
+        size_mb=1,
+        license="MIT",
+        extract=extract,
+    )
+
+
+def _client(content: bytes) -> httpx.Client:
+    return httpx.Client(
+        transport=httpx.MockTransport(lambda _: httpx.Response(200, content=content))
+    )
+
+
+def test_download_verifies_hash(tmp_path: Path) -> None:
+    model = _model(b"pesos")
+    assert download(model, tmp_path, client=_client(b"pesos")).read_bytes() == b"pesos"
+    bad = _model(b"otros", name="b.bin")
+    with pytest.raises(DownloadError):
+        download(bad, tmp_path, client=_client(b"manipulado"))
+    assert not (tmp_path / "b.bin").exists()
+    assert not (tmp_path / "b.bin.part").exists()
+
+
+def test_download_extracts_zip(tmp_path: Path) -> None:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("vosk-x/README", "hola")
+    content = buf.getvalue()
+    model = _model(content, extract=True, name="vosk-x.zip")
+    final = download(model, tmp_path, client=_client(content))
+    assert final == tmp_path / "vosk-x"
+    assert (final / "README").read_text() == "hola"
+    assert not (tmp_path / "vosk-x.zip.part").exists()
+
+
+def test_zip_slip_is_rejected(tmp_path: Path) -> None:
+    archive = tmp_path / "evil.zip"
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("../fuera.txt", "x")
+    with pytest.raises(DownloadError):
+        safe_extract(archive, tmp_path / "dest")
+    assert not (tmp_path / "fuera.txt").exists()
+
+
+def test_memory_keeps_last_turns_and_expires() -> None:
+    now = [0.0]
+    memory = ShortMemory(max_turns=2, expire_s=60, clock=lambda: now[0])
+    for i in range(3):
+        memory.add(f"p{i}", f"r{i}")
+    assert [m.content for m in memory.messages()] == ["p1", "r1", "p2", "r2"]
+    now[0] = 61
+    assert memory.messages() == []
+
+
+def test_spanish_datetime() -> None:
+    from datetime import datetime
+
+    assert spanish_datetime(datetime(2026, 11, 9, 18, 5)) == "lunes 9 de noviembre de 2026, 18:05"

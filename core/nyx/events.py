@@ -41,3 +41,20 @@ class BubbleShown:
 @dataclass(frozen=True, slots=True)
 class BubbleHidden:
     pass
+
+
+# Interfaz → núcleo
+
+
+@dataclass(frozen=True, slots=True)
+class TextEntered:
+    """El usuario ha escrito una petición en el campo de texto (atajo Win+Alt+N)."""
+
+    text: str
+
+
+@dataclass(frozen=True, slots=True)
+class TalkKey:
+    """Atajo de hablar pulsado o soltado."""
+
+    pressed: bool

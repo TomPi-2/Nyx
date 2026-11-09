@@ -1,1 +1,1 @@
-"""Brain: router rápido sin LLM, LLM con herramientas (Ollama), prompts y memoria corta."""
+"""Brain: router rápido (fase 3) + LLM local con Ollama, prompts y memoria corta."""
