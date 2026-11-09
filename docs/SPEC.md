@@ -405,7 +405,7 @@ Nyx no tiene ventana principal: cada elemento (la isla, una burbuja, un aviso) e
 
 - **Identidad:** grises, cristal translúcido, todo redondeado y sin bordes (detalle y paleta en la sección 12).
 - **Translúcido solo donde hay contenido:** el cristal se aplica únicamente a la isla, las burbujas y los botones; el resto de la capa es invisible.
-- **Cristal sin desenfoque real** (resultado de la prueba de la fase 1, 2026-11-09): el CSS `backdrop-filter` no desenfoca lo que hay detrás de una ventana transparente, y el Acrylic de Windows 11 se ve sólido en ventanas que nunca toman el foco; además, recortarlo con una región deja bordes en escalones y esquinas sin pintar. Un tinte translúcido tampoco sirve: deja ver lo de detrás y el gris parece cambiar al pasar de fondos oscuros a claros. Por eso la isla y las burbujas usan un **gris opaco** (siempre el mismo color) con un degradado muy sutil y sombra, dibujado en CSS. El cristal con desenfoque real queda para un motor propio más adelante (sección 12, "Más adelante").
+- **Cristal sin desenfoque real** (resultado de la prueba de la fase 1, 2026-11-09): el CSS `backdrop-filter` no desenfoca lo que hay detrás de una ventana transparente, y el Acrylic de Windows 11 se ve sólido en ventanas que nunca toman el foco; además, recortarlo con una región deja bordes en escalones y esquinas sin pintar. Por eso la isla y las burbujas usan un **tinte gris translúcido al 84 %** con un degradado muy sutil y sombra, dibujado en CSS: deja ver lo de detrás (sin desenfocarlo) y Windows lo compone en el mismo fotograma, así que el cambio es instantáneo al cambiar lo de detrás (medido: menos de 25 ms, también con Chrome; el retraso de unos 2 s que se vio en la primera ronda lo causaba el Acrylic). El cristal con desenfoque real queda para un motor propio más adelante (sección 12, "Más adelante").
 - **Quitar el borde de Windows:** Windows 11 dibuja un borde de 1 px en todas las ventanas; desactivarlo con `DWMWA_BORDER_COLOR = DWMWA_COLOR_NONE`.
 - Tema oscuro y claro según Windows, ambos en grises.
 - **Animaciones** tipo iOS: muelles (spring) de 200–350 ms, aparición con escala 0,96 → 1 y desenfoque → nítido. Respetar "reducir movimiento" de Windows.
@@ -458,7 +458,7 @@ Valores iniciales a afinar en la fase 1 viéndolos sobre fondos reales (escritor
 
 **Personalización (fase 7):** otros estilos (ondas, cara), otras ubicaciones (esquinas, pantalla completa con brillo en los bordes, oculto) y tamaños. El código del indicador debe aislarse desde el principio (`Indicator` con estado y nivel de audio como entrada) para que añadirlos no toque nada más.
 
-**Cristal nativo (después de la v1):** motor propio que haga el desenfoque real detrás de la isla y las burbujas de forma nativa y optimizada (sin depender del Acrylic de Windows, que no funciona en ventanas sin foco). Hasta entonces, fondo gris opaco. Requisitos: coste de GPU mínimo, nunca capturar ni tocar la ventana de un juego, y caer al gris opaco si no se puede.
+**Cristal nativo (después de la v1):** motor propio que haga el desenfoque real detrás de la isla y las burbujas de forma nativa y optimizada (sin depender del Acrylic de Windows, que no funciona en ventanas sin foco). Hasta entonces, tinte gris translúcido al 84 %. Requisitos: coste de GPU mínimo, nunca capturar ni tocar la ventana de un juego, y volver al tinte si no se puede.
 
 **Estados:**
 
@@ -685,7 +685,7 @@ Reglas de trabajo:
 
 - Ajuste fino de la paleta de grises sobre fondos reales.
 - Modelo de LLM final tras la batería de pruebas (7–8B frente a 14B).
-- ~~Viabilidad del Acrylic con esquinas muy redondeadas~~ Resuelta: no es viable; fondo gris opaco (sección 11).
+- ~~Viabilidad del Acrylic con esquinas muy redondeadas~~ Resuelta: no es viable; tinte gris translúcido al 84 % (sección 11).
 - Ubicación fija para el tiempo (ciudad).
 
 ## 18. Decisiones tomadas
@@ -697,4 +697,4 @@ Reglas de trabajo:
 | 2026-11-09 | Tauri es el proceso principal y lanza el núcleo Python como proceso hijo. Svelte 5 para la UI, `uv` para Python. | 2 |
 | 2026-11-09 | Sin cuenta ni inicio de sesión. Datos de uso anónimos solo con permiso explícito. | 8, 13 |
 | 2026-11-09 | La interfaz son ventanas flotantes propias que se ocultan en reposo, en lugar de una capa a pantalla completa por monitor. Elección de monitor según ajustes y modo partida. | 9, 11 |
-| 2026-11-09 | Acrylic descartado (se ve sólido sin foco y con bordes en escalones). Fondo = gris opaco en CSS (un tinte translúcido cambia con lo de detrás). Cristal real con motor propio más adelante. | 11, 12 |
+| 2026-11-09 | Acrylic descartado (se ve sólido sin foco y con bordes en escalones). Fondo = tinte gris translúcido al 84 % en CSS, sin retraso al cambiar lo de detrás. Cristal real con motor propio más adelante. | 11, 12 |

@@ -25,6 +25,10 @@ pub fn run() {
             core_process::start(handle);
             island::create(handle)?;
             tray::build(handle)?;
+            // Ayuda de desarrollo: NYX_GLASS_TEST=1 abre la prueba de cristal al arrancar.
+            if std::env::var("NYX_GLASS_TEST").as_deref() == Ok("1") {
+                glass::toggle(handle);
+            }
             Ok(())
         })
         .build(tauri::generate_context!())
