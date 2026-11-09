@@ -15,7 +15,7 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
   - Scripts de prueba de GPU para Ollama y whisper.cpp con informe por equipo en `docs/benchmarks/`.
   - Resultados del PC de referencia (RX 7700 XT): Qwen 2.5 7B y Llama 3.1 8B al 100 % en GPU (77 y 72 tokens/s, 3/3 herramientas); whisper.cpp con Vulkan, 0,17 s por frase. LLM provisional: `qwen2.5:7b`.
   - CI en GitHub Actions (Windows): ruff, mypy, pytest, prettier, svelte-check, rustfmt y clippy.
-- Fase 3c (hecha, pendiente de la prueba del usuario): LLM con herramientas, alarmas y atajos aprendidos.
+- Fase 3c (cerrada; fase 3 cerrada el 2026-11-10): LLM con herramientas, alarmas y atajos aprendidos.
   - El LLM recibe las 20 herramientas en cada petición: para una acción devuelve un plan (una o varias llamadas, en orden) que pasa por el mismo ejecutor que el router (SafetyGuard, confirmaciones, deshacer y registro); para una pregunta, texto a trozos con la línea `[dato | contexto]` para la burbuja.
   - El ejecutor hace las esperas: tras abrir una app, si el paso siguiente usa su ventana, espera a que aparezca (`wait_for_window`). Un plan con parámetros no válidos se reintenta una vez con el error.
   - Lo que el router no encuentra pasa al LLM con los candidatos más parecidos como pista. El LLM sabe cuál es la ventana activa («ciérrala»).

@@ -17,7 +17,7 @@ Eres el desarrollador principal de Nyx. La especificación completa está en [do
 
 ## Estado
 
-Fase actual: **3 — Acciones**: 3a, 3b y 3c hechos; falta la prueba del usuario de la 3c para cerrar la fase 3. Fases 1 y 2 cerradas el 2026-11-09.
+Fase actual: **4 — «Nyx» de verdad** (plan pendiente de aprobación). Fases 1 y 2 cerradas el 2026-11-09; fase 3 cerrada el 2026-11-10.
 
 ## Decisiones tomadas
 
