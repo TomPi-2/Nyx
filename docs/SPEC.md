@@ -14,9 +14,9 @@ Nyx es un asistente de voz y texto para Windows 11 que ejecuta acciones en el PC
 2. **Rápido.** Objetivo: menos de 500 ms para comandos frecuentes y menos de 2 s para peticiones que pasan por el modelo de lenguaje.
 3. **Local y gratis.** Todo el núcleo (activación, voz, cerebro, acciones) funciona sin internet y sin coste. Internet solo para lo que lo requiere (tiempo, webs, búsquedas).
 4. **Seguro.** Nada destructivo sin confirmación; borrar siempre va a la papelera.
-5. **Respetuoso con el juego.** Nunca interfiere en una partida si el usuario no lo permite.
+5. **Respetuoso con el juego.** Nunca interfiere en una partida si el usuario no lo permite, y **nunca actúa dentro de un juego** (ni teclas, ni chat, ni macros, ni leer la pantalla): solo abrirlo, la música, el volumen y responder preguntas.
 6. **Interfaz mínima.** Sin ventana fija: elementos flotantes, redondeados y translúcidos que aparecen solo cuando aportan algo.
-7. **Extensible.** Añadir una acción nueva es añadir una herramienta, no reescribir el sistema.
+7. **Extensible.** Añadir una acción nueva es añadir una herramienta (o una entrada en el catálogo de acciones por app), no reescribir el sistema. El catálogo completo de lo que Nyx hace y hará está en [ACCIONES.md](ACCIONES.md).
 
 **Fuera de alcance (v1):** macOS/Linux, automatizar acciones dentro de juegos, control remoto desde el móvil, varios usuarios.
 
@@ -507,6 +507,7 @@ La ventana de Ajustes es la única ventana clásica de Nyx y sigue la misma iden
 | Cerebro | Modelo local, nube opcional con clave propia, atajos aprendidos (ver y borrar), preferencias aprendidas |
 | Seguridad | Nivel de cada herramienta (sin poder bajar el de eliminar o PowerShell), rutas protegidas extra, registro de acciones |
 | Caché | Reescanear ahora, alias personalizados, webs frecuentes, estado de Everything |
+| Ayuda | **Reiniciar Nyx** (núcleo y voz, por si algo va mal; también en la bandeja), ver el registro de acciones y de errores, **enviar una sugerencia** (qué acción o app querría el usuario que Nyx supiera hacer: texto libre + categoría). Las sugerencias se guardan en Supabase (proyecto «decider», tabla solo de inserción con RLS, sin datos personales ni del sistema; si no hay internet, se guardan y se envían luego). Pendiente: conectar Supabase más adelante; hasta entonces se guardan en local. |
 | Privacidad | Borrar historial, borrar muestras de voz, qué sale a internet, datos de uso anónimos (desactivados por defecto) con vista de lo que se envía, exportar e importar ajustes |
 
 **Primer arranque (asistente de 5 pasos):** descargar modelos → probar micrófono y grabar muestras de "Nyx" → ver el indicador y elegir monitor → escaneo del sistema → ¿ayudar a mejorar Nyx con datos anónimos? (sin marcar por defecto). Todo con opción de saltar y volver más tarde. Sin registro ni inicio de sesión.
@@ -712,3 +713,4 @@ Reglas de trabajo:
 | 2026-11-09 | Bloque 3c, LLM con herramientas: se exponen las 20 herramientas en cada llamada (~3.400 tokens; la selección por categoría queda para cuando el catálogo crezca en la fase 6). `num_ctx` 8192. La hora y la ventana activa van en el mensaje del usuario, no en otro de sistema, para que Ollama reutilice el prefijo en caché (0,8 s en vez de 2,4 s). Si qwen escribe la llamada como texto, se interpreta como plan. Las subcarpetas se nombran «Carpeta/Subcarpeta». | 6 |
 | 2026-11-09 | Bloque 3c, alarmas: los recordatorios son alarmas o temporizadores con texto (`label`), sin herramienta `set_reminder` aparte. Al sonar: burbuja con «Parar», timbre generado (sin archivos de sonido con licencia) durante un minuto como mucho, frase hablada y notificación de Windows (`tauri-plugin-notification`, protocolo v4 con `alert`). Hablarle a Nyx la calla; «para» justo después se refiere a la alarma. | 7, 11, 14 |
 | 2026-11-09 | Tras probar la 3c: `send_hotkey` se adelanta a la fase 3 (amarilla, bloqueada en partida, con lista de atajos prohibidos); los avisos de alarma duran 5 s; un solo núcleo a la vez (la app mata el árbol de procesos al reiniciar y el núcleo cierra uno anterior al arrancar). | 7, 8, 14 |
+| 2026-11-09 | Acciones dentro de las apps con `app_action` y un catálogo por app con atajos según el idioma de Windows (en español el Bloc de notas y Office usan Ctrl+U y Ctrl+G). «Sube el volumen de Spotify» mueve el volumen de Spotify (el del mezclador no se ve en la app). Nunca se actúa dentro de un juego. Catálogo de acciones en `docs/ACCIONES.md`. Ajustes → Ayuda: reiniciar Nyx y enviar sugerencias (Supabase, proyecto «decider», más adelante). | 1, 7, 13 |
