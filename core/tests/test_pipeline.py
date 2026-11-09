@@ -150,6 +150,9 @@ class FakeTTS:
         self.said.append(text)
         return np.zeros(2400, dtype=np.float32)
 
+    async def stream(self, text: str) -> AsyncIterator[np.ndarray]:
+        yield await self.synthesize(text)
+
 
 class FakePlayer:
     def __init__(self, block: bool = False) -> None:

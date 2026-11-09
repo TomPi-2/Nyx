@@ -7,12 +7,15 @@ import pytest
 from nyx.models import MODELS, sha256_of
 from nyx.settings import load_settings
 from nyx.tts.piper import PiperTTS
-from nyx.tts.voices import DEFAULT_VOICE, VOICES, voice_for
+from nyx.tts.voices import DEFAULT_VOICE, VOICES, Engine, voice_for
 
 
 def test_catalog_points_to_models() -> None:
-    assert DEFAULT_VOICE == "sharvard_f"  # mujer, acento de España
+    assert DEFAULT_VOICE == "lola"
+    assert VOICES["lola"].engine is Engine.POCKET
     for voice in VOICES.values():
+        if voice.engine is not Engine.PIPER:
+            continue
         assert MODELS[voice.model].filename.endswith(".onnx")
         assert MODELS[voice.config].filename == MODELS[voice.model].filename + ".json"
 
@@ -25,10 +28,12 @@ def test_unknown_voice_falls_back_to_default() -> None:
 def test_kokoro_settings_are_migrated(tmp_path: Path) -> None:
     path = tmp_path / "settings.json"
     path.write_text(json.dumps({"tts": {"voice": "ef_dora", "lang": "es"}}), encoding="utf-8")
-    assert load_settings(path).tts.voice == "sharvard_f"
+    assert load_settings(path).tts.voice == "lola"
+    path.write_text(json.dumps({"tts": {"voice": "sharvard_f"}}), encoding="utf-8")
+    assert load_settings(path).tts.voice == "lola"
 
 
-@pytest.mark.parametrize("voice_id", list(VOICES))
+@pytest.mark.parametrize("voice_id", [v.id for v in VOICES.values() if v.engine is Engine.PIPER])
 async def test_real_voice_if_downloaded(voice_id: str) -> None:
     voice = VOICES[voice_id]
     model, config = MODELS[voice.model], MODELS[voice.config]

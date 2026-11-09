@@ -69,22 +69,6 @@ CATALOG: tuple[ModelFile, ...] = (
     ),
     # Voces de Piper (rhasspy/piper-voices). Las CC-BY piden citar la autoría (créditos).
     ModelFile(
-        key="voice-sharvard",
-        filename="es_ES-sharvard-medium.onnx",
-        url="https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx",
-        sha256="234dc4cf0fdb53ccb76b9b2c4d7ef1330364762674c1b78c1b62d8608c528a54",
-        size_mb=77,
-        license="CC-BY-3.0 (datos: Univ. de Edimburgo, Sharvard corpus)",
-    ),
-    ModelFile(
-        key="voice-sharvard-config",
-        filename="es_ES-sharvard-medium.onnx.json",
-        url="https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx.json",
-        sha256="1910940c6b480e0f7cbce5e0da45c8cbe2557ccbfd86a5d22cda141a3b65f521",
-        size_mb=1,
-        license="CC-BY-3.0 (datos: Univ. de Edimburgo, Sharvard corpus)",
-    ),
-    ModelFile(
         key="voice-davefx",
         filename="es_ES-davefx-medium.onnx",
         url="https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_ES/davefx/medium/es_ES-davefx-medium.onnx",
@@ -202,6 +186,15 @@ def download(
     return final
 
 
+def download_pocket() -> None:
+    """La voz predeterminada (Pocket TTS, «lola»): modelo en español y voz, desde Hugging Face."""
+    import asyncio
+
+    from nyx.tts.pocket import PocketTTS
+
+    asyncio.run(PocketTTS("lola").load())
+
+
 def download_all(root: Path | None = None, skip: frozenset[str] = frozenset()) -> int:
     """Orden `nyx --download-models`: descarga lo que falte mostrando el progreso."""
     failed = 0
@@ -229,4 +222,11 @@ def download_all(root: Path | None = None, skip: frozenset[str] = frozenset()) -
         except (DownloadError, OSError) as e:
             failed += 1
             print(f"\n  Error: {e}", file=sys.stderr)
+    print("· Voz predeterminada (Pocket TTS, CC BY 4.0, Kyutai)", file=sys.stderr)
+    try:
+        download_pocket()
+        print("  voz: lista", file=sys.stderr)
+    except Exception as e:
+        failed += 1
+        print(f"  Error: {e}", file=sys.stderr)
     return 1 if failed else 0
