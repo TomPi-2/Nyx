@@ -11,6 +11,7 @@ dependencies = [
     "numpy>=2.5.4",
     "onnxruntime>=1.31.1",
     "piper-tts>=1.8.0",
+    "pocket-tts>=4.0.1",
     "psutil>=7.2.2",
     "pycaw>=20260927",
     "pydantic>=2.9",
@@ -73,5 +74,5 @@ link-mode = "copy"
 
 [[tool.mypy.overrides]]
 # Librerías sin anotaciones de tipos: se usan detrás de las interfaces de nyx.
-module = ["sounddevice", "vosk", "onnxruntime", "onnxruntime.*", "piper", "piper.*", "comtypes", "pycaw", "pycaw.*", "mss", "mss.*"]
+module = ["sounddevice", "vosk", "onnxruntime", "onnxruntime.*", "piper", "piper.*", "pocket_tts", "pocket_tts.*", "comtypes", "pycaw", "pycaw.*", "mss", "mss.*"]
 ignore_missing_imports = true

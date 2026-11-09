@@ -34,7 +34,7 @@ Nyx se divide en dos procesos: un núcleo en Python que escucha, piensa y actúa
 | Detección de voz (VAD) | Silero VAD (ONNX) | WebRTC VAD | Corta la grabación al dejar de hablar |
 | Voz a texto | whisper.cpp con backend Vulkan | whisper.cpp en CPU | faster-whisper no acelera en AMD; usar large-v3-turbo cuantizado |
 | Cerebro | Ollama (ROCm o Vulkan) | LM Studio | Modelo instruct de 7–8B con tool calling; 14B cuantizado como opción |
-| Texto a voz | Piper (ONNX, GPL-3.0) | Chatterbox Multilingual (si algún día va en la GPU AMD) | Voz predeterminada de mujer con acento de España (sharvard F); ~0,04 s por frase en CPU |
+| Texto a voz | Pocket TTS (Kyutai; código MIT, pesos CC BY 4.0), voz «lola» | Piper (GPL-3.0): davefx y daniela | En la CPU con 2 hilos; genera a trozos (primer audio en ~0,08 s). Necesita PyTorch para CPU |
 | Acciones Windows | pywin32, comtypes, pycaw, psutil, winsdk | PowerShell | Ventanas, audio, procesos, notificaciones |
 | Papelera | send2trash | — | Nunca borrado permanente |
 | Capturas | mss | Windows Graphics Capture | Por monitor |
@@ -142,7 +142,7 @@ Lo frecuente va directo de la transcripción a la ejecución; solo lo nuevo o co
 
 ## 5. Voz: reconocimiento y síntesis
 
-whisper.cpp transcribe en la GPU con Vulkan y Piper habla en la CPU, para no competir con el modelo de lenguaje ni con los juegos.
+whisper.cpp transcribe en la GPU con Vulkan y la voz (Pocket TTS o Piper) se genera en la CPU, para no competir con el modelo de lenguaje ni con los juegos.
 
 **Reconocimiento (STT):**
 
@@ -155,7 +155,7 @@ whisper.cpp transcribe en la GPU con Vulkan y Piper habla en la CPU, para no com
 
 **Síntesis (TTS):**
 
-- Piper como motor (prueba de escucha del 2026-11-09, `docs/benchmarks/tts-TomPi-20261109.jsonl`). Voz predeterminada de mujer con acento de España (sharvard F, CC BY 3.0); en Ajustes, davefx (hombre, España, CC0) y daniela (mujer, Argentina, CC BY-SA 4.0). Las licencias CC BY piden citar la autoría en los créditos. Kokoro sonaba robótico en español; Chatterbox Multilingual (MIT) suena más natural pero en la CPU tarda ~10 s por frase.
+- Voz predeterminada «lola» (mujer) con Pocket TTS de Kyutai: la voz femenina libre en español que mejor suena en la CPU. Genera a trozos, así que la primera palabra suena ~0,1 s después de tener la frase. Alternativas en Ajustes (Piper): davefx (hombre, España, CC0) y daniela (mujer, Argentina, CC BY-SA 4.0). Pruebas de escucha del 2026-11-09 en `docs/benchmarks/tts-TomPi-20261109.jsonl`: Kokoro y Piper sharvard F (mujer, España) sonaban robóticas; Chatterbox Multilingual (MIT) es más natural pero en la CPU tarda ~10 s por frase; la clonación de voz de Pocket TTS exige cuenta de Hugging Face y consentimiento de la persona, así que no se usa. Créditos obligatorios: Kyutai (CC BY 4.0) y los corpus de las voces CC BY. Pendiente para la auditoría de la fase 6: licencia concreta de la voz «lola» (kyutai/tts-voices).
 - **Streaming por frases:** empezar a hablar en cuanto el LLM genera la primera frase, sin esperar la respuesta completa.
 - Texto adaptado para voz: el LLM genera `spoken` (corto y natural, primero para que la voz empiece antes), `display` (dato destacado de la burbuja) y `secondary` (línea pequeña). Ejemplo: voz "En alemán se dice Hallo", burbuja "Hallo" grande + "hola · alemán" pequeño.
 - Palabras en otros idiomas pronunciadas con la voz de ese idioma cuando exista (Piper tiene voces en muchos idiomas).
@@ -500,7 +500,7 @@ La ventana de Ajustes es la única ventana clásica de Nyx y sigue la misma iden
 | --- | --- |
 | General | Iniciar con Windows, idioma, ubicación para el tiempo, navegador preferido, carpeta de capturas y grabaciones |
 | Activación | Palabra ("Nyx" o personalizada con validación), sensibilidad, recalibrar con muestras, verificación de voz, ventana de seguimiento, atajos de hablar, escribir y silenciar |
-| Voz | Voz (mujer · España, hombre · España, mujer · Argentina), velocidad, volumen, dispositivo de entrada y de salida, atenuar otras apps |
+| Voz | Voz (Lola, hombre · España, mujer · Argentina), velocidad, volumen, dispositivo de entrada y de salida, atenuar otras apps |
 | Respuestas | Responder también en voz a lo escrito (desactivado por defecto), cuándo hablar (siempre, solo preguntas, nunca), cuándo mostrar burbuja, duración, confirmación visual de acciones silenciosas |
 | Apariencia | Monitor de destino, tema claro u oscuro, vista previa del indicador (estilos, ubicaciones y tamaños en la fase 7) |
 | Modo partida | Nyx en partida (desactivado, solo voz, normal), monitor alternativo para la interfaz, herramientas permitidas, diferidas y bloqueadas, lista de juegos manual, descargar el LLM en partida |
@@ -708,3 +708,4 @@ Reglas de trabajo:
 | 2026-11-09 | Tras probar la 3a: lo que se abre recibe el foco salvo que se pida «en segundo plano»; se deja de escuchar cuando la petición ya está completa; la ventana de seguimiento ignora conversaciones con otras personas (silencio previo, coletillas y clasificador del LLM). | 3, 7 |
 | 2026-11-09 | Bloque 3b: cada herramienta que toca archivos o ventanas prepara antes lo que va a hacer (SafetyGuard revisa eso y, si es roja, se confirma y ejecuta exactamente eso). Rutas protegidas: sistema, raíces de disco, carpetas de Nyx y las carpetas principales del usuario (se puede escribir dentro, no moverlas ni borrarlas). Confirmación en la isla con botones y por voz (Vosk, gramática cerrada «sí/vale/adelante…» / «no/cancela/espera…»; ante la duda, no). Deshacer 30 s en la burbuja o con «Nyx, deshaz»; cerrar una app se deshace reabriéndola. Búsqueda: Everything si está; si no, índice de Windows. Nuevo token `text-on-active`. | 7, 8, 10, 12 |
 | 2026-11-09 | Voz: Piper sustituye a Kokoro (más natural en español y ~10 veces más rápido: Nyx empieza a hablar ~0,3 s después de terminar la frase). Predeterminada mujer con acento de España; davefx y daniela en Ajustes. | 2, 5, 13 |
+| 2026-11-09 | La voz femenina de España de Piper (sharvard F) sonaba robótica: voz predeterminada «lola» con Pocket TTS (Kyutai), generada a trozos (~0,4 s del fin de la frase a la voz). Piper queda para davefx y daniela. | 2, 5, 13 |

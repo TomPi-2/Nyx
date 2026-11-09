@@ -69,9 +69,9 @@ class LLMSettings(_Section):
 
 class TTSSettings(_Section):
     enabled: bool = True
-    # sharvard_f (mujer, España; predeterminada), davefx (hombre, España), daniela (mujer,
+    # lola (mujer; Pocket TTS, predeterminada), davefx (hombre, España), daniela (mujer,
     # Argentina). Ver nyx/tts/voices.py.
-    voice: str = "sharvard_f"
+    voice: str = "lola"
     speed: float = Field(default=1.0, ge=0.5, le=2.0)
 
 
@@ -101,8 +101,10 @@ def migrate(data: dict[str, Any]) -> dict[str, Any]:
     """Actualiza un archivo de una versión anterior. Hoy solo existe la versión 1."""
     version = data.get("version", SCHEMA_VERSION)
     tts = data.get("tts")
-    if isinstance(tts, dict) and str(tts.get("voice", "")).startswith(("ef_", "em_")):
-        tts["voice"] = "sharvard_f"  # voces de Kokoro (hasta el 2026-11-09) → Piper
+    if isinstance(tts, dict) and (
+        str(tts.get("voice", "")).startswith(("ef_", "em_")) or tts.get("voice") == "sharvard_f"
+    ):
+        tts["voice"] = "lola"  # voces retiradas (Kokoro; sharvard F) → la predeterminada
         tts.pop("lang", None)
     if not isinstance(version, int) or version > SCHEMA_VERSION:
         log.warning("Ajustes de una versión desconocida (%r): se leen tal cual", version)

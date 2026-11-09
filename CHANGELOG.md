@@ -52,6 +52,8 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
 
 - Piper sustituye a Kokoro: voz predeterminada de mujer con acento de España (sharvard F); davefx (hombre, España) y daniela (mujer, Argentina) en `tts.voice`. ~0,04 s por frase: del fin de la frase a la voz, ~0,3 s (antes 0,8–1,1 s). Los ajustes con voces de Kokoro se migran solos. Prueba de escucha en `docs/benchmarks/tts-TomPi-20261109.jsonl`.
 
+- Voz predeterminada «lola» con Pocket TTS (Kyutai): sharvard F sonaba robótica. La voz se reproduce a trozos según se genera (primer audio en ~0,08 s; del fin de la frase a la voz, ~0,4 s). davefx y daniela (Piper) siguen disponibles en `tts.voice`. Los modelos de Pocket se guardan en `%LOCALAPPDATA%\Nyx\models\hf` y `nyx --download-models` los descarga.
+
 ### Corregido
 
 - La isla perdía `WS_EX_NOACTIVATE` y `WS_EX_TOOLWINDOW` al arrancar y se ocultaba al mostrar botones: `set_ignore_cursor_events` de Tauri reescribe todos los estilos según lo que tao cree de la ventana (que estaba oculta, porque se muestra con Win32). Ahora el paso de clics se cambia directamente con Win32. La ventana de texto recupera `WS_EX_TOOLWINDOW` después de que tao la muestre.

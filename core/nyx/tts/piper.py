@@ -7,6 +7,7 @@ import asyncio
 import json
 import logging
 import time
+from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
@@ -65,6 +66,10 @@ class PiperTTS:
         t0 = time.perf_counter()
         await asyncio.to_thread(self._load)
         log.info("Piper listo en %.1f s (%s)", time.perf_counter() - t0, self._model.stem)
+
+    async def stream(self, text: str) -> AsyncIterator[npt.NDArray[np.float32]]:
+        # Piper es tan rápido (~0,04 s por frase) que basta con un solo trozo.
+        yield await self.synthesize(text)
 
     async def synthesize(self, text: str) -> npt.NDArray[np.float32]:
         if self._voice is None:

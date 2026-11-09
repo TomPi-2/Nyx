@@ -211,14 +211,14 @@ class _Speech:
     async def _worker(self) -> None:
         while (text := await self._queue.get()) is not None:
             try:
-                audio = await self._tts.synthesize(text)
+                # Cada trozo suena en cuanto se genera (Pocket: el primero en ~0,08 s).
+                async for audio in self._tts.stream(text):
+                    if not self.started:
+                        self.started = True
+                        await self._on_start()
+                    self._player.enqueue(audio)
             except TTSError:
                 log.exception("Fallo de la voz con %r", text)
-                continue
-            if not self.started:
-                self.started = True
-                await self._on_start()
-            self._player.enqueue(audio)
 
     async def finish(self) -> None:
         self._queue.put_nowait(None)

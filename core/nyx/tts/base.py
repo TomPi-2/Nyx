@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from typing import Protocol
 
 import numpy as np
@@ -19,4 +20,8 @@ class TTSEngine(Protocol):
 
     async def synthesize(self, text: str) -> npt.NDArray[np.float32]:
         """Texto → audio mono float32 a `sample_rate`."""
+        ...
+
+    def stream(self, text: str) -> AsyncIterator[npt.NDArray[np.float32]]:
+        """El mismo audio a trozos, según se genera (la voz empieza antes)."""
         ...
