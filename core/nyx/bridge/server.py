@@ -174,7 +174,12 @@ class UIBridge:
     async def _on_bubble(self, event: BubbleShown) -> None:
         actions = [ActionButton(id=a.id, label=a.label, primary=a.primary) for a in event.actions]
         await self.broadcast(
-            BubbleMsg(display=event.display, secondary=event.secondary, actions=actions)
+            BubbleMsg(
+                display=event.display,
+                secondary=event.secondary,
+                actions=actions,
+                alert=event.alert,
+            )
         )
 
     async def _on_bubble_hidden(self, _: BubbleHidden) -> None:

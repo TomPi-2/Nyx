@@ -60,6 +60,7 @@ async def test_handshake_and_events(bridge: tuple[EventBus, int]) -> None:
             "display": "Hallo",
             "secondary": "hola · alemán",
             "actions": [],
+            "alert": False,
         }
 
 

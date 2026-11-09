@@ -1,6 +1,6 @@
 // Espejo de core/nyx/bridge/protocol.py: cambia los dos a la vez y sube PROTOCOL_VERSION.
 
-export const PROTOCOL_VERSION = 3;
+export const PROTOCOL_VERSION = 4;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -28,5 +28,12 @@ export type ServerMessage =
   | { type: "welcome"; version: string; protocol: number }
   | { type: "state"; state: NyxState }
   | { type: "level"; rms: number }
-  | { type: "bubble"; display: string; secondary: string | null; actions: ActionButton[] }
+  | {
+      type: "bubble";
+      display: string;
+      secondary: string | null;
+      actions: ActionButton[];
+      /** v4: alarmas y avisos; además de la burbuja, notificación de Windows. */
+      alert: boolean;
+    }
   | { type: "bubble_hide" };

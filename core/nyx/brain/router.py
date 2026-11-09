@@ -246,6 +246,79 @@ _KIND_WORDS = {
 }
 
 
+# --- alarmas y temporizadores (bloque 3c; los recordatorios con texto van por el LLM) ---
+
+_AMOUNT = rf"(?:(?P<n>{_N})\s+(?P<unit>segundos?|minutos?|horas?)(?P<half>\s+y\s+medi[oa])?|(?P<special>media hora|un cuarto de hora|tres cuartos de hora|hora y media))"
+_UNIT_S = {"segundo": 1, "minuto": 60, "hora": 3600}
+_SPECIAL_S = {
+    "media hora": 1800,
+    "un cuarto de hora": 900,
+    "tres cuartos de hora": 2700,
+    "hora y media": 5400,
+}
+
+
+def _seconds(m: re.Match[str]) -> int | None:
+    if m.group("special"):
+        return _SPECIAL_S[m.group("special")]
+    n = parse_number(m.group("n"))
+    if n is None:
+        return None
+    unit = _UNIT_S[m.group("unit").rstrip("s")]
+    return n * unit + (unit // 2 if m.group("half") else 0)
+
+
+@rule(
+    "timer",
+    rf"^(?:(?:(?:pon(?:me)?|crea|activa)\s+)?(?:un\s+)?temporizador\s+(?:de\s+)?"
+    rf"|(?:avisame|despiertame|llamame|cuenta)\s+(?:en\s+)?){_AMOUNT}$",
+)
+def _timer(m: re.Match[str], _: SystemIndex) -> Route | None:
+    total = _seconds(m)
+    if total is None or not 0 < total <= 24 * 3600:
+        return None
+    h, rest = divmod(total, 3600)
+    mins, s = divmod(rest, 60)
+    return _call("timer", "set_timer", hours=h or None, minutes=mins or None, seconds=s or None)
+
+
+# «a las 7», «a las 7 30» (los dos puntos se quitan al normalizar), «a las 7 y media»,
+# «a las 8 menos cuarto», «a las 5 de la tarde».
+_CLOCK = rf"(?P<h>{_N})(?:\s+(?P<m>\d{{2}}))?(?:\s+y\s+(?P<frac>media|cuarto)|\s+(?P<minus>menos cuarto))?(?:\s+en punto)?(?:\s+(?:de la\s+|del\s+)?(?P<part>manana|tarde|noche|madrugada|mediodia))?"
+
+
+def _clock_time(m: re.Match[str]) -> str | None:
+    h = parse_number(m.group("h"))
+    if h is None or h > 23:
+        return None
+    minute = int(m.group("m") or 0)
+    if m.group("frac"):
+        minute = 30 if m.group("frac") == "media" else 15
+    if m.group("minus"):
+        h, minute = (h - 1) % 24, 45
+    part = m.group("part")
+    if part in ("tarde", "noche") and h < 12:
+        h += 12
+    if part == "mediodia" and h < 5:  # «a la una del mediodía»
+        h += 12
+    if minute > 59:
+        return None
+    return f"{h:02d}:{minute:02d}"
+
+
+@rule(
+    "alarm",
+    r"^(?:(?:(?:pon(?:me)?|crea|activa)\s+)?(?:una\s+)?alarma\s+(?:para\s+)?|despiertame\s+)"
+    rf"(?:(?P<day>manana|hoy)\s+)?(?:a\s+)?las?\s+{_CLOCK}$",
+)
+def _alarm(m: re.Match[str], _: SystemIndex) -> Route | None:
+    when = _clock_time(m)
+    if when is None:
+        return None
+    tomorrow = m.group("day") == "manana"
+    return _call("alarm", "set_alarm", time=when, day="tomorrow" if tomorrow else None)
+
+
 def _selection(m: re.Match[str]) -> dict[str, object] | None:
     """newest/kind/extension de «los últimos 5 archivos», «las 3 últimas fotos», «los pdf»…"""
     raw_n = m.group("n1") or m.group("n2")
