@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# Node / Tauri
+node_modules/
+ui/dist/
+ui/src-tauri/target/
+ui/src-tauri/gen/schemas/
+
+# Modelos y datos (se descargan en %LOCALAPPDATA%\Nyx\models)
+models/
+*.onnx
+*.gguf
+*.bin
+core/training/data/
+core/training/output/
+
+# Grabaciones de audio y registros
+*.wav
+*.log
+logs/
+
+# Empaquetado (Velopack / Nuitka)
+Releases/
+*.build/
+*.dist/
+
+# Secretos
+.env
+.env.*
+*.pfx
+*.pem
+
+# Editores y sistema
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+Thumbs.db
+Desktop.ini
+.DS_Store
