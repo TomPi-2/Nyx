@@ -400,7 +400,7 @@ Nyx no tiene ventana principal: cada elemento (la isla, una burbuja, un aviso) e
 | Burbuja de respuesta | Respuestas informativas | Dato clave grande + línea secundaria; desaparece sola |
 | Burbuja de confirmación | Acciones de riesgo rojo | Resumen + Confirmar / Cancelar |
 | Burbuja de deshacer | Acciones amarillas | Texto corto + "Deshacer", 30 s |
-| Campo de texto | Atajo de escritura | Pastilla con cursor; Enter envía, Esc cierra |
+| Campo de texto | Atajo de escritura | Pastilla de cristal con cursor y botón de enviar. Si el texto no cabe, crece hacia abajo (ancho fijo, hasta 6 líneas; después se desplaza por dentro). Enter envía, Mayús+Enter salta de línea, Esc cierra |
 | Aviso | Alarmas, recordatorios, acciones diferidas | Toast propio con sonido; además notificación de Windows |
 | Punto de grabación | Grabando pantalla | Punto rojo pequeño en la esquina; clic para parar |
 
