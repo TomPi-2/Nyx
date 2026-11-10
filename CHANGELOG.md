@@ -15,6 +15,8 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
   - Scripts de prueba de GPU para Ollama y whisper.cpp con informe por equipo en `docs/benchmarks/`.
   - Resultados del PC de referencia (RX 7700 XT): Qwen 2.5 7B y Llama 3.1 8B al 100 % en GPU (77 y 72 tokens/s, 3/3 herramientas); whisper.cpp con Vulkan, 0,17 s por frase. LLM provisional: `qwen2.5:7b`.
   - CI en GitHub Actions (Windows): ruff, mypy, pytest, prettier, svelte-check, rustfmt y clippy.
+- Fase 5 (en curso): modo partida e interfaz final.
+  - 5a, modo partida: detección cada 2 s (pantalla completa Direct3D de Windows, ventana de un juego por carpeta, caché o lista conocida, y listas «siempre» / «nunca» del usuario; termina tras 5 s sin juego). Política por herramienta: permitida, diferida («te lo hago al terminar») o bloqueada, con cambios del usuario en `game.policies`; lo rojo se difiere salvo en modo «normal». Al terminar se ejecuta lo diferido con un aviso. «Nyx en partida» (`game.mode`): desactivado (sin palabra de activación), solo voz (por defecto: la isla no aparece) o normal. Prioridad baja durante la partida y descarga opcional del LLM (`game.unload_llm_after_min`). Protocolo v5 (`game`).
 - Fase 4 (cerrada el 2026-11-10): «Nyx» de verdad.
   - 4a: `scripts/record_samples.py` (grabar positivos, palabras parecidas y uso normal) y `scripts/wake_eval.py` (aciertos por tipo y activaciones falsas por hora tras whisper).
   - 4b: modelo propio entrenado solo con datos libres (voces de Piper davefx, sharvard y LibriTTS; OpenSLR 28, 61, 71 y 72; nada de los modelos ni datos de openWakeWord, que son CC BY-NC-SA). Generación, filtro con whisper, montaje con reverberación y ruido, y entrenamiento en CPU (`core/training/`).

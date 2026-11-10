@@ -41,6 +41,7 @@ from nyx.events import (
     TextEntered,
 )
 from nyx.executor import Confirmation, Executor, ToolCall, with_waits
+from nyx.game.policy import GameGate
 from nyx.index.aliases import normalize as normalize_alias
 from nyx.log import new_request_id
 from nyx.safety.undo import UNDO_TTL_S
@@ -263,6 +264,7 @@ class Pipeline:
         refuse: Callable[[str], tuple[str, str] | None] | None = None,
         activations: ActivationLog | None = None,
         wake_phrase: WakePhrase | None = None,
+        game: GameGate | None = None,
         clock: Callable[[], float] = time.perf_counter,
     ) -> None:
         self.bus = bus
@@ -283,6 +285,7 @@ class Pipeline:
         self.refuse = refuse
         self.activations = activations
         self.wake_phrase = wake_phrase or WakePhrase()  # «Nyx» o la palabra personalizada
+        self.game = game
         # Umbral del detector sin el ajuste por errores (para recalcularlo al apuntar uno).
         threshold = getattr(wake, "threshold", None)
         offset = activations.offset if activations is not None else 0.0
@@ -347,7 +350,12 @@ class Pipeline:
             return
         if self.mode is Mode.LISTENING:
             await self._listen_frame(frame)
-        elif self.wake is not None and self.voice_enabled and self.wake.process(frame):
+        elif (
+            self.wake is not None
+            and self.voice_enabled
+            and not self._wake_off_in_game()
+            and self.wake.process(frame)
+        ):
             log.info("Activación")
             clip = self.capture.prebuffer(VERIFY_CLIP_S) if self.capture is not None else []
             verifies = bool(clip) and self.stt is not None
@@ -720,6 +728,10 @@ class Pipeline:
         else:
             await self._go_idle()
         return results
+
+    def _wake_off_in_game(self) -> bool:
+        """«Nyx en partida: desactivado»: solo el atajo de teclado (SPEC sección 9)."""
+        return self.game is not None and self.game.active and self.game.mode == "off"
 
     def _record_activation(self, verified: bool | None, heard: str) -> None:
         if self.activations is None:

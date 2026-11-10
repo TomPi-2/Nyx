@@ -29,6 +29,7 @@ class Decision(StrEnum):
     BLOCKED = "blocked"  # SafetyGuard no lo permite
     INVALID = "invalid"  # herramienta o parámetros no válidos
     UNDONE = "undone"
+    DEFERRED = "deferred"  # en partida: se hará al terminar
 
 
 @dataclass
