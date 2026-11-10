@@ -41,6 +41,7 @@ from nyx.wake.vosk_engine import VoskWakeWord
 
 RECORDINGS = local_dir() / "training" / "grabaciones"
 REFRACTORY_S = 2.0  # tras una activación, Nyx escucha la orden: no se cuenta otra
+SOUNDS_THE_SAME = {"nix", "nicks"}  # homófonos de «Nyx» en las palabras parecidas
 
 
 @dataclass
@@ -140,7 +141,10 @@ async def main() -> int:
         summary = results.get(mode)
         if summary is None or not summary.seconds:
             continue
-        false = [t for t in summary.triggers if t.verified]
+        # «nix» y «nicks» suenan igual que «Nyx»: que activen no es un fallo.
+        false = [
+            t for t in summary.triggers if t.verified and tag_of(t.file) not in SOUNDS_THE_SAME
+        ]
         raw = len(summary.triggers)
         hours = summary.seconds / 3600
         lines.append(
