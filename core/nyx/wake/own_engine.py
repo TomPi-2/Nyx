@@ -14,6 +14,8 @@ import numpy as np
 from nyx.audio.capture import FRAME_S, Frame
 from nyx.wake.features import FeatureExtractor, StreamingFeatures
 
+# El detector entrenado en training/ (versión 1, 2026-11-10; ver docs/benchmarks).
+OWN_MODEL = Path(__file__).resolve().parent / "data" / "nyx-v1.onnx"
 DEFAULT_THRESHOLD = 0.5
 REFRACTORY_S = 1.0
 

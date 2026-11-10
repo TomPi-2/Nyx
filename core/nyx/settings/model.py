@@ -11,7 +11,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -34,7 +34,11 @@ class AudioSettings(_Section):
 
 class WakeSettings(_Section):
     enabled: bool = True
-    # Fase 2: palabra para Vosk. En la fase 4 la sustituye el modelo propio de «Nyx».
+    # Fase 4: modelo propio de «Nyx» (por defecto) o Vosk con gramática (alternativa).
+    engine: Literal["propio", "vosk"] = "propio"
+    # 1 = solo salta si está muy seguro … 10 = salta con poco (whisper verifica después).
+    sensitivity: int = Field(default=6, ge=1, le=10)
+    # Palabra para Vosk (y para palabras personalizadas).
     word: str = "nix"
     # Audio anterior a la detección que se incluye en la frase («Nyx abre…» de una tirada).
     prebuffer_s: float = Field(default=1.5, ge=0.0, le=2.0)
