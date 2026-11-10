@@ -116,12 +116,15 @@ class Services:
         self.index.close()
 
 
-async def _attempt[T](name: str, problems: list[str], load: Callable[[], Awaitable[T]]) -> T | None:
+async def _attempt[T](
+    name: str, key: str, problems: list[str], load: Callable[[], Awaitable[T]]
+) -> T | None:
+    """Carga una pieza; si falla, lo apunta con su clave (ver `startup_notice`)."""
     try:
         return await load()
     except Exception as e:
         log.warning("%s no disponible: %s", name, e, exc_info=log.isEnabledFor(logging.DEBUG))
-        problems.append(name)
+        problems.append(key)
         return None
 
 
@@ -147,7 +150,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         except LLMError as e:
             # No es fatal: Ollama puede abrirse después. Cada petición lo vuelve a intentar.
             log.warning("Ollama no está listo (%s)", e)
-            problems.append("Ollama")
+            problems.append("llm")
 
     async def load_stt() -> WhisperServer:
         stt = WhisperServer(
@@ -192,7 +195,8 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
                 wake_phrase = WakePhrase.custom(custom)
                 log.info("Palabra personalizada: «%s» %s", custom, check.warnings or "")
                 return await asyncio.to_thread(VoskWakeWord, MODELS["wake"].path(), custom)
-            problems.append(f"palabra «{custom}» no válida ({'; '.join(check.problems)})")
+            log.warning("Palabra «%s» no válida: %s", custom, "; ".join(check.problems))
+            problems.append(f"wake_word:{custom}")
         if settings.wake.engine == "vosk":
             return vosk
         try:
@@ -207,10 +211,10 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     use_wake = voice and settings.wake.enabled
     _, stt, tts, vad, wake = await asyncio.gather(
         load_llm(),
-        _attempt("Transcripción (whisper)", problems, load_stt) if voice else nothing(),
-        _attempt("Voz", problems, load_tts) if settings.tts.enabled else nothing(),
-        _attempt("Detección de voz (Silero)", problems, load_vad) if voice else nothing(),
-        _attempt("Activación", problems, load_wake) if use_wake else nothing(),
+        _attempt("Transcripción (whisper)", "hear", problems, load_stt) if voice else nothing(),
+        _attempt("Voz", "tts", problems, load_tts) if settings.tts.enabled else nothing(),
+        _attempt("Detección de voz (Silero)", "hear", problems, load_vad) if voice else nothing(),
+        _attempt("Activación", "wake", problems, load_wake) if use_wake else nothing(),
     )
 
     capture: AudioCapture | None = None
@@ -221,7 +225,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
             mic.start()
             return mic
 
-        capture = await _attempt("Micrófono", problems, open_mic)
+        capture = await _attempt("Micrófono", "mic", problems, open_mic)
 
     player = Player(tts.sample_rate, settings.audio.output_device) if tts is not None else None
 
@@ -345,8 +349,55 @@ async def _start_alarms(alarms: AlarmScheduler) -> None:
     await alarms.start()
 
 
+#: Lo que no funciona, dicho para cualquiera: qué pasa y qué puede hacer mientras tanto.
+_EXPLAINED: dict[str, tuple[str, str]] = {
+    "mic": (
+        "No puedo oírte",
+        "No encuentro el micrófono. Mientras, escríbeme con Win + Alt + N.",
+    ),
+    "hear": (
+        "No puedo oírte",
+        "Me falta una pieza para entender lo que dices. Mientras, escríbeme con Win + Alt + N.",
+    ),
+    "wake": ("No respondo a «Nyx»", "Para hablarme, pulsa Win + Alt + H."),
+    "tts": ("No puedo hablar", "Te respondo por escrito."),
+    "llm": ("Aún no puedo pensar", "Ollama no está abierto: de momento solo hago cosas sencillas."),
+}
+
+
+def startup_notice(problems: list[str]) -> tuple[str, str] | None:
+    """Aviso de arranque (título y explicación) a partir de lo que ha fallado.
+
+    Breve y sin nombres técnicos (salvo Ollama, que el usuario tiene que abrir). Si no puede
+    oír, no se dice además que no responde a «Nyx»: ya está dicho.
+    """
+    keys = list(dict.fromkeys(problems))  # sin repetidos, en orden
+    deaf = "mic" in keys or "hear" in keys
+    lines: list[tuple[str, str]] = []
+    if deaf:
+        lines.append(_EXPLAINED["mic" if "mic" in keys else "hear"])
+    for key in keys:
+        if key.startswith("wake_word:") and not deaf:
+            word = key.removeprefix("wake_word:")
+            lines.append((f"No respondo a «{word}»", "Esa palabra no me sirve: respondo a «Nyx»."))
+        elif key == "wake" and not deaf:
+            lines.append(_EXPLAINED["wake"])
+        elif key in ("tts", "llm"):
+            lines.append(_EXPLAINED[key])
+    if not lines:
+        return None
+    if len(lines) == 1:
+        return lines[0]
+    return "Funciono a medias", "\n".join(f"{title}. {detail}" for title, detail in lines)
+
+
 async def _notice(bus: EventBus, problems: list[str]) -> None:
+    notice = startup_notice(problems)
+    if notice is None:
+        return
     await asyncio.sleep(NOTICE_DELAY_S)
-    await bus.publish(BubbleShown(display="Nyx funciona a medias", secondary=", ".join(problems)))
-    await asyncio.sleep(NOTICE_S)
+    display, secondary = notice
+    await bus.publish(BubbleShown(display=display, secondary=secondary))
+    # Con varias cosas que leer, se deja un poco más.
+    await asyncio.sleep(NOTICE_S + 3 * secondary.count("\n"))
     await bus.publish(BubbleHidden())

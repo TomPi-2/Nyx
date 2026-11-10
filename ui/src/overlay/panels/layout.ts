@@ -33,10 +33,14 @@ export const NYX_EVENT = "island://nyx";
 export type NyxPresence = "coming" | "gone";
 
 /**
- * El campo de texto aparece donde empieza el cuadrado de Nyx. Si hay un panel arriba, el
- * panel baja para ponerse debajo del campo (y lo sigue si el campo crece) y vuelve a subir
- * cuando el campo se cierra del todo. El campo avisa a los paneles con INPUT_EVENT; los
- * paneles le dicen con PANELS_EVENT si hay uno arriba, para que el campo espere a que baje.
+ * El campo de texto nunca tapa a Nyx ni a un panel: sin Nyx aparece donde empieza su
+ * cuadrado (`raisedTop`) y, con Nyx a la vista, debajo de ella con el mismo hueco que los
+ * paneles (`panelTop`). Si Nyx llega con el campo abierto, el campo baja primero y Nyx espera
+ * PANEL_MOVE_MS (igual que con un panel). Un panel visible baja para ponerse debajo del campo
+ * (y lo sigue si el campo crece) y vuelve a su sitio cuando el campo se cierra del todo.
+ * El campo avisa a los paneles y a la isla con INPUT_EVENT; los paneles le dicen con
+ * PANELS_EVENT si hay uno en su sitio, para que el campo espere a que baje. La isla avisa a
+ * los paneles y al campo con NYX_EVENT.
  */
 export const INPUT_EVENT = "input://layout";
 export const PANELS_EVENT = "panels://raised";

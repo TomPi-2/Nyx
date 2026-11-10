@@ -198,6 +198,20 @@ class GlassSurface {
     requestAnimationFrame(step);
   }
 
+  /** Como `follow`, pero hasta que se cumpla `until` (el final de una animación). */
+  followUntil(until: Promise<unknown>): void {
+    let active = true;
+    void until.finally(() => {
+      active = false;
+      this.flush();
+    });
+    const step = () => {
+      this.flush();
+      if (active) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
   /**
    * Vuelve a mandar las formas en el siguiente fotograma. Los cambios de tamaño se ven
    * solos; si un panel se mueve (animación, cambio de diseño), hay que llamarlo.

@@ -34,6 +34,7 @@ pub fn run() {
             island::overlay_policy,
             monitors::monitors_list,
             input::input_hide,
+            input::input_set_height,
             glass::glass_attach,
             glass::glass_set_options,
             glass::glass_set_shapes,

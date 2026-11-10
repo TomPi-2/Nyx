@@ -9,7 +9,7 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import type { SettingsSection } from "$lib/protocol";
   import { glass, glassFromSettings, glassPoke, glassShape } from "$lib/glass";
-  import { POP_IN_MS, POP_OUT_MS, pop } from "$lib/motion";
+  import { POP_IN_MS, POP_OUT_MS, pop, popOutDone } from "$lib/motion";
   import { applyAppearance } from "$theme/apply";
   import Activacion from "./sections/Activacion.svelte";
   import Apariencia from "./sections/Apariencia.svelte";
@@ -42,6 +42,7 @@
   let maximized = $state(false);
   // Se encoge como Nyx al irse y luego se cierra de verdad.
   let closing = $state(false);
+  let windowEl: HTMLDivElement | undefined = $state();
   const section = $derived(SECTIONS.find((s) => s.id === current)!);
   const win = getCurrentWindow();
 
@@ -61,9 +62,11 @@
     const offClose = win.onCloseRequested((event) => {
       if (closing) return;
       event.preventDefault();
+      // Se cierra de verdad cuando termina de encogerse, no con un tiempo fijo.
+      const gone = popOutDone(windowEl);
       closing = true;
-      glass.follow(POP_OUT_MS + 40);
-      setTimeout(() => void win.destroy(), POP_OUT_MS);
+      glass.followUntil(gone);
+      void gone.then(() => win.destroy());
     });
     const offSection = win.listen<string>("settings://section", (e) => {
       const found = SECTIONS.find((s) => s.id === e.payload);
@@ -86,6 +89,7 @@
 </script>
 
 <div
+  bind:this={windowEl}
   class="window"
   class:maximized
   class:pop-in={!closing}
@@ -149,8 +153,8 @@
   </div>
 
   <!-- Avisos: aparecen y se van como Nyx; si cambia el aviso, uno se va y entra el otro. -->
-  {#if settings.error || settings.restart.length}
-    {#key settings.error ?? "reiniciar"}
+  {#if settings.error || settings.restarting || settings.readyNotice || settings.restart.length}
+    {#key settings.error ?? (settings.restarting ? "reiniciando" : settings.readyNotice ? "listo" : "reiniciar")}
       <div
         class="toast"
         role="status"
@@ -159,6 +163,10 @@
       >
         {#if settings.error}
           {settings.error}
+        {:else if settings.restarting}
+          Reiniciando Nyx…
+        {:else if settings.readyNotice}
+          Nyx ya está listo.
         {:else}
           Algunos cambios se aplican al reiniciar Nyx.
           <button class="restart" onclick={() => void settings.restartCore()}

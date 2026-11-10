@@ -29,6 +29,11 @@ export interface Download {
 const SAVE_AFTER_MS = 300;
 /** Cuánto se ve el aviso de un cambio rechazado («necesita al menos 2 sílabas»…). */
 const ERROR_SHOWN_MS = 6000;
+/** Tras reiniciar: cada cuánto se pregunta si ya está listo, cuánto se espera como mucho y
+    cuánto se ve el aviso de «listo». */
+const READY_POLL_MS = 1000;
+const READY_TIMEOUT_MS = 90_000;
+const READY_SHOWN_MS = 4000;
 
 function merge<T>(base: T, patch: Record<string, unknown>): T {
   const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
@@ -63,11 +68,19 @@ class SettingsStore {
   error = $state<string | null>(null);
   /** Cambios que se aplican al reiniciar Nyx. */
   restart = $state<string[]>([]);
+  /** Reiniciando Nyx: hasta que vuelve a estar listo del todo (voz y cerebro cargados). */
+  restarting = $state(false);
+  /** Aviso breve de que Nyx ya está listo tras reiniciar. */
+  readyNotice = $state(false);
 
   private core: CoreConnection | undefined;
   private pending: SettingsPatch = {};
   private timer: ReturnType<typeof setTimeout> | undefined;
   private errorTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Se ha visto caer el núcleo viejo (antes, lo que conteste aún es él). */
+  private sawDown = false;
+  private readyPoll: ReturnType<typeof setInterval> | undefined;
+  private readyTimer: ReturnType<typeof setTimeout> | undefined;
 
   /** Pide algo al asistente (core/nyx/setup/service.py). */
   setup(action: SetupAction, arg = ""): boolean {
@@ -77,8 +90,36 @@ class SettingsStore {
 
   /** Reinicia el núcleo para aplicar lo que lo necesita (bandeja → Reiniciar núcleo). */
   async restartCore(): Promise<void> {
+    if (this.restarting) return;
+    this.restarting = true;
+    this.readyNotice = false;
+    this.sawDown = false;
+    clearTimeout(this.readyTimer);
     await invoke("core_restart");
     this.restart = [];
+    // El núcleo nuevo acepta conexiones antes de cargar la voz y el cerebro: está listo
+    // cuando el estado trae la caché del sistema, que solo existe con todo en marcha.
+    const started = Date.now();
+    clearInterval(this.readyPoll);
+    this.readyPoll = setInterval(() => {
+      if (Date.now() - started > READY_TIMEOUT_MS) {
+        this.finishRestart(false);
+        return;
+      }
+      if (this.sawDown && this.connected) this.setup("status");
+    }, READY_POLL_MS);
+  }
+
+  private finishRestart(ok: boolean): void {
+    clearInterval(this.readyPoll);
+    this.restarting = false;
+    if (!ok) {
+      this.error = "Nyx está tardando en volver. Si no aparece, reinícialo desde la bandeja.";
+      return;
+    }
+    this.readyNotice = true;
+    clearTimeout(this.readyTimer);
+    this.readyTimer = setTimeout(() => (this.readyNotice = false), READY_SHOWN_MS);
   }
 
   connect(): () => void {
@@ -86,6 +127,7 @@ class SettingsStore {
       (msg) => this.handle(msg),
       (ok) => {
         this.connected = ok;
+        if (!ok) this.sawDown = true;
         if (ok) {
           this.core?.send({ type: "settings_get" });
           this.core?.send({ type: "setup", action: "status" });
@@ -122,6 +164,7 @@ class SettingsStore {
     switch (msg.type) {
       case "setup_status":
         this.setupStatus = msg.status;
+        if (this.restarting && this.sawDown && msg.status.index) this.finishRestart(true);
         return;
       case "setup_progress":
         this.downloads = {

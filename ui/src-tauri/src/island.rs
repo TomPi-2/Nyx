@@ -100,6 +100,15 @@ impl Overlays {
             *c = device;
         }
     }
+
+    /// ¿Se ve alguna de las ventanas flotantes (salvo `except`)?
+    fn any_shown(&self, except: Option<&str>) -> bool {
+        OVERLAYS
+            .iter()
+            .filter(|l| Some(**l) != except)
+            .filter_map(|l| self.get(l))
+            .any(|s| s.shown.load(Ordering::Relaxed))
+    }
 }
 
 /// Monitor donde debería estar Nyx ahora mismo (o None si en ninguno).
@@ -110,14 +119,18 @@ fn target(overlays: &Overlays) -> Option<win32::Monitor> {
     monitors.into_iter().nth(index)
 }
 
-/// Área del monitor actual de la isla (para el campo de texto: aparece en el mismo sitio).
+/// Monitor de Nyx para el campo de texto y el asistente: donde está si se ve; si no, donde
+/// aparecería ahora (el del ratón o el fijo). El monitor «actual» solo se actualiza con Nyx a
+/// la vista: con Nyx oculta es el último donde se vio, y usarlo dejaba el campo de texto
+/// atascado en ese monitor aunque el ratón estuviera en otro.
 pub fn current_area(app: &AppHandle) -> Option<MonitorArea> {
     let overlays = app.try_state::<Overlays>()?;
-    let current = overlays.current();
-    let monitors = win32::monitors();
-    current
-        .and_then(|d| monitors.iter().find(|m| m.device == d).map(|m| m.area))
-        .or_else(|| target(&overlays).map(|m| m.area))
+    if overlays.any_shown(None)
+        && let Some(area) = overlays.current().and_then(|d| area_of(&d))
+    {
+        return Some(area);
+    }
+    target(&overlays).map(|m| m.area)
 }
 
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
@@ -228,12 +241,7 @@ pub fn island_set_visible<R: Runtime>(
         return;
     }
     // Donde estén las demás o, si no hay ninguna a la vista, donde toque ahora.
-    let any_shown = OVERLAYS
-        .iter()
-        .filter(|l| **l != window.label())
-        .filter_map(|l| overlays.get(l))
-        .any(|s| s.shown.load(Ordering::Relaxed));
-    let device = if any_shown {
+    let device = if overlays.any_shown(Some(window.label())) {
         overlays.current()
     } else {
         let t = target(&overlays).map(|m| m.device);
@@ -312,7 +320,11 @@ async fn follow(app: AppHandle) {
         }
         overlays.set_current(next_device);
         for (window, state) in &wanted {
-            show(window, state, monitor.area);
+            // Durante la animación de salida se ha podido ocultar: no se vuelve a mostrar (se
+            // quedaría a la vista sin querer y fijaría el monitor de las demás).
+            if state.visible.load(Ordering::Relaxed) {
+                show(window, state, monitor.area);
+            }
         }
         if animate {
             for label in OVERLAYS {

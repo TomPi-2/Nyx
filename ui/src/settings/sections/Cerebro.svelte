@@ -74,21 +74,28 @@
     </Row>
   </Card>
 
-  <Card
-    title="Atajos aprendidos"
-    note={shortcuts.length
-      ? "Frases que Nyx ya sabe resolver sin pensar. Olvidar una hace que la vuelva a pensar la próxima vez."
-      : "Nyx aún no ha aprendido ningún atajo. Los aprende cuando resuelve una acción sencilla."}
-  >
-    {#each shortcuts as shortcut (shortcut.phrase)}
-      <Row
-        label="«{shortcut.phrase}»"
-        hint="{toolLabel(shortcut.tool)} · {shortcut.uses === 1
-          ? 'usado 1 vez'
-          : `usado ${shortcut.uses} veces`}"
-      >
-        <Button onclick={() => settings.setup("forget_shortcut", shortcut.phrase)}>Olvidar</Button>
-      </Row>
-    {/each}
-  </Card>
+  {#if shortcuts.length}
+    <Card
+      title="Atajos aprendidos"
+      note="Frases que Nyx ya sabe resolver sin pensar. Olvidar una hace que la vuelva a pensar la próxima vez."
+    >
+      {#each shortcuts as shortcut (shortcut.phrase)}
+        <Row
+          label="«{shortcut.phrase}»"
+          hint="{toolLabel(shortcut.tool)} · {shortcut.uses === 1
+            ? 'usado 1 vez'
+            : `usado ${shortcut.uses} veces`}"
+        >
+          <Button onclick={() => settings.setup("forget_shortcut", shortcut.phrase)}>Olvidar</Button
+          >
+        </Row>
+      {/each}
+    </Card>
+  {:else}
+    <!-- Sin atajos no hay tarjeta: solo el título y la explicación. -->
+    <Card
+      title="Atajos aprendidos"
+      note="Nyx aún no ha aprendido ningún atajo. Los aprende cuando resuelve una acción sencilla."
+    />
+  {/if}
 {/if}
