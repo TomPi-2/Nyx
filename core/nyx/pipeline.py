@@ -50,6 +50,7 @@ from nyx.stt.normalize import has_wake_word, normalize
 from nyx.tools.base import ToolResult
 from nyx.tts.base import TTSEngine, TTSError
 from nyx.tts.sentences import SentenceSplitter
+from nyx.wake.activations import ActivationLog, is_not_for_you
 from nyx.wake.base import WakeWordEngine
 from nyx.winapi import windows
 
@@ -259,6 +260,7 @@ class Pipeline:
         ringer: AlarmRinger | None = None,
         shortcuts: ShortcutStore | None = None,
         refuse: Callable[[str], tuple[str, str] | None] | None = None,
+        activations: ActivationLog | None = None,
         clock: Callable[[], float] = time.perf_counter,
     ) -> None:
         self.bus = bus
@@ -277,6 +279,11 @@ class Pipeline:
         self.ringer = ringer
         self.shortcuts = shortcuts
         self.refuse = refuse
+        self.activations = activations
+        # Umbral del detector sin el ajuste por errores (para recalcularlo al apuntar uno).
+        threshold = getattr(wake, "threshold", None)
+        offset = activations.offset if activations is not None else 0.0
+        self._wake_threshold0 = threshold - offset if isinstance(threshold, float) else None
         self._learned_last: tuple[str, float] | None = None  # (frase, cuándo) para olvidarla
         self._clock = clock
         self.mode = Mode.IDLE
@@ -341,6 +348,8 @@ class Pipeline:
             log.info("Activación")
             clip = self.capture.prebuffer(VERIFY_CLIP_S) if self.capture is not None else []
             verifies = bool(clip) and self.stt is not None
+            if not verifies:
+                self._record_activation(None, "")
             await self.start_listening(self.wake_prebuffer_s, show=not verifies)
             if self._listening is not None and clip:
                 self._listening.verify = asyncio.create_task(
@@ -359,11 +368,13 @@ class Pipeline:
             text = await self.stt.transcribe(clip, prompt=STT_PROMPT)
         except STTError:
             log.warning("No se pudo verificar «Nyx»: se da por buena", exc_info=True)
+            self._record_activation(None, "")
             if self._listening is not None and self.mode is Mode.LISTENING:
                 await self._set_state(NyxState.LISTENING)
             return True
         ok = has_wake_word(text)
         log.info("Verificación de «Nyx» (%d ms): %r → %s", _ms(self._clock() - t0), text, ok)
+        self._record_activation(ok, text)
         listening = self._listening
         if ok and listening is not None and self.mode is Mode.LISTENING:
             await self._set_state(NyxState.LISTENING)  # ahora sí: se enciende el indicador
@@ -622,6 +633,9 @@ class Pipeline:
             await self.ringer.stop()
             await self._hide_bubble()
             return
+        if self.activations is not None and is_not_for_you(text):
+            await self._false_activation(from_voice=from_voice)
+            return
         if self.refuse is not None and (no := self.refuse(text)) is not None:
             # Lo que Nyx no hace nunca (vaciar la papelera, actuar dentro de un juego…).
             log.info("Negativa fija para %r: %s", text, no[0])
@@ -703,6 +717,34 @@ class Pipeline:
         else:
             await self._go_idle()
         return results
+
+    def _record_activation(self, verified: bool | None, heard: str) -> None:
+        if self.activations is None:
+            return
+        score = getattr(self.wake, "last_score", None)
+        engine = type(self.wake).__name__ if self.wake is not None else "atajo"
+        self.activations.record(
+            engine, score if isinstance(score, float) else None, verified, heard
+        )
+
+    async def _false_activation(self, *, from_voice: bool) -> None:
+        """«Nyx, eso no era para ti»: la activación anterior fue un error (SPEC 4.7)."""
+        assert self.activations is not None
+        offset = self.activations.mark_previous_error()
+        if offset is None:
+            secondary = "no encuentro ninguna activación reciente"
+        else:
+            if self._wake_threshold0 is not None and self.wake is not None:
+                self.wake.threshold = self._wake_threshold0 + offset  # type: ignore[attr-defined]
+            secondary = "me costará un poco más activarme"
+            log.info("Activación marcada como error: ajuste del umbral +%.2f", offset)
+        await self._show_bubble("Vale, lo apunto", secondary)
+        self._schedule_bubble_hide(NOTICE_BUBBLE_S)
+        if from_voice and self.tts is not None and self.player is not None:
+            with contextlib.suppress(TTSError):
+                self.player.enqueue(await self.tts.synthesize("Vale, perdona."))
+                await self.player.drain()
+        await self._go_idle()
 
     def _learn(self, text: str, call: ToolCall) -> None:
         """SPEC sección 6: frase resuelta por el LLM con una sola acción → atajo."""

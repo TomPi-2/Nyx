@@ -20,42 +20,11 @@ import torch
 from torch import nn
 
 from nyx.paths import local_dir
-from nyx.wake.features import EMB_DIM, N_EMB
+from nyx.wake.net import Detector, export_onnx
 
 DATA = local_dir() / "training" / "conjunto"
 MAX_FP = 0.002  # el criterio: aciertos con como mucho un 0,2 % de ventanas negativas altas
 OUT = local_dir() / "training" / "modelos"
-
-
-class Detector(nn.Module):
-    def __init__(self, hidden: int = 128) -> None:
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(N_EMB * EMB_DIM, hidden),
-            nn.LayerNorm(hidden),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(hidden, hidden),
-            nn.LayerNorm(hidden),
-            nn.ReLU(),
-            nn.Linear(hidden, 1),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        out: torch.Tensor = self.net(x)
-        return out.squeeze(-1)
-
-
-class Exported(nn.Module):
-    """Lo que va en el ONNX: probabilidad (0–1) en vez de logit."""
-
-    def __init__(self, model: Detector) -> None:
-        super().__init__()
-        self.model = model
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return torch.sigmoid(self.model(x))
 
 
 def load(name: str) -> tuple[torch.Tensor, torch.Tensor]:
@@ -148,15 +117,7 @@ def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     torch.save(best_state, OUT / "nyx.pt")
     model.eval()
-    torch.onnx.export(
-        Exported(model),
-        (torch.zeros(1, N_EMB, EMB_DIM),),
-        str(OUT / "nyx.onnx"),
-        input_names=["x"],
-        output_names=["p"],
-        dynamic_axes={"x": {0: "n"}, "p": {0: "n"}},
-        dynamo=False,
-    )
+    export_onnx(model, OUT / "nyx.onnx")
     info = {
         "validacion": final,
         "mejor_epoca": best_epoch,

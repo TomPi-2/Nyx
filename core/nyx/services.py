@@ -47,6 +47,7 @@ from nyx.tts.base import TTSEngine
 from nyx.tts.piper import PiperTTS
 from nyx.tts.pocket import PocketTTS
 from nyx.tts.voices import Engine, voice_for
+from nyx.wake.activations import ActivationLog
 from nyx.wake.base import WakeWordEngine
 from nyx.wake.own_engine import OWN_MODEL, OwnWakeWord, threshold_for
 from nyx.wake.vosk_engine import VoskWakeWord, VoskYesNo
@@ -218,6 +219,10 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     tools_ctx = ToolContext(index=index, settings=settings, paths=paths, alarms=alarms)
     ringer = AlarmRinger(bus, tts=tts, player=player)
     executor = Executor(registry, tools_ctx, action_log=ActionLog.default())
+    # Registro de activaciones; los errores apuntados suben el umbral del detector propio.
+    activations = ActivationLog.default()
+    if isinstance(wake, OwnWakeWord):
+        wake.threshold = min(0.95, wake.threshold + activations.offset)
     # «Sí» / «no» por voz con el mismo modelo de Vosk que la activación.
     yesno = VoskYesNo(vosk_model) if vosk_model is not None else None
     pipeline = Pipeline(
@@ -238,6 +243,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         yesno=yesno,
         ringer=ringer,
         shortcuts=ShortcutStore.default(),
+        activations=activations,
     )
     log.info(
         "Servicios listos en %.1f s (voz: %s, activación: %s, respuesta hablada: %s)",
