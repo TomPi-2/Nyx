@@ -1,0 +1,124 @@
+<!-- Ajustes → Apariencia (SPEC secciones 12 y 13): Nyx y el motor de cristal. -->
+<script lang="ts">
+  import Card from "$lib/controls/Card.svelte";
+  import Row from "$lib/controls/Row.svelte";
+  import Segmented from "$lib/controls/Segmented.svelte";
+  import Slider from "$lib/controls/Slider.svelte";
+  import Toggle from "$lib/controls/Toggle.svelte";
+  import { edgeLevelToPx } from "$lib/glass";
+  import type { GlassInfo } from "$lib/protocol";
+  import Indicator from "$overlay/shape/Indicator.svelte";
+  import { settings } from "../store.svelte";
+
+  const QUALITY: { value: GlassInfo["quality"]; label: string }[] = [
+    { value: "auto", label: "Auto" },
+    { value: "alto", label: "Alto" },
+    { value: "medio", label: "Medio" },
+    { value: "bajo", label: "Bajo" },
+  ];
+  const QUALITY_HINT: Record<GlassInfo["quality"], string> = {
+    auto: "Nyx elige el nivel: baja solo con batería, ahorro de energía, transparencias de Windows desactivadas o si la tarjeta gráfica no llega.",
+    alto: "Ve lo de detrás en tiempo real, con refracción en el borde y brillo.",
+    medio: "Ve lo de detrás en tiempo real, desenfocado y con tinte.",
+    bajo: "Tinte gris translúcido: no mira lo de detrás y casi no gasta.",
+  };
+  const MOTION: { value: GlassInfo["motion"]; label: string }[] = [
+    { value: "siempre", label: "Siempre" },
+    { value: "interaccion", label: "Al interactuar" },
+    { value: "quieto", label: "Quieto" },
+  ];
+
+  const fmt = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 1 });
+
+  const data = $derived(settings.data);
+  const glass = $derived(data?.appearance.glass);
+  // El tamaño se ve al momento en la vista previa; se guarda al soltar.
+  let size = $state<number | null>(null);
+  const shownSize = $derived(size ?? data?.appearance.indicator_size ?? 100);
+
+  function setGlass(patch: Partial<GlassInfo>, debounce = false) {
+    settings.set({ appearance: { glass: { ...glass!, ...patch } } }, debounce);
+  }
+</script>
+
+{#if data && glass}
+  <Card title="Nyx">
+    <div class="preview">
+      <Indicator status="listening" level={0} size={Math.min(shownSize, 120)} backdrop={null} />
+    </div>
+    <Row label="Tamaño" value="{shownSize} px" stacked>
+      <Slider
+        label="Tamaño de Nyx"
+        min={60}
+        max={180}
+        step={10}
+        value={shownSize}
+        oninput={(v) => (size = v)}
+        onchange={(v) => {
+          settings.set({ appearance: { indicator_size: v } });
+          size = null;
+        }}
+      />
+    </Row>
+  </Card>
+
+  <Card
+    title="Cristal"
+    note="En Alto y Medio, Nyx mira la pantalla para dibujar el cristal. Esas imágenes se quedan en la tarjeta gráfica: nunca se guardan, no salen del equipo y no las ve el modelo. Con un juego abierto no se mira nunca."
+  >
+    <Row
+      label="Calidad"
+      hint={glass.quality === "auto"
+        ? QUALITY_HINT.auto
+        : `${QUALITY_HINT[glass.quality]} En partida se cambia a Bajo automáticamente, sin excepción.`}
+      stacked
+    >
+      <Segmented
+        label="Calidad del cristal"
+        options={QUALITY}
+        value={glass.quality}
+        onchange={(quality) => setGlass({ quality })}
+      />
+    </Row>
+    <Row label="Movimiento del borde" hint="El borde ondula como un líquido." stacked>
+      <Segmented
+        label="Movimiento del borde"
+        options={MOTION}
+        value={glass.motion}
+        onchange={(motion) => setGlass({ motion })}
+      />
+    </Row>
+    <Row
+      label="Amplitud del borde"
+      value="{glass.edge} · {fmt(edgeLevelToPx(glass.edge))} px"
+      stacked
+    >
+      <Slider
+        label="Amplitud del borde"
+        min={0}
+        max={10}
+        step={1}
+        value={glass.edge}
+        oninput={(edge) => setGlass({ edge }, true)}
+      />
+    </Row>
+    <Row
+      label="Mostrar Nyx en capturas y directos"
+      hint="En Alto y Medio, los paneles no salen en capturas ni directos (la forma de Nyx sí). Activándolo, los paneles usan el nivel Bajo y salen siempre."
+    >
+      <Toggle
+        label="Mostrar Nyx en capturas y directos"
+        checked={glass.show_in_captures}
+        onchange={(show_in_captures) => setGlass({ show_in_captures })}
+      />
+    </Row>
+  </Card>
+{/if}
+
+<style>
+  .preview {
+    display: flex;
+    justify-content: center;
+    padding: 4px 0 0;
+  }
+</style>

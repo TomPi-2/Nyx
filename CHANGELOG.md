@@ -28,6 +28,14 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
     - Cuando la forma de Nyx se va (respuesta sin voz, aviso con Nyx en reposo), el panel sube hasta arriba en lugar de quedarse suelto; si Nyx vuelve, el panel baja a su hueco y la forma aparece al terminar.
     - Errores vistos al usar Nyx apuntados en `docs/ERRORES.md` para corregirlos por tandas.
     - Protocolo v7: el saludo lleva los ajustes del cristal y cada burbuja dice qué panel es (`kind`: respuesta, confirmación, deshacer o aviso) y cuánto dura (`expires_s`), para que las cuentas atrás sean exactas.
+  - 5c‑1, ventana de Ajustes (bandeja → «Ajustes», o abrir Nyx otra vez):
+    - Ventana normal (foco, barra de tareas, Alt+Tab), sin bordes, sobre el motor de cristal, redimensionable (880 × 600, mínimo 720 × 480) y que recuerda posición y tamaño (`%LOCALAPPDATA%\Nyx\settings-window.json`). Barra de título propia con tres botones circulares que aparecen al pasar el ratón; barra lateral con las secciones en pastilla y opciones en tarjetas.
+    - Controles reutilizables en `ui/src/lib/controls` (interruptor, selector en pastilla, deslizador, tarjeta, fila y lista de textos).
+    - Apariencia: tamaño de Nyx con vista previa en directo, calidad del cristal (Auto, Alto, Medio, Bajo; con un nivel concreto avisa de que en partida se cambia a Bajo sin excepción), movimiento y amplitud del borde (0–10), «Mostrar Nyx en capturas y directos» y qué hace Nyx con las capturas.
+    - Respuestas: responder también en voz a lo escrito.
+    - Modo partida: Nyx en partida, prioridad baja, liberar la memoria del modelo, qué cuenta como juego (listas de ejecutables) y qué puede hacer Nyx mientras juegas (sí, después o no, por herramienta).
+    - Los cambios se aplican al momento (isla, paneles y campo de texto incluidos) y se guardan en `settings.json`. Si algo solo se aplica al reiniciar, Ajustes lo dice.
+    - Protocolo v8: `settings_get`, `settings_set` (cambio parcial) y `settings` (ajustes actuales a todas las ventanas, con la lista de herramientas). En el núcleo, `nyx/settings/live.py` valida el cambio, lo copia sobre el mismo objeto de ajustes (las listas y diccionarios por dentro, así lo que ya los usa ve el cambio) y solo deja tocar las secciones de la ventana.
   - Icono propio de Nyx (propuesta «Sólido»: la forma de Nyx casi cuadrada con un solo lóbulo), generado con el mismo shader portado a numpy (`core/scripts/make_icon.py`): ejecutable, menú Inicio y bandeja. En la bandeja, blanco con la barra de tareas oscura y gris oscuro con la clara; cambia solo si cambia el tema de Windows. Prototipo y animación de la web en `docs/prototipos/icono-nyx.html`.
 - Fase 4 (cerrada el 2026-11-10): «Nyx» de verdad.
   - 4a: `scripts/record_samples.py` (grabar positivos, palabras parecidas y uso normal) y `scripts/wake_eval.py` (aciertos por tipo y activaciones falsas por hora tras whisper).

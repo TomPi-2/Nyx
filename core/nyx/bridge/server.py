@@ -28,9 +28,13 @@ from nyx.bridge.protocol import (
     GlassInfo,
     Hello,
     LevelMsg,
+    SettingsGetMsg,
+    SettingsMsg,
+    SettingsSetMsg,
     StateMsg,
     TalkKeyMsg,
     TextInput,
+    ToolInfo,
     Welcome,
     _Msg,
     client_adapter,
@@ -42,6 +46,8 @@ from nyx.events import (
     BubbleHidden,
     BubbleShown,
     NyxState,
+    SettingsChanged,
+    SettingsRequested,
     StateChanged,
     TalkKey,
     TextEntered,
@@ -72,9 +78,11 @@ class UIBridge:
         origins: Sequence[str] = DEFAULT_ORIGINS,
         indicator_size: int = 100,
         glass: GlassInfo | None = None,
+        tools: Sequence[ToolInfo] = (),
     ) -> None:
         self.indicator_size = indicator_size
         self.glass = glass or GlassInfo()
+        self.tools = list(tools)
         self._game: GameMsg | None = None
         self._bus = bus
         self._token = token
@@ -90,6 +98,7 @@ class UIBridge:
             bus.subscribe(BubbleShown, self._on_bubble),
             bus.subscribe(BubbleHidden, self._on_bubble_hidden),
             bus.subscribe(GameStateChanged, self._on_game),
+            bus.subscribe(SettingsChanged, self._on_settings),
         ]
 
     @property
@@ -168,6 +177,10 @@ class UIBridge:
             await self._bus.publish(TalkKey(msg.pressed))
         elif isinstance(msg, ActionMsg):
             await self._bus.publish(ActionChosen(msg.id))
+        elif isinstance(msg, SettingsGetMsg):
+            await self._bus.publish(SettingsRequested())
+        elif isinstance(msg, SettingsSetMsg):
+            await self._bus.publish(SettingsRequested(dict(msg.patch)))
 
     async def broadcast(self, msg: _Msg) -> None:
         if not self._clients:
@@ -196,6 +209,23 @@ class UIBridge:
                 alert=event.alert,
                 kind=event.kind,
                 expires_s=event.expires_s,
+            )
+        )
+
+    async def _on_settings(self, event: SettingsChanged) -> None:
+        # Las ventanas que se abran después reciben ya los valores nuevos en «welcome».
+        appearance = event.data.get("appearance", {})
+        if isinstance(appearance, dict):
+            self.indicator_size = int(appearance.get("indicator_size", self.indicator_size))
+            glass = appearance.get("glass")
+            if isinstance(glass, dict):
+                self.glass = GlassInfo.model_validate(glass)
+        await self.broadcast(
+            SettingsMsg(
+                data=event.data,
+                restart=list(event.restart),
+                error=event.error,
+                tools=self.tools,
             )
         )
 

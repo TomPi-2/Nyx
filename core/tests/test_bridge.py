@@ -15,6 +15,8 @@ from nyx.events import (
     BubbleAction,
     BubbleShown,
     NyxState,
+    SettingsChanged,
+    SettingsRequested,
     StateChanged,
     TalkKey,
     TextEntered,
@@ -147,3 +149,25 @@ async def test_bubble_kind_and_expiry(bridge: tuple[EventBus, int]) -> None:
         )
         msg = await _recv(conn)
         assert (msg["kind"], msg["expires_s"]) == ("confirm", 15.0)
+
+
+async def test_settings_roundtrip(bridge: tuple[EventBus, int]) -> None:
+    """v8: Ajustes pide y cambia ajustes; la respuesta llega a todas las ventanas."""
+    bus, port = bridge
+    requests: list[SettingsRequested] = []
+
+    async def answer(event: SettingsRequested) -> None:
+        requests.append(event)
+        data = {"appearance": {"indicator_size": 120, "glass": {"edge": 8}}}
+        await bus.publish(SettingsChanged(data=data, restart=("llm.model",)))
+
+    bus.subscribe(SettingsRequested, answer)
+    async with connect(f"ws://127.0.0.1:{port}", origin=ORIGIN) as conn:  # type: ignore[arg-type]
+        await _hello(conn)
+        await _recv(conn)
+        await _recv(conn)
+        await conn.send(json.dumps({"type": "settings_set", "patch": {"game": {"mode": "off"}}}))
+        msg = await _recv(conn)
+        assert msg["type"] == "settings"
+        assert msg["restart"] == ["llm.model"]
+    assert requests == [SettingsRequested({"game": {"mode": "off"}})]

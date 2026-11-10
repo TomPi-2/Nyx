@@ -5,6 +5,7 @@ mod glass;
 mod hotkeys;
 mod input;
 mod island;
+mod settings_window;
 mod tray;
 mod win32;
 
@@ -14,9 +15,9 @@ use tauri::RunEvent;
 pub fn run() {
     let app = tauri::Builder::default()
         // Debe registrarse el primero (instancia única, SPEC sección 14).
-        .plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {
-            // Fase 5: abrir la ventana de Ajustes.
-            eprintln!("[nyx] ya hay una instancia en marcha");
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            // Abrir Nyx otra vez muestra los Ajustes (SPEC sección 14).
+            settings_window::open(app);
         }))
         .plugin(hotkeys::plugin())
         // Alarmas y avisos: además de la burbuja, notificación de Windows (SPEC sección 11).

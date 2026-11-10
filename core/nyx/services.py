@@ -26,7 +26,7 @@ from nyx.brain.router import refusal, route
 from nyx.brain.service import Brain
 from nyx.brain.shortcuts import ShortcutStore
 from nyx.bus import EventBus
-from nyx.events import BubbleHidden, BubbleShown
+from nyx.events import BubbleHidden, BubbleShown, SettingsChanged
 from nyx.executor import Executor
 from nyx.game.controller import GameController
 from nyx.game.detector import GameDetector
@@ -274,6 +274,12 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         "sí" if wake is not None else "no",
         "sí" if tts is not None else "no",
     )
+
+    # «Responder también en voz a lo escrito» se cambia al momento desde Ajustes.
+    async def on_settings(_: SettingsChanged) -> None:
+        pipeline.speak_typed = settings.responses.speak_typed
+
+    bus.subscribe(SettingsChanged, on_settings)
     services = Services(
         pipeline, llm, stt, index, start_watcher(index), alarms=alarms, ringer=ringer
     )

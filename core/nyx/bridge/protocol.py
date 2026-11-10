@@ -6,13 +6,13 @@ cambia también allí y sube PROTOCOL_VERSION.
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 7
+PROTOCOL_VERSION = 8
 
 
 class _Msg(BaseModel):
@@ -51,7 +51,23 @@ class ActionMsg(_Msg):
     id: str = Field(min_length=1, max_length=64)
 
 
-ClientMessage = Annotated[Hello | TextInput | TalkKeyMsg | ActionMsg, Field(discriminator="type")]
+class SettingsGetMsg(_Msg):
+    """v8: Ajustes pide los ajustes actuales."""
+
+    type: Literal["settings_get"] = "settings_get"
+
+
+class SettingsSetMsg(_Msg):
+    """v8: Ajustes cambia algo (cambio parcial: {"game": {"mode": "normal"}})."""
+
+    type: Literal["settings_set"] = "settings_set"
+    patch: dict[str, Any]
+
+
+ClientMessage = Annotated[
+    Hello | TextInput | TalkKeyMsg | ActionMsg | SettingsGetMsg | SettingsSetMsg,
+    Field(discriminator="type"),
+]
 client_adapter: TypeAdapter[ClientMessage] = TypeAdapter(ClientMessage)
 
 
@@ -116,8 +132,26 @@ class GameMsg(_Msg):
     mode: Literal["off", "voice", "normal"] = "voice"
 
 
+class ToolInfo(_Msg):
+    """v8: herramienta para la lista de políticas en partida (Ajustes → Modo partida)."""
+
+    name: str
+    risk: Literal["green", "yellow", "red"]
+    game_policy: Literal["allowed", "deferred", "blocked"]
+
+
+class SettingsMsg(_Msg):
+    """v8: ajustes actuales; se manda a todas las ventanas cada vez que cambian."""
+
+    type: Literal["settings"] = "settings"
+    data: dict[str, Any]
+    restart: list[str] = []  # lo cambiado que se aplica al reiniciar Nyx
+    error: str | None = None  # cambio rechazado
+    tools: list[ToolInfo] = []
+
+
 ServerMessage = Annotated[
-    Welcome | StateMsg | LevelMsg | BubbleMsg | BubbleHideMsg | GameMsg,
+    Welcome | StateMsg | LevelMsg | BubbleMsg | BubbleHideMsg | GameMsg | SettingsMsg,
     Field(discriminator="type"),
 ]
 server_adapter: TypeAdapter[ServerMessage] = TypeAdapter(ServerMessage)

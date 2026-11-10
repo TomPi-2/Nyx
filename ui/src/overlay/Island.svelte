@@ -105,6 +105,9 @@
       case "welcome":
         size = msg.indicator_size ?? 100;
         break;
+      case "settings":
+        size = msg.data.appearance.indicator_size; // cambiado en Ajustes → Apariencia
+        break;
       case "game":
         game = { active: msg.active, mode: msg.mode };
         break;

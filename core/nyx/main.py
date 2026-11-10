@@ -24,7 +24,7 @@ import threading
 from typing import Any
 
 from nyx import __version__
-from nyx.bridge.protocol import PROTOCOL_VERSION, GlassInfo
+from nyx.bridge.protocol import PROTOCOL_VERSION, GlassInfo, ToolInfo
 from nyx.bridge.server import UIBridge
 from nyx.bus import EventBus
 from nyx.events import TextEntered
@@ -34,6 +34,7 @@ from nyx.paths import logs_dir
 from nyx.services import Services
 from nyx.services import build as build_services
 from nyx.settings import load_settings
+from nyx.settings.live import SettingsService
 from nyx.winjob import kill_children_on_exit
 
 log = logging.getLogger("nyx")
@@ -122,7 +123,10 @@ async def run(args: argparse.Namespace) -> int:
         port=args.port,
         indicator_size=settings.appearance.indicator_size,
         glass=GlassInfo.model_validate(settings.appearance.glass.model_dump()),
+        tools=tool_infos(),
     )
+    # Ajustes desde la ventana de Ajustes: se aplican sobre este mismo objeto (SPEC 13).
+    settings_service = SettingsService(bus, settings)
     port = await bridge.start()
 
     print(json.dumps({"event": "ready", "port": port, "protocol": PROTOCOL_VERSION}), flush=True)
@@ -165,8 +169,20 @@ async def run(args: argparse.Namespace) -> int:
         await asyncio.gather(*tasks, return_exceptions=True)
         if services is not None:
             await services.close()
+        settings_service.close()
         await bridge.stop()
     return 0
+
+
+def tool_infos() -> list[ToolInfo]:
+    """Herramientas para la lista de políticas en partida (Ajustes → Modo partida)."""
+    from nyx.tools.registry import default_registry
+
+    return [
+        ToolInfo(name=t.name, risk=t.risk.value, game_policy=t.game_policy.value)
+        for t in default_registry().all()
+        if t.name != "wait_for_window"  # paso interno de los planes, no una acción
+    ]
 
 
 def download_models() -> int:

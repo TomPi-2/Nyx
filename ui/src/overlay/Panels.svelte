@@ -143,6 +143,12 @@
           glass.set(glassFromSettings(msg.glass));
         }
         break;
+      case "settings":
+        // Cambios desde Ajustes: se aplican al momento.
+        size = msg.data.appearance.indicator_size;
+        edgePx = edgeLevelToPx(msg.data.appearance.glass.edge);
+        glass.set(glassFromSettings(msg.data.appearance.glass));
+        break;
       case "bubble":
         if (msg.alert) {
           // Alarmas: también en el centro de notificaciones, por si no se mira la pantalla.
