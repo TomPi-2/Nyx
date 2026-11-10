@@ -82,3 +82,18 @@ def test_dib_is_bottom_up_32_bit() -> None:
     assert (size, width, height, bits) == (40, 3, 2, 32)
     body = dib[40:]
     assert body[3 * 4] == 255 and body[0] == 0  # la fila de arriba va al final
+
+
+def test_media_session_choice() -> None:
+    from types import SimpleNamespace
+
+    from nyx.winapi.media import _pick_session
+
+    opera = SimpleNamespace(source_app_user_model_id="OperaSoftware.OperaGXWebBrowser.1751")
+    spotify = SimpleNamespace(source_app_user_model_id="Spotify.exe")
+    sessions = [spotify, opera]
+    assert _pick_session(sessions, spotify, "youtube") is opera  # «de YouTube» → navegador
+    assert _pick_session(sessions, opera, "spotify") is spotify
+    assert _pick_session(sessions, opera, None) is opera  # sin origen: la actual
+    assert _pick_session(sessions, None, "discord") is spotify  # nada encaja: la primera
+    assert _pick_session([], None, "youtube") is None

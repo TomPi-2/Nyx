@@ -33,9 +33,9 @@ def call(text: str, index: SystemIndex) -> tuple[str, dict[str, object]]:
         ("Silencia.", "set_volume", {"mute": True}),
         ("silencia discord", "set_volume", {"mute": True, "app": "Discord PTB"}),
         ("quita el silencio", "set_volume", {"mute": False}),
-        ("Pausa la música", "media_control", {"action": "play_pause"}),
-        ("reanuda", "media_control", {"action": "play_pause"}),
-        ("Pon algo de música", "media_control", {"action": "play_pause"}),
+        ("Pausa la música", "media_control", {"action": "pause"}),
+        ("reanuda", "media_control", {"action": "play"}),
+        ("Pon algo de música", "media_control", {"action": "play"}),
         (
             "Sube el volumen en Spotify",
             "app_action",
@@ -314,4 +314,7 @@ def test_battery_fixes(index: SystemIndex, text: str, tool: str | None) -> None:
 )
 def test_media_with_source(index: SystemIndex, text: str) -> None:
     result = route(text, index)
-    assert isinstance(result, Route) and result.calls[0].arguments == {"action": "play_pause"}
+    assert isinstance(result, Route)
+    args = result.calls[0].arguments
+    assert args["action"] in ("pause", "play")
+    assert args["source"] in ("youtube", "spotify")

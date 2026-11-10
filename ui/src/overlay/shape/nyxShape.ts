@@ -201,6 +201,12 @@ export class NyxShape {
     s.flow.t = FLOW_BY_STATE[state] * FLOW;
     s.squash.t = state === "speaking" ? this.level : 0;
     for (const sp of Object.values(s)) sp.step(dt);
+    // Al desaparecer, el muelle se para en seco al llegar a cero: si no, rebota y asoma un
+    // cuadradito blanco durante un instante después de haberse ido.
+    if (state === "hidden" && s.scale.v <= 0.001) {
+      s.scale.v = 0;
+      s.scale.vel = 0;
+    }
     this.gray += (this.grayTarget - this.gray) * Math.min(1, dt * 4);
 
     const gl = this.gl;

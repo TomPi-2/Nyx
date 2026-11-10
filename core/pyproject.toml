@@ -22,6 +22,8 @@ dependencies = [
     "vosk>=0.3.45",
     "watchdog>=7.1.0",
     "websockets>=14",
+    "winrt-windows-foundation>=4!10.0.28000.2957",
+    "winrt-windows-media-control>=4!10.0.28000.2957",
 ]
 
 [dependency-groups]

@@ -65,11 +65,34 @@
     };
   });
 
+  // «Pensando» se ve al menos MIN_THINK_MS: Nyx suele resolver en milisegundos y la división
+  // en cuatro ni se llegaría a ver. Lo que llegue mientras tanto espera a que termine.
+  const MIN_THINK_MS = 1200;
+  let shown: ShapeState = "hidden";
+  let thinkingSince = 0;
+  let holdTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function apply(next: ShapeState): void {
+    if (!shape) return;
+    const now = performance.now();
+    clearTimeout(holdTimer);
+    if (shown === "thinking" && next !== "thinking") {
+      const left = MIN_THINK_MS - (now - thinkingSince);
+      if (left > 0) {
+        holdTimer = setTimeout(() => apply(shapeState(status, level)), left);
+        return;
+      }
+    }
+    if (next === "thinking" && shown !== "thinking") thinkingSince = now;
+    shown = next;
+    shape.setState(next);
+  }
+
   $effect(() => {
     if (!shape) return;
     shape.size = size;
     shape.setLevel(level);
-    shape.setState(shapeState(status, level));
+    apply(shapeState(status, level));
   });
 
   $effect(() => {
