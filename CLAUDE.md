@@ -17,7 +17,7 @@ Eres el desarrollador principal de Nyx. La especificación completa está en [do
 
 ## Estado
 
-Fase actual: **4 — «Nyx» de verdad**: 4a–4d hechos (la verificación de voz pasa a la fase 6); falta la prueba del usuario para cerrar la fase 4. Fases 1 y 2 cerradas el 2026-11-09; fase 3 cerrada el 2026-11-10.
+Fase actual: **5 — Modo partida e interfaz final** (plan pendiente de aprobación). Fases 1 y 2 cerradas el 2026-11-09; fases 3 y 4 cerradas el 2026-11-10.
 
 ## Decisiones tomadas
 
