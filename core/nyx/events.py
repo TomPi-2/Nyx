@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 
 class NyxState(StrEnum):
@@ -62,6 +62,15 @@ class BubbleHidden:
     pass
 
 
+@dataclass(frozen=True, slots=True)
+class SettingsChanged:
+    """Ajustes actuales tras leerlos o cambiarlos desde Ajustes (SPEC sección 13)."""
+
+    data: dict[str, Any]
+    restart: tuple[str, ...] = ()  # lo cambiado que se aplica al reiniciar Nyx
+    error: str | None = None  # cambio rechazado (no se ha aplicado nada)
+
+
 # Interfaz → núcleo
 
 
@@ -84,3 +93,10 @@ class ActionChosen:
     """El usuario ha pulsado un botón de la burbuja."""
 
     id: str
+
+
+@dataclass(frozen=True, slots=True)
+class SettingsRequested:
+    """Ajustes pide leerlos (`patch` None) o cambiarlos (cambio parcial)."""
+
+    patch: dict[str, Any] | None = None

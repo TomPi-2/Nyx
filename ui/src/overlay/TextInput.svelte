@@ -39,6 +39,7 @@
 
   function handle(msg: ServerMessage) {
     if (msg.type === "welcome" && msg.glass) glass.set(glassFromSettings(msg.glass));
+    if (msg.type === "settings") glass.set(glassFromSettings(msg.data.appearance.glass));
     // En partida el cristal pasa a Bajo sin excepción.
     if (msg.type === "game") glass.setGame(msg.active);
   }
