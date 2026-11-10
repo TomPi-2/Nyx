@@ -88,6 +88,8 @@ const SYSTEM_EVERY: Duration = Duration::from_secs(2);
 const IDLE_POLL_MS: u32 = 100;
 /// Cada cuánto se mira si otras ventanas tapan del todo a una ventana con cristal.
 const OCCLUSION_EVERY: Duration = Duration::from_millis(250);
+/// Cuánto sigue viva una captura que ya nadie necesita.
+const CAPTURE_LINGER: Duration = Duration::from_secs(2);
 /// Mientras se arrastra una ventana se redibuja a la frecuencia de la pantalla.
 const MOVING_FOR: Duration = Duration::from_millis(400);
 /// Una vuelta completa del ruido del borde a velocidad 1 (s).
@@ -482,11 +484,14 @@ impl Engine {
             }
             s.visible = shown && !s.covered;
             if !s.visible {
-                s.has_backdrop = false;
+                // Se conserva la última imagen desenfocada: al volver a verse (restaurar tras
+                // minimizar, dejar de estar tapada) se dibuja con ella al momento y se renueva
+                // en cuanto llega la captura. Si se olvidara, el primer fotograma saldría con
+                // el tinte casi opaco y se vería un destello.
                 continue;
             }
             if !was_visible {
-                // Vuelve a verse: se redibuja con lo que haya detrás ahora.
+                // Vuelve a verse: se redibuja ya y luego con lo que haya detrás ahora.
                 s.needs_blur = true;
                 s.needs_draw = true;
             }
@@ -555,7 +560,16 @@ impl Engine {
             .filter(|s| s.visible && s.effective.captures())
             .map(|s| s.monitor)
             .collect();
-        self.captures.retain(|c| wanted.contains(&c.monitor));
+        // Una captura que ya nadie necesita sigue viva un momento: si la ventana vuelve enseguida
+        // (minimizar y restaurar, una burbuja tras otra), no hay que volver a arrancarla.
+        let now = Instant::now();
+        for c in &mut self.captures {
+            if wanted.contains(&c.monitor) {
+                c.needed_at = now;
+            }
+        }
+        self.captures
+            .retain(|c| now.duration_since(c.needed_at) < CAPTURE_LINGER);
         let Some(gpu) = &self.gpu else {
             return;
         };

@@ -39,6 +39,8 @@ pub struct MonitorCapture {
     frame: Option<(Direct3D11CaptureFrame, ID3D11Texture2D, (u32, u32))>,
     /// Fotogramas recibidos desde la última estadística.
     pub frames: u32,
+    /// Última vez que una ventana visible la necesitó (engine.rs la cierra un rato después).
+    pub needed_at: std::time::Instant,
 }
 
 impl MonitorCapture {
@@ -86,6 +88,7 @@ impl MonitorCapture {
             fresh,
             frame: None,
             frames: 0,
+            needed_at: std::time::Instant::now(),
         })
     }
 
