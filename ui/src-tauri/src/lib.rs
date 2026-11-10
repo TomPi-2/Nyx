@@ -25,6 +25,8 @@ pub fn run() {
             core_process::core_endpoint,
             island::island_set_visible,
             island::island_set_hit_rects,
+            island::island_set_size,
+            island::island_backdrop_luma,
             input::input_hide,
         ])
         .setup(|app| {

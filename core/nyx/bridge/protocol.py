@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 5
+PROTOCOL_VERSION = 6
 
 
 class _Msg(BaseModel):
@@ -62,6 +62,7 @@ class Welcome(_Msg):
     type: Literal["welcome"] = "welcome"
     version: str
     protocol: int = PROTOCOL_VERSION
+    indicator_size: int = 100  # v6: lado de la forma de Nyx en px (Ajustes → Apariencia)
 
 
 class StateMsg(_Msg):

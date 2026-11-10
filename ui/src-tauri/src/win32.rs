@@ -165,3 +165,40 @@ pub fn cursor_in(hwnd: HWND, rects: &[[f64; 4]]) -> bool {
             .any(|[rx, ry, rw, rh]| x >= *rx && x <= rx + rw && y >= *ry && y <= ry + rh)
     }
 }
+
+/// Luminancia media (0–1) de lo que se ve en pantalla en un anillo alrededor de un punto de
+/// la ventana (píxeles CSS). Se mira alrededor y no debajo porque debajo está la propia forma
+/// de Nyx (decisión 2026-11-10: así Nyx sigue saliendo en capturas y streams).
+pub fn ring_luma(hwnd: HWND, cx: f64, cy: f64, radius: f64) -> Option<f64> {
+    use windows::Win32::Graphics::Gdi::{CLR_INVALID, GetDC, GetPixel, ReleaseDC};
+
+    const SAMPLES: usize = 16;
+    let mut rect = RECT::default();
+    // SAFETY: hwnd es una ventana válida de esta app y rect es una variable local.
+    unsafe { GetWindowRect(hwnd, &mut rect).ok()? };
+    // SAFETY: consulta de solo lectura sobre una ventana válida.
+    let scale = f64::from(unsafe { GetDpiForWindow(hwnd) }.max(96)) / 96.0;
+    // SAFETY: DC de la pantalla entera; se libera al final.
+    let dc = unsafe { GetDC(None) };
+    if dc.is_invalid() {
+        return None;
+    }
+    let mut total = 0.0;
+    let mut count = 0usize;
+    for i in 0..SAMPLES {
+        let a = (i as f64) * std::f64::consts::TAU / (SAMPLES as f64);
+        let x = rect.left + ((cx + radius * a.cos()) * scale).round() as i32;
+        let y = rect.top + ((cy + radius * a.sin()) * scale).round() as i32;
+        // SAFETY: lectura de un píxel del DC de pantalla.
+        let c = unsafe { GetPixel(dc, x, y) };
+        if c.0 == CLR_INVALID {
+            continue;
+        }
+        let (r, g, b) = (c.0 & 0xFF, (c.0 >> 8) & 0xFF, (c.0 >> 16) & 0xFF);
+        total += (0.2126 * f64::from(r) + 0.7152 * f64::from(g) + 0.0722 * f64::from(b)) / 255.0;
+        count += 1;
+    }
+    // SAFETY: libera el DC obtenido arriba.
+    unsafe { ReleaseDC(None, dc) };
+    (count > 0).then(|| total / count as f64)
+}

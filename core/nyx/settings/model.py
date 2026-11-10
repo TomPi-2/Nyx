@@ -86,6 +86,12 @@ class ResponseSettings(_Section):
     speak_typed: bool = False
 
 
+class AppearanceSettings(_Section):
+    """Apariencia (SPEC secciones 12 y 13)."""
+
+    indicator_size: int = Field(default=100, ge=44, le=260)  # lado de la forma de Nyx (px)
+
+
 class GameSettings(_Section):
     """Modo partida (SPEC sección 9)."""
 
@@ -112,6 +118,7 @@ class Settings(BaseModel):
     tts: TTSSettings = Field(default_factory=TTSSettings)
     responses: ResponseSettings = Field(default_factory=ResponseSettings)
     game: GameSettings = Field(default_factory=GameSettings)
+    appearance: AppearanceSettings = Field(default_factory=AppearanceSettings)
 
 
 def settings_path() -> Path:

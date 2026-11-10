@@ -1,7 +1,7 @@
 <!--
-  La isla (SPEC sección 12): pastilla de cristal gris arriba en el centro del monitor.
-  Fase 1: versión provisional con tinte (sin desenfoque real) y un orbe en CSS;
-  el orbe con shader WebGL llega en la fase 5.
+  La isla (SPEC secciones 11 y 12): arriba en el centro del monitor, la forma de Nyx
+  (cuadrado líquido-sólido, shape/) y, debajo, la burbuja de respuesta. Las burbujas son las
+  provisionales: los paneles se rediseñan desde cero después de la forma.
 -->
 <script lang="ts">
   import { onMount } from "svelte";
@@ -11,10 +11,14 @@
   import { sendNotification } from "@tauri-apps/plugin-notification";
   import { connectCore, type CoreConnection } from "$lib/core";
   import type { ActionButton, NyxState, ServerMessage } from "$lib/protocol";
+  import Indicator from "./shape/Indicator.svelte";
+  import { SHAPE_PAD } from "./shape/nyxShape";
 
   const TOP = 12; // margen superior en px
   const MAX_WIDTH = 520;
+  const BUBBLE_SPACE = 210; // alto reservado para la burbuja bajo la forma
   const HIDE_AFTER_MS = 400; // deja terminar la animación de salida antes de ocultar la ventana
+  const BACKDROP_MS = 500; // cada cuánto se mira el fondo (blanco o gris)
 
   let status = $state<NyxState>("idle");
   let connected = $state(false);
@@ -31,7 +35,11 @@
   const springOpts = { stiffness: 0.12, damping: 0.62 };
   const width = new Spring(44, springOpts);
   const height = new Spring(44, springOpts);
-  const level = new Spring(0, { stiffness: 0.3, damping: 0.8 });
+  let level = $state(0);
+  let size = $state(100); // lado de la forma (Ajustes → Apariencia); llega con «welcome»
+  let shapeVisible = $state(false);
+  let backdrop = $state<number | null>(null);
+  const box = $derived(size * SHAPE_PAD); // lienzo de la forma
 
   // Partida en marcha (SPEC sección 9): con «solo voz» o «desactivado» no se muestra nada
   // sobre el juego. (Fase 5b: con varios monitores, la isla irá al alternativo.)
@@ -41,13 +49,40 @@
   });
   const hiddenForGame = $derived(game.active && game.mode !== "normal");
 
-  const shown = $derived(connected && !hiddenForGame && (status !== "idle" || bubble !== null));
+  const active = $derived(status !== "idle" && status !== "muted");
+  const shown = $derived(connected && !hiddenForGame && (active || bubble !== null));
+  // Mientras la forma está, la burbuja va debajo; si no, arriba del todo.
+  const bubbleTop = $derived(active || shapeVisible ? TOP + (box + size) / 2 + 10 : TOP);
 
-  /** Tamaño objetivo según el estado (sección 12: 44×44 escuchando, 120×44 pensando). */
+  /** Tamaño de la burbuja (provisional hasta el rediseño de los paneles). */
   const target = $derived.by(() => {
     if (bubble) return { w: Math.min(MAX_WIDTH, measuredW), h: measuredH };
-    if (status === "thinking" || status === "muted") return { w: 120, h: 44 };
-    return { w: 44, h: 44 };
+    return { w: 0, h: 0 };
+  });
+
+  // La ventana se ajusta al tamaño de la forma.
+  $effect(() => {
+    void invoke("island_set_size", {
+      width: Math.max(600, box + 40),
+      height: TOP + box + BUBBLE_SPACE,
+    });
+  });
+
+  // Blanco siempre; gris solo si alrededor hay un fondo muy claro (se mira un anillo
+  // alrededor, no debajo: decisión 2026-11-10).
+  $effect(() => {
+    if (!shown) return;
+    const read = async () => {
+      const luma = await invoke<number | null>("island_backdrop_luma", {
+        cx: window.innerWidth / 2,
+        cy: TOP + box / 2,
+        radius: size * 0.85,
+      });
+      if (luma !== null) backdrop = luma;
+    };
+    void read();
+    const timer = setInterval(() => void read(), BACKDROP_MS);
+    return () => clearInterval(timer);
   });
 
   $effect(() => {
@@ -60,7 +95,7 @@
   let hideTimer: ReturnType<typeof setTimeout> | undefined;
   $effect(() => {
     clearTimeout(hideTimer);
-    if (shown) {
+    if (shown || shapeVisible) {
       void invoke("island_set_visible", { visible: true });
     } else {
       hideTimer = setTimeout(
@@ -96,7 +131,10 @@
         status = msg.state;
         break;
       case "level":
-        level.target = msg.rms;
+        level = msg.rms;
+        break;
+      case "welcome":
+        size = msg.indicator_size ?? 100;
         break;
       case "bubble":
         bubble = { display: msg.display, secondary: msg.secondary, actions: msg.actions };
@@ -149,13 +187,20 @@
   </div>
 {/if}
 
+<div class="shape-slot" style:top="{TOP}px">
+  <Indicator
+    status={hiddenForGame ? "idle" : status}
+    {level}
+    {size}
+    {backdrop}
+    onvisible={(v) => (shapeVisible = v)}
+  />
+</div>
+
 <div
   class="island"
-  class:shown
-  class:error={status === "error"}
-  class:muted={status === "muted"}
-  class:thinking={status === "thinking" && !bubble}
-  style:top="{TOP}px"
+  class:shown={shown && bubble !== null}
+  style:top="{bubbleTop}px"
   style:width="{width.current}px"
   style:height="{height.current}px"
 >
@@ -173,16 +218,16 @@
         </div>
       {/if}
     </div>
-  {:else}
-    <div
-      class="orb"
-      class:speaking={status === "speaking"}
-      style:transform="scale({0.75 + level.current * 0.55})"
-    ></div>
   {/if}
 </div>
 
 <style>
+  .shape-slot {
+    position: absolute;
+    left: 50%;
+    translate: -50% 0;
+  }
+
   .island {
     position: absolute;
     left: 50%;
@@ -207,47 +252,6 @@
     opacity: 1;
     scale: 1;
     filter: blur(0);
-  }
-
-  .island.muted {
-    opacity: 0.5;
-  }
-
-  /* Pensando: un brillo blanco recorre la isla de izquierda a derecha. */
-  .island.thinking::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.18) 50%,
-      transparent 100%
-    );
-    translate: -100% 0;
-    animation: sweep 1.1s ease-in-out infinite;
-  }
-
-  .island.error {
-    animation: shake 380ms ease;
-  }
-
-  .orb {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: radial-gradient(
-      circle at 50% 45%,
-      var(--glow) 0%,
-      rgba(210, 210, 215, 0.85) 38%,
-      rgba(150, 150, 158, 0.35) 70%,
-      transparent 100%
-    );
-    box-shadow: 0 0 18px rgba(255, 255, 255, 0.35);
-  }
-
-  .orb.speaking {
-    animation: shimmer 140ms linear infinite alternate;
   }
 
   .bubble-content {
@@ -323,34 +327,8 @@
     white-space: normal;
   }
 
-  @keyframes sweep {
-    to {
-      translate: 100% 0;
-    }
-  }
-
-  @keyframes shake {
-    20%,
-    60% {
-      translate: calc(-50% - 6px) 0;
-    }
-    40%,
-    80% {
-      translate: calc(-50% + 6px) 0;
-    }
-  }
-
-  @keyframes shimmer {
-    to {
-      filter: brightness(1.15);
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .island,
-    .island.thinking::after,
-    .island.error,
-    .orb.speaking {
+    .island {
       transition: none;
       animation: none;
     }
