@@ -27,6 +27,7 @@ export const TOOL_LABELS: Record<string, string> = {
   app_action: "Acciones dentro de una app",
   delete_files: "Mandar a la papelera",
   undo: "Deshacer",
+  open_nyx_settings: "Abrir estos Ajustes",
 };
 
 export function toolLabel(name: string): string {

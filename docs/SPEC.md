@@ -209,6 +209,7 @@ Unas 35 herramientas genéricas cubren miles de peticiones al combinarse. Cada u
 | `delete_files` | Elimina a la papelera | Rojo | send2trash |
 | `open_path` | Abre carpeta o archivo | Verde | Explorador |
 | `open_settings` | Abre una página de Configuración | Verde | URIs `ms-settings:` (ratón: `ms-settings:mousetouchpad`) |
+| `open_nyx_settings` | Abre los Ajustes de Nyx, en una sección si se pide («abre tus ajustes del modo partida») | Verde | Protocolo `open_settings`; la ventana la abre la interfaz |
 | `set_volume` | Volumen general o por app, silenciar | Verde | pycaw |
 | `set_brightness` | Brillo | Verde | screen-brightness-control |
 | `toggle_wifi` / `toggle_bluetooth` | Conectividad | Amarillo | WinRT Radios |
@@ -484,7 +485,7 @@ Aprobado el 2026-11-10 tras verlo en la galería de ejemplos (bandeja → «Moto
 - **Qué hace:** cristal en tiempo real según lo que hay detrás, al estilo de iOS, en los paneles, Ajustes y (más adelante) el instalador y la onda de «Nyx listo». **Sin bordes:** la silueta de cada panel ondula como un líquido no newtoniano, con el mismo ruido que la forma de Nyx, y el cristal sigue al borde.
 - **Cómo:** un hilo propio en Rust. Captura del monitor con Windows.Graphics.Capture (sin borde amarillo ni cursor, máximo 30 Hz y solo cuando cambia la pantalla), desenfoque Kawase doble a resolución reducida y una pasada final en Direct3D 11 con campo de distancia: cobertura, refracción en una franja junto al borde, brillo especular, tinte, grano y sombra. El resultado va a una cadena de intercambio con alfa por píxel que la composición de Windows pone detrás de la WebView (sin regiones ni escalones). En reposo no hace nada.
 - **Niveles** (Ajustes → Apariencia): **Auto** (predeterminado), **Alto** (desenfoque, refracción y brillo), **Medio** (desenfoque y tinte) y **Bajo** (tinte al 84 %, sin captura). En Auto baja solo con batería (a Medio), ahorro de energía o transparencias de Windows desactivadas (a Bajo) y si la GPU no llega (más de 8 ms por fotograma durante 5 s: un nivel). Con un nivel concreto se respeta, salvo **en partida, donde pasa a Bajo sin excepción**; Ajustes lo dice junto al selector.
-- **Borde líquido:** se mueve siempre, solo al aparecer e interactuar, o nunca, a 30 fotogramas por segundo; las partidas y «reducir movimiento» de Windows lo paran. En Ajustes, que puede quedarse abierta mucho rato, «siempre» se queda en «al interactuar» para no redibujar sin parar. Amplitud ajustable con una barra de 0 a 10, de 1 en 1, que va de 0 a 7 px (predeterminado: 5 = 3,5 px).
+- **Borde líquido:** se mueve siempre, solo al aparecer e interactuar, o nunca, a 30 fotogramas por segundo; las partidas y «reducir movimiento» de Windows lo paran. El motor no dibuja (ni captura) una ventana minimizada, oculta o tapada del todo por otras ventanas; en cuanto asoma un trozo, vuelve a ondular (útil sobre todo para Ajustes, que puede quedarse abierta detrás de otras ventanas). Amplitud ajustable con una barra de 0 a 10, de 1 en 1, que va de 0 a 7 px (predeterminado: 5 = 3,5 px).
 - **Valores predeterminados** (elegidos en la galería): desenfoque 0,6, refracción 10 px, saturación 1,15, velocidad ×1, tinte gris 0,45, brillo 0,35, sombra 0,4.
 - **GPU:** la que tiene conectada la pantalla (en portátiles, la integrada): ahí están la composición y las capturas de Windows, y así no se despierta la dedicada ni hay copias entre tarjetas.
 
@@ -541,7 +542,7 @@ La ventana de Ajustes es la única ventana clásica de Nyx y sigue la misma iden
 
 **Primer arranque (asistente de 5 pasos):** descargar modelos → probar micrófono y grabar muestras de "Nyx" → ver el indicador y elegir monitor → escaneo del sistema → ¿ayudar a mejorar Nyx con datos anónimos? (sin marcar por defecto). Todo con opción de saltar y volver más tarde. Sin registro ni inicio de sesión.
 
-Algunos ajustes se pueden cambiar por voz con `nyx_control` ("Nyx, modo silencio", "Nyx, ponte en la esquina de abajo").
+Ajustes se abre desde la bandeja, abriendo Nyx otra vez o pidiéndoselo a Nyx («abre tus ajustes», «los ajustes de Nyx del modo partida»). Algunos ajustes se pueden cambiar por voz con `nyx_control` ("Nyx, modo silencio", "Nyx, ponte en la esquina de abajo").
 
 ## 14. Rendimiento, fiabilidad y casos límite
 

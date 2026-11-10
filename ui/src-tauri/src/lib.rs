@@ -37,6 +37,7 @@ pub fn run() {
             glass::glass_set_game,
             glass::gallery::glass_toggle_bubble,
             glass::gallery::glass_close_gallery,
+            settings_window::settings_open,
         ])
         .setup(|app| {
             let handle = app.handle();

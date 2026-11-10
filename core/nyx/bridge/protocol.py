@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 8
+PROTOCOL_VERSION = 9
 
 
 class _Msg(BaseModel):
@@ -150,8 +150,22 @@ class SettingsMsg(_Msg):
     tools: list[ToolInfo] = []
 
 
+class OpenSettingsMsg(_Msg):
+    """v9: abrir la ventana de Ajustes («abre tus ajustes»), en una sección o en la primera."""
+
+    type: Literal["open_settings"] = "open_settings"
+    section: Literal["apariencia", "respuestas", "partida"] | None = None
+
+
 ServerMessage = Annotated[
-    Welcome | StateMsg | LevelMsg | BubbleMsg | BubbleHideMsg | GameMsg | SettingsMsg,
+    Welcome
+    | StateMsg
+    | LevelMsg
+    | BubbleMsg
+    | BubbleHideMsg
+    | GameMsg
+    | SettingsMsg
+    | OpenSettingsMsg,
     Field(discriminator="type"),
 ]
 server_adapter: TypeAdapter[ServerMessage] = TypeAdapter(ServerMessage)

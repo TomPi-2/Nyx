@@ -1,6 +1,6 @@
 // Espejo de core/nyx/bridge/protocol.py: cambia los dos a la vez y sube PROTOCOL_VERSION.
 
-export const PROTOCOL_VERSION = 8;
+export const PROTOCOL_VERSION = 9;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -106,4 +106,9 @@ export type ServerMessage =
       /** Cambio rechazado (no se ha aplicado nada). */
       error: string | null;
       tools: ToolInfo[];
-    };
+    }
+  /** v9: abrir la ventana de Ajustes («abre tus ajustes»), en una sección o en la primera. */
+  | { type: "open_settings"; section: SettingsSection | null };
+
+/** Secciones de la ventana de Ajustes (ui/src/settings/Settings.svelte). */
+export type SettingsSection = "apariencia" | "respuestas" | "partida";

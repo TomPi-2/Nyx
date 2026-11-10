@@ -165,6 +165,7 @@ Los atajos siguen el idioma de Windows (en español, «nuevo» es Ctrl+U y «gua
 | Acción | Ejemplos | Estado |
 | --- | --- | --- |
 | Deshacer | «deshaz», «recupéralo» | Hecho |
+| Abrir sus Ajustes (en una sección) | «abre tus ajustes», «los ajustes de Nyx», «tu configuración del modo partida» | Hecho |
 | Callar o dejar de escuchar | «calla», «no me escuches durante una hora» | F5 |
 | Cambiar la voz o su volumen | «habla más bajo», «usa la voz de hombre» | F5 |
 | Reiniciar Nyx | bandeja → Reiniciar núcleo; también en Ajustes | Hecho (bandeja) / F5 (Ajustes) |

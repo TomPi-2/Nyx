@@ -17,7 +17,7 @@ from nyx.executor import ToolCall
 from nyx.index.aliases import normalize
 from nyx.index.model import Kind
 from nyx.index.service import Match, SystemIndex
-from nyx.stt.normalize import NUMBER_WORDS
+from nyx.stt.normalize import NUMBER_WORDS, WAKE_VARIANTS
 from nyx.tools.app_catalog import profile_for
 from nyx.tools.open_url import to_url
 from nyx.winapi import windows
@@ -120,6 +120,31 @@ def route(text: str, index: SystemIndex) -> Route | Miss | None:
 
 def _call(rule_name: str, tool: str, **arguments: object) -> Route:
     return Route([ToolCall(tool, {k: v for k, v in arguments.items() if v is not None})], rule_name)
+
+
+# --- Ajustes de Nyx (lo primero: «muéstrame tus ajustes» no es cambiar de ventana, y
+# «abre los ajustes de sonido» es la Configuración de Windows) ---
+
+_NYX = "|".join(sorted(WAKE_VARIANTS))
+_PANEL_WORDS = r"(?:ajustes|configuracion|opciones|preferencias)"
+
+
+@rule(
+    "nyx_settings",
+    r"^(?:(?:abre|abrir|abreme|muestra|muestrame|ensena|ensename|ve a|ir a|entra en|llevame a)\s+)?"
+    rf"(?:(?:(?:los|las|el|la)\s+)?{_PANEL_WORDS}\s+de\s+(?:{_NYX})\b|(?:tus|tu)\s+{_PANEL_WORDS}\b)"
+    r"(?P<rest>.*)$",
+)
+def _nyx_settings(m: re.Match[str], _: SystemIndex) -> Route:
+    rest = m.group("rest")
+    section = None
+    if re.search(r"partida|juego", rest):
+        section = "partida"
+    elif re.search(r"apariencia|aspecto|cristal|borde|tamano", rest):
+        section = "apariencia"
+    elif re.search(r"respuesta", rest):
+        section = "respuestas"
+    return _call("nyx_settings", "open_nyx_settings", section=section)
 
 
 # --- volumen (antes que «pon …» y «abre …») ---

@@ -11,6 +11,7 @@ Cada herramienta declara:
 from __future__ import annotations
 
 from abc import ABC
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
@@ -80,6 +81,8 @@ class ToolContext:
     undo: UndoStack = field(default_factory=UndoStack)
     paths: PathPolicy = field(default_factory=PathPolicy)
     alarms: AlarmScheduler | None = None
+    # Abre la ventana de Ajustes de Nyx (sección o None); la pone services.py.
+    open_nyx_settings: Callable[[str | None], Awaitable[None]] | None = None
 
 
 @dataclass

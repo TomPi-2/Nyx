@@ -33,6 +33,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
 
 use super::capture::MonitorCapture;
 use super::compositor::Layers;
+use super::occlusion;
 use super::quality::{self, Level, Limits, Motion, Preference, SystemState};
 use super::renderer::{GlassParams, Gpu, MAX_SHAPES, Mode, Targets};
 use super::{GlassOptions, Shape, Wake};
@@ -85,6 +86,8 @@ const STATS_EVERY: Duration = Duration::from_millis(500);
 const SYSTEM_EVERY: Duration = Duration::from_secs(2);
 /// Sin animación, cada cuánto se mira si la ventana se ha movido u ocultado.
 const IDLE_POLL_MS: u32 = 100;
+/// Cada cuánto se mira si otras ventanas tapan del todo a una ventana con cristal.
+const OCCLUSION_EVERY: Duration = Duration::from_millis(250);
 /// Mientras se arrastra una ventana se redibuja a la frecuencia de la pantalla.
 const MOVING_FOR: Duration = Duration::from_millis(400);
 /// Una vuelta completa del ruido del borde a velocidad 1 (s).
@@ -181,6 +184,9 @@ struct Surface {
     client: RECT,
     monitor: HMONITOR,
     visible: bool,
+    /// Tapada del todo por otras ventanas (occlusion.rs): no se dibuja ni se captura.
+    covered: bool,
+    covered_at: Option<Instant>,
     effective: Level,
     /// El nivel ya se ha aplicado al menos una vez (exclusión de la captura).
     applied: bool,
@@ -348,6 +354,8 @@ impl Engine {
             // SAFETY: ventana viva.
             monitor: unsafe { MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST) },
             visible: false,
+            covered: false,
+            covered_at: None,
             // Se aplica de verdad en el primer tick (applied = false).
             effective: Level::Bajo,
             applied: false,
@@ -462,11 +470,25 @@ impl Engine {
     fn update_surfaces(&mut self, now: Instant, dt: f64) {
         let sys = self.sys;
         for s in &mut self.surfaces {
+            let was_visible = s.visible;
             // SAFETY: consultas sobre una ventana viva.
-            s.visible = unsafe { IsWindowVisible(s.hwnd).as_bool() && !IsIconic(s.hwnd).as_bool() };
+            let shown = unsafe { IsWindowVisible(s.hwnd).as_bool() && !IsIconic(s.hwnd).as_bool() };
+            if shown
+                && s.covered_at
+                    .is_none_or(|t| now.duration_since(t) >= OCCLUSION_EVERY)
+            {
+                s.covered = occlusion::fully_covered(s.hwnd, &client_rect(s.hwnd));
+                s.covered_at = Some(now);
+            }
+            s.visible = shown && !s.covered;
             if !s.visible {
                 s.has_backdrop = false;
                 continue;
+            }
+            if !was_visible {
+                // Vuelve a verse: se redibuja con lo que haya detrás ahora.
+                s.needs_blur = true;
+                s.needs_draw = true;
             }
             s.scale = dpi_scale(s.hwnd);
 

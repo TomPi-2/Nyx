@@ -9,7 +9,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 use tauri::{
-    AppHandle, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindow,
+    AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindow,
     WebviewWindowBuilder, WindowEvent,
 };
 
@@ -32,19 +32,40 @@ struct Geometry {
 
 /// Abre Ajustes o, si ya está abierta, la trae al frente.
 pub fn open(app: &AppHandle) {
+    open_at(app, None);
+}
+
+/// Igual, en una sección concreta («abre tus ajustes del modo partida»).
+pub fn open_at(app: &AppHandle, section: Option<&str>) {
     if let Some(window) = app.get_webview_window(LABEL) {
         let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
+        if let Some(section) = section {
+            let _ = window.emit_to(LABEL, "settings://section", section);
+        }
         return;
     }
-    if let Err(err) = create(app) {
+    if let Err(err) = create(app, section) {
         eprintln!("[nyx] ventana de Ajustes: {err}");
     }
 }
 
-fn create(app: &AppHandle) -> tauri::Result<()> {
-    let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("settings".into()))
+/// La isla lo pide cuando el núcleo dice «abre tus ajustes» (herramienta open_nyx_settings).
+/// Asíncrono: crear una ventana desde un comando síncrono bloquea Tauri en Windows.
+#[tauri::command]
+pub async fn settings_open(app: AppHandle, section: Option<String>) {
+    let section = section.filter(|s| matches!(s.as_str(), "apariencia" | "respuestas" | "partida"));
+    open_at(&app, section.as_deref());
+}
+
+fn create(app: &AppHandle, section: Option<&str>) -> tauri::Result<()> {
+    // Una ventana nueva aún no escucha eventos: la sección va en la dirección.
+    let url = match section {
+        Some(s) => format!("settings?section={s}"),
+        None => "settings".to_string(),
+    };
+    let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App(url.into()))
         .title("Ajustes de Nyx")
         .inner_size(WIDTH, HEIGHT)
         .min_inner_size(MIN_WIDTH, MIN_HEIGHT)

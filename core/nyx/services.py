@@ -26,7 +26,7 @@ from nyx.brain.router import refusal, route
 from nyx.brain.service import Brain
 from nyx.brain.shortcuts import ShortcutStore
 from nyx.bus import EventBus
-from nyx.events import BubbleHidden, BubbleShown, SettingsChanged
+from nyx.events import BubbleHidden, BubbleShown, OpenSettingsWindow, SettingsChanged
 from nyx.executor import Executor
 from nyx.game.controller import GameController
 from nyx.game.detector import GameDetector
@@ -234,7 +234,17 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     # Rutas protegidas (SPEC sección 8): sistema, Nyx y las carpetas principales del usuario.
     paths = PathPolicy.default(list(known_folders().values()))
     alarms = AlarmScheduler(AlarmStore.default(), bus)
-    tools_ctx = ToolContext(index=index, settings=settings, paths=paths, alarms=alarms)
+
+    async def open_nyx_settings(section: str | None) -> None:
+        await bus.publish(OpenSettingsWindow(section))
+
+    tools_ctx = ToolContext(
+        index=index,
+        settings=settings,
+        paths=paths,
+        alarms=alarms,
+        open_nyx_settings=open_nyx_settings,
+    )
     ringer = AlarmRinger(bus, tts=tts, player=player)
     # Modo partida (SPEC sección 9): qué herramientas se permiten, se difieren o se bloquean.
     game = GameGate(settings.game)
