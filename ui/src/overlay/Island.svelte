@@ -21,6 +21,7 @@
   let connected = $state(false);
   let level = $state(0);
   let size = $state(100); // lado de la forma (Ajustes → Apariencia); llega con «welcome»
+  let color = $state("blanco"); // color de Nyx (Ajustes → Apariencia)
   let shapeVisible = $state(false);
   let backdrop = $state<number | null>(null);
   const box = $derived(size * SHAPE_PAD); // lienzo de la forma
@@ -121,9 +122,12 @@
         break;
       case "welcome":
         size = msg.indicator_size ?? 100;
+        color = msg.nyx_color ?? "blanco";
         break;
       case "settings":
-        size = msg.data.appearance.indicator_size; // cambiado en Ajustes → Apariencia
+        // Cambiado en Ajustes → Apariencia: se ve al momento.
+        size = msg.data.appearance.indicator_size;
+        color = msg.data.appearance.nyx_color;
         break;
       case "open_settings":
         // «Abre tus ajustes»: solo esta ventana lo hace (todas reciben el mensaje).
@@ -157,6 +161,7 @@
     {level}
     {size}
     {backdrop}
+    {color}
     onvisible={onShapeVisible}
   />
 </div>

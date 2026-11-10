@@ -24,7 +24,7 @@ import threading
 from typing import Any
 
 from nyx import __version__
-from nyx.bridge.protocol import PROTOCOL_VERSION, GlassInfo, ToolInfo
+from nyx.bridge.protocol import PROTOCOL_VERSION, GlassInfo, ToolInfo, VoiceInfo
 from nyx.bridge.server import UIBridge
 from nyx.bus import EventBus
 from nyx.events import TextEntered
@@ -35,6 +35,7 @@ from nyx.services import Services
 from nyx.services import build as build_services
 from nyx.settings import load_settings
 from nyx.settings.live import SettingsService
+from nyx.tts.voices import VOICES
 from nyx.winjob import kill_children_on_exit
 
 log = logging.getLogger("nyx")
@@ -124,9 +125,15 @@ async def run(args: argparse.Namespace) -> int:
         indicator_size=settings.appearance.indicator_size,
         glass=GlassInfo.model_validate(settings.appearance.glass.model_dump()),
         tools=tool_infos(),
+        voices=[VoiceInfo(id=v.id, label=v.label) for v in VOICES.values()],
+        look={
+            "font": settings.appearance.font,
+            "nyx_color": settings.appearance.nyx_color,
+            "panel_tint": settings.appearance.panel_tint,
+        },
     )
     # Ajustes desde la ventana de Ajustes: se aplican sobre este mismo objeto (SPEC 13).
-    settings_service = SettingsService(bus, settings)
+    settings_service = SettingsService(bus, settings, devices=audio_devices)
     port = await bridge.start()
 
     print(json.dumps({"event": "ready", "port": port, "protocol": PROTOCOL_VERSION}), flush=True)
@@ -172,6 +179,13 @@ async def run(args: argparse.Namespace) -> int:
         settings_service.close()
         await bridge.stop()
     return 0
+
+
+def audio_devices() -> tuple[list[str], list[str]]:
+    """Micrófonos y altavoces para Ajustes → Voz."""
+    from nyx.audio.devices import device_names
+
+    return device_names("input"), device_names("output")
 
 
 def tool_infos() -> list[ToolInfo]:

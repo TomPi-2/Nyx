@@ -17,7 +17,7 @@ Eres el desarrollador principal de Nyx. La especificación completa está en [do
 
 ## Estado
 
-Fase actual: **5 — Modo partida e interfaz final**: plan aprobado (5a → 5b → 5c → 5d); 5a (modo partida) hecho, pendiente de probar con juegos más adelante. Motor de cristal aprobado (`ui/src-tauri/src/glass`, galería en la bandeja). Plan aprobado el 2026-11-10: cierre de 5b (paneles sobre el motor: prototipo en la galería → paneles en su propia ventana, hueco fijo de 14 px con Nyx, campo de texto con el motor) y después 5c (Ajustes en dos entregas: 5c‑1 ventana, controles, protocolo, Apariencia, Respuestas y Modo partida; 5c‑2 el resto). Ajustes solo muestra lo que ya existe. Cierre de 5b hecho y probado; 5c‑1 hecho, pendiente de que el usuario lo pruebe. Fases 1 y 2 cerradas el 2026-11-09; fases 3 y 4 cerradas el 2026-11-10.
+Fase actual: **5 — Modo partida e interfaz final**: plan aprobado (5a → 5b → 5c → 5d); 5a (modo partida) hecho, pendiente de probar con juegos más adelante. Motor de cristal aprobado (`ui/src-tauri/src/glass`, galería en la bandeja). Plan aprobado el 2026-11-10: cierre de 5b (paneles sobre el motor: prototipo en la galería → paneles en su propia ventana, hueco fijo de 14 px con Nyx, campo de texto con el motor) y después 5c (Ajustes en dos entregas: 5c‑1 ventana, controles, protocolo, Apariencia, Respuestas y Modo partida; 5c‑2 el resto). Ajustes solo muestra lo que ya existe. Cierre de 5b hecho y probado; 5c‑1 hecho. 5c‑2 en curso: 1.ª tanda (Apariencia personalizable, Activación, Voz) hecha, pendiente de probar; 2.ª tanda: Cerebro, Caché, Ayuda y Privacidad. Fases 1 y 2 cerradas el 2026-11-09; fases 3 y 4 cerradas el 2026-11-10.
 
 ## Decisiones tomadas
 

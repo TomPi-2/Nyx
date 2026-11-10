@@ -144,6 +144,10 @@ def _nyx_settings(m: re.Match[str], _: SystemIndex) -> Route:
         section = "apariencia"
     elif re.search(r"respuesta", rest):
         section = "respuestas"
+    elif re.search(r"activacion|palabra|despertar|escucha", rest):
+        section = "activacion"
+    elif re.search(r"\bvoz\b|microfono|altavoz|auriculares|sonido", rest):
+        section = "voz"
     return _call("nyx_settings", "open_nyx_settings", section=section)
 
 

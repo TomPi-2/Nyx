@@ -1,6 +1,8 @@
 // Espejo de core/nyx/bridge/protocol.py: cambia los dos a la vez y sube PROTOCOL_VERSION.
 
-export const PROTOCOL_VERSION = 9;
+import type { FontId, NyxColorId, PanelTintId } from "$theme/palette";
+
+export const PROTOCOL_VERSION = 10;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -45,8 +47,25 @@ export type GamePolicy = "allowed" | "deferred" | "blocked";
  * cambia la ventana de Ajustes; el resto llega igual pero no se toca.
  */
 export interface NyxSettings {
-  appearance: { indicator_size: number; glass: GlassInfo };
+  appearance: {
+    indicator_size: number;
+    glass: GlassInfo;
+    /** v10: opciones fijas (theme/palette.ts). */
+    font: FontId;
+    nyx_color: NyxColorId;
+    panel_tint: PanelTintId;
+  };
   responses: { speak_typed: boolean };
+  wake: {
+    enabled: boolean;
+    engine: "propio" | "vosk";
+    sensitivity: number;
+    custom_word: string;
+  };
+  listen: { followup_s: number; silence_ms: number };
+  tts: { enabled: boolean; voice: string; speed: number };
+  /** Nombre del dispositivo; null = el predeterminado de Windows. */
+  audio: { input_device: string | null; output_device: string | null };
   game: {
     mode: "off" | "voice" | "normal";
     always: string[];
@@ -79,6 +98,10 @@ export type ServerMessage =
       indicator_size: number;
       /** v7 */
       glass: GlassInfo;
+      /** v10 */
+      font: FontId;
+      nyx_color: NyxColorId;
+      panel_tint: PanelTintId;
     }
   | { type: "state"; state: NyxState }
   | { type: "level"; rms: number }
@@ -106,9 +129,13 @@ export type ServerMessage =
       /** Cambio rechazado (no se ha aplicado nada). */
       error: string | null;
       tools: ToolInfo[];
+      /** v10: micrófonos, altavoces y voces (solo al leerlos). */
+      inputs: string[];
+      outputs: string[];
+      voices: { id: string; label: string }[];
     }
   /** v9: abrir la ventana de Ajustes («abre tus ajustes»), en una sección o en la primera. */
   | { type: "open_settings"; section: SettingsSection | null };
 
 /** Secciones de la ventana de Ajustes (ui/src/settings/Settings.svelte). */
-export type SettingsSection = "apariencia" | "respuestas" | "partida";
+export type SettingsSection = "apariencia" | "activacion" | "voz" | "respuestas" | "partida";

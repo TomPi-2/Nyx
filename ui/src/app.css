@@ -1,7 +1,11 @@
 /* Base común de todas las ventanas: transparentes, sin bordes, tipografía de Windows 11. */
 
 :root {
-  font-family: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  /* La fuente se elige en Ajustes → Apariencia (theme/appearance.ts). */
+  --font-text: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --font-display:
+    "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;

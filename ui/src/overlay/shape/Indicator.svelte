@@ -5,6 +5,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type { NyxState } from "$lib/protocol";
+  import { nyxRgb } from "$theme/palette";
   import { NyxShape, SHAPE_PAD, type ShapeState } from "./nyxShape";
 
   interface Props {
@@ -12,9 +13,10 @@
     level: number; // RMS del micro (escuchando) o de la voz de Nyx (hablando)
     size: number; // lado del cuadrado en px
     backdrop: number | null; // luminancia alrededor (0-1)
+    color?: string; // color de Nyx elegido en Apariencia (theme/palette.ts)
     onvisible?: (visible: boolean) => void;
   }
-  let { status, level, size, backdrop, onvisible }: Props = $props();
+  let { status, level, size, backdrop, color = "blanco", onvisible }: Props = $props();
 
   const VOICE_ON = 0.02; // RMS a partir del cual el usuario está hablando
   const VOICE_HOLD_MS = 450; // sin voz durante esto → vuelve a «espera»
@@ -46,6 +48,7 @@
     if (!canvas) return;
     try {
       shape = new NyxShape(canvas, size);
+      shape.setColor(nyxRgb(color));
     } catch (e) {
       console.error("La forma de Nyx necesita WebGL", e);
       return;
@@ -97,6 +100,10 @@
 
   $effect(() => {
     if (shape && backdrop !== null) shape.setBackdrop(backdrop);
+  });
+
+  $effect(() => {
+    shape?.setColor(nyxRgb(color));
   });
 </script>
 

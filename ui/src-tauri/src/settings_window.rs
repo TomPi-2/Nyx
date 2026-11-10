@@ -55,7 +55,12 @@ pub fn open_at(app: &AppHandle, section: Option<&str>) {
 /// Asíncrono: crear una ventana desde un comando síncrono bloquea Tauri en Windows.
 #[tauri::command]
 pub async fn settings_open(app: AppHandle, section: Option<String>) {
-    let section = section.filter(|s| matches!(s.as_str(), "apariencia" | "respuestas" | "partida"));
+    let section = section.filter(|s| {
+        matches!(
+            s.as_str(),
+            "apariencia" | "activacion" | "voz" | "respuestas" | "partida"
+        )
+    });
     open_at(&app, section.as_deref());
 }
 

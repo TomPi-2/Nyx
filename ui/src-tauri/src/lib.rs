@@ -24,6 +24,7 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             core_process::core_endpoint,
+            core_process::core_restart,
             island::island_set_visible,
             island::island_set_hit_rects,
             island::island_set_size,

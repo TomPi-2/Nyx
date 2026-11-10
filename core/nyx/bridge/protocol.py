@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 9
+PROTOCOL_VERSION = 10
 
 
 class _Msg(BaseModel):
@@ -89,6 +89,10 @@ class Welcome(_Msg):
     protocol: int = PROTOCOL_VERSION
     indicator_size: int = 100  # v6: lado de la forma de Nyx en px (Ajustes → Apariencia)
     glass: GlassInfo = Field(default_factory=GlassInfo)  # v7
+    # v10: apariencia personalizable (SPEC sección 12); los colores, en ui/src/theme/palette.ts.
+    font: str = "segoe"
+    nyx_color: str = "blanco"
+    panel_tint: str = "gris"
 
 
 class StateMsg(_Msg):
@@ -140,6 +144,13 @@ class ToolInfo(_Msg):
     game_policy: Literal["allowed", "deferred", "blocked"]
 
 
+class VoiceInfo(_Msg):
+    """v10: voz para elegir en Ajustes → Voz."""
+
+    id: str
+    label: str
+
+
 class SettingsMsg(_Msg):
     """v8: ajustes actuales; se manda a todas las ventanas cada vez que cambian."""
 
@@ -148,13 +159,17 @@ class SettingsMsg(_Msg):
     restart: list[str] = []  # lo cambiado que se aplica al reiniciar Nyx
     error: str | None = None  # cambio rechazado
     tools: list[ToolInfo] = []
+    # v10: para Ajustes → Voz (solo al leerlos; vacío al cambiar algo).
+    inputs: list[str] = []
+    outputs: list[str] = []
+    voices: list[VoiceInfo] = []
 
 
 class OpenSettingsMsg(_Msg):
     """v9: abrir la ventana de Ajustes («abre tus ajustes»), en una sección o en la primera."""
 
     type: Literal["open_settings"] = "open_settings"
-    section: Literal["apariencia", "respuestas", "partida"] | None = None
+    section: Literal["apariencia", "activacion", "voz", "respuestas", "partida"] | None = None
 
 
 ServerMessage = Annotated[

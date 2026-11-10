@@ -4,10 +4,19 @@
   import Row from "$lib/controls/Row.svelte";
   import Segmented from "$lib/controls/Segmented.svelte";
   import Slider from "$lib/controls/Slider.svelte";
+  import Swatches from "$lib/controls/Swatches.svelte";
   import Toggle from "$lib/controls/Toggle.svelte";
   import { edgeLevelToPx } from "$lib/glass";
   import type { GlassInfo } from "$lib/protocol";
   import Indicator from "$overlay/shape/Indicator.svelte";
+  import {
+    FONTS,
+    NYX_COLORS,
+    PANEL_TINTS,
+    type FontId,
+    type NyxColorId,
+    type PanelTintId,
+  } from "$theme/palette";
   import { settings } from "../store.svelte";
 
   const QUALITY: { value: GlassInfo["quality"]; label: string }[] = [
@@ -28,6 +37,22 @@
     { value: "quieto", label: "Quieto" },
   ];
 
+  const FONT_OPTIONS = (Object.keys(FONTS) as FontId[]).map((value) => ({
+    value,
+    label: FONTS[value].label,
+  }));
+  const COLOR_OPTIONS = (Object.keys(NYX_COLORS) as NyxColorId[]).map((value) => ({
+    value,
+    label: NYX_COLORS[value].label,
+    color: NYX_COLORS[value].hex,
+  }));
+  // Las muestras de tinte se ven con la versión del tema actual.
+  const darkTheme = matchMedia("(prefers-color-scheme: dark)").matches;
+  const TINT_OPTIONS = (Object.keys(PANEL_TINTS) as PanelTintId[]).map((value) => {
+    const [r, g, b] = darkTheme ? PANEL_TINTS[value].dark : PANEL_TINTS[value].light;
+    return { value, label: PANEL_TINTS[value].label, color: `rgb(${r}, ${g}, ${b})` };
+  });
+
   const fmt = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 1 });
 
   const data = $derived(settings.data);
@@ -44,8 +69,22 @@
 {#if data && glass}
   <Card title="Nyx">
     <div class="preview">
-      <Indicator status="listening" level={0} size={Math.min(shownSize, 120)} backdrop={null} />
+      <Indicator
+        status="listening"
+        level={0}
+        size={Math.min(shownSize, 120)}
+        backdrop={null}
+        color={data.appearance.nyx_color}
+      />
     </div>
+    <Row label="Color" value={NYX_COLORS[data.appearance.nyx_color]?.label} stacked>
+      <Swatches
+        label="Color de Nyx"
+        options={COLOR_OPTIONS}
+        value={data.appearance.nyx_color}
+        onchange={(nyx_color) => settings.set({ appearance: { nyx_color } })}
+      />
+    </Row>
     <Row label="Tamaño" value="{shownSize} px" stacked>
       <Slider
         label="Tamaño de Nyx"
@@ -58,6 +97,17 @@
           settings.set({ appearance: { indicator_size: v } });
           size = null;
         }}
+      />
+    </Row>
+  </Card>
+
+  <Card title="Texto">
+    <Row label="Fuente" hint="La de los paneles, el campo de texto y esta ventana." stacked>
+      <Segmented
+        label="Fuente"
+        options={FONT_OPTIONS}
+        value={data.appearance.font}
+        onchange={(font) => settings.set({ appearance: { font } })}
       />
     </Row>
   </Card>
@@ -78,6 +128,19 @@
         options={QUALITY}
         value={glass.quality}
         onchange={(quality) => setGlass({ quality })}
+      />
+    </Row>
+    <Row
+      label="Tinte de los paneles"
+      value={PANEL_TINTS[data.appearance.panel_tint]?.label}
+      hint="El color del cristal de los paneles y de Ajustes. Cada tinte tiene su versión para el tema claro y el oscuro."
+      stacked
+    >
+      <Swatches
+        label="Tinte de los paneles"
+        options={TINT_OPTIONS}
+        value={data.appearance.panel_tint}
+        onchange={(panel_tint) => settings.set({ appearance: { panel_tint } })}
       />
     </Row>
     <Row label="Movimiento del borde" hint="El borde ondula como un líquido." stacked>

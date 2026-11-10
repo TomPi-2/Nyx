@@ -10,13 +10,18 @@
   import type { SettingsSection } from "$lib/protocol";
   import { glass, glassFromSettings, glassPoke, glassShape } from "$lib/glass";
   import { POP_IN_MS, POP_OUT_MS } from "$lib/motion";
+  import { applyAppearance } from "$theme/apply";
+  import Activacion from "./sections/Activacion.svelte";
   import Apariencia from "./sections/Apariencia.svelte";
   import ModoPartida from "./sections/ModoPartida.svelte";
   import Respuestas from "./sections/Respuestas.svelte";
+  import Voz from "./sections/Voz.svelte";
   import { settings } from "./store.svelte";
 
   const SECTIONS: { id: SettingsSection; label: string; component: Component }[] = [
     { id: "apariencia", label: "Apariencia", component: Apariencia },
+    { id: "activacion", label: "Activación", component: Activacion },
+    { id: "voz", label: "Voz", component: Voz },
     { id: "respuestas", label: "Respuestas", component: Respuestas },
     { id: "partida", label: "Modo partida", component: ModoPartida },
   ];
@@ -35,8 +40,10 @@
   // El cristal de Ajustes sigue los ajustes de Apariencia, igual que los paneles. Si otra
   // ventana la tapa del todo o se minimiza, el motor deja de dibujarla solo.
   $effect(() => {
-    const info = settings.data?.appearance.glass;
-    if (info) glass.set(glassFromSettings(info));
+    const look = settings.data?.appearance;
+    if (!look) return;
+    glass.set(glassFromSettings(look.glass, look.panel_tint));
+    applyAppearance(look);
   });
 
   onMount(() => {
@@ -134,8 +141,12 @@
 
   {#if settings.error || settings.restart.length}
     <div class="toast" role="status">
-      {settings.error ??
-        "Algunos cambios se aplican al reiniciar Nyx (bandeja → Reiniciar núcleo)."}
+      {#if settings.error}
+        {settings.error}
+      {:else}
+        Algunos cambios se aplican al reiniciar Nyx.
+        <button class="restart" onclick={() => void settings.restartCore()}>Reiniciar ahora</button>
+      {/if}
     </div>
   {/if}
 </div>
@@ -254,7 +265,7 @@
 
   h2 {
     margin: 0 0 -4px 16px;
-    font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+    font-family: var(--font-display);
     font-size: 26px;
     font-weight: 600;
   }
@@ -262,6 +273,19 @@
   .status {
     margin: 0 16px;
     color: var(--text-secondary);
+  }
+
+  .restart {
+    margin-left: 10px;
+    padding: 5px 12px;
+    border: none;
+    border-radius: 999px;
+    background: var(--text-on-active);
+    color: var(--control-active);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
   }
 
   .toast {

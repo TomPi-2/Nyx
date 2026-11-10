@@ -9,6 +9,7 @@
   import { listen } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { connectCore, type CoreConnection } from "$lib/core";
+  import { applyAppearance } from "$theme/apply";
   import { glass, glassFromSettings } from "$lib/glass";
   import { POP_IN_MS, POP_OUT_MS } from "$lib/motion";
   import type { ServerMessage } from "$lib/protocol";
@@ -49,11 +50,13 @@
   function handle(msg: ServerMessage) {
     if (msg.type === "welcome") {
       size = msg.indicator_size ?? 100;
-      if (msg.glass) glass.set(glassFromSettings(msg.glass));
+      if (msg.glass) glass.set(glassFromSettings(msg.glass, msg.panel_tint));
+      applyAppearance(msg);
     }
     if (msg.type === "settings") {
       size = msg.data.appearance.indicator_size;
-      glass.set(glassFromSettings(msg.data.appearance.glass));
+      glass.set(glassFromSettings(msg.data.appearance.glass, msg.data.appearance.panel_tint));
+      applyAppearance(msg.data.appearance);
     }
     // En partida el cristal pasa a Bajo sin excepción.
     if (msg.type === "game") glass.setGame(msg.active);
