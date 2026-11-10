@@ -55,6 +55,8 @@ export interface GlassOptions {
   /** Tinte de los paneles elegido en Apariencia (0–255), para cada tema; null = gris. */
   tintDark: [number, number, number] | null;
   tintLight: [number, number, number] | null;
+  /** Opacidad del tinte en el nivel Bajo (sin desenfoque: tiene que dejar leer). */
+  lowOpacity: number;
 }
 
 /** Valores elegidos por el usuario en la galería (2026-11-10). */
@@ -72,6 +74,7 @@ export const DEFAULT_GLASS: GlassOptions = {
   dark: true,
   tintDark: null,
   tintLight: null,
+  lowOpacity: 0.92,
 };
 
 export interface GlassStats {

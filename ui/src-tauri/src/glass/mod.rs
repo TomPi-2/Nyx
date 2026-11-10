@@ -55,6 +55,9 @@ pub struct GlassOptions {
     /// Tinte de los paneles elegido en Apariencia (0–255) para cada tema; None = gris.
     pub tint_dark: Option<[u8; 3]>,
     pub tint_light: Option<[u8; 3]>,
+    /// Opacidad del tinte en el nivel Bajo (sin desenfoque, lo de detrás se ve nítido: tiene
+    /// que tapar lo bastante para leer). Ajustes, con mucho texto, la sube más.
+    pub low_opacity: f32,
 }
 
 impl Default for GlassOptions {
@@ -73,6 +76,7 @@ impl Default for GlassOptions {
             dark: true,
             tint_dark: None,
             tint_light: None,
+            low_opacity: 0.92,
         }
     }
 }
