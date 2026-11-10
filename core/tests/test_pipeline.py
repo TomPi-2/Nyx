@@ -381,10 +381,29 @@ async def test_wake_word_interrupts_speech() -> None:
         await asyncio.sleep(0)
     assert h.p.state is NyxState.SPEAKING
     await h.feed(WAKE)
+    for _ in range(50):  # primero se confirma con whisper; luego se interrumpe
+        await asyncio.sleep(0)
     assert h.p.mode is Mode.LISTENING
     assert h.p.state is NyxState.LISTENING
     assert h.player.cleared >= 1
     assert h.hidden >= 1  # la burbuja de la respuesta cortada se oculta
+    await h.p.close()
+
+
+async def test_false_wake_while_speaking_does_not_interrupt() -> None:
+    # Fase 5b: si whisper no oye «Nyx», la respuesta sigue (antes se cortaba al momento).
+    h = Harness(player=FakePlayer(block=True))
+    await h.say()
+    for _ in range(50):
+        await asyncio.sleep(0)
+    assert h.p.state is NyxState.SPEAKING
+    await h.feed(SILENCE, n(2.5))  # el fragmento de verificación no lleva la frase anterior
+    h.stt.clip_text = "Gracias."  # el detector salta, pero whisper no oye «Nyx»
+    cleared = h.player.cleared
+    await h.feed(WAKE)
+    for _ in range(50):
+        await asyncio.sleep(0)
+    assert h.p.state is NyxState.SPEAKING and h.player.cleared == cleared
     await h.p.close()
 
 
@@ -469,3 +488,20 @@ async def test_indicator_waits_for_whisper_confirmation() -> None:
     await asyncio.sleep(0.01)
     assert h.states == [NyxState.LISTENING]
     await h.p.close()
+
+
+@pytest.mark.parametrize(
+    ("text", "for_nyx"),
+    [
+        ("Reanúdalo.", True),
+        ("O sea, anúdalo.", True),  # el caso real (whisper oyó mal «reanúdalo»)
+        ("Súbele un poco.", True),
+        ("Pon la siguiente.", True),
+        ("Vale, y luego Nix, ¿qué hora es?", True),  # dice «Nyx» en medio
+        ("Sí, mañana quedamos a las cinco.", False),
+        ("Qué bueno el vídeo.", False),
+    ],
+)
+def test_clearly_for_nyx_in_followup(text: str, for_nyx: bool) -> None:
+    h = Harness()
+    assert h.p._clearly_for_nyx(text) is for_nyx

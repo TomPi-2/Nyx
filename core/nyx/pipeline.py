@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import re
 import time
 import uuid
 from collections.abc import Awaitable, Callable, Coroutine
@@ -60,7 +61,9 @@ log = logging.getLogger(__name__)
 
 # Vocabulario para Whisper: mejora la transcripción de «Nyx» (fase 3: apps y carpetas de la caché).
 STT_PROMPT = "Nyx."
-THINKING_AFTER_S = 0.0  # «pensando» en cuanto acaba la frase (la forma de Nyx se divide; fase 5b)
+# Acciones del router: «pensando» solo si tardan (las rápidas no dividen la forma). Las
+# peticiones al LLM pasan a «pensando» al momento (_respond).
+THINKING_AFTER_S = 0.3
 HOLD_S = 0.4  # mantener el atajo más que esto = hablar mientras se mantiene
 TALK_PREBUFFER_S = 0.3
 VERIFY_CLIP_S = 2.0  # audio que whisper revisa para confirmar «Nyx»
@@ -116,6 +119,24 @@ FILLERS = frozenset(
 )
 LEVEL_HZ = 30
 ERROR_HOLD_S = 2.5
+
+
+# Primeras palabras que marcan una orden para Nyx en la ventana de seguimiento.
+_COMMAND_WORDS = (
+    "abre", "cierra", "pon", "quita", "sube", "baja", "pausa", "para", "reanuda", "sigue",
+    "vuelve", "busca", "mueve", "copia", "borra", "dime", "repite", "cambia", "maximiza",
+    "minimiza", "silencia", "apaga", "enciende", "crea", "guarda", "haz", "pasa", "salta",
+    "otra", "siguiente", "anterior", "deshaz", "recupera", "avisame", "recuerdame",
+)  # fmt: skip
+COMMAND_VERBS = frozenset(_COMMAND_WORDS)
+# Imperativo con pronombre pegado: «reanúdalo», «súbela», «ciérralos», «pásamelo».
+_IMPERATIVE_CLITIC = re.compile(r"^[a-z]{3,}(?:melo|mela|selo|sela|lo|la|los|las|le|les)$")
+
+
+def norm_words(text: str) -> list[str]:
+    from nyx.index.aliases import normalize as plain
+
+    return plain(text).split()
 
 
 class Mode(StrEnum):
@@ -303,6 +324,7 @@ class Pipeline:
         self._answer: asyncio.Future[bool] | None = None  # confirmación pendiente
         self._from_voice = False  # la petición en curso se hizo hablando
         self._side_tasks: set[asyncio.Task[None]] = set()
+        self._barge: asyncio.Task[None] | None = None
         if executor is not None and executor.confirm is None:
             executor.confirm = self.confirm
         self._unsubscribe = [
@@ -359,6 +381,14 @@ class Pipeline:
             log.info("Activación")
             clip = self.capture.prebuffer(VERIFY_CLIP_S) if self.capture is not None else []
             verifies = bool(clip) and self.stt is not None
+            if self.mode is Mode.BUSY and verifies:
+                # Nyx está pensando o hablando: solo se le interrumpe si whisper confirma
+                # «Nyx». Antes se cortaba al momento y, si era un falso aviso, la respuesta
+                # se perdía y la forma desaparecía.
+                if self._barge is None or self._barge.done():
+                    audio = np.concatenate(clip).astype(np.int16)
+                    self._barge = asyncio.create_task(self._barge_in(audio), name="barge-in")
+                return
             if not verifies:
                 self._record_activation(None, "")
             await self.start_listening(self.wake_prebuffer_s, show=not verifies)
@@ -366,6 +396,19 @@ class Pipeline:
                 self._listening.verify = asyncio.create_task(
                     self._verify_wake(np.concatenate(clip).astype(np.int16)), name="verify"
                 )
+
+    async def _barge_in(self, clip: Any) -> None:
+        """«Nyx» mientras Nyx piensa o habla: se confirma con whisper antes de cortar."""
+        assert self.stt is not None
+        try:
+            text = await self.stt.transcribe(clip, prompt=STT_PROMPT)
+        except STTError:
+            return
+        ok = self.wake_phrase.heard(text)
+        log.info("Activación con Nyx ocupado: %r → %s", text, "interrumpe" if ok else "se ignora")
+        self._record_activation(ok, text)
+        if ok and self.mode is Mode.BUSY:
+            await self.start_listening(self.wake_prebuffer_s + VERIFY_CLIP_S / 2)
 
     async def _verify_wake(self, clip: Any) -> bool:
         """Whisper transcribe los últimos 2 s mientras el usuario sigue hablando (SPEC 4.4).
@@ -664,7 +707,7 @@ class Pipeline:
             routed = None
         # Ventana de seguimiento: lo que no es una orden clara solo se atiende si va dirigido
         # a Nyx (el usuario puede estar hablando con otra persona).
-        if followup and not await self.brain.addressed(text):
+        if followup and not self._clearly_for_nyx(text) and not await self.brain.addressed(text):
             log.info("Seguimiento ignorado: no iba dirigido a Nyx (%r)", text)
             await self._go_idle()
             return
@@ -730,6 +773,15 @@ class Pipeline:
         else:
             await self._go_idle()
         return results
+
+    def _clearly_for_nyx(self, text: str) -> bool:
+        """Ventana de seguimiento: sin preguntar al clasificador, cuenta como dirigida a Nyx si
+        dice «Nyx» en cualquier parte o empieza con una orden («reanúdalo», «súbelo», «pon…»).
+        El clasificador ignoró «reanúdalo» (mal transcrito) y Nyx se fue mientras se le hablaba."""
+        if self.wake_phrase.heard(text):
+            return True
+        # Las tres primeras palabras: «O sea, reanúdalo» también es una orden.
+        return any(w in COMMAND_VERBS or _IMPERATIVE_CLITIC.match(w) for w in norm_words(text)[:3])
 
     def _wake_off_in_game(self) -> bool:
         """«Nyx en partida: desactivado»: solo el atajo de teclado (SPEC sección 9)."""
