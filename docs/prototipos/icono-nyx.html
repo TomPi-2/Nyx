@@ -1,0 +1,252 @@
+<title>Icono de Nyx</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* El icono elegido (D · Sólido): grande con su animación de la web, y a tamaño real. */
+:root {
+  --bg: #f2f2f4; --card: #ffffff; --text: #1c1c1e; --text-2: rgba(60, 60, 67, 0.62);
+  --control: rgba(118, 118, 128, 0.14);
+  --font: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f0f11; --card: #1c1c1e; --text: #f5f5f7; --text-2: rgba(235, 235, 245, 0.6);
+    --control: rgba(118, 118, 128, 0.26); --shadow: 0 10px 40px rgba(0, 0, 0, 0.4); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f0f11; --card: #1c1c1e; --text: #f5f5f7; --text-2: rgba(235, 235, 245, 0.6);
+  --control: rgba(118, 118, 128, 0.26); --shadow: 0 10px 40px rgba(0, 0, 0, 0.4); color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--text); font-family: var(--font);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+main { max-width: 980px; margin: 0 auto; display: grid; gap: 18px; }
+h1 { font: 600 30px/1.1 var(--display); margin: 0; text-wrap: balance; }
+p.lead { margin: 6px 0 0; color: var(--text-2); max-width: 64ch; line-height: 1.5; }
+.card {
+  background: var(--card); border-radius: 22px; padding: 22px; display: grid;
+  grid-template-columns: 260px minmax(0, 1fr); gap: 24px; align-items: center; box-shadow: var(--shadow);
+}
+.hero {
+  width: 260px; height: 260px; border-radius: 56px; display: grid; place-items: center; cursor: pointer;
+  background: radial-gradient(120% 120% at 30% 20%, #2c2d33, #121214); position: relative; outline: none;
+}
+.hero:focus-visible { box-shadow: 0 0 0 3px rgba(235, 235, 245, 0.6); }
+.hero canvas { width: 200px; height: 200px; }
+.hero small { position: absolute; bottom: 12px; font-size: 11px; color: rgba(235, 235, 245, 0.55); letter-spacing: 0.04em; }
+.info { min-width: 0; display: grid; gap: 14px; }
+.info h2 { font: 600 22px/1.2 var(--display); margin: 0; }
+.info p { margin: 0; color: var(--text-2); line-height: 1.45; max-width: 60ch; }
+.bars { display: flex; flex-wrap: wrap; gap: 12px; }
+.bar { display: flex; align-items: center; gap: 14px; padding: 10px 14px; border-radius: 14px; }
+.bar.dark { background: #1f1f23; color: rgba(255, 255, 255, 0.7); }
+.bar.light { background: #eceef2; color: rgba(0, 0, 0, 0.6); }
+.bar span { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; margin-right: 4px; }
+.bar img { display: block; }
+button.replay {
+  justify-self: start; font: 600 13px/1 var(--font); color: var(--text); background: var(--control);
+  border: 0; border-radius: 999px; padding: 9px 14px; cursor: pointer;
+}
+button.replay:focus-visible { outline: 2px solid var(--text-2); outline-offset: 2px; }
+@media (max-width: 680px) { .card { grid-template-columns: minmax(0, 1fr); } .hero { margin: 0 auto; } }
+</style>
+<main>
+  <header>
+    <h1>Icono de Nyx</h1>
+    <p class="lead">La propuesta elegida, D · Sólido. Pasa el ratón por encima para ver la animación de la web: se ejecuta una vez y siempre igual, y termina exactamente en el icono.</p>
+  </header>
+  <section class="card">
+    <div class="hero" tabindex="0" aria-label="Icono de Nyx: pasa el ratón para animarlo"><canvas width="400" height="400"></canvas><small>pasa el ratón</small></div>
+    <div class="info">
+      <h2>D · Sólido</h2>
+      <p>Al pasar el ratón: los cuatro cuadrados salen del grande, dan un cuarto de vuelta con dos empujones (aceleran, frenan y descansan, como al pensar) y se vuelven a juntar. Dura 1,8 s. Mientras se ejecuta no se repite; al terminar, otra pasada del ratón la vuelve a lanzar.</p>
+      <div class="bars" id="bars"></div>
+      <button class="replay" id="replay">Reproducir otra vez</button>
+    </div>
+  </section>
+</main>
+<script>
+const VERT = `attribute vec2 a; void main(){ gl_Position = vec4(a, 0.0, 1.0); }`;
+const FRAG = `
+precision highp float;
+uniform vec2 uRes;
+uniform vec4 uBox[4];      // centro (px), semilado (px), ángulo
+uniform float uMerge;      // 1 = un solo cuadrado, 0 = cuatro
+uniform vec4 uBig;         // cuadrado entero: centro, semilado, ángulo
+uniform float uRound;      // radio de esquina / semilado
+uniform float uK;          // unión suave (px): puentes de líquido
+uniform float uAmp;        // amplitud del ruido (px)
+uniform float uFreq;       // frecuencia del ruido (por semilado)
+uniform vec2 uLoop;        // (cos, sin) de la fase del bucle: ruido periódico
+uniform float uSeed;
+uniform float uAudio;      // nivel de voz (0-1)
+uniform float uTime;
+uniform vec2 uSquash;      // estirar/aplastar al hablar
+uniform vec3 uColor;
+uniform float uShade;      // volumen sutil (0-1)
+
+// Ruido simplex 3D (Ashima Arts, MIT)
+vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
+vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
+vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
+vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}
+float snoise(vec3 v){
+  const vec2 C=vec2(1.0/6.0,1.0/3.0); const vec4 D=vec4(0.0,0.5,1.0,2.0);
+  vec3 i=floor(v+dot(v,C.yyy)); vec3 x0=v-i+dot(i,C.xxx);
+  vec3 g=step(x0.yzx,x0.xyz); vec3 l=1.0-g; vec3 i1=min(g.xyz,l.zxy); vec3 i2=max(g.xyz,l.zxy);
+  vec3 x1=x0-i1+C.xxx; vec3 x2=x0-i2+C.yyy; vec3 x3=x0-D.yyy;
+  i=mod289(i);
+  vec4 p=permute(permute(permute(i.z+vec4(0.0,i1.z,i2.z,1.0))+i.y+vec4(0.0,i1.y,i2.y,1.0))+i.x+vec4(0.0,i1.x,i2.x,1.0));
+  float n_=0.142857142857; vec3 ns=n_*D.wyz-D.xzx;
+  vec4 j=p-49.0*floor(p*ns.z*ns.z); vec4 x_=floor(j*ns.z); vec4 y_=floor(j-7.0*x_);
+  vec4 x=x_*ns.x+ns.yyyy; vec4 y=y_*ns.x+ns.yyyy; vec4 h=1.0-abs(x)-abs(y);
+  vec4 b0=vec4(x.xy,y.xy); vec4 b1=vec4(x.zw,y.zw);
+  vec4 s0=floor(b0)*2.0+1.0; vec4 s1=floor(b1)*2.0+1.0; vec4 sh=-step(h,vec4(0.0));
+  vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy; vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;
+  vec3 p0=vec3(a0.xy,h.x); vec3 p1=vec3(a0.zw,h.y); vec3 p2=vec3(a1.xy,h.z); vec3 p3=vec3(a1.zw,h.w);
+  vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
+  p0*=norm.x; p1*=norm.y; p2*=norm.z; p3*=norm.w;
+  vec4 m=max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0); m=m*m;
+  return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
+}
+float sdRoundBox(vec2 p, float b, float r){ vec2 q=abs(p)-vec2(b)+r; return length(max(q,0.0))+min(max(q.x,q.y),0.0)-r; }
+float smin(float a,float b,float k){ float h=clamp(0.5+0.5*(b-a)/k,0.0,1.0); return mix(b,a,h)-k*h*(1.0-h); }
+mat2 rot(float a){ float c=cos(a), s=sin(a); return mat2(c,-s,s,c); }
+
+float boxAt(vec2 p, vec4 b){
+  vec2 q = rot(-b.w) * (p - b.xy);
+  q /= uSquash;
+  return sdRoundBox(q, b.z, b.z*uRound) * min(uSquash.x, uSquash.y);
+}
+float field(vec2 p){
+  float d4 = boxAt(p, uBox[0]);
+  for (int i=1;i<4;i++) d4 = smin(d4, boxAt(p, uBox[i]), uK);
+  float d1 = boxAt(p, uBig);
+  float d = mix(d4, d1, uMerge);
+  // Superficie viva: ruido periódico (la fase recorre un círculo: el bucle no tiene corte).
+  vec2 c = uBig.xy; float h = max(uBig.z, 1.0);
+  vec2 u = (p - c) / h;
+  // Ondas amplias y profundas (una sola octava de baja frecuencia: nada de rizos pequeños).
+  float n = snoise(vec3(u*uFreq + uLoop*0.45, uSeed));
+  n += 0.18*snoise(vec3(u*uFreq*1.6 - uLoop*0.35, uSeed+7.0));
+  d += uAmp * n;
+  // La voz mueve la superficie con lóbulos grandes (aquí no hace falta bucle: va con el sonido).
+  float a = atan(u.y, u.x);
+  d -= uAudio * h * 0.11 * (0.55 + 0.45*sin(a*2.0 + uTime*3.2)) * (0.6 + 0.4*snoise(vec3(u*0.9, uTime*1.1)));
+  return d;
+}
+void main(){
+  vec2 p = gl_FragCoord.xy; p.y = uRes.y - p.y;
+  float d = field(p);
+  float alpha = clamp(0.5 - d, 0.0, 1.0);
+  if (alpha <= 0.0) { gl_FragColor = vec4(0.0); return; }
+  // Volumen muy sutil: sigue siendo blanco y opaco, pero se lee como un sólido líquido.
+  float e = 1.5;
+  vec2 g = vec2(field(p+vec2(e,0.0))-field(p-vec2(e,0.0)), field(p+vec2(0.0,e))-field(p-vec2(0.0,e)));
+  vec3 nrm = normalize(vec3(-g, 2.2*e));
+  float rim = 1.0 - smoothstep(0.0, max(uBig.z,1.0)*0.22, -d);
+  float light = dot(nrm, normalize(vec3(-0.45, -0.6, 0.65)));
+  vec3 col = uColor * (1.0 - uShade*(0.07*rim - 0.035*light));
+  gl_FragColor = vec4(col*alpha, alpha);
+}
+`;
+// D · Sólido: casi un cuadrado, con un solo lóbulo.
+const ICON = { amp: 0.06, freq: 0.5, phase: 0.4, round: 0.40 };
+const DURATION = 1.8; // s
+
+const gl = document.createElement("canvas").getContext("webgl", { premultipliedAlpha: true, preserveDrawingBuffer: true });
+const prog = gl.createProgram();
+for (const [type, source] of [[gl.VERTEX_SHADER, VERT], [gl.FRAGMENT_SHADER, FRAG]]) {
+  const sh = gl.createShader(type); gl.shaderSource(sh, source); gl.compileShader(sh);
+  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh));
+  gl.attachShader(prog, sh);
+}
+gl.linkProgram(prog); gl.useProgram(prog);
+gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+const loc = gl.getAttribLocation(prog, "a"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+const U = (n) => gl.getUniformLocation(prog, n);
+
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
+const smooth = (x) => { x = clamp01(x); return x * x * x * (x * (x * 6 - 15) + 10); };
+// Empujón con esfuerzo: acelera y frena (78 % del tramo) y descansa el resto.
+const effort = (x) => { const k = Math.floor(x), f = x - k, e = f < 0.78 ? f / 0.78 : 1; return k + smooth(e); };
+
+/** Estado de la animación en el segundo `t` (0 = icono quieto; DURATION = icono quieto). */
+function pose(t) {
+  if (t <= 0 || t >= DURATION) return { sep: 0, orbit: 0, own: [0, 0, 0, 0] };
+  // 0–0,35 s: se separan · 0,35–1,35 s: dos empujones (un cuarto de vuelta) · 1,35–1,8 s: se juntan.
+  const sep = t < 0.35 ? smooth(t / 0.35) : t < 1.35 ? 1 : 1 - smooth((t - 1.35) / 0.45);
+  const turn = clamp01((t - 0.35) / 1.0) * 2; // 0 → 2 empujones
+  const orbit = (effort(Math.min(turn, 1.999)) / 2) * (Math.PI / 2) * (turn >= 2 ? 1 : 1);
+  const own = [0, 1, 2, 3].map((i) => {
+    const lag = i * 0.12;
+    return (effort(Math.min(Math.max(turn - lag, 0), 1.999)) / 2) * (Math.PI / 2);
+  });
+  return { sep, orbit: turn >= 1.999 ? Math.PI / 2 : orbit, own };
+}
+
+function render(size, gray, t = 0) {
+  const c = gl.canvas; c.width = size; c.height = size; gl.viewport(0, 0, size, size);
+  gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+  const { sep, orbit, own } = pose(t);
+  const half = size * 0.36;
+  const cx = size / 2, cy = size / 2;
+  const subHalf = half * (0.5 - 0.12 * sep), dist = half * (0.5 + 0.24 * sep) * Math.SQRT2;
+  const boxes = [];
+  for (let i = 0; i < 4; i++) {
+    const b = Math.PI / 4 + i * Math.PI / 2 + orbit * sep;
+    boxes.push(cx + Math.cos(b) * dist, cy + Math.sin(b) * dist, subHalf, sep * own[i]);
+  }
+  gl.uniform2f(U("uRes"), size, size);
+  gl.uniform4fv(U("uBox"), new Float32Array(boxes));
+  // Un cuadrado ↔ cuatro: mezcla suave (antes cambiaba de golpe y «saltaba»).
+  gl.uniform1f(U("uMerge"), clamp01((1 - sep - 0.92) / 0.08));
+  gl.uniform4f(U("uBig"), cx, cy, half, 0);
+  gl.uniform1f(U("uRound"), ICON.round);
+  gl.uniform1f(U("uK"), half * (0.04 + 0.55 * Math.sin(Math.PI * Math.min(1, sep)) ** 2));
+  // El ruido no se mueve (antes se movía a la vez que el giro): la forma acaba idéntica.
+  gl.uniform1f(U("uAmp"), half * ICON.amp * (1 - 0.6 * sep));
+  gl.uniform1f(U("uFreq"), ICON.freq);
+  gl.uniform2f(U("uLoop"), Math.cos(ICON.phase), Math.sin(ICON.phase));
+  gl.uniform1f(U("uSeed"), 3.7);
+  gl.uniform1f(U("uAudio"), 0); gl.uniform1f(U("uTime"), 0);
+  gl.uniform2f(U("uSquash"), 1, 1);
+  gl.uniform3f(U("uColor"), gray, gray, gray);
+  gl.uniform1f(U("uShade"), size >= 64 ? 1 : 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  return c;
+}
+
+const sizes = [16, 24, 32, 48];
+const strip = (cls, gray, label) =>
+  `<div class="bar ${cls}"><span>${label}</span>${sizes.map((s) => `<img src="${render(s * 2, gray).toDataURL("image/png")}" width="${s}" height="${s}" alt="Icono a ${s} px">`).join("")}</div>`;
+document.getElementById("bars").innerHTML = strip("dark", 1.0, "bandeja oscura") + strip("light", 0.24, "bandeja clara");
+
+const hero = document.querySelector(".hero");
+const out = hero.querySelector("canvas").getContext("2d");
+const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+let start = -1;
+function draw() {
+  const t = start < 0 ? 0 : (performance.now() - start) / 1000;
+  out.clearRect(0, 0, 400, 400);
+  out.drawImage(render(400, 1.0, t), 0, 0);
+  if (start >= 0 && t < DURATION) requestAnimationFrame(draw);
+  else start = -1;
+}
+function play() {
+  if (start >= 0 || reduce.matches) return; // una vez; no se reinicia a medias
+  start = performance.now();
+  requestAnimationFrame(draw);
+}
+hero.addEventListener("mouseenter", play);
+hero.addEventListener("focus", play);
+document.getElementById("replay").addEventListener("click", play);
+draw();
+</script>
