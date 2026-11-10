@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 10
+PROTOCOL_VERSION = 11
 
 
 class _Msg(BaseModel):
@@ -134,6 +134,8 @@ class GameMsg(_Msg):
     type: Literal["game"] = "game"
     active: bool
     mode: Literal["off", "voice", "normal"] = "voice"
+    # v11: monitor del juego («\.DISPLAY1»); "" si no se sabe.
+    monitor: str = ""
 
 
 class ToolInfo(_Msg):

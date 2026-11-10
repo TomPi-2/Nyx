@@ -28,6 +28,12 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
     - Cuando la forma de Nyx se va (respuesta sin voz, aviso con Nyx en reposo), el panel sube hasta arriba en lugar de quedarse suelto; si Nyx vuelve, el panel baja a su hueco y la forma aparece al terminar.
     - Errores vistos al usar Nyx apuntados en `docs/ERRORES.md` para corregirlos por tandas.
     - Protocolo v7: el saludo lleva los ajustes del cristal y cada burbuja dice qué panel es (`kind`: respuesta, confirmación, deshacer o aviso) y cuánto dura (`expires_s`), para que las cuentas atrás sean exactas.
+  - 5d‑1, Nyx entre monitores:
+    - Ajustes → Apariencia → «Monitor»: Nyx sigue al ratón (predeterminado) o aparece siempre en un monitor (y en cuál). «Donde está la ventana activa» se descarta por ahora: casi siempre coincide con el ratón.
+    - Al cambiar de monitor estando visible, la forma y los paneles se encogen a la vez en el de antes (0,13 s) y aparecen en el nuevo con un pequeño rebote (0,22 s); se puede desactivar.
+    - Ajustes → Modo partida → «Monitor en partida»: con «Solo voz», si Nyx tuviera que salir en el monitor del juego, sale en otro (el elegido, o automático: el principal o el primero sin el juego). Con un solo monitor, no aparece mientras se juega. El núcleo dice en qué monitor está el juego (protocolo v11) y avisa si el juego cambia de monitor.
+    - Con un solo monitor, estas opciones se ven bloqueadas (gris oscuro) con una nota; se desbloquean solas al conectar otro.
+    - Un solo coordinador en Rust (`island.rs` y `monitors.rs`, con pruebas) decide el monitor para la forma y los paneles, así van siempre juntos; el campo de texto aparece en el mismo monitor.
   - 5c‑2 (1.ª tanda): Apariencia personalizable, Activación y Voz.
     - Apariencia: fuente (Segoe UI Variable, Manrope o Nunito; las dos últimas van dentro de Nyx con `@fontsource-variable`, licencia SIL OFL, y solo se cargan los caracteres latinos al elegirlas), color de Nyx (19, en el shader de la forma; sobre fondos muy claros se oscurece igual que el blanco pasa a gris) y tinte de los paneles (12, con versión para tema claro y oscuro, en el motor de cristal y en el tinte de respaldo). Todo se aplica al momento en todas las ventanas. Paleta en `ui/src/theme/palette.ts`.
     - Activación: despertar con la voz, sensibilidad, detector (modelo de Nyx o Vosk), palabra personalizada (validada en el núcleo: al menos 2 sílabas), seguir hablando sin repetir «Nyx», silencio para terminar y los atajos de teclado.

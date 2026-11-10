@@ -190,3 +190,25 @@ async def test_pipeline_ignores_wake_word_in_game_when_off() -> None:
     await h.feed(WAKE)
     assert h.states == [] and h.p.mode.name == "IDLE"
     await h.p.close()
+
+
+async def test_detector_reports_the_game_monitor() -> None:
+    """v11: el monitor del juego va en el aviso; si el juego cambia de monitor, se avisa."""
+    bus, clock = EventBus(), Clock()
+    seen: list[GameStateChanged] = []
+
+    async def keep(e: GameStateChanged) -> None:
+        seen.append(e)
+
+    bus.subscribe(GameStateChanged, keep)
+    current = [Probe("valorant-win64-shipping.exe", "título", 1, True, r"\.\DISPLAY1")]
+    detector = GameDetector(
+        bus, read=lambda: current[0], clock=clock, is_game_window=no_game_window
+    )
+    assert await detector.check()
+    assert await detector.check()  # mismo monitor: no se repite el aviso
+    current[0] = Probe("valorant-win64-shipping.exe", "título", 1, True, r"\.\DISPLAY2")
+    clock.t = 1.0
+    assert await detector.check()
+    assert [e.monitor for e in seen] == [r"\.\DISPLAY1", r"\.\DISPLAY2"]
+    assert all(e.active for e in seen)

@@ -384,7 +384,7 @@ Nyx no tiene ventana principal: cada elemento (la isla, una burbuja, un aviso) e
 
 **Elección del monitor** (se evalúa cada vez que Nyx va a mostrar algo, y de nuevo si cambia la situación mientras está visible):
 
-1. Monitor preferido según el ajuste "Monitor de destino": donde está el ratón (por defecto), donde está la ventana activa, o uno fijo.
+1. Monitor preferido según el ajuste "Monitor de destino": donde está el ratón (por defecto) o siempre uno fijo (decisión 2026-11-10: «donde está la ventana activa» casi siempre coincide con el ratón y se descarta por ahora). Con un solo monitor, el ajuste aparece bloqueado. Al cambiar de monitor estando visible, Nyx y sus paneles se encogen rápido en el de antes y aparecen en el nuevo con un pequeño rebote (se puede desactivar).
 2. Si hay una partida (sección 9) y el monitor elegido es el del juego, se aplica el ajuste "Nyx en partida":
     - **Solo voz** con un monitor: no se muestra nada; Nyx responde solo por voz.
     - **Solo voz** con varios monitores: la interfaz va al monitor alternativo elegido en ajustes, o si no al principal que no tenga el juego.

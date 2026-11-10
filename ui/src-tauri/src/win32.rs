@@ -202,3 +202,89 @@ pub fn ring_luma(hwnd: HWND, cx: f64, cy: f64, radius: f64) -> Option<f64> {
     unsafe { ReleaseDC(None, dc) };
     (count > 0).then(|| total / count as f64)
 }
+
+/// Un monitor conectado: nombre del dispositivo («\.\DISPLAY2», el mismo que usa el núcleo
+/// para decir dónde está un juego), su área y si es el principal.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Monitor {
+    pub device: String,
+    pub area: MonitorArea,
+    pub primary: bool,
+}
+
+fn monitor_info(monitor: windows::Win32::Graphics::Gdi::HMONITOR) -> Option<Monitor> {
+    use windows::Win32::Graphics::Gdi::MONITORINFOEXW;
+
+    let mut info = MONITORINFOEXW::default();
+    info.monitorInfo.cbSize = size_of::<MONITORINFOEXW>() as u32;
+    // SAFETY: MONITORINFOEXW empieza por MONITORINFO y cbSize dice que es la versión «EX».
+    let ok = unsafe { GetMonitorInfoW(monitor, &mut info.monitorInfo as *mut MONITORINFO) };
+    if !ok.as_bool() {
+        return None;
+    }
+    let (mut dpi_x, mut dpi_y) = (96u32, 96u32);
+    // SAFETY: consulta sobre un monitor válido; variables locales.
+    let _ = unsafe { GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y) };
+    let len = info
+        .szDevice
+        .iter()
+        .position(|&c| c == 0)
+        .unwrap_or(info.szDevice.len());
+    let RECT {
+        left,
+        top,
+        right,
+        bottom,
+    } = info.monitorInfo.rcMonitor;
+    Some(Monitor {
+        device: String::from_utf16_lossy(&info.szDevice[..len]),
+        area: MonitorArea {
+            left,
+            top,
+            width: right - left,
+            height: bottom - top,
+            scale: f64::from(dpi_x) / 96.0,
+        },
+        // MONITORINFOF_PRIMARY = 1
+        primary: info.monitorInfo.dwFlags & 1 != 0,
+    })
+}
+
+/// Todos los monitores conectados, de izquierda a derecha (y de arriba abajo).
+pub fn monitors() -> Vec<Monitor> {
+    use windows::Win32::Foundation::LPARAM;
+    use windows::Win32::Graphics::Gdi::{EnumDisplayMonitors, HDC, HMONITOR};
+    use windows::core::BOOL;
+
+    unsafe extern "system" fn visit(m: HMONITOR, _: HDC, _: *mut RECT, data: LPARAM) -> BOOL {
+        // SAFETY: data apunta al Vec de abajo mientras dura EnumDisplayMonitors.
+        let list = unsafe { &mut *(data.0 as *mut Vec<Monitor>) };
+        if let Some(info) = monitor_info(m) {
+            list.push(info);
+        }
+        BOOL(1)
+    }
+
+    let mut list: Vec<Monitor> = Vec::new();
+    // SAFETY: la lista vive durante toda la enumeración (síncrona).
+    unsafe {
+        let _ = EnumDisplayMonitors(
+            None,
+            None,
+            Some(visit),
+            LPARAM(&mut list as *mut Vec<Monitor> as isize),
+        );
+    }
+    list.sort_by_key(|m| (m.area.left, m.area.top));
+    list
+}
+
+/// Dispositivo del monitor donde está el ratón.
+pub fn cursor_device() -> Option<String> {
+    let mut pt = POINT::default();
+    // SAFETY: lectura de la posición del ratón en una variable local.
+    unsafe { GetCursorPos(&mut pt).ok()? };
+    // SAFETY: MonitorFromPoint siempre devuelve un monitor con MONITOR_DEFAULTTONEAREST.
+    let monitor = unsafe { MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST) };
+    monitor_info(monitor).map(|m| m.device)
+}

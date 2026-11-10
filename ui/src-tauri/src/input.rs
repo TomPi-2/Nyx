@@ -34,11 +34,14 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
-pub fn show<R: Runtime>(app: &AppHandle<R>) {
+pub fn show(app: &AppHandle) {
     let Some(window) = app.get_webview_window(LABEL) else {
         return;
     };
-    island::place_top_center(&window, WIDTH, HEIGHT);
+    // En el mismo monitor que Nyx (sigue al ratón o el fijo de Ajustes).
+    if let Some(area) = island::current_area(app).or_else(win32::cursor_monitor) {
+        island::place_top_center_at(&window, area, WIDTH, HEIGHT, 0.0);
+    }
     let _ = window.show();
     // tao reescribe los estilos al mostrar la ventana y quita WS_EX_TOOLWINDOW: se vuelve a
     // poner después, en el mismo hilo y en orden (fuera de Alt+Tab mientras se escribe).

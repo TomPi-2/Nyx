@@ -114,6 +114,16 @@ PanelTint = Literal[
 ]  # fmt: skip
 
 
+class MonitorSettings(_Section):
+    """En qué monitor aparece Nyx (SPEC sección 11, «Elección del monitor»)."""
+
+    follow: Literal["cursor", "fixed"] = "cursor"
+    # Nombre del dispositivo («\.DISPLAY2»); None o desconectado = el principal.
+    fixed: str | None = Field(default=None, max_length=64)
+    # Al cambiar de monitor estando visible: se encoge y aparece en el nuevo.
+    transition: bool = True
+
+
 class AppearanceSettings(_Section):
     """Apariencia (SPEC secciones 12 y 13)."""
 
@@ -122,6 +132,7 @@ class AppearanceSettings(_Section):
     font: Font = "segoe"
     nyx_color: NyxColor = "blanco"
     panel_tint: PanelTint = "gris"
+    monitor: MonitorSettings = Field(default_factory=MonitorSettings)
 
 
 class GameSettings(_Section):
@@ -136,6 +147,9 @@ class GameSettings(_Section):
     policies: dict[str, Literal["allowed", "deferred", "blocked"]] = Field(default_factory=dict)
     low_priority: bool = True  # Nyx con prioridad baja mientras se juega
     unload_llm_after_min: int = Field(default=0, ge=0, le=240)  # 0 = no descargarlo
+    # En «solo voz» con varios monitores, si Nyx tuviera que salir en el del juego, sale en
+    # este; None = automático (el principal, o el primero sin el juego).
+    alt_monitor: str | None = Field(default=None, max_length=64)
 
 
 class Settings(BaseModel):

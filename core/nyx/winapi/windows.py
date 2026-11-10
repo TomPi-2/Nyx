@@ -260,3 +260,17 @@ def close_window(hwnd: int) -> None:
     import win32gui
 
     win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+
+
+def monitor_device(hwnd: int) -> str:
+    """Monitor donde está una ventana, por su nombre de dispositivo («\\.\\DISPLAY2»), el
+    mismo que usa la interfaz para elegir monitor. "" si no se puede saber."""
+    try:
+        import win32api
+        import win32con
+
+        monitor = win32api.MonitorFromWindow(hwnd, win32con.MONITOR_DEFAULTTONEAREST)
+        return str(win32api.GetMonitorInfo(monitor).get("Device", ""))
+    except Exception:
+        log.debug("No se pudo saber el monitor de la ventana %s", hwnd, exc_info=True)
+        return ""

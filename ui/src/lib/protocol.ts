@@ -2,7 +2,7 @@
 
 import type { FontId, NyxColorId, PanelTintId } from "$theme/palette";
 
-export const PROTOCOL_VERSION = 10;
+export const PROTOCOL_VERSION = 11;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -54,6 +54,8 @@ export interface NyxSettings {
     font: FontId;
     nyx_color: NyxColorId;
     panel_tint: PanelTintId;
+    /** v11: en qué monitor aparece Nyx. */
+    monitor: MonitorSettings;
   };
   responses: { speak_typed: boolean };
   wake: {
@@ -73,8 +75,19 @@ export interface NyxSettings {
     policies: Record<string, GamePolicy>;
     low_priority: boolean;
     unload_llm_after_min: number;
+    /** v11: monitor en partida («solo voz»); null = automático. */
+    alt_monitor: string | null;
   };
   [section: string]: unknown;
+}
+
+/** v11: en qué monitor aparece Nyx (SPEC sección 11). */
+export interface MonitorSettings {
+  follow: "cursor" | "fixed";
+  /** Dispositivo («\.DISPLAY2»); null = el principal. */
+  fixed: string | null;
+  /** Animación al cambiar de monitor estando visible. */
+  transition: boolean;
 }
 
 /** Cambio parcial de ajustes: solo lo que cambia. */
@@ -119,7 +132,13 @@ export type ServerMessage =
     }
   | { type: "bubble_hide" }
   /** v5: partida en marcha; con «solo voz» o «desactivado» la isla no aparece sobre el juego. */
-  | { type: "game"; active: boolean; mode: "off" | "voice" | "normal" }
+  | {
+      type: "game";
+      active: boolean;
+      mode: "off" | "voice" | "normal";
+      /** v11: monitor del juego («\.DISPLAY1»); "" si no se sabe. */
+      monitor: string;
+    }
   /** v8: ajustes actuales; llega a todas las ventanas cada vez que cambian. */
   | {
       type: "settings";

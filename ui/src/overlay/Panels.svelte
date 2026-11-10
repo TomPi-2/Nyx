@@ -17,7 +17,14 @@
   import ConfirmPanel from "./panels/ConfirmPanel.svelte";
   import ResponsePanel from "./panels/ResponsePanel.svelte";
   import UndoPanel from "./panels/UndoPanel.svelte";
-  import { POP_IN_MS, POP_OUT_MS } from "$lib/motion";
+  import {
+    MOVE_EVENT,
+    MOVE_IN_MS,
+    MOVE_OUT_MS,
+    POP_IN_MS,
+    POP_OUT_MS,
+    type MovePhase,
+  } from "$lib/motion";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
   import {
     INPUT_EVENT,
@@ -52,9 +59,10 @@
   let connected = $state(false);
   let size = $state(100);
   let edgePx = $state(DEFAULT_GLASS.amplitude);
-  let game = $state<{ active: boolean; mode: "off" | "voice" | "normal" }>({
+  let game = $state<{ active: boolean; mode: "off" | "voice" | "normal"; monitor: string }>({
     active: false,
     mode: "voice",
+    monitor: "",
   });
   let slot: HTMLDivElement | undefined = $state();
   let core: CoreConnection | undefined;
@@ -63,13 +71,17 @@
   // Sin Nyx en pantalla, el panel sube a ocupar su sitio (panels/layout.ts). Lo dice la
   // ventana de la forma, que es la única que sabe cuándo ha desaparecido del todo.
   let away = $state(true);
+  let moving = $state<MovePhase | null>(null);
+  let movingTimer: ReturnType<typeof setTimeout> | undefined;
   function setAway(value: boolean) {
     if (value === away) return;
     away = value;
     glass.follow(PANEL_MOVE_MS + 60);
   }
 
-  const hiddenForGame = $derived(game.active && game.mode !== "normal");
+  // «Desactivado»: nada en partida. «Solo voz»: el coordinador de monitores (monitors.rs) la
+  // lleva a otro monitor o no la muestra en ninguno.
+  const hiddenForGame = $derived(game.active && game.mode === "off");
   const visible = $derived(connected && !hiddenForGame && bubble !== null);
 
   // Con Nyx, debajo de la forma con el hueco fijo (contando la ondulación del borde); sin
@@ -197,7 +209,7 @@
         hide();
         break;
       case "game":
-        game = { active: msg.active, mode: msg.mode };
+        game = { active: msg.active, mode: msg.mode, monitor: msg.monitor ?? "" };
         // En partida el cristal pasa a Bajo sin excepción (nunca se captura con un juego).
         glass.setGame(msg.active);
         break;
@@ -218,6 +230,13 @@
       INPUT_EVENT,
       (e) => (input = e.payload),
     );
+    // Cambio de monitor estando visible: se encoge aquí y aparece allí (island.rs).
+    const offMove = getCurrentWebviewWindow().listen<MovePhase>(MOVE_EVENT, (e) => {
+      clearTimeout(movingTimer);
+      moving = e.payload;
+      glass.follow((e.payload === "out" ? MOVE_OUT_MS : MOVE_IN_MS) + 60);
+      if (e.payload === "in") movingTimer = setTimeout(() => (moving = null), MOVE_IN_MS);
+    });
     const offNyx = getCurrentWebviewWindow().listen<NyxPresence>(NYX_EVENT, (e) =>
       setAway(e.payload === "gone"),
     );
@@ -225,6 +244,7 @@
       connection.close();
       void offNyx.then((off) => off());
       void offInput.then((off) => off());
+      void offMove.then((off) => off());
       glass.detach();
     };
   });
@@ -232,6 +252,8 @@
 
 <div
   class="slot"
+  class:move-out={moving === "out"}
+  class:move-in={moving === "in"}
   style:top="0px"
   style:translate="0 {target}px"
   style:--move="{PANEL_MOVE_MS}ms"

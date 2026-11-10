@@ -30,3 +30,9 @@ function backOut(t: number): number {
   const u = t - 1;
   return u * u * ((s + 1) * u + s) + 1;
 }
+
+/** Cambio de monitor (app.css: `move-out`, `move-in`; island.rs espera MOVE_OUT_MS). */
+export const MOVE_OUT_MS = 130;
+export const MOVE_IN_MS = 220;
+export const MOVE_EVENT = "overlay://move";
+export type MovePhase = "out" | "in";

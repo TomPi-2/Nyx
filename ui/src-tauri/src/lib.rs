@@ -5,6 +5,7 @@ mod glass;
 mod hotkeys;
 mod input;
 mod island;
+mod monitors;
 mod settings_window;
 mod tray;
 mod win32;
@@ -29,6 +30,8 @@ pub fn run() {
             island::island_set_hit_rects,
             island::island_set_size,
             island::island_backdrop_luma,
+            island::overlay_policy,
+            monitors::monitors_list,
             input::input_hide,
             glass::glass_attach,
             glass::glass_set_options,
