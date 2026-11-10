@@ -24,6 +24,7 @@
   let level = $state(0);
   let size = $state(100); // lado de la forma (Ajustes → Apariencia); llega con «welcome»
   let color = $state("blanco"); // color de Nyx (Ajustes → Apariencia)
+  let welcomeAsked = false;
   let shapeVisible = $state(false);
   let backdrop = $state<number | null>(null);
   const box = $derived(size * SHAPE_PAD); // lienzo de la forma
@@ -146,6 +147,12 @@
       case "welcome":
         size = msg.indicator_size ?? 100;
         color = msg.nyx_color ?? "blanco";
+        // Primera vez: el asistente de bienvenida (una vez por sesión; si se cierra sin
+        // terminar, vuelve a salir la próxima vez que se abra Nyx).
+        if (msg.onboarding_done === false && !welcomeAsked) {
+          welcomeAsked = true;
+          void invoke("welcome_open");
+        }
         break;
       case "settings":
         // Cambiado en Ajustes → Apariencia: se ve al momento.

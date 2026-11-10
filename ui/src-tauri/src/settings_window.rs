@@ -58,7 +58,15 @@ pub async fn settings_open(app: AppHandle, section: Option<String>) {
     let section = section.filter(|s| {
         matches!(
             s.as_str(),
-            "apariencia" | "activacion" | "voz" | "respuestas" | "partida"
+            "apariencia"
+                | "activacion"
+                | "voz"
+                | "respuestas"
+                | "partida"
+                | "cerebro"
+                | "cache"
+                | "privacidad"
+                | "ayuda"
         )
     });
     open_at(&app, section.as_deref());

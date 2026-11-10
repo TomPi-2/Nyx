@@ -110,3 +110,57 @@ class SettingsRequested:
     """Ajustes pide leerlos (`patch` None) o cambiarlos (cambio parcial)."""
 
     patch: dict[str, Any] | None = None
+
+
+# Asistente de primer arranque y Ajustes → Cerebro, Caché, Ayuda y Privacidad (fase 5d‑2).
+
+#: Lo que se le puede pedir a SetupService (nyx/setup/service.py).
+SetupAction = Literal[
+    "status",
+    "download",
+    "scan",
+    "forget_shortcut",
+    "mic_test_start",
+    "mic_test_stop",
+    "clear_samples",
+    "clear_activations",
+]
+
+
+@dataclass(frozen=True, slots=True)
+class SetupRequested:
+    action: SetupAction
+    arg: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class SetupStatusChanged:
+    """Estado completo: modelos, Ollama, whisper, caché, atajos aprendidos y grabaciones."""
+
+    status: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class SetupProgress:
+    """Progreso de una descarga (modelo del catálogo u Ollama)."""
+
+    key: str
+    label: str
+    done_mb: float
+    total_mb: float
+    finished: bool = False
+    error: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class MicLevelChanged:
+    """Nivel del micrófono durante la prueba del asistente (0–1)."""
+
+    rms: float
+
+
+@dataclass(frozen=True, slots=True)
+class SetupResult:
+    action: str
+    ok: bool
+    message: str | None = None

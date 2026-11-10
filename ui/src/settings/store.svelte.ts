@@ -6,7 +6,24 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { connectCore, type CoreConnection } from "$lib/core";
-import type { NyxSettings, ServerMessage, SettingsPatch, ToolInfo } from "$lib/protocol";
+import type {
+  NyxSettings,
+  NyxState,
+  ServerMessage,
+  SettingsPatch,
+  SetupAction,
+  SetupStatus,
+  ToolInfo,
+} from "$lib/protocol";
+
+/** Una descarga en curso o terminada (asistente y Ajustes → Cerebro). */
+export interface Download {
+  label: string;
+  doneMb: number;
+  totalMb: number;
+  finished: boolean;
+  error: string | null;
+}
 
 /** Mientras se arrastra un deslizador no se guarda en cada paso. */
 const SAVE_AFTER_MS = 300;
@@ -35,6 +52,13 @@ class SettingsStore {
   outputs = $state<string[]>([]);
   voices = $state<{ id: string; label: string }[]>([]);
   connected = $state(false);
+  /** Asistente y Ajustes → Cerebro, Caché, Ayuda y Privacidad. */
+  setupStatus = $state<SetupStatus | null>(null);
+  downloads = $state<Record<string, Download>>({});
+  micLevel = $state(0);
+  /** Estado de Nyx (el asistente mira si se activa al decir «Nyx»). */
+  nyxState = $state<NyxState>("idle");
+  lastResult = $state<{ action: string; ok: boolean; message: string | null } | null>(null);
   /** Último cambio rechazado por el núcleo. */
   error = $state<string | null>(null);
   /** Cambios que se aplican al reiniciar Nyx. */
@@ -44,6 +68,12 @@ class SettingsStore {
   private pending: SettingsPatch = {};
   private timer: ReturnType<typeof setTimeout> | undefined;
   private errorTimer: ReturnType<typeof setTimeout> | undefined;
+
+  /** Pide algo al asistente (core/nyx/setup/service.py). */
+  setup(action: SetupAction, arg = ""): boolean {
+    if (action === "download") this.downloads = {};
+    return this.core?.send({ type: "setup", action, arg }) ?? false;
+  }
 
   /** Reinicia el núcleo para aplicar lo que lo necesita (bandeja → Reiniciar núcleo). */
   async restartCore(): Promise<void> {
@@ -56,7 +86,10 @@ class SettingsStore {
       (msg) => this.handle(msg),
       (ok) => {
         this.connected = ok;
-        if (ok) this.core?.send({ type: "settings_get" });
+        if (ok) {
+          this.core?.send({ type: "settings_get" });
+          this.core?.send({ type: "setup", action: "status" });
+        }
       },
     );
     return () => {
@@ -86,6 +119,32 @@ class SettingsStore {
   }
 
   private handle(msg: ServerMessage): void {
+    switch (msg.type) {
+      case "setup_status":
+        this.setupStatus = msg.status;
+        return;
+      case "setup_progress":
+        this.downloads = {
+          ...this.downloads,
+          [msg.key]: {
+            label: msg.label,
+            doneMb: msg.done_mb,
+            totalMb: msg.total_mb,
+            finished: msg.finished,
+            error: msg.error,
+          },
+        };
+        return;
+      case "mic_level":
+        this.micLevel = msg.rms;
+        return;
+      case "state":
+        this.nyxState = msg.state;
+        return;
+      case "setup_result":
+        this.lastResult = { action: msg.action, ok: msg.ok, message: msg.message };
+        return;
+    }
     if (msg.type !== "settings") return;
     // Si hay cambios esperando a guardarse, no se pisan con lo que llega.
     this.data = Object.keys(this.pending).length

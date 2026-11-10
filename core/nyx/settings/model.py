@@ -152,6 +152,18 @@ class GameSettings(_Section):
     alt_monitor: str | None = Field(default=None, max_length=64)
 
 
+class OnboardingSettings(_Section):
+    """Asistente de primer arranque (SPEC sección 13)."""
+
+    done: bool = False
+
+
+class PrivacySettings(_Section):
+    """Privacidad (SPEC sección 8). Desactivado por defecto: solo con permiso explícito."""
+
+    usage_data: bool = False
+
+
 class Settings(BaseModel):
     model_config = ConfigDict(extra="ignore", validate_assignment=True)
 
@@ -165,6 +177,8 @@ class Settings(BaseModel):
     responses: ResponseSettings = Field(default_factory=ResponseSettings)
     game: GameSettings = Field(default_factory=GameSettings)
     appearance: AppearanceSettings = Field(default_factory=AppearanceSettings)
+    onboarding: OnboardingSettings = Field(default_factory=OnboardingSettings)
+    privacy: PrivacySettings = Field(default_factory=PrivacySettings)
 
 
 def settings_path() -> Path:

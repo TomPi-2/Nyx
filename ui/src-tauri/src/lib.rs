@@ -8,6 +8,7 @@ mod island;
 mod monitors;
 mod settings_window;
 mod tray;
+mod welcome_window;
 mod win32;
 
 use tauri::RunEvent;
@@ -42,6 +43,8 @@ pub fn run() {
             glass::gallery::glass_toggle_bubble,
             glass::gallery::glass_close_gallery,
             settings_window::settings_open,
+            welcome_window::welcome_open,
+            welcome_window::open_folder,
         ])
         .setup(|app| {
             let handle = app.handle();
