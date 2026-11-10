@@ -12,7 +12,7 @@ Eres el desarrollador principal de Nyx. La especificación completa está en [do
 - Nunca bajes los niveles de seguridad de la sección 8 ni uses borrado permanente.
 - Código con tipado (mypy/TypeScript estricto), formato automático (ruff, prettier) y comentarios en español donde aporten.
 - Si algo de la especificación no es viable o hay una opción mejor, explícalo y propón la alternativa antes de cambiarla.
-- La interfaz sigue la sección 12 al pie de la letra: solo grises, translúcida, todo redondeado y sin bordes. La personalización queda para la fase 7.
+- La interfaz sigue la sección 12 al pie de la letra: solo grises por defecto (colores y fuentes fijos opcionales en Apariencia), translúcida, todo redondeado y sin bordes. El resto de la personalización queda para la fase 7.
 - Mantén [CHANGELOG.md](CHANGELOG.md) y actualiza `docs/SPEC.md` si acordamos cambios.
 
 ## Estado
@@ -31,6 +31,7 @@ Fase actual: **5 — Modo partida e interfaz final**: plan aprobado (5a → 5b �
 | 2026-11-09 | Sin cuenta. Datos de uso anónimos solo con permiso (SPEC sección 8). |
 | 2026-11-09 | Interfaz en ventanas flotantes propias, ocultas en reposo; el monitor se elige según ajustes y modo partida (SPEC sección 11). |
 | 2026-11-09 | LLM provisional `qwen2.5:7b`; Whisper large-v3-turbo q5 con Vulkan (0,17 s por frase). Falta la prueba del portátil para los requisitos mínimos. |
+| 2026-11-10 | Apariencia personalizable en 5c‑2 con opciones fijas (no paletas libres): fuente (Segoe UI Variable, Manrope o Nunito), color de Nyx (19, blanco por defecto) y tinte de los paneles (12, gris por defecto). Valores en `docs/prototipos/apariencia.html`. |
 | 2026-11-10 | Motor de cristal propio (SPEC sección 12): niveles Auto/Alto/Medio/Bajo, en partida Bajo sin excepción. Nyx y los paneles en ventanas distintas para que Nyx salga siempre en capturas; «Mostrar Nyx en capturas y directos» pasa los paneles a Bajo. Hueco fijo de 14 px entre Nyx y los paneles. |
 
 El historial completo de decisiones está en la sección 18 de `docs/SPEC.md`.

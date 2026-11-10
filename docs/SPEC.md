@@ -431,10 +431,16 @@ Nyx tiene identidad propia, independiente de tepnyx.com: solo grises, cristal tr
 
 **Reglas de identidad:**
 
-- **Solo grises.** Ningún color de acento: los estados se distinguen por brillo, opacidad, tamaño y movimiento, no por tono.
+- **Solo grises por defecto.** Ningún color de acento: los estados se distinguen por brillo, opacidad, tamaño y movimiento, no por tono. El usuario puede elegir en Apariencia, entre opciones fijas, un color para la forma de Nyx y un tinte para los paneles (ver «Apariencia personalizable»); los controles, el texto y los estados siguen en grises.
 - **Sin bordes en ningún sitio.** Ni contornos, ni líneas separadoras, ni bordes de ventana. La separación entre elementos se consigue con espacio, con capas de cristal de distinta opacidad y con sombras muy difusas.
 - **Todo redondeado:** paneles 24–28 px, tarjetas 16–20 px, controles en forma de pastilla, iconos con trazo redondeado.
-- **Tipografía:** Segoe UI Variable (nativa de Windows 11 y muy cercana a la de iOS). Pesos Regular y Semibold; títulos con tamaño "Display".
+- **Tipografía:** Segoe UI Variable (nativa de Windows 11 y muy cercana a la de iOS) por defecto; Manrope o Nunito (redondeada) a elegir en Apariencia, incluidas dentro de Nyx (licencia SIL OFL). Pesos Regular y Semibold; títulos con tamaño "Display".
+
+**Apariencia personalizable** (decisión 2026-11-10, entra en 5c‑2; prueba en [prototipos/apariencia.html](prototipos/apariencia.html)). Solo opciones fijas, nunca una paleta libre:
+
+- **Color de Nyx** (19): blanco (predeterminado), perla, arena, melocotón, coral, rojo, rosa, fucsia, lavanda, violeta, azul cielo, azul, turquesa, menta, verde, lima, amarillo, ámbar y grafito. Opacos y suaves, para que la forma se siga leyendo como un sólido sobre cualquier fondo.
+- **Tinte de los paneles** (12, con versión para tema oscuro y claro): gris (predeterminado), grafito, azul noche, océano, bosque, salvia, ciruela, vino, rosa, arena, cobre y lavanda. Lo usa el motor de cristal y el tinte de respaldo.
+- **Fuente** (3): Segoe UI Variable (predeterminada), Manrope y Nunito.
 - **Iconos:** Fluent UI System Icons (gratuitos, estilo redondeado) en gris.
 
 **Paleta (tokens en `ui/src/theme/nyx.ts`):**
@@ -713,7 +719,7 @@ Reglas de trabajo:
 - Nunca bajes los niveles de seguridad de la sección 8 ni uses borrado permanente.
 - Código con tipado (mypy/TypeScript estricto), formato automático (ruff, prettier) y comentarios en español donde aporten.
 - Si algo de la especificación no es viable o hay una opción mejor, explícalo y propón la alternativa antes de cambiarla.
-- La interfaz sigue la sección 12 al pie de la letra: solo grises, translúcida, todo redondeado y sin bordes. La personalización queda para la fase 7.
+- La interfaz sigue la sección 12 al pie de la letra: solo grises por defecto (colores y fuentes fijos opcionales en Apariencia), translúcida, todo redondeado y sin bordes. El resto de la personalización queda para la fase 7.
 - Mantén un CHANGELOG.md y actualiza SPEC.md si acordamos cambios.
 ```
 
@@ -757,4 +763,5 @@ Reglas de trabajo:
 | 2026-11-10 | Corrección: «pensando» solo cuando Nyx piensa de verdad (peticiones al LLM, al momento; acciones del router, solo si tardan más de 0,3 s). Si «Nyx» salta mientras Nyx piensa o habla, primero se confirma con whisper y solo entonces se interrumpe. En la ventana de seguimiento cuenta como dirigida a Nyx, sin clasificador, una frase que diga «Nyx» o que empiece con una orden. | 3, 4 |
 | 2026-11-10 | Motor de cristal propio (antes de 5c), aprobado tras verlo en la galería: captura + Direct3D 11 + composición de Windows, silueta líquida sin bordes y niveles Auto, Alto, Medio y Bajo. En partida, Bajo sin excepción; con un nivel concreto no hay más bajadas automáticas. El pincel de fondo de Windows se descarta (no disponible en el portátil). Amplitud del borde 0–10 (5 = 3,5 px) y valores predeterminados elegidos por el usuario. La GPU es la que tiene la pantalla (la integrada en portátiles). Las capturas no salen de la GPU. | 2, 8, 11, 12, 13, 14, 16 |
 | 2026-11-10 | Paneles: la forma de Nyx y los paneles en ventanas distintas, para que Nyx salga siempre en capturas y directos; ajuste «Mostrar Nyx en capturas y directos» (los paneles pasan a Bajo). Hueco fijo de 14 px entre Nyx (en su extensión máxima) y cualquier panel; Ajustes se mueve libremente. El campo de texto también usa el motor. Ajustes solo muestra lo que ya existe; el resto se añade cuando exista. Lo que queda de 5b: paneles con un prototipo previo; 5c: Ajustes en dos entregas. | 11, 12, 13 |
+| 2026-11-10 | Apariencia personalizable con opciones fijas (entra en 5c‑2): color de Nyx (19, con un rojo intenso que combine con el tinte vino), tinte de los paneles (12) y fuente (Segoe UI Variable, Manrope o Nunito). Grises y blanco siguen siendo lo predeterminado. | 12, 13 |
 | 2026-11-10 | Icono de Nyx: la propuesta «Sólido» (la forma casi cuadrada con un lóbulo). Bandeja según el tema de Windows (blanco / gris oscuro). En la web irá con una animación de un solo disparo: se divide en cuatro, dan un cuarto de vuelta con dos empujones y vuelven al icono (`docs/prototipos/icono-nyx.html`). | 12 |
