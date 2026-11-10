@@ -93,6 +93,8 @@ Ajustes en `%APPDATA%\Nyx\settings.json` (micrófono, voz, ruta de `whisper-serv
 
 Problema conocido en este equipo: la caché de uv está en una carpeta sincronizada con la nube, así que `core/pyproject.toml` usa `link-mode = "copy"`. Si `uv` da "os error 32" o "396", borra `core/.venv` y repite.
 
+Errores vistos al usar Nyx: se apuntan en [docs/ERRORES.md](docs/ERRORES.md) y se corrigen por tandas sin parar el plan.
+
 ## Preguntas abiertas
 
 - Ajuste fino de la paleta de grises sobre fondos reales.

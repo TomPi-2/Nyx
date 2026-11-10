@@ -18,6 +18,43 @@ export const PANEL_MAX_WIDTH = 520;
 /** Radio de las esquinas de los paneles (SPEC: paneles 24–28 px). */
 export const PANEL_RADIUS = 26;
 
+/**
+ * Cuando la forma de Nyx se va (por ejemplo, una respuesta escrita sin voz), el panel sube a
+ * ocupar su sitio: un panel suelto lejos del borde superior queda mal. Si Nyx vuelve con el
+ * panel visible, el panel baja a su hueco y la forma espera PANEL_MOVE_MS para aparecer, así
+ * que nunca se tocan. Las dos ventanas (forma y paneles) aplican estas mismas reglas a los
+ * mismos mensajes del núcleo, sin hablar entre ellas.
+ */
+/** Lo que tarda la forma en desaparecer del todo; después, el panel puede subir. */
+export const SHAPE_EXIT_MS = 450;
+/** Lo que tarda el panel en subir o bajar. */
+export const PANEL_MOVE_MS = 280;
+
+/**
+ * ¿Se ha ido Nyx? Pasa a «sí» SHAPE_EXIT_MS después de quedar en reposo y a «no» al momento
+ * de volver. `onchange` recibe el valor nuevo.
+ */
+export function trackAway(onchange: (away: boolean) => void): (active: boolean) => void {
+  let away = true;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return (active: boolean) => {
+    if (active) {
+      clearTimeout(timer);
+      timer = undefined;
+      if (away) {
+        away = false;
+        onchange(false);
+      }
+    } else if (!away && timer === undefined) {
+      timer = setTimeout(() => {
+        timer = undefined;
+        away = true;
+        onchange(true);
+      }, SHAPE_EXIT_MS);
+    }
+  };
+}
+
 /** Borde inferior de lo que puede ocupar la forma de Nyx, medido desde `top`. */
 export function shapeReach(size: number): number {
   return size * SHAPE_PAD;

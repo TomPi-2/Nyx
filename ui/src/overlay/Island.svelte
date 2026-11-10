@@ -11,7 +11,7 @@
   import type { NyxState, ServerMessage } from "$lib/protocol";
   import Indicator from "./shape/Indicator.svelte";
   import { SHAPE_PAD } from "./shape/nyxShape";
-  import { SHAPE_TOP } from "./panels/layout";
+  import { PANEL_MOVE_MS, SHAPE_TOP, trackAway } from "./panels/layout";
 
   const HIDE_AFTER_MS = 400; // deja terminar la animación de salida antes de ocultar la ventana
   const BACKDROP_MS = 500; // cada cuánto se mira el fondo (blanco o gris)
@@ -34,6 +34,21 @@
   const hiddenForGame = $derived(game.active && game.mode !== "normal");
 
   const active = $derived(status !== "idle" && status !== "muted");
+
+  // Sin Nyx, el panel sube a ocupar su sitio (panels/layout.ts). Si Nyx vuelve con un panel
+  // arriba, la forma espera a que baje para no pisarlo.
+  let bubbleOn = false;
+  let away = true;
+  let waitPanel = $state(false);
+  let waitTimer: ReturnType<typeof setTimeout> | undefined;
+  const updateAway = trackAway((value) => {
+    if (!value && away && bubbleOn) {
+      waitPanel = true;
+      clearTimeout(waitTimer);
+      waitTimer = setTimeout(() => (waitPanel = false), PANEL_MOVE_MS);
+    }
+    away = value;
+  });
   const shown = $derived(connected && !hiddenForGame && active);
 
   // La ventana mide lo que el lienzo de la forma.
@@ -76,6 +91,13 @@
     switch (msg.type) {
       case "state":
         status = msg.state;
+        updateAway(msg.state !== "idle" && msg.state !== "muted");
+        break;
+      case "bubble":
+        bubbleOn = true;
+        break;
+      case "bubble_hide":
+        bubbleOn = false;
         break;
       case "level":
         level = msg.rms;
@@ -107,7 +129,7 @@
 
 <div class="shape-slot" style:top="{SHAPE_TOP}px">
   <Indicator
-    status={hiddenForGame ? "idle" : status}
+    status={hiddenForGame || waitPanel ? "idle" : status}
     {level}
     {size}
     {backdrop}

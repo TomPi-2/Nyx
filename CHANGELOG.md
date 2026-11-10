@@ -24,6 +24,9 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
     - El campo de texto usa el motor (Mayús+Enter salta de línea).
     - En partida, las ventanas avisan al motor y el cristal pasa a Bajo.
     - Ajustes del cristal en `settings.json` (`appearance.glass`: `quality` auto/alto/medio/bajo, `motion`, `edge` 0–10 y `show_in_captures`, que pasa los paneles a Bajo para que salgan en capturas y directos). Se leen al arrancar el núcleo; la ventana de Ajustes llega en 5c.
+    - Forma de Nyx: al juntarse los cuatro cuadrados tras pensar un rato, deshacían hacia atrás todas las vueltas dadas (se veían girar a toda velocidad). Ahora se acercan hasta casi tocarse, cada giro avanza en el mismo sentido hasta el siguiente cuarto de vuelta (los cuatro se ven igual cada 90°) con un último empujón suave (0,45–1,2 s según lo que falte, como mucho ~2,3° por fotograma) y solo entonces se funden. Si vuelve a pensar a mitad de la unión, sigue desde ahí sin saltos.
+    - Cuando la forma de Nyx se va (respuesta sin voz, aviso con Nyx en reposo), el panel sube hasta arriba en lugar de quedarse suelto; si Nyx vuelve, el panel baja a su hueco y la forma aparece al terminar.
+    - Errores vistos al usar Nyx apuntados en `docs/ERRORES.md` para corregirlos por tandas.
     - Protocolo v7: el saludo lleva los ajustes del cristal y cada burbuja dice qué panel es (`kind`: respuesta, confirmación, deshacer o aviso) y cuánto dura (`expires_s`), para que las cuentas atrás sean exactas.
   - Icono propio de Nyx (propuesta «Sólido»: la forma de Nyx casi cuadrada con un solo lóbulo), generado con el mismo shader portado a numpy (`core/scripts/make_icon.py`): ejecutable, menú Inicio y bandeja. En la bandeja, blanco con la barra de tareas oscura y gris oscuro con la clara; cambia solo si cambia el tema de Windows. Prototipo y animación de la web en `docs/prototipos/icono-nyx.html`.
 - Fase 4 (cerrada el 2026-11-10): «Nyx» de verdad.

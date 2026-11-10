@@ -15,7 +15,7 @@
   import ConfirmPanel from "./panels/ConfirmPanel.svelte";
   import ResponsePanel from "./panels/ResponsePanel.svelte";
   import UndoPanel from "./panels/UndoPanel.svelte";
-  import { PANEL_MAX_WIDTH, panelTop } from "./panels/layout";
+  import { PANEL_MAX_WIDTH, PANEL_MOVE_MS, SHAPE_TOP, panelTop, trackAway } from "./panels/layout";
 
   /** Margen alrededor del panel dentro de la ventana: sombra y ondulación del borde. */
   const PAD = 28;
@@ -45,16 +45,25 @@
   let core: CoreConnection | undefined;
   let nextId = 0;
   let leaveTimer: ReturnType<typeof setTimeout> | undefined;
+  // Sin Nyx en pantalla, el panel sube a ocupar su sitio (panels/layout.ts).
+  let away = $state(true);
+  const updateAway = trackAway((value) => {
+    away = value;
+    glass.follow(PANEL_MOVE_MS + 60);
+  });
 
   const hiddenForGame = $derived(game.active && game.mode !== "normal");
   const visible = $derived(connected && !hiddenForGame && bubble !== null);
 
-  // Debajo de la forma de Nyx con el hueco fijo, contando la ondulación del borde.
+  // Con Nyx, debajo de la forma con el hueco fijo (contando la ondulación del borde); sin
+  // Nyx, arriba del todo. La ventana empieza en el borde superior y cubre los dos sitios.
+  const lowered = $derived(panelTop(size, edgePx));
+  const lift = $derived(away ? lowered - SHAPE_TOP : 0);
   $effect(() => {
     void invoke("island_set_size", {
       width: PANEL_MAX_WIDTH + 2 * PAD,
-      height: AREA_HEIGHT + 2 * PAD,
-      top: panelTop(size, edgePx) - PAD,
+      height: lowered + AREA_HEIGHT + PAD,
+      top: 0,
     });
   });
 
@@ -75,8 +84,10 @@
   $effect(() => {
     void bubble;
     void visible;
+    void away;
     requestAnimationFrame(updateHitRects);
-    const timer = setTimeout(updateHitRects, ANIM_MS + 50); // tras la animación de entrada
+    // Tras la animación de entrada o el cambio de sitio.
+    const timer = setTimeout(updateHitRects, Math.max(ANIM_MS, PANEL_MOVE_MS) + 50);
     return () => clearTimeout(timer);
   });
 
@@ -122,6 +133,9 @@
 
   function handle(msg: ServerMessage) {
     switch (msg.type) {
+      case "state":
+        updateAway(msg.state !== "idle" && msg.state !== "muted");
+        break;
       case "welcome":
         size = msg.indicator_size ?? 100;
         if (msg.glass) {
@@ -164,7 +178,14 @@
   });
 </script>
 
-<div class="slot" class:leaving style:top="{PAD}px" bind:this={slot}>
+<div
+  class="slot"
+  class:leaving
+  style:top="{lowered}px"
+  style:translate="0 {-lift}px"
+  style:--move="{PANEL_MOVE_MS}ms"
+  bind:this={slot}
+>
   {#if bubble}
     {#key bubble.id}
       <div class="enter">
@@ -212,7 +233,8 @@
     transition:
       opacity 220ms ease,
       scale 260ms ease,
-      filter 220ms ease;
+      filter 220ms ease,
+      translate var(--move) cubic-bezier(0.32, 0.72, 0, 1);
   }
 
   /* Aparecer: escala 0,96 → 1 y desenfoque → nítido (SPEC sección 11). */
