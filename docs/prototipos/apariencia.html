@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apariencia de Nyx</title>
+<!-- Fuentes candidatas (todas con licencia SIL Open Font License: gratis y se pueden incluir
+     en Nyx). Aquí se cargan de Google Fonts solo para la prueba; en Nyx irían dentro de la app. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Geist:wght@400;600&family=Figtree:wght@400;600&family=Manrope:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600&family=Nunito:wght@400;600;700&family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/*
+ * Prueba de apariencia de Nyx (2026-11-10): tipografía, colores de la forma de Nyx y tintes
+ * de los paneles. El cristal de los paneles se imita con backdrop-filter (dentro de una página
+ * sí funciona); en Nyx lo dibuja el motor de cristal.
+ */
+:root {
+  --page: #0f0f11; --card: #1c1c1e; --text: #f5f5f7; --text-2: rgba(235, 235, 245, 0.6);
+  --text-3: rgba(235, 235, 245, 0.3); --control: rgba(118, 118, 128, 0.24);
+  --active: rgba(229, 229, 234, 0.9); --on-active: #1c1c1e; --raised: rgba(58, 58, 60, 0.45);
+  --chrome: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --page: #f2f2f4; --card: #ffffff; --text: #1c1c1e; --text-2: rgba(60, 60, 67, 0.6);
+  --text-3: rgba(60, 60, 67, 0.3); --control: rgba(118, 118, 128, 0.12);
+  --active: rgba(72, 72, 74, 0.9); --on-active: #f5f5f7; --raised: rgba(255, 255, 255, 0.55);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--text); font-family: var(--chrome);
+  padding: 28px max(16px, env(safe-area-inset-left, 0px)) 64px;
+}
+main { max-width: 1120px; margin: 0 auto; display: grid; gap: 28px; }
+h1 { font: 600 30px/1.1 "Segoe UI Variable Display", "Segoe UI", sans-serif; margin: 0; }
+h2 { font: 600 20px/1.2 "Segoe UI Variable Display", "Segoe UI", sans-serif; margin: 0; }
+p { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 78ch; }
+.bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--control); }
+.seg button { border: 0; border-radius: 999px; padding: 7px 14px; background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer; }
+.seg button.on { background: var(--active); color: var(--on-active); }
+section { display: grid; gap: 14px; }
+.choice { font-size: 13px; color: var(--text-2); }
+.choice b { color: var(--text); }
+
+/* Fondos de escritorio de muestra */
+.desk { border-radius: 22px; padding: 26px; position: relative; overflow: hidden; }
+.desk[data-bg="color"] { background:
+  radial-gradient(40% 60% at 15% 20%, #ff7a59 0, transparent 70%),
+  radial-gradient(45% 55% at 85% 25%, #3a7bff 0, transparent 70%),
+  radial-gradient(50% 60% at 55% 95%, #22c08a 0, transparent 70%), #2a1d4a; }
+.desk[data-bg="oscuro"] { background:
+  radial-gradient(60% 70% at 30% 20%, #2b2d38 0, transparent 70%),
+  radial-gradient(50% 60% at 80% 80%, #1b2433 0, transparent 70%), #101114; }
+.desk[data-bg="claro"] { background:
+  radial-gradient(50% 60% at 20% 30%, #fde3c8 0, transparent 70%),
+  radial-gradient(50% 60% at 80% 70%, #cfe3ff 0, transparent 70%), #f4f1ec; }
+.desk[data-bg="color"]::after, .desk[data-bg="oscuro"]::after, .desk[data-bg="claro"]::after {
+  /* «ventanas» de detrás, para ver el desenfoque */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.55) 0 2px, transparent 2px) 0 0 / 46px 46px,
+    linear-gradient(rgba(255,255,255,.35) 0 2px, transparent 2px) 0 0 / 46px 46px;
+  mix-blend-mode: soft-light; opacity: .6; z-index: 0;
+}
+.desk > * { position: relative; z-index: 1; }
+
+/* Panel de cristal (imitación del motor) */
+.glass {
+  --tint: rgba(28, 28, 30, 0.45);
+  background: var(--tint);
+  backdrop-filter: blur(22px) saturate(1.15); -webkit-backdrop-filter: blur(22px) saturate(1.15);
+  border-radius: 26px; box-shadow: 0 18px 50px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.12);
+  color: var(--text);
+}
+
+/* --- Fuentes --- */
+.fonts { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }
+.font-card { border: 0; padding: 0; text-align: left; background: none; cursor: pointer; border-radius: 26px; color: inherit; font: inherit; }
+.font-card .desk { padding: 18px; display: grid; gap: 12px; min-height: 100%; }
+.font-card.on .desk { box-shadow: 0 0 0 3px var(--active); }
+.font-name { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--chrome); font-size: 13px; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.5); }
+.font-name small { opacity: .8; }
+.desk[data-bg="claro"] .font-name { color: #1c1c1e; text-shadow: none; }
+.p-response { padding: 16px 22px; text-align: center; display: grid; gap: 2px; }
+.p-response .big { font-size: 28px; font-weight: 600; line-height: 1.15; letter-spacing: -.01em; }
+.p-response .small, .muted { font-size: 13px; color: var(--text-2); }
+.p-long { padding: 16px 20px; display: grid; gap: 6px; }
+.p-long .title { font-size: 19px; font-weight: 600; }
+.p-long .body { font-size: 15px; line-height: 1.45; }
+.p-confirm { padding: 16px 18px 14px; display: grid; gap: 10px; }
+.p-confirm .title { font-size: 16px; font-weight: 600; }
+.actions { display: flex; gap: 8px; }
+.pill { flex: 1; border: 0; border-radius: 999px; padding: 9px 14px; background: var(--control); color: inherit; font: inherit; font-size: 14px; }
+.pill.primary { background: var(--active); color: var(--on-active); font-weight: 600; }
+.p-row { padding: 12px 18px; display: flex; align-items: center; gap: 12px; }
+.p-row .t { flex: 1; display: grid; gap: 2px; }
+.p-row .t span:first-child { font-size: 14px; }
+.toggle { width: 46px; height: 28px; border-radius: 999px; background: var(--active); position: relative; flex: none; }
+.toggle::after { content: ""; position: absolute; top: 3px; left: 21px; width: 22px; height: 22px; border-radius: 50%; background: var(--on-active); }
+
+/* --- Colores --- */
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.swatch { border: 0; padding: 0; width: 44px; height: 44px; border-radius: 15px; cursor: pointer; position: relative; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.swatch.on { box-shadow: 0 0 0 3px var(--page), 0 0 0 5px var(--active); }
+.swatch-label { font-size: 12px; color: var(--text-2); }
+.preview { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.island { display: grid; justify-items: center; gap: 18px; padding: 30px 18px 34px; }
+.nyx {
+  width: 92px; height: 92px; border-radius: 38px; /* redondez 42 % del semilado */
+  background: var(--nyx, #fff);
+  box-shadow: inset -6px -8px 14px rgba(0,0,0,.08), inset 5px 6px 10px rgba(255,255,255,.35), 0 10px 30px rgba(0,0,0,.25);
+  animation: turn 6s ease-in-out infinite;
+}
+@keyframes turn { 0%, 100% { rotate: 0deg; border-radius: 38px; } 50% { rotate: 45deg; border-radius: 34px; } }
+@media (prefers-reduced-motion: reduce) { .nyx { animation: none; } }
+.island .glass { width: min(100%, 380px); }
+.note { font-size: 12px; color: var(--text-3); }
+</style>
+</head>
+<body>
+<main>
+  <header style="display:grid; gap:8px">
+    <h1>Apariencia de Nyx</h1>
+    <p>Prueba para elegir la tipografía y ver cómo quedarían los colores de Nyx y los tintes de los paneles. Pulsa una opción para elegirla; abajo se ve la combinación en directo. Cuando lo tengas, dime qué fuente, qué colores entran en la lista y qué te sobra o te falta.</p>
+    <div class="bar">
+      <div class="seg" id="theme">
+        <button data-v="dark" class="on">Tema oscuro</button><button data-v="light">Tema claro</button>
+      </div>
+      <div class="seg" id="bg">
+        <button data-v="color" class="on">Fondo de colores</button><button data-v="oscuro">Fondo oscuro</button><button data-v="claro">Fondo claro</button>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <h2>1 · Tipografía</h2>
+    <p>Hoy Nyx usa <b>Segoe UI Variable</b>, la de Windows 11: es la más parecida a la de iOS, se ve muy nítida en Windows y no hay que incluir nada. Las demás son gratuitas (licencia SIL OFL) y se incluirían dentro de Nyx (unos 100–300 kB cada una). <b>Nunito</b> es redondeada, por si encaja con «todo redondeado».</p>
+    <div class="fonts" id="fonts"></div>
+    <div class="choice" id="font-choice"></div>
+  </section>
+
+  <section>
+    <h2>2 · Color de Nyx</h2>
+    <p>Colores fijos para la forma de Nyx (no una paleta libre). El blanco sigue siendo el predeterminado; los colores son suaves para que la forma siga leyéndose como un sólido y se distinga sobre cualquier fondo.</p>
+    <div class="swatches" id="nyx-colors"></div>
+    <div class="choice" id="nyx-choice"></div>
+  </section>
+
+  <section>
+    <h2>3 · Tinte de los paneles</h2>
+    <p>El tinte que lleva el cristal de los paneles y de Ajustes. Cada color tiene una versión para el tema oscuro y otra para el claro, con el contraste del texto comprobado. El gris sigue siendo el predeterminado.</p>
+    <div class="swatches" id="tints"></div>
+    <div class="choice" id="tint-choice"></div>
+  </section>
+
+  <section>
+    <h2>Vista previa</h2>
+    <div class="preview" id="preview"></div>
+    <p class="note">La forma de Nyx real es líquida y está dibujada con un shader; aquí es un cuadrado redondeado que gira, solo para ver el color.</p>
+  </section>
+</main>
+
+<script>
+const FONTS = [
+  { name: "Segoe UI Variable", family: '"Segoe UI Variable Text", "Segoe UI", sans-serif', display: '"Segoe UI Variable Display", "Segoe UI", sans-serif', note: "actual · de Windows" },
+  { name: "Inter", family: '"Inter", sans-serif', note: "neutra, muy legible" },
+  { name: "Geist", family: '"Geist", sans-serif', note: "moderna y limpia" },
+  { name: "Figtree", family: '"Figtree", sans-serif', note: "amable, algo redonda" },
+  { name: "Manrope", family: '"Manrope", sans-serif', note: "geométrica" },
+  { name: "Plus Jakarta Sans", family: '"Plus Jakarta Sans", sans-serif', note: "elegante" },
+  { name: "Outfit", family: '"Outfit", sans-serif', note: "geométrica y suave" },
+  { name: "Nunito", family: '"Nunito", sans-serif', note: "redondeada" },
+];
+
+// Colores de la forma de Nyx: [nombre, color]. Opacos y suaves.
+const NYX_COLORS = [
+  ["Blanco", "#ffffff"], ["Perla", "#ebe8e2"], ["Arena", "#ead7b7"], ["Melocotón", "#ffcaa9"],
+  ["Coral", "#ff8f80"], ["Rosa", "#ffb6c9"], ["Fucsia", "#f277b6"], ["Lavanda", "#cbbcff"],
+  ["Violeta", "#a184ff"], ["Azul cielo", "#a3d5ff"], ["Azul", "#5a93ff"], ["Turquesa", "#62d8d1"],
+  ["Menta", "#a5e9c6"], ["Verde", "#62c78f"], ["Lima", "#d8f17f"], ["Amarillo", "#ffe383"],
+  ["Ámbar", "#ffb84d"], ["Grafito", "#4a4a4f"],
+];
+
+// Tintes de los paneles: [nombre, oscuro (rgb), claro (rgb)]. Opacidad 0,45 como hoy.
+const TINTS = [
+  ["Gris", "28,28,30", "242,242,247"], ["Grafito", "18,18,22", "225,225,230"],
+  ["Azul noche", "20,28,52", "226,234,250"], ["Océano", "14,44,58", "222,240,246"],
+  ["Bosque", "18,42,30", "224,242,230"], ["Salvia", "40,48,38", "234,240,228"],
+  ["Ciruela", "44,24,52", "240,228,246"], ["Vino", "54,20,30", "248,228,232"],
+  ["Rosa", "60,30,44", "252,232,240"], ["Arena", "52,44,30", "246,238,224"],
+  ["Cobre", "58,34,22", "250,234,222"], ["Lavanda", "38,34,64", "236,232,252"],
+];
+
+const state = { theme: "dark", bg: "color", font: 0, nyx: 0, tint: 0 };
+const $ = (id) => document.getElementById(id);
+
+function seg(id, key) {
+  $(id).addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    state[key] = b.dataset.v;
+    for (const x of $(id).children) x.classList.toggle("on", x === b);
+    render();
+  });
+}
+seg("theme", "theme"); seg("bg", "bg");
+
+function tintCss(i) {
+  const [, dark, light] = TINTS[i];
+  return `rgba(${state.theme === "dark" ? dark : light}, 0.45)`;
+}
+
+function panels(font) {
+  const display = font.display ?? font.family;
+  return `
+    <div class="glass p-response" style="--tint:${tintCss(state.tint)}">
+      <span class="big" style="font-family:${display}">22 °C</span>
+      <span class="small">Madrid · soleado, máxima de 25 °C</span>
+    </div>
+    <div class="glass p-long" style="--tint:${tintCss(state.tint)}">
+      <span class="title" style="font-family:${display}">Un agujero negro</span>
+      <span class="body">Es una región del espacio donde la gravedad es tan fuerte que nada, ni siquiera la luz, puede escapar de ella.</span>
+    </div>
+    <div class="glass p-confirm" style="--tint:${tintCss(state.tint)}">
+      <span class="title">¿Muevo 12 archivos de Fondos a la papelera?</span>
+      <div class="actions"><button class="pill">Cancelar</button><button class="pill primary">Confirmar</button></div>
+    </div>
+    <div class="glass p-row" style="--tint:${tintCss(state.tint)}">
+      <span class="t"><span>Responder también en voz</span><span class="muted">A lo que escribes con Win+Alt+N</span></span>
+      <span class="toggle"></span>
+    </div>`;
+}
+
+function render() {
+  document.documentElement.dataset.theme = state.theme;
+  // Fuentes
+  $("fonts").innerHTML = FONTS.map((f, i) => `
+    <button class="font-card ${i === state.font ? "on" : ""}" data-i="${i}" style="font-family:${f.family}">
+      <div class="desk" data-bg="${state.bg}">
+        <div class="font-name"><b>${f.name}</b><small>${f.note}</small></div>
+        ${panels(f)}
+      </div>
+    </button>`).join("");
+  $("font-choice").innerHTML = `Fuente elegida: <b>${FONTS[state.font].name}</b>`;
+  // Colores de Nyx
+  $("nyx-colors").innerHTML = NYX_COLORS.map(([n, c], i) =>
+    `<button class="swatch ${i === state.nyx ? "on" : ""}" data-i="${i}" title="${n}" aria-label="${n}" style="background:${c}"></button>`).join("");
+  $("nyx-choice").innerHTML = `Color de Nyx: <b>${NYX_COLORS[state.nyx][0]}</b>`;
+  // Tintes
+  $("tints").innerHTML = TINTS.map((t, i) =>
+    `<button class="swatch ${i === state.tint ? "on" : ""}" data-i="${i}" title="${t[0]}" aria-label="${t[0]}" style="background:${tintCss(i).replace("0.45", "1")}"></button>`).join("");
+  $("tint-choice").innerHTML = `Tinte: <b>${TINTS[state.tint][0]}</b>`;
+  // Vista previa: en los tres fondos
+  const font = FONTS[state.font];
+  $("preview").innerHTML = ["color", "oscuro", "claro"].map((bg) => `
+    <div class="desk island" data-bg="${bg}" style="font-family:${font.family}; --nyx:${NYX_COLORS[state.nyx][1]}">
+      <div class="nyx"></div>
+      <div class="glass p-response" style="--tint:${tintCss(state.tint)}">
+        <span class="big" style="font-family:${font.display ?? font.family}">Alarma puesta</span>
+        <span class="small">mañana a las 8:00</span>
+      </div>
+    </div>`).join("");
+}
+
+$("fonts").addEventListener("click", (e) => { const c = e.target.closest(".font-card"); if (c) { state.font = +c.dataset.i; render(); } });
+$("nyx-colors").addEventListener("click", (e) => { const c = e.target.closest(".swatch"); if (c) { state.nyx = +c.dataset.i; render(); } });
+$("tints").addEventListener("click", (e) => { const c = e.target.closest(".swatch"); if (c) { state.tint = +c.dataset.i; render(); } });
+render();
+</script>
+</body>
+</html>

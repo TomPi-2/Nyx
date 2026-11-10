@@ -9,6 +9,7 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import type { SettingsSection } from "$lib/protocol";
   import { glass, glassFromSettings, glassPoke, glassShape } from "$lib/glass";
+  import { POP_IN_MS, POP_OUT_MS } from "$lib/motion";
   import Apariencia from "./sections/Apariencia.svelte";
   import ModoPartida from "./sections/ModoPartida.svelte";
   import Respuestas from "./sections/Respuestas.svelte";
@@ -26,6 +27,8 @@
   const fromUrl = new URLSearchParams(location.search).get("section");
   let current = $state<SettingsSection>(SECTIONS.find((s) => s.id === fromUrl)?.id ?? "apariencia");
   let maximized = $state(false);
+  // Se encoge como Nyx al irse y luego se cierra de verdad.
+  let closing = $state(false);
   const section = $derived(SECTIONS.find((s) => s.id === current)!);
   const win = getCurrentWindow();
 
@@ -38,7 +41,14 @@
 
   onMount(() => {
     const disconnect = settings.connect();
-    void glass.attach();
+    void glass.attach().then(() => glass.follow(POP_IN_MS + 80));
+    const offClose = win.onCloseRequested((event) => {
+      if (closing) return;
+      event.preventDefault();
+      closing = true;
+      glass.follow(POP_OUT_MS + 40);
+      setTimeout(() => void win.destroy(), POP_OUT_MS);
+    });
     const offSection = win.listen<string>("settings://section", (e) => {
       const found = SECTIONS.find((s) => s.id === e.payload);
       if (found) current = found.id;
@@ -54,6 +64,7 @@
       glass.detach();
       void offResize.then((off) => off());
       void offSection.then((off) => off());
+      void offClose.then((off) => off());
     };
   });
 </script>
@@ -61,6 +72,8 @@
 <div
   class="window"
   class:maximized
+  class:pop-in={!closing}
+  class:pop-out={closing}
   use:glassShape={{ radius: maximized ? 0 : RADIUS, wobble: maximized ? 0 : 0.6 }}
   use:glassPoke
 >

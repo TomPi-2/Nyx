@@ -55,6 +55,14 @@ export function trackAway(onchange: (away: boolean) => void): (active: boolean) 
   };
 }
 
+/**
+ * Sin Nyx, el panel sube hasta donde empieza el cuadrado de Nyx en reposo (no hasta el borde
+ * de su lienzo, que deja mucho más aire alrededor): ocupa su sitio sin pegarse al borde.
+ */
+export function raisedTop(size: number, top = SHAPE_TOP): number {
+  return top + (shapeReach(size) - size) / 2;
+}
+
 /** Borde inferior de lo que puede ocupar la forma de Nyx, medido desde `top`. */
 export function shapeReach(size: number): number {
   return size * SHAPE_PAD;

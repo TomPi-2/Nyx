@@ -12,7 +12,7 @@ pub const LABEL: &str = "input";
 /// Pastilla de 520 px que crece hacia abajo hasta 6 líneas (~166 px) + margen para la
 /// sombra y la ondulación del borde (motor de cristal).
 const WIDTH: f64 = 600.0;
-const HEIGHT: f64 = 250.0;
+const HEIGHT: f64 = 300.0;
 
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
     let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("input".into()))

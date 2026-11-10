@@ -10,23 +10,32 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { connectCore, type CoreConnection } from "$lib/core";
   import { glass, glassFromSettings } from "$lib/glass";
+  import { POP_IN_MS, POP_OUT_MS } from "$lib/motion";
   import type { ServerMessage } from "$lib/protocol";
   import InputPanel from "./panels/InputPanel.svelte";
-  import { SHAPE_TOP } from "./panels/layout";
+  import { raisedTop } from "./panels/layout";
 
   const MAX_LENGTH = 2000; // igual que TextInput en core/nyx/bridge/protocol.py
-  const ANIM_MS = 300;
 
   let text = $state("");
-  let shown = $state(false);
+  // hidden → in (aparece) → out (se encoge) → hidden (se oculta la ventana).
+  let phase = $state<"hidden" | "in" | "out">("hidden");
   let connected = $state(false);
+  let size = $state(100); // lado de la forma de Nyx: el campo va donde empieza su cuadrado
   let field: HTMLTextAreaElement | undefined = $state();
   let core: CoreConnection | undefined;
+  let hideTimer: ReturnType<typeof setTimeout> | undefined;
 
+  /** Se encoge como Nyx al irse y, al terminar, se oculta la ventana. */
   function hide() {
-    shown = false;
-    text = "";
-    void invoke("input_hide");
+    if (phase !== "in") return;
+    phase = "out";
+    glass.follow(POP_OUT_MS + 40);
+    hideTimer = setTimeout(() => {
+      phase = "hidden";
+      text = "";
+      void invoke("input_hide");
+    }, POP_OUT_MS);
   }
 
   function submit(value: string) {
@@ -38,8 +47,14 @@
   }
 
   function handle(msg: ServerMessage) {
-    if (msg.type === "welcome" && msg.glass) glass.set(glassFromSettings(msg.glass));
-    if (msg.type === "settings") glass.set(glassFromSettings(msg.data.appearance.glass));
+    if (msg.type === "welcome") {
+      size = msg.indicator_size ?? 100;
+      if (msg.glass) glass.set(glassFromSettings(msg.glass));
+    }
+    if (msg.type === "settings") {
+      size = msg.data.appearance.indicator_size;
+      glass.set(glassFromSettings(msg.data.appearance.glass));
+    }
     // En partida el cristal pasa a Bajo sin excepción.
     if (msg.type === "game") glass.setGame(msg.active);
   }
@@ -48,14 +63,15 @@
     void glass.attach();
     core = connectCore(handle, (ok) => (connected = ok));
     const offShow = listen("input://show", () => {
-      shown = true;
-      text = "";
+      clearTimeout(hideTimer);
+      if (phase !== "in") text = "";
+      phase = "in";
       glass.poke();
-      glass.follow(ANIM_MS);
+      glass.follow(POP_IN_MS + 60);
       requestAnimationFrame(() => field?.focus());
     });
     const offFocus = getCurrentWindow().onFocusChanged(({ payload: focused }) => {
-      if (!focused && shown) hide();
+      if (!focused) hide();
     });
     return () => {
       core?.close();
@@ -66,7 +82,13 @@
   });
 </script>
 
-<div class="slot" class:shown style:top="{SHAPE_TOP}px">
+<div
+  class="slot"
+  class:hidden={phase === "hidden"}
+  class:pop-in={phase === "in"}
+  class:pop-out={phase === "out"}
+  style:top="{raisedTop(size)}px"
+>
   <InputPanel
     bind:value={text}
     bind:field
@@ -82,26 +104,11 @@
   .slot {
     position: absolute;
     left: 50%;
-    translate: -50% 0;
-    transform-origin: top center;
-    opacity: 0;
-    scale: 0.96;
-    filter: blur(6px);
-    transition:
-      opacity 200ms ease,
-      scale 300ms cubic-bezier(0.34, 1.4, 0.64, 1),
-      filter 240ms ease;
+    margin-left: -260px; /* la mitad del ancho del campo (PANEL_MAX_WIDTH) */
+    transform-origin: center;
   }
 
-  .slot.shown {
-    opacity: 1;
-    scale: 1;
-    filter: blur(0);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .slot {
-      transition: none;
-    }
+  .hidden {
+    scale: 0;
   }
 </style>
