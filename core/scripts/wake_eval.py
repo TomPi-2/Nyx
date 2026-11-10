@@ -37,9 +37,11 @@ from nyx.settings.model import load_settings
 from nyx.stt.normalize import has_wake_word
 from nyx.stt.whisper_server import WhisperServer
 from nyx.wake.base import WakeWordEngine
+from nyx.wake.own_engine import OwnWakeWord
 from nyx.wake.vosk_engine import VoskWakeWord
 
 RECORDINGS = local_dir() / "training" / "grabaciones"
+VERIFY = True  # --sin-whisper: medir solo el detector
 REFRACTORY_S = 2.0  # tras una activación, Nyx escucha la orden: no se cuenta otra
 SOUNDS_THE_SAME = {"nix", "nicks"}  # homófonos de «Nyx» en las palabras parecidas
 
@@ -81,8 +83,11 @@ async def scan(
         if not engine.process(frame) or t < quiet_until:
             continue
         clip = np.concatenate(list(ring))
-        text = await stt.transcribe(clip, prompt=STT_PROMPT)
-        triggers.append(Trigger(path.name, t, has_wake_word(text), text))
+        if VERIFY:
+            text = await stt.transcribe(clip, prompt=STT_PROMPT)
+            triggers.append(Trigger(path.name, t, has_wake_word(text), text))
+        else:
+            triggers.append(Trigger(path.name, t, True, "(sin whisper)"))
         quiet_until = t + REFRACTORY_S
         engine.reset()
     return triggers, len(audio) / SAMPLE_RATE - tail_s
@@ -97,10 +102,27 @@ async def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--informe", type=Path, help="guardar el informe en Markdown")
     parser.add_argument("--carpeta", type=Path, default=RECORDINGS)
+    parser.add_argument("--motor", choices=["vosk", "propio"], default="vosk")
+    parser.add_argument("--umbral", type=float, default=0.5, help="solo con --motor propio")
+    parser.add_argument("--sin-whisper", action="store_true", help="solo el detector")
     args = parser.parse_args()
 
     settings = load_settings()
-    engine = VoskWakeWord(MODELS["wake"].path(), settings.wake.word)
+    engine: WakeWordEngine
+    if args.motor == "propio":
+        oww = local_dir() / "training" / "datos" / "oww"
+        engine = OwnWakeWord(
+            local_dir() / "training" / "modelos" / "nyx.onnx",
+            oww / "melspectrogram.onnx",
+            oww / "embedding_model.onnx",
+            threshold=args.umbral,
+        )
+        label = f"modelo propio (umbral {args.umbral})"
+    else:
+        engine = VoskWakeWord(MODELS["wake"].path(), settings.wake.word)
+        label = f"Vosk («{settings.wake.word}»)"
+    global VERIFY
+    VERIFY = not args.sin_whisper
     stt = WhisperServer(
         whisper_server_path(settings),
         settings.stt.model,
@@ -123,7 +145,9 @@ async def main() -> int:
         await stt.stop()
 
     lines = [f"# Activación · {datetime.now():%Y-%m-%d %H:%M}", ""]
-    lines.append(f"Detector: Vosk («{settings.wake.word}») + verificación con whisper.")
+    lines.append(
+        f"Detector: {label}" + (" + verificación con whisper." if VERIFY else " (sin whisper).")
+    )
     lines.append("")
     if per_tag:
         hits = sum(sum(v) for v in per_tag.values())
