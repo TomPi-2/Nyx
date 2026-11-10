@@ -2,7 +2,7 @@
 
 import type { FontId, NyxColorId, PanelTintId } from "$theme/palette";
 
-export const PROTOCOL_VERSION = 11;
+export const PROTOCOL_VERSION = 12;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -68,6 +68,10 @@ export interface NyxSettings {
   tts: { enabled: boolean; voice: string; speed: number };
   /** Nombre del dispositivo; null = el predeterminado de Windows. */
   audio: { input_device: string | null; output_device: string | null };
+  /** v12: modelo de Ollama y tiempo máximo de respuesta (Ajustes → Cerebro). */
+  llm: { model: string; timeout_s: number };
+  onboarding: { done: boolean };
+  privacy: { usage_data: boolean };
   game: {
     mode: "off" | "voice" | "normal";
     always: string[];
@@ -90,6 +94,38 @@ export interface MonitorSettings {
   transition: boolean;
 }
 
+/** v12: lo que se le puede pedir al asistente (core/nyx/setup/service.py). */
+export type SetupAction =
+  | "status"
+  | "download"
+  | "scan"
+  | "forget_shortcut"
+  | "mic_test_start"
+  | "mic_test_stop"
+  | "clear_samples"
+  | "clear_activations";
+
+/** v12: estado de modelos, Ollama, whisper, caché, atajos aprendidos y grabaciones. */
+export interface SetupStatus {
+  models: { key: string; name: string; size_mb: number; license: string; present: boolean }[];
+  ollama: { running: boolean; models: string[]; wanted: string; has_wanted: boolean };
+  whisper: boolean;
+  downloading: boolean;
+  index: {
+    total: number;
+    apps: number;
+    games: number;
+    folders: number;
+    /** Marca de tiempo (segundos) del último escaneo. */
+    last_scan: number | null;
+    scanning: boolean;
+    everything: boolean;
+  } | null;
+  shortcuts: { phrase: string; tool: string; uses: number }[];
+  samples: number;
+  activations: number;
+}
+
 /** Cambio parcial de ajustes: solo lo que cambia. */
 export type SettingsPatch = { [K in keyof NyxSettings]?: Partial<NyxSettings[K]> };
 
@@ -100,7 +136,9 @@ export type ClientMessage =
   | { type: "action"; id: string }
   /** v8 */
   | { type: "settings_get" }
-  | { type: "settings_set"; patch: SettingsPatch };
+  | { type: "settings_set"; patch: SettingsPatch }
+  /** v12 */
+  | { type: "setup"; action: SetupAction; arg?: string };
 
 export type ServerMessage =
   | {
@@ -115,6 +153,8 @@ export type ServerMessage =
       font: FontId;
       nyx_color: NyxColorId;
       panel_tint: PanelTintId;
+      /** v12: si es false, la isla abre el asistente de primer arranque. */
+      onboarding_done: boolean;
     }
   | { type: "state"; state: NyxState }
   | { type: "level"; rms: number }
@@ -154,7 +194,29 @@ export type ServerMessage =
       voices: { id: string; label: string }[];
     }
   /** v9: abrir la ventana de Ajustes («abre tus ajustes»), en una sección o en la primera. */
-  | { type: "open_settings"; section: SettingsSection | null };
+  | { type: "open_settings"; section: SettingsSection | null }
+  /** v12: asistente y Ajustes → Cerebro, Caché, Ayuda y Privacidad. */
+  | { type: "setup_status"; status: SetupStatus }
+  | {
+      type: "setup_progress";
+      key: string;
+      label: string;
+      done_mb: number;
+      total_mb: number;
+      finished: boolean;
+      error: string | null;
+    }
+  | { type: "mic_level"; rms: number }
+  | { type: "setup_result"; action: string; ok: boolean; message: string | null };
 
 /** Secciones de la ventana de Ajustes (ui/src/settings/Settings.svelte). */
-export type SettingsSection = "apariencia" | "activacion" | "voz" | "respuestas" | "partida";
+export type SettingsSection =
+  | "apariencia"
+  | "activacion"
+  | "voz"
+  | "respuestas"
+  | "partida"
+  | "cerebro"
+  | "cache"
+  | "privacidad"
+  | "ayuda";

@@ -45,6 +45,10 @@ EDITABLE: tuple[str, ...] = (
     "tts.speed",
     "audio.input_device",
     "audio.output_device",
+    "llm.model",
+    "llm.timeout_s",
+    "onboarding.",
+    "privacy.",
 )
 #: Lo que solo se lee al arrancar: cambiarlo pide reiniciar Nyx.
 NEEDS_RESTART: tuple[str, ...] = ("audio.", "wake.", "listen.", "stt.", "llm.", "tts.")

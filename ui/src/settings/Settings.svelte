@@ -13,6 +13,10 @@
   import { applyAppearance } from "$theme/apply";
   import Activacion from "./sections/Activacion.svelte";
   import Apariencia from "./sections/Apariencia.svelte";
+  import Ayuda from "./sections/Ayuda.svelte";
+  import Cache from "./sections/Cache.svelte";
+  import Cerebro from "./sections/Cerebro.svelte";
+  import Privacidad from "./sections/Privacidad.svelte";
   import ModoPartida from "./sections/ModoPartida.svelte";
   import Respuestas from "./sections/Respuestas.svelte";
   import Voz from "./sections/Voz.svelte";
@@ -24,6 +28,10 @@
     { id: "voz", label: "Voz", component: Voz },
     { id: "respuestas", label: "Respuestas", component: Respuestas },
     { id: "partida", label: "Modo partida", component: ModoPartida },
+    { id: "cerebro", label: "Cerebro", component: Cerebro },
+    { id: "cache", label: "Caché", component: Cache },
+    { id: "privacidad", label: "Privacidad", component: Privacidad },
+    { id: "ayuda", label: "Ayuda", component: Ayuda },
   ];
   const RADIUS = 28;
 

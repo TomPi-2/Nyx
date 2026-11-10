@@ -116,6 +116,10 @@ class SystemIndex:
         self._choices, self._owners = choices, owners
         self._uses = self._db.usage()
 
+    def last_scan(self) -> float | None:
+        """Cuándo fue el último escaneo (marca de tiempo), para Ajustes → Caché."""
+        return self._db.last_scan()
+
     def needs_scan(self) -> bool:
         last = self._db.last_scan()
         return (

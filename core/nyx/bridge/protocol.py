@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 11
+PROTOCOL_VERSION = 12
 
 
 class _Msg(BaseModel):
@@ -64,8 +64,25 @@ class SettingsSetMsg(_Msg):
     patch: dict[str, Any]
 
 
+class SetupMsg(_Msg):
+    """v12: asistente y Ajustes → Cerebro, Caché, Ayuda y Privacidad (nyx/setup/service.py)."""
+
+    type: Literal["setup"] = "setup"
+    action: Literal[
+        "status",
+        "download",
+        "scan",
+        "forget_shortcut",
+        "mic_test_start",
+        "mic_test_stop",
+        "clear_samples",
+        "clear_activations",
+    ]
+    arg: str = Field(default="", max_length=500)
+
+
 ClientMessage = Annotated[
-    Hello | TextInput | TalkKeyMsg | ActionMsg | SettingsGetMsg | SettingsSetMsg,
+    Hello | TextInput | TalkKeyMsg | ActionMsg | SettingsGetMsg | SettingsSetMsg | SetupMsg,
     Field(discriminator="type"),
 ]
 client_adapter: TypeAdapter[ClientMessage] = TypeAdapter(ClientMessage)
@@ -93,6 +110,8 @@ class Welcome(_Msg):
     font: str = "segoe"
     nyx_color: str = "blanco"
     panel_tint: str = "gris"
+    # v12: si no se ha pasado aún por el asistente de primer arranque, la isla lo abre.
+    onboarding_done: bool = True
 
 
 class StateMsg(_Msg):
@@ -171,7 +190,55 @@ class OpenSettingsMsg(_Msg):
     """v9: abrir la ventana de Ajustes («abre tus ajustes»), en una sección o en la primera."""
 
     type: Literal["open_settings"] = "open_settings"
-    section: Literal["apariencia", "activacion", "voz", "respuestas", "partida"] | None = None
+    section: (
+        Literal[
+            "apariencia",
+            "activacion",
+            "voz",
+            "respuestas",
+            "partida",
+            "cerebro",
+            "cache",
+            "privacidad",
+            "ayuda",
+        ]
+        | None
+    ) = None
+
+
+class SetupStatusMsg(_Msg):
+    """v12: modelos, Ollama, whisper, caché, atajos aprendidos y grabaciones."""
+
+    type: Literal["setup_status"] = "setup_status"
+    status: dict[str, Any]
+
+
+class SetupProgressMsg(_Msg):
+    """v12: progreso de una descarga."""
+
+    type: Literal["setup_progress"] = "setup_progress"
+    key: str
+    label: str
+    done_mb: float
+    total_mb: float
+    finished: bool = False
+    error: str | None = None
+
+
+class MicLevelMsg(_Msg):
+    """v12: nivel del micrófono durante la prueba (0–1)."""
+
+    type: Literal["mic_level"] = "mic_level"
+    rms: float = Field(ge=0.0, le=1.0)
+
+
+class SetupResultMsg(_Msg):
+    """v12: cómo ha ido una acción (descargar, olvidar un atajo, borrar…)."""
+
+    type: Literal["setup_result"] = "setup_result"
+    action: str
+    ok: bool
+    message: str | None = None
 
 
 ServerMessage = Annotated[
@@ -182,7 +249,11 @@ ServerMessage = Annotated[
     | BubbleHideMsg
     | GameMsg
     | SettingsMsg
-    | OpenSettingsMsg,
+    | OpenSettingsMsg
+    | SetupStatusMsg
+    | SetupProgressMsg
+    | MicLevelMsg
+    | SetupResultMsg,
     Field(discriminator="type"),
 ]
 server_adapter: TypeAdapter[ServerMessage] = TypeAdapter(ServerMessage)

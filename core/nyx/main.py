@@ -31,10 +31,11 @@ from nyx.events import TextEntered
 from nyx.log import setup_logging
 from nyx.models import MODELS, download_all
 from nyx.paths import logs_dir
-from nyx.services import Services
+from nyx.services import Services, whisper_server_path
 from nyx.services import build as build_services
 from nyx.settings import load_settings
 from nyx.settings.live import SettingsService
+from nyx.setup.service import SetupService
 from nyx.tts.voices import VOICES
 from nyx.winjob import kill_children_on_exit
 
@@ -131,6 +132,7 @@ async def run(args: argparse.Namespace) -> int:
             "nyx_color": settings.appearance.nyx_color,
             "panel_tint": settings.appearance.panel_tint,
         },
+        onboarding_done=settings.onboarding.done or args.demo,
     )
     # Ajustes desde la ventana de Ajustes: se aplican sobre este mismo objeto (SPEC 13).
     settings_service = SettingsService(bus, settings, devices=audio_devices)
@@ -153,6 +155,15 @@ async def run(args: argparse.Namespace) -> int:
 
     tasks: list[asyncio.Task[None]] = []
     services: Services | None = None
+    # Asistente y Ajustes → Cerebro, Caché, Ayuda y Privacidad. La caché y los atajos
+    # aprendidos existen cuando los servicios están en marcha.
+    setup = SetupService(
+        bus,
+        settings,
+        index=lambda: services.index if services is not None else None,
+        shortcuts=lambda: services.pipeline.shortcuts if services is not None else None,
+        whisper_server=lambda: whisper_server_path(settings),
+    )
     try:
         if args.demo:
             from nyx.demo import run_demo
@@ -177,6 +188,7 @@ async def run(args: argparse.Namespace) -> int:
         if services is not None:
             await services.close()
         settings_service.close()
+        await setup.close()
         await bridge.stop()
     return 0
 

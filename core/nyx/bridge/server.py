@@ -28,10 +28,15 @@ from nyx.bridge.protocol import (
     GlassInfo,
     Hello,
     LevelMsg,
+    MicLevelMsg,
     OpenSettingsMsg,
     SettingsGetMsg,
     SettingsMsg,
     SettingsSetMsg,
+    SetupMsg,
+    SetupProgressMsg,
+    SetupResultMsg,
+    SetupStatusMsg,
     StateMsg,
     TalkKeyMsg,
     TextInput,
@@ -47,10 +52,15 @@ from nyx.events import (
     AudioLevel,
     BubbleHidden,
     BubbleShown,
+    MicLevelChanged,
     NyxState,
     OpenSettingsWindow,
     SettingsChanged,
     SettingsRequested,
+    SetupProgress,
+    SetupRequested,
+    SetupResult,
+    SetupStatusChanged,
     StateChanged,
     TalkKey,
     TextEntered,
@@ -84,11 +94,13 @@ class UIBridge:
         tools: Sequence[ToolInfo] = (),
         voices: Sequence[VoiceInfo] = (),
         look: Mapping[str, str] | None = None,
+        onboarding_done: bool = True,
     ) -> None:
         self.indicator_size = indicator_size
         self.glass = glass or GlassInfo()
         self.tools = list(tools)
         self.voices = list(voices)
+        self.onboarding_done = onboarding_done
         # v10: fuente, color de Nyx y tinte de los paneles (Ajustes → Apariencia).
         self.look = {"font": "segoe", "nyx_color": "blanco", "panel_tint": "gris", **(look or {})}
         self._game: GameMsg | None = None
@@ -108,6 +120,10 @@ class UIBridge:
             bus.subscribe(GameStateChanged, self._on_game),
             bus.subscribe(SettingsChanged, self._on_settings),
             bus.subscribe(OpenSettingsWindow, self._on_open_settings),
+            bus.subscribe(SetupStatusChanged, self._on_setup_status),
+            bus.subscribe(SetupProgress, self._on_setup_progress),
+            bus.subscribe(MicLevelChanged, self._on_mic_level),
+            bus.subscribe(SetupResult, self._on_setup_result),
         ]
 
     @property
@@ -148,6 +164,7 @@ class UIBridge:
                     font=self.look["font"],
                     nyx_color=self.look["nyx_color"],
                     panel_tint=self.look["panel_tint"],
+                    onboarding_done=self.onboarding_done,
                 ).model_dump_json()
             )
             await conn.send(StateMsg(state=self._state).model_dump_json())
@@ -195,6 +212,8 @@ class UIBridge:
             await self._bus.publish(SettingsRequested())
         elif isinstance(msg, SettingsSetMsg):
             await self._bus.publish(SettingsRequested(dict(msg.patch)))
+        elif isinstance(msg, SetupMsg):
+            await self._bus.publish(SetupRequested(msg.action, msg.arg))
 
     async def broadcast(self, msg: _Msg) -> None:
         if not self._clients:
@@ -234,6 +253,29 @@ class UIBridge:
             msg = OpenSettingsMsg()
         await self.broadcast(msg)
 
+    async def _on_setup_status(self, event: SetupStatusChanged) -> None:
+        await self.broadcast(SetupStatusMsg(status=event.status))
+
+    async def _on_setup_progress(self, event: SetupProgress) -> None:
+        await self.broadcast(
+            SetupProgressMsg(
+                key=event.key,
+                label=event.label,
+                done_mb=event.done_mb,
+                total_mb=event.total_mb,
+                finished=event.finished,
+                error=event.error,
+            )
+        )
+
+    async def _on_mic_level(self, event: MicLevelChanged) -> None:
+        await self.broadcast(MicLevelMsg(rms=min(max(event.rms, 0.0), 1.0)))
+
+    async def _on_setup_result(self, event: SetupResult) -> None:
+        await self.broadcast(
+            SetupResultMsg(action=event.action, ok=event.ok, message=event.message)
+        )
+
     async def _on_settings(self, event: SettingsChanged) -> None:
         # Las ventanas que se abran después reciben ya los valores nuevos en «welcome».
         appearance = event.data.get("appearance", {})
@@ -245,6 +287,9 @@ class UIBridge:
             for key in self.look:
                 if isinstance(appearance.get(key), str):
                     self.look[key] = appearance[key]
+        onboarding = event.data.get("onboarding", {})
+        if isinstance(onboarding, dict) and isinstance(onboarding.get("done"), bool):
+            self.onboarding_done = onboarding["done"]
         await self.broadcast(
             SettingsMsg(
                 data=event.data,
