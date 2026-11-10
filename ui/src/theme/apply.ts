@@ -16,7 +16,7 @@ function set(): void {
   // El tinte de respaldo (si el motor de cristal no puede dibujar) sigue al elegido.
   if (tint) {
     const [r, g, b] = query.matches ? tint.dark : tint.light;
-    root.setProperty("--glass-fallback", `rgba(${r}, ${g}, ${b}, 0.84)`);
+    root.setProperty("--glass-fallback", `rgba(${r}, ${g}, ${b}, 0.92)`);
   }
 }
 

@@ -48,7 +48,8 @@
 
   onMount(() => {
     const disconnect = settings.connect();
-    void glass.attach().then(() => glass.follow(POP_IN_MS + 80));
+    // En Bajo, Ajustes casi opaca: es la ventana con más texto.
+    void glass.attach({ lowOpacity: 0.97 }).then(() => glass.follow(POP_IN_MS + 80));
     const offClose = win.onCloseRequested((event) => {
       if (closing) return;
       event.preventDefault();
