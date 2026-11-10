@@ -6,12 +6,13 @@ import pytest
 from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import ConnectionClosed, InvalidStatus
 
-from nyx.bridge.protocol import PROTOCOL_VERSION, server_adapter
+from nyx.bridge.protocol import PROTOCOL_VERSION, GlassInfo, server_adapter
 from nyx.bridge.server import CLOSE_UNAUTHORIZED, UIBridge
 from nyx.bus import EventBus
 from nyx.events import (
     ActionChosen,
     AudioLevel,
+    BubbleAction,
     BubbleShown,
     NyxState,
     StateChanged,
@@ -61,6 +62,8 @@ async def test_handshake_and_events(bridge: tuple[EventBus, int]) -> None:
             "secondary": "hola · alemán",
             "actions": [],
             "alert": False,
+            "kind": "response",
+            "expires_s": None,
         }
 
 
@@ -105,3 +108,42 @@ async def test_client_messages_are_published(bridge: tuple[EventBus, int]) -> No
                 break
             await asyncio.sleep(0.01)
     assert got == [TextEntered("hola"), TalkKey(True), TalkKey(False), ActionChosen("confirm-1")]
+
+
+async def test_welcome_carries_glass_settings() -> None:
+    """v7: cada ventana recibe los ajustes del cristal al conectarse."""
+    bus = EventBus()
+    glass = GlassInfo(quality="medio", motion="interaccion", edge=7, show_in_captures=True)
+    b = UIBridge(bus, TOKEN, glass=glass)
+    port = await b.start()
+    try:
+        async with connect(f"ws://127.0.0.1:{port}", origin=ORIGIN) as conn:  # type: ignore[arg-type]
+            await _hello(conn)
+            welcome = await _recv(conn)
+            assert welcome["glass"] == {
+                "quality": "medio",
+                "motion": "interaccion",
+                "edge": 7,
+                "show_in_captures": True,
+            }
+    finally:
+        await b.stop()
+
+
+async def test_bubble_kind_and_expiry(bridge: tuple[EventBus, int]) -> None:
+    """v7: la confirmación y el deshacer dicen qué panel son y cuánto duran."""
+    bus, port = bridge
+    async with connect(f"ws://127.0.0.1:{port}", origin=ORIGIN) as conn:  # type: ignore[arg-type]
+        await _hello(conn)
+        await _recv(conn)
+        await _recv(conn)
+        await bus.publish(
+            BubbleShown(
+                display="¿Muevo 3 archivos a la papelera?",
+                actions=(BubbleAction("yes-1", "Confirmar", primary=True),),
+                kind="confirm",
+                expires_s=15.0,
+            )
+        )
+        msg = await _recv(conn)
+        assert (msg["kind"], msg["expires_s"]) == ("confirm", 15.0)

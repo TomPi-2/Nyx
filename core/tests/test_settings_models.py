@@ -48,6 +48,27 @@ def test_invalid_value_uses_defaults(tmp_path: Path) -> None:
     assert load_settings(path).listen.silence_ms == 700
 
 
+def test_glass_defaults_and_old_files(tmp_path: Path) -> None:
+    """Un settings.json anterior al motor de cristal recibe los valores predeterminados."""
+    path = tmp_path / "settings.json"
+    path.write_text(json.dumps({"appearance": {"indicator_size": 120}}), encoding="utf-8")
+    glass = load_settings(path).appearance.glass
+    assert (glass.quality, glass.motion, glass.edge, glass.show_in_captures) == (
+        "auto",
+        "siempre",
+        5,
+        False,
+    )
+
+
+def test_glass_edge_out_of_range_uses_defaults(tmp_path: Path) -> None:
+    path = tmp_path / "settings.json"
+    data = {"appearance": {"glass": {"edge": 12, "quality": "alto"}}}
+    path.write_text(json.dumps(data), encoding="utf-8")
+    # Un valor no válido invalida el archivo entero (comportamiento general de los ajustes).
+    assert load_settings(path).appearance.glass.edge == 5
+
+
 def _model(content: bytes, *, extract: bool = False, name: str = "m.bin") -> ModelFile:
     return ModelFile(
         key="t",

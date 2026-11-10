@@ -35,6 +35,7 @@ from nyx.events import (
     AudioLevel,
     BubbleAction,
     BubbleHidden,
+    BubbleKind,
     BubbleShown,
     NyxState,
     StateChanged,
@@ -1004,7 +1005,13 @@ class Pipeline:
             await self.bus.publish(StateChanged(state))
 
     async def _show_bubble(
-        self, display: str, secondary: str, actions: tuple[BubbleAction, ...] = ()
+        self,
+        display: str,
+        secondary: str,
+        actions: tuple[BubbleAction, ...] = (),
+        *,
+        kind: BubbleKind = "response",
+        expires_s: float | None = None,
     ) -> None:
         if self._bubble_timer is not None:
             self._bubble_timer.cancel()
@@ -1012,7 +1019,13 @@ class Pipeline:
         if not actions:
             self._actions.clear()  # una burbuja nueva sustituye a los botones anteriores
         await self.bus.publish(
-            BubbleShown(display=display, secondary=secondary or None, actions=actions)
+            BubbleShown(
+                display=display,
+                secondary=secondary or None,
+                actions=actions,
+                kind=kind,
+                expires_s=expires_s,
+            )
         )
 
     async def _hide_bubble(self) -> None:
@@ -1039,6 +1052,8 @@ class Pipeline:
             request.summary,
             detail,
             (BubbleAction(yes, "Confirmar", primary=True), BubbleAction(no, "Cancelar")),
+            kind="confirm",
+            expires_s=CONFIRM_TIMEOUT_S,
         )
         self._actions = {yes: lambda: self._resolve(True), no: lambda: self._resolve(False)}
         try:
@@ -1076,15 +1091,17 @@ class Pipeline:
     async def _offer_undo(self, result: ToolResult) -> None:
         undo_id = str(result.data["undo_id"])
         button = f"undo-{undo_id}"
+        # Alarmas y temporizadores: aviso corto (se puede decir «deshaz» los 30 s igualmente).
+        ttl = NOTICE_BUBBLE_S if "alarm_id" in result.data else UNDO_TTL_S
         await self._show_bubble(
             result.display or result.message,
             result.secondary or "",
             (BubbleAction(button, "Deshacer"),),
+            kind="undo",
+            expires_s=ttl,
         )
         self._actions = {button: lambda: self._spawn(self._undo(undo_id))}
-        # Alarmas y temporizadores: aviso corto (se puede decir «deshaz» los 30 s igualmente).
-        short = "alarm_id" in result.data
-        self._schedule_bubble_hide(NOTICE_BUBBLE_S if short else UNDO_TTL_S)
+        self._schedule_bubble_hide(ttl)
 
     def _spawn(self, coro: Coroutine[Any, Any, None]) -> None:
         task = asyncio.create_task(coro)

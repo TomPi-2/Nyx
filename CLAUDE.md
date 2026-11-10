@@ -89,7 +89,7 @@ cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
 
 Arquitectura de procesos: `ui/src-tauri` (Rust) es el proceso principal. Lanza el núcleo con `uv run`, le pasa el token en `NYX_TOKEN` y lee el puerto de la línea `ready` en stdout. Las ventanas piden puerto y token con el comando `core_endpoint` y se conectan por WebSocket. El protocolo está duplicado en `core/nyx/bridge/protocol.py` y `ui/src/lib/protocol.ts`: cambia los dos a la vez.
 
-Ajustes en `%APPDATA%\Nyx\settings.json` (micrófono, voz, ruta de `whisper-server.exe`, modelo de Ollama, `responses.speak_typed` para responder también en voz a lo escrito); se leen al arrancar el núcleo (bandeja → Reiniciar núcleo). Atajos: `Win+Alt+N` escribir, `Win+Alt+H` hablar. Las acciones quedan en `%LOCALAPPDATA%\Nyx\actions\AAAA-MM-DD.jsonl`. Cada petición deja su latencia en el registro (`Latencia: fin de frase → voz …`).
+Ajustes en `%APPDATA%\Nyx\settings.json` (micrófono, voz, ruta de `whisper-server.exe`, modelo de Ollama, `responses.speak_typed` para responder también en voz a lo escrito, `appearance.glass` para el motor de cristal); se leen al arrancar el núcleo (bandeja → Reiniciar núcleo). Atajos: `Win+Alt+N` escribir, `Win+Alt+H` hablar. Las acciones quedan en `%LOCALAPPDATA%\Nyx\actions\AAAA-MM-DD.jsonl`. Cada petición deja su latencia en el registro (`Latencia: fin de frase → voz …`).
 
 Problema conocido en este equipo: la caché de uv está en una carpeta sincronizada con la nube, así que `core/pyproject.toml` usa `link-mode = "copy"`. Si `uv` da "os error 32" o "396", borra `core/.venv` y repite.
 
