@@ -9,6 +9,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { sendNotification } from "@tauri-apps/plugin-notification";
   import { connectCore, type CoreConnection } from "$lib/core";
+  import { applyAppearance } from "$theme/apply";
   import { DEFAULT_GLASS, edgeLevelToPx, glass, glassFromSettings } from "$lib/glass";
   import type { ActionButton, BubbleKind, ServerMessage } from "$lib/protocol";
   import AlertPanel from "./panels/AlertPanel.svelte";
@@ -145,16 +146,18 @@
     switch (msg.type) {
       case "welcome":
         size = msg.indicator_size ?? 100;
+        applyAppearance(msg);
         if (msg.glass) {
           edgePx = edgeLevelToPx(msg.glass.edge);
-          glass.set(glassFromSettings(msg.glass));
+          glass.set(glassFromSettings(msg.glass, msg.panel_tint));
         }
         break;
       case "settings":
         // Cambios desde Ajustes: se aplican al momento.
         size = msg.data.appearance.indicator_size;
         edgePx = edgeLevelToPx(msg.data.appearance.glass.edge);
-        glass.set(glassFromSettings(msg.data.appearance.glass));
+        glass.set(glassFromSettings(msg.data.appearance.glass, msg.data.appearance.panel_tint));
+        applyAppearance(msg.data.appearance);
         break;
       case "bubble":
         if (msg.alert) {

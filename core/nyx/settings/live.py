@@ -6,14 +6,16 @@ el resto del núcleo: así lo que lo lee en el momento (modo partida, políticas
 juegos, responder en voz) cambia al instante sin reiniciar. Lo que solo se lee al arrancar
 se devuelve en `restart` para que Ajustes diga «se aplica al reiniciar Nyx».
 
-Solo se pueden cambiar las secciones que tiene la ventana (EDITABLE): por ejemplo, la ruta de
-whisper-server.exe no se toca desde aquí.
+Solo se puede cambiar lo que tiene la ventana (EDITABLE): por ejemplo, la ruta de
+whisper-server.exe o la dirección de Ollama no se tocan desde aquí. Al leerlos van también
+los micrófonos y altavoces que hay, para elegirlos en Ajustes → Voz.
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -22,11 +24,28 @@ from pydantic import BaseModel, ValidationError
 from nyx.bus import EventBus
 from nyx.events import SettingsChanged, SettingsRequested
 from nyx.settings.model import Settings, save_settings
+from nyx.wake.custom import validate as validate_wake_phrase
 
 log = logging.getLogger(__name__)
 
-#: Secciones que se pueden cambiar desde Ajustes (5c‑1). Se amplía en 5c‑2.
-EDITABLE = frozenset({"appearance", "responses", "game"})
+#: Lo que se puede cambiar desde Ajustes: secciones enteras (terminan en «.») o ajustes
+#: concretos. Nada de rutas a programas ni direcciones de red.
+EDITABLE: tuple[str, ...] = (
+    "appearance.",
+    "responses.",
+    "game.",
+    "wake.enabled",
+    "wake.engine",
+    "wake.sensitivity",
+    "wake.custom_word",
+    "listen.followup_s",
+    "listen.silence_ms",
+    "tts.enabled",
+    "tts.voice",
+    "tts.speed",
+    "audio.input_device",
+    "audio.output_device",
+)
 #: Lo que solo se lee al arrancar: cambiarlo pide reiniciar Nyx.
 NEEDS_RESTART: tuple[str, ...] = ("audio.", "wake.", "listen.", "stt.", "llm.", "tts.")
 
@@ -36,10 +55,18 @@ class SettingsError(ValueError):
 
 
 class SettingsService:
-    def __init__(self, bus: EventBus, settings: Settings, path: Path | None = None) -> None:
+    def __init__(
+        self,
+        bus: EventBus,
+        settings: Settings,
+        path: Path | None = None,
+        devices: Callable[[], tuple[list[str], list[str]]] | None = None,
+    ) -> None:
         self.bus = bus
         self.settings = settings
         self.path = path
+        # Micrófonos y altavoces (nombres), para Ajustes → Voz.
+        self.devices = devices
         self._unsubscribe = bus.subscribe(SettingsRequested, self._on_request)
 
     def close(self) -> None:
@@ -50,9 +77,6 @@ class SettingsService:
 
     def apply(self, patch: Mapping[str, Any]) -> list[str]:
         """Aplica un cambio parcial. Devuelve lo que necesita reiniciar Nyx."""
-        unknown = set(patch) - EDITABLE
-        if unknown:
-            raise SettingsError(f"No se puede cambiar desde Ajustes: {', '.join(sorted(unknown))}")
         before = self.snapshot()
         try:
             updated = Settings.model_validate(_merge(before, patch))
@@ -60,9 +84,16 @@ class SettingsService:
             first = err.errors()[0]
             where = ".".join(str(p) for p in first["loc"])
             raise SettingsError(f"Valor no válido en {where}: {first['msg']}") from err
+        changed = _changed_paths(before, updated.model_dump(mode="json"))
+        blocked = [p for p in changed if not _editable(p)]
+        if blocked:
+            raise SettingsError(f"No se puede cambiar desde Ajustes: {', '.join(blocked)}")
+        word = updated.wake.custom_word.strip()
+        if "wake.custom_word" in changed and word:
+            check = validate_wake_phrase(word)
+            if not check.ok:
+                raise SettingsError(f"La palabra «{word}» {'; '.join(check.problems)}")
         _copy_into(self.settings, updated)
-        after = self.snapshot()
-        changed = _changed_paths(before, after)
         if changed:
             save_settings(self.settings, self.path)
             log.info("Ajustes cambiados: %s", ", ".join(changed))
@@ -71,15 +102,30 @@ class SettingsService:
     async def _on_request(self, event: SettingsRequested) -> None:
         restart: list[str] = []
         error: str | None = None
+        inputs: list[str] = []
+        outputs: list[str] = []
         if event.patch is not None:
             try:
                 restart = self.apply(event.patch)
             except SettingsError as err:
                 error = str(err)
                 log.warning("Ajustes: %s", error)
+        elif self.devices is not None:
+            # Solo al leerlos (al abrir Ajustes): así salen los que se acaban de conectar.
+            inputs, outputs = await asyncio.to_thread(self.devices)
         await self.bus.publish(
-            SettingsChanged(data=self.snapshot(), restart=tuple(restart), error=error)
+            SettingsChanged(
+                data=self.snapshot(),
+                restart=tuple(restart),
+                error=error,
+                inputs=tuple(inputs),
+                outputs=tuple(outputs),
+            )
         )
+
+
+def _editable(path: str) -> bool:
+    return any(path == e or (e.endswith(".") and path.startswith(e)) for e in EDITABLE)
 
 
 #: Diccionarios que son valores en sí (se sustituyen enteros, no se mezclan): así quitar una

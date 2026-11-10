@@ -13,13 +13,16 @@ from pydantic import Field
 from nyx.tools.base import Category, GamePolicy, Params, Risk, Tool, ToolContext, ToolResult
 
 #: Secciones de la ventana (ui/src/settings/Settings.svelte).
-Section = Literal["", "apariencia", "respuestas", "partida"]
+Section = Literal["", "apariencia", "activacion", "voz", "respuestas", "partida"]
 
 
 class OpenNyxSettingsParams(Params):
     section: Section = Field(
         default="",
-        description="Sección: apariencia, respuestas o partida (modo partida). Vacío = la primera",
+        description=(
+            "Sección: apariencia, activacion (palabra «Nyx»), voz, respuestas o partida "
+            "(modo partida). Vacío = la primera"
+        ),
     )
 
 

@@ -142,6 +142,8 @@ export class NyxShape {
   private level = 0; // nivel de audio que llega del núcleo (0-1)
   private gray = 1; // 1 = blanco; menos = gris (fondo muy claro detrás)
   private grayTarget = 1;
+  /** Color elegido en Apariencia (0–1); blanco por defecto. */
+  private color: [number, number, number] = [1, 1, 1];
   private readonly s = {
     scale: new Spring(0, 90, 9), // aparición con rebote
     merge: new Spring(1, 60, 11), // 1 = un cuadrado, 0 = cuatro
@@ -263,6 +265,12 @@ export class NyxShape {
   }
 
   /** Luminancia (0-1) de lo que hay alrededor: blanco salvo sobre fondos muy claros. */
+  /** Color de la forma (Ajustes → Apariencia). Sobre fondos muy claros se oscurece igual
+   * que el blanco pasa a gris, para seguir distinguiéndose. */
+  setColor(rgb: [number, number, number]): void {
+    this.color = rgb;
+  }
+
   setBackdrop(luma: number): void {
     this.grayTarget = luma > 0.85 ? 0.62 : luma > 0.7 ? 0.86 : 1;
   }
@@ -402,7 +410,8 @@ export class NyxShape {
     const sq = Math.max(0, s.squash.v);
     gl.uniform2f(u.uSquash, 1 + 0.06 * sq, 1 - 0.11 * sq);
     const g = this.gray;
-    gl.uniform3f(u.uColor, g, g, g);
+    const [cr, cg, cb] = this.color;
+    gl.uniform3f(u.uColor, cr * g, cg * g, cb * g);
     gl.uniform1f(u.uShade, 1);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };

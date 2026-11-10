@@ -76,6 +76,9 @@ class SettingsChanged:
     data: dict[str, Any]
     restart: tuple[str, ...] = ()  # lo cambiado que se aplica al reiniciar Nyx
     error: str | None = None  # cambio rechazado (no se ha aplicado nada)
+    # Al leerlos: micrófonos y altavoces que hay ahora (Ajustes → Voz).
+    inputs: tuple[str, ...] = ()
+    outputs: tuple[str, ...] = ()
 
 
 # Interfaz → núcleo

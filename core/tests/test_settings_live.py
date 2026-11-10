@@ -82,3 +82,53 @@ async def test_requests_answer_with_current_settings(tmp_path: Path) -> None:
     assert [e.error is None for e in got] == [True, True, False]
     assert got[1].data["responses"]["speak_typed"] is True
     assert got[2].data["responses"]["speak_typed"] is True  # el cambio malo no se aplicó
+
+
+def test_only_listed_settings_inside_a_section(tmp_path: Path) -> None:
+    """En Voz y Activación solo se tocan los ajustes de la ventana, no toda la sección."""
+    service, settings, _ = _service(tmp_path)
+    service.apply({"tts": {"voice": "davefx", "speed": 1.2}, "wake": {"sensitivity": 8}})
+    assert (settings.tts.voice, settings.wake.sensitivity) == ("davefx", 8)
+    with pytest.raises(SettingsError, match=r"listen.max_s"):
+        service.apply({"listen": {"max_s": 30}})
+    with pytest.raises(SettingsError, match=r"llm.host"):
+        service.apply({"llm": {"host": "http://otro-equipo:11434"}})
+
+
+def test_restart_is_reported_for_voice_and_activation(tmp_path: Path) -> None:
+    service, _, _ = _service(tmp_path)
+    restart = service.apply({"tts": {"speed": 1.3}, "appearance": {"nyx_color": "rojo"}})
+    assert restart == ["tts.speed"]
+
+
+def test_custom_wake_word_is_checked(tmp_path: Path) -> None:
+    service, settings, _ = _service(tmp_path)
+    with pytest.raises(SettingsError, match="sílabas"):
+        service.apply({"wake": {"custom_word": "sol"}})
+    assert settings.wake.custom_word == ""
+    service.apply({"wake": {"custom_word": "oye lumen"}})
+    assert settings.wake.custom_word == "oye lumen"
+
+
+def test_unknown_color_is_rejected(tmp_path: Path) -> None:
+    service, settings, _ = _service(tmp_path)
+    with pytest.raises(SettingsError, match="nyx_color"):
+        service.apply({"appearance": {"nyx_color": "morado-chillón"}})
+    assert settings.appearance.nyx_color == "blanco"
+
+
+async def test_reading_lists_audio_devices(tmp_path: Path) -> None:
+    bus = EventBus()
+    SettingsService(
+        bus, Settings(), tmp_path / "s.json", devices=lambda: (["Micro USB"], ["Altavoces"])
+    )
+    got: list[SettingsChanged] = []
+
+    async def collect(event: SettingsChanged) -> None:
+        got.append(event)
+
+    bus.subscribe(SettingsChanged, collect)
+    await bus.publish(SettingsRequested())
+    await bus.publish(SettingsRequested({"tts": {"enabled": False}}))
+    assert got[0].inputs == ("Micro USB",) and got[0].outputs == ("Altavoces",)
+    assert got[1].inputs == ()  # al cambiar algo no se vuelven a listar

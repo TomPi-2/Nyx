@@ -4,6 +4,7 @@
  * el núcleo devuelve los ajustes buenos: si rechaza algo, se vuelve a lo que había.
  */
 
+import { invoke } from "@tauri-apps/api/core";
 import { connectCore, type CoreConnection } from "$lib/core";
 import type { NyxSettings, ServerMessage, SettingsPatch, ToolInfo } from "$lib/protocol";
 
@@ -27,6 +28,10 @@ function merge<T>(base: T, patch: Record<string, unknown>): T {
 class SettingsStore {
   data = $state<NyxSettings | null>(null);
   tools = $state<ToolInfo[]>([]);
+  /** Micrófonos, altavoces y voces (Ajustes → Voz). */
+  inputs = $state<string[]>([]);
+  outputs = $state<string[]>([]);
+  voices = $state<{ id: string; label: string }[]>([]);
   connected = $state(false);
   /** Último cambio rechazado por el núcleo. */
   error = $state<string | null>(null);
@@ -36,6 +41,12 @@ class SettingsStore {
   private core: CoreConnection | undefined;
   private pending: SettingsPatch = {};
   private timer: ReturnType<typeof setTimeout> | undefined;
+
+  /** Reinicia el núcleo para aplicar lo que lo necesita (bandeja → Reiniciar núcleo). */
+  async restartCore(): Promise<void> {
+    await invoke("core_restart");
+    this.restart = [];
+  }
 
   connect(): () => void {
     this.core = connectCore(
@@ -78,6 +89,12 @@ class SettingsStore {
       ? merge(msg.data, this.pending as Record<string, unknown>)
       : msg.data;
     this.tools = msg.tools;
+    if (msg.voices.length) this.voices = msg.voices;
+    // Los dispositivos solo llegan al leer los ajustes (al abrir Ajustes).
+    if (msg.inputs.length || msg.outputs.length) {
+      this.inputs = msg.inputs;
+      this.outputs = msg.outputs;
+    }
     this.error = msg.error;
     if (msg.restart.length) this.restart = [...new Set([...this.restart, ...msg.restart])];
   }

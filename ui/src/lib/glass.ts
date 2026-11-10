@@ -10,6 +10,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { panelTint } from "$theme/palette";
 import type { GlassInfo } from "./protocol";
 
 /**
@@ -51,6 +52,9 @@ export interface GlassOptions {
   shadow: number;
   /** Tema oscuro de Windows. */
   dark: boolean;
+  /** Tinte de los paneles elegido en Apariencia (0–255), para cada tema; null = gris. */
+  tintDark: [number, number, number] | null;
+  tintLight: [number, number, number] | null;
 }
 
 /** Valores elegidos por el usuario en la galería (2026-11-10). */
@@ -66,6 +70,8 @@ export const DEFAULT_GLASS: GlassOptions = {
   specular: 0.35,
   shadow: 0.4,
   dark: true,
+  tintDark: null,
+  tintLight: null,
 };
 
 export interface GlassStats {
@@ -230,12 +236,18 @@ class GlassSurface {
  * «Mostrar Nyx en capturas y directos» pasa los paneles a Bajo: así no capturan la pantalla
  * y no hace falta excluirlos de las capturas.
  */
-export function glassFromSettings(info: GlassInfo): Partial<GlassOptions> {
-  return {
+export function glassFromSettings(info: GlassInfo, tint?: string): Partial<GlassOptions> {
+  const options: Partial<GlassOptions> = {
     quality: info.show_in_captures ? "bajo" : info.quality,
     motion: info.motion,
     amplitude: edgeLevelToPx(info.edge),
   };
+  if (tint !== undefined) {
+    const t = tint === "gris" ? null : panelTint(tint);
+    options.tintDark = t?.dark ?? null;
+    options.tintLight = t?.light ?? null;
+  }
+  return options;
 }
 
 /** La lámina de esta ventana (una por ventana). */

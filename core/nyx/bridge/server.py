@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import hmac
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from pydantic import ValidationError
 from websockets.asyncio.server import Server, ServerConnection, serve
@@ -36,6 +36,7 @@ from nyx.bridge.protocol import (
     TalkKeyMsg,
     TextInput,
     ToolInfo,
+    VoiceInfo,
     Welcome,
     _Msg,
     client_adapter,
@@ -81,10 +82,15 @@ class UIBridge:
         indicator_size: int = 100,
         glass: GlassInfo | None = None,
         tools: Sequence[ToolInfo] = (),
+        voices: Sequence[VoiceInfo] = (),
+        look: Mapping[str, str] | None = None,
     ) -> None:
         self.indicator_size = indicator_size
         self.glass = glass or GlassInfo()
         self.tools = list(tools)
+        self.voices = list(voices)
+        # v10: fuente, color de Nyx y tinte de los paneles (Ajustes → Apariencia).
+        self.look = {"font": "segoe", "nyx_color": "blanco", "panel_tint": "gris", **(look or {})}
         self._game: GameMsg | None = None
         self._bus = bus
         self._token = token
@@ -136,7 +142,12 @@ class UIBridge:
         try:
             await conn.send(
                 Welcome(
-                    version=__version__, indicator_size=self.indicator_size, glass=self.glass
+                    version=__version__,
+                    indicator_size=self.indicator_size,
+                    glass=self.glass,
+                    font=self.look["font"],
+                    nyx_color=self.look["nyx_color"],
+                    panel_tint=self.look["panel_tint"],
                 ).model_dump_json()
             )
             await conn.send(StateMsg(state=self._state).model_dump_json())
@@ -231,12 +242,18 @@ class UIBridge:
             glass = appearance.get("glass")
             if isinstance(glass, dict):
                 self.glass = GlassInfo.model_validate(glass)
+            for key in self.look:
+                if isinstance(appearance.get(key), str):
+                    self.look[key] = appearance[key]
         await self.broadcast(
             SettingsMsg(
                 data=event.data,
                 restart=list(event.restart),
                 error=event.error,
                 tools=self.tools,
+                inputs=list(event.inputs),
+                outputs=list(event.outputs),
+                voices=self.voices,
             )
         )
 

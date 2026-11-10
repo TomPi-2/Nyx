@@ -52,6 +52,9 @@ pub struct GlassOptions {
     pub shadow: f32,
     /// Tema oscuro de Windows.
     pub dark: bool,
+    /// Tinte de los paneles elegido en Apariencia (0–255) para cada tema; None = gris.
+    pub tint_dark: Option<[u8; 3]>,
+    pub tint_light: Option<[u8; 3]>,
 }
 
 impl Default for GlassOptions {
@@ -68,6 +71,8 @@ impl Default for GlassOptions {
             specular: 0.35,
             shadow: 0.4,
             dark: true,
+            tint_dark: None,
+            tint_light: None,
         }
     }
 }

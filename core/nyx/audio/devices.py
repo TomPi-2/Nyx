@@ -57,3 +57,21 @@ def resolve(kind: Kind, name: str | None) -> tuple[int | None, Any]:
         return None, None
     log.info("Audio %s: %s", "entrada" if kind == "input" else "salida", devices[index]["name"])
     return index, sd.WasapiSettings(auto_convert=True)
+
+
+def device_names(kind: Kind) -> list[str]:
+    """Nombres de los dispositivos de entrada o salida (WASAPI), para Ajustes → Voz."""
+    try:
+        import sounddevice as sd
+
+        devices = [dict(d) for d in sd.query_devices()]
+        hostapis = [dict(a) for a in sd.query_hostapis()]
+    except Exception:
+        log.warning("No se pudo listar los dispositivos de audio", exc_info=True)
+        return []
+    api = _wasapi_index(hostapis)
+    if api is None:
+        return []
+    channels = "max_input_channels" if kind == "input" else "max_output_channels"
+    names = {str(d["name"]) for d in devices if d["hostapi"] == api and int(d[channels]) > 0}
+    return sorted(names, key=str.casefold)

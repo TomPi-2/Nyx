@@ -100,11 +100,28 @@ class GlassSettings(_Section):
     show_in_captures: bool = False
 
 
+#: Opciones fijas de Apariencia (SPEC sección 12, «Apariencia personalizable»). Los colores de
+#: cada una están en ui/src/theme/palette.ts.
+Font = Literal["segoe", "manrope", "nunito"]
+NyxColor = Literal[
+    "blanco", "perla", "arena", "melocoton", "coral", "rojo", "rosa", "fucsia", "lavanda",
+    "violeta", "azul_cielo", "azul", "turquesa", "menta", "verde", "lima", "amarillo",
+    "ambar", "grafito",
+]  # fmt: skip
+PanelTint = Literal[
+    "gris", "grafito", "azul_noche", "oceano", "bosque", "salvia", "ciruela", "vino", "rosa",
+    "arena", "cobre", "lavanda",
+]  # fmt: skip
+
+
 class AppearanceSettings(_Section):
     """Apariencia (SPEC secciones 12 y 13)."""
 
     indicator_size: int = Field(default=100, ge=44, le=260)  # lado de la forma de Nyx (px)
     glass: GlassSettings = Field(default_factory=GlassSettings)
+    font: Font = "segoe"
+    nyx_color: NyxColor = "blanco"
+    panel_tint: PanelTint = "gris"
 
 
 class GameSettings(_Section):

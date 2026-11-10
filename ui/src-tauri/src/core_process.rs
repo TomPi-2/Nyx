@@ -48,6 +48,12 @@ pub fn restart(app: &AppHandle) {
     app.state::<Arc<CoreState>>().restart.notify_one();
 }
 
+/// Ajustes → «Reiniciar ahora» (y Ayuda → Reiniciar Nyx): lo mismo que la bandeja.
+#[tauri::command]
+pub fn core_restart(app: AppHandle) {
+    restart(&app);
+}
+
 #[tauri::command]
 pub fn core_endpoint(state: State<'_, Arc<CoreState>>) -> Option<CoreEndpoint> {
     state.endpoint.lock().ok()?.clone()

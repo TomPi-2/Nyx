@@ -44,6 +44,9 @@ def test_is_green_and_waits_for_the_game() -> None:
         ("muéstrame tus ajustes del modo partida", "partida"),
         ("abre tu configuración de apariencia", "apariencia"),
         ("abre tus opciones de respuestas", "respuestas"),
+        ("abre tus ajustes de voz", "voz"),
+        ("tu configuración del micrófono", "voz"),
+        ("abre tus ajustes de la palabra de activación", "activacion"),
     ],
 )
 def test_router_opens_nyx_settings(text: str, section: str | None, index: SystemIndex) -> None:

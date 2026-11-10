@@ -28,6 +28,15 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
     - Cuando la forma de Nyx se va (respuesta sin voz, aviso con Nyx en reposo), el panel sube hasta arriba en lugar de quedarse suelto; si Nyx vuelve, el panel baja a su hueco y la forma aparece al terminar.
     - Errores vistos al usar Nyx apuntados en `docs/ERRORES.md` para corregirlos por tandas.
     - Protocolo v7: el saludo lleva los ajustes del cristal y cada burbuja dice qué panel es (`kind`: respuesta, confirmación, deshacer o aviso) y cuánto dura (`expires_s`), para que las cuentas atrás sean exactas.
+  - 5c‑2 (1.ª tanda): Apariencia personalizable, Activación y Voz.
+    - Apariencia: fuente (Segoe UI Variable, Manrope o Nunito; las dos últimas van dentro de Nyx con `@fontsource-variable`, licencia SIL OFL, y solo se cargan los caracteres latinos al elegirlas), color de Nyx (19, en el shader de la forma; sobre fondos muy claros se oscurece igual que el blanco pasa a gris) y tinte de los paneles (12, con versión para tema claro y oscuro, en el motor de cristal y en el tinte de respaldo). Todo se aplica al momento en todas las ventanas. Paleta en `ui/src/theme/palette.ts`.
+    - Activación: despertar con la voz, sensibilidad, detector (modelo de Nyx o Vosk), palabra personalizada (validada en el núcleo: al menos 2 sílabas), seguir hablando sin repetir «Nyx», silencio para terminar y los atajos de teclado.
+    - Voz: respuestas habladas, voz, velocidad, micrófono y altavoz (lista real de dispositivos WASAPI; el elegido se sigue viendo aunque esté desconectado).
+    - Estos ajustes se aplican al reiniciar Nyx: Ajustes lo dice y tiene un botón «Reiniciar ahora».
+    - Controles nuevos: muestras de color, desplegable y campo de texto.
+    - Seguridad: Ajustes pasa de secciones enteras a una lista de ajustes concretos (`EDITABLE` en `nyx/settings/live.py`); la dirección de Ollama y las rutas a programas siguen sin poder cambiarse desde la ventana.
+    - «Abre tus ajustes de voz» o «de la palabra de activación» abren esas secciones.
+    - Protocolo v10: el saludo lleva fuente, color de Nyx y tinte; los ajustes, los micrófonos, altavoces y voces.
   - 5c‑1, ventana de Ajustes (bandeja → «Ajustes», o abrir Nyx otra vez):
     - Ventana normal (foco, barra de tareas, Alt+Tab), sin bordes, sobre el motor de cristal, redimensionable (880 × 600, mínimo 720 × 480) y que recuerda posición y tamaño (`%LOCALAPPDATA%\Nyx\settings-window.json`). Barra de título propia con tres botones circulares que aparecen al pasar el ratón; barra lateral con las secciones en pastilla y opciones en tarjetas.
     - Controles reutilizables en `ui/src/lib/controls` (interruptor, selector en pastilla, deslizador, tarjeta, fila y lista de textos).

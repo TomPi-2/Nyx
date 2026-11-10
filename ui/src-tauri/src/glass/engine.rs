@@ -670,6 +670,17 @@ fn apply_level(app: &AppHandle, s: &mut Surface, level: Level) {
 
 /// Color y opacidad del tinte según el tema y el modo.
 fn tint(o: &GlassOptions, mode: Mode) -> ([f32; 3], f32) {
+    // Tinte elegido en Apariencia (con su versión para el tema actual).
+    let chosen = if o.dark { o.tint_dark } else { o.tint_light };
+    if let Some([r, g, b]) = chosen {
+        let rgb = [
+            f32::from(r) / 255.0,
+            f32::from(g) / 255.0,
+            f32::from(b) / 255.0,
+        ];
+        let alpha = if mode == Mode::Tint { 0.84 } else { o.tint };
+        return (rgb, alpha);
+    }
     match (mode, o.dark) {
         // Bajo: el mismo tinte al 84 % que el respaldo de CSS (theme/nyx.ts).
         (Mode::Tint, true) => ([36.0 / 255.0, 36.0 / 255.0, 38.0 / 255.0], 0.84),

@@ -610,7 +610,7 @@
 
   h1 {
     margin: 0;
-    font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+    font-family: var(--font-display);
     font-size: 22px;
     font-weight: 600;
   }
@@ -827,7 +827,7 @@
   }
 
   .display {
-    font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+    font-family: var(--font-display);
     font-size: 26px;
     font-weight: 600;
   }
