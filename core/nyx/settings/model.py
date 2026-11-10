@@ -86,6 +86,20 @@ class ResponseSettings(_Section):
     speak_typed: bool = False
 
 
+class GameSettings(_Section):
+    """Modo partida (SPEC sección 9)."""
+
+    # off: Nyx no escucha en partida (salvo el atajo) · voice: voz sin interfaz en el monitor
+    # del juego (recomendado) · normal: indicadores mínimos.
+    mode: Literal["off", "voice", "normal"] = "voice"
+    always: list[str] = Field(default_factory=list)  # ejecutables a tratar como juego
+    never: list[str] = Field(default_factory=list)  # ejecutables que nunca son juego
+    # Mover herramientas entre columnas: {"open_app": "allowed" | "deferred" | "blocked"}.
+    policies: dict[str, Literal["allowed", "deferred", "blocked"]] = Field(default_factory=dict)
+    low_priority: bool = True  # Nyx con prioridad baja mientras se juega
+    unload_llm_after_min: int = Field(default=0, ge=0, le=240)  # 0 = no descargarlo
+
+
 class Settings(BaseModel):
     model_config = ConfigDict(extra="ignore", validate_assignment=True)
 
@@ -97,6 +111,7 @@ class Settings(BaseModel):
     llm: LLMSettings = Field(default_factory=LLMSettings)
     tts: TTSSettings = Field(default_factory=TTSSettings)
     responses: ResponseSettings = Field(default_factory=ResponseSettings)
+    game: GameSettings = Field(default_factory=GameSettings)
 
 
 def settings_path() -> Path:

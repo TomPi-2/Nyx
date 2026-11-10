@@ -24,6 +24,7 @@ from nyx.bridge.protocol import (
     ActionMsg,
     BubbleHideMsg,
     BubbleMsg,
+    GameMsg,
     Hello,
     LevelMsg,
     StateMsg,
@@ -44,6 +45,7 @@ from nyx.events import (
     TalkKey,
     TextEntered,
 )
+from nyx.game.detector import GameStateChanged
 
 log = logging.getLogger(__name__)
 
@@ -68,6 +70,7 @@ class UIBridge:
         port: int = 0,
         origins: Sequence[str] = DEFAULT_ORIGINS,
     ) -> None:
+        self._game: GameMsg | None = None
         self._bus = bus
         self._token = token
         self._host = host
@@ -81,6 +84,7 @@ class UIBridge:
             bus.subscribe(AudioLevel, self._on_level),
             bus.subscribe(BubbleShown, self._on_bubble),
             bus.subscribe(BubbleHidden, self._on_bubble_hidden),
+            bus.subscribe(GameStateChanged, self._on_game),
         ]
 
     @property
@@ -115,6 +119,8 @@ class UIBridge:
         try:
             await conn.send(Welcome(version=__version__).model_dump_json())
             await conn.send(StateMsg(state=self._state).model_dump_json())
+            if self._game is not None:  # una ventana que se abre a mitad de partida
+                await conn.send(self._game.model_dump_json())
             async for raw in conn:
                 await self._dispatch(raw)
         except ConnectionClosed:
@@ -184,3 +190,8 @@ class UIBridge:
 
     async def _on_bubble_hidden(self, _: BubbleHidden) -> None:
         await self.broadcast(BubbleHideMsg())
+
+    async def _on_game(self, event: GameStateChanged) -> None:
+        mode = event.mode if event.mode in ("off", "voice", "normal") else "voice"
+        self._game = GameMsg(active=event.active, mode=mode)  # type: ignore[arg-type]
+        await self.broadcast(self._game)

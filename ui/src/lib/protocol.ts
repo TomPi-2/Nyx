@@ -1,6 +1,6 @@
 // Espejo de core/nyx/bridge/protocol.py: cambia los dos a la vez y sube PROTOCOL_VERSION.
 
-export const PROTOCOL_VERSION = 4;
+export const PROTOCOL_VERSION = 5;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -36,4 +36,6 @@ export type ServerMessage =
       /** v4: alarmas y avisos; además de la burbuja, notificación de Windows. */
       alert: boolean;
     }
-  | { type: "bubble_hide" };
+  | { type: "bubble_hide" }
+  /** v5: partida en marcha; con «solo voz» o «desactivado» la isla no aparece sobre el juego. */
+  | { type: "game"; active: boolean; mode: "off" | "voice" | "normal" };

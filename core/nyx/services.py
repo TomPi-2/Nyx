@@ -28,6 +28,9 @@ from nyx.brain.shortcuts import ShortcutStore
 from nyx.bus import EventBus
 from nyx.events import BubbleHidden, BubbleShown
 from nyx.executor import Executor
+from nyx.game.controller import GameController
+from nyx.game.detector import GameDetector
+from nyx.game.policy import GameGate
 from nyx.index.model import Kind
 from nyx.index.scanners.apps import start_menu_dirs
 from nyx.index.scanners.folders import known_folders
@@ -78,6 +81,8 @@ class Services:
         self.alarms = alarms
         self.ringer = ringer
         self.alarms_start: asyncio.Task[None] | None = None
+        self.game_detector: GameDetector | None = None
+        self.game_controller: GameController | None = None
         self.llm = llm
         self.stt = stt
         self.index = index
@@ -95,6 +100,10 @@ class Services:
             self.alarms.store.close()
         if self.ringer is not None:
             await self.ringer.close()
+        if self.game_detector is not None:
+            await self.game_detector.close()
+        if self.game_controller is not None:
+            await self.game_controller.close()
         for task in self.background:
             task.cancel()
         if self.watcher is not None:
@@ -227,7 +236,9 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     alarms = AlarmScheduler(AlarmStore.default(), bus)
     tools_ctx = ToolContext(index=index, settings=settings, paths=paths, alarms=alarms)
     ringer = AlarmRinger(bus, tts=tts, player=player)
-    executor = Executor(registry, tools_ctx, action_log=ActionLog.default())
+    # Modo partida (SPEC sección 9): qué herramientas se permiten, se difieren o se bloquean.
+    game = GameGate(settings.game)
+    executor = Executor(registry, tools_ctx, action_log=ActionLog.default(), game=game)
     # Registro de activaciones; los errores apuntados suben el umbral del detector propio.
     activations = ActivationLog.default()
     if isinstance(wake, OwnWakeWord):
@@ -254,6 +265,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         shortcuts=ShortcutStore.default(),
         activations=activations,
         wake_phrase=wake_phrase,
+        game=game,
     )
     log.info(
         "Servicios listos en %.1f s (voz: %s, activación: %s, respuesta hablada: %s)",
@@ -266,6 +278,17 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         pipeline, llm, stt, index, start_watcher(index), alarms=alarms, ringer=ringer
     )
     services.alarms_start = asyncio.create_task(_start_alarms(alarms), name="alarms-start")
+    services.game_controller = GameController(
+        bus, game, executor, unload_llm=llm.unload, reload_llm=brain.warmup
+    )
+    services.game_detector = GameDetector(
+        bus,
+        always=settings.game.always,
+        never=settings.game.never,
+        game_processes=lambda: {e.process for e in index.entries({Kind.GAME}) if e.process},
+        mode=lambda: settings.game.mode,
+    )
+    await services.game_detector.start()
     if index.needs_scan():
         task = asyncio.create_task(index.refresh(), name="index-scan")
         services.background.add(task)

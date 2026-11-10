@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 4
+PROTOCOL_VERSION = 5
 
 
 class _Msg(BaseModel):
@@ -94,8 +94,16 @@ class BubbleHideMsg(_Msg):
     type: Literal["bubble_hide"] = "bubble_hide"
 
 
+class GameMsg(_Msg):
+    """v5: partida en marcha y «Nyx en partida» (la interfaz no aparece sobre el juego)."""
+
+    type: Literal["game"] = "game"
+    active: bool
+    mode: Literal["off", "voice", "normal"] = "voice"
+
+
 ServerMessage = Annotated[
-    Welcome | StateMsg | LevelMsg | BubbleMsg | BubbleHideMsg,
+    Welcome | StateMsg | LevelMsg | BubbleMsg | BubbleHideMsg | GameMsg,
     Field(discriminator="type"),
 ]
 server_adapter: TypeAdapter[ServerMessage] = TypeAdapter(ServerMessage)

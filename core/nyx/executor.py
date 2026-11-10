@@ -23,9 +23,10 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from nyx.game.policy import GameGate
 from nyx.safety.action_log import ActionLog, Decision
 from nyx.safety.guard import SafetyGuard, Verdict
-from nyx.tools.base import Prepared, Tool, ToolContext, ToolResult
+from nyx.tools.base import GamePolicy, Prepared, Tool, ToolContext, ToolResult
 from nyx.tools.registry import ToolRegistry
 
 log = logging.getLogger(__name__)
@@ -87,6 +88,12 @@ def with_waits(calls: list[ToolCall]) -> list[ToolCall]:
     return out
 
 
+def describe_call(call: ToolCall) -> str:
+    """«open_app Discord» → algo legible para la burbuja de lo diferido."""
+    values = [str(v) for v in call.arguments.values() if isinstance(v, str | int) and v != ""]
+    return " ".join([call.name.replace("_", " "), *values[:2]])
+
+
 class Executor:
     def __init__(
         self,
@@ -96,12 +103,14 @@ class Executor:
         guard: SafetyGuard | None = None,
         action_log: ActionLog | None = None,
         confirm: ConfirmFn | None = None,
+        game: GameGate | None = None,
     ) -> None:
         self.registry = registry
         self.ctx = ctx
         self.guard = guard or SafetyGuard(ctx.paths)
         self.log = action_log
         self.confirm = confirm
+        self.game = game  # modo partida: permitida, diferida o bloqueada (SPEC sección 9)
 
     def _record(
         self,
@@ -153,6 +162,24 @@ class Executor:
             self._record(tool, call.name, call.arguments, Decision.INVALID, result, phrase)
             return result
         args = params.model_dump(exclude_none=True)
+        if self.game is not None:
+            policy = self.game.policy_for(tool)
+            if policy is GamePolicy.BLOCKED:
+                result = ToolResult.fail("En partida no hago eso", "pídemelo al terminar")
+                self._record(tool, call.name, args, Decision.BLOCKED, result, phrase)
+                return result
+            if policy is GamePolicy.DEFERRED:
+                summary = describe_call(call)
+                self.game.defer(ToolCall(call.name, dict(call.arguments)), phrase, summary)
+                result = ToolResult(
+                    ok=True,
+                    message="Te lo hago al terminar la partida",
+                    display="Al terminar la partida",
+                    secondary=summary,
+                    data={"deferred": True},
+                )
+                self._record(tool, call.name, args, Decision.DEFERRED, result, phrase)
+                return result
         t0 = time.perf_counter()
         try:
             prepared = await asyncio.wait_for(tool.prepare(params, self.ctx), tool.timeout_s)

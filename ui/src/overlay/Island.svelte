@@ -33,7 +33,15 @@
   const height = new Spring(44, springOpts);
   const level = new Spring(0, { stiffness: 0.3, damping: 0.8 });
 
-  const shown = $derived(connected && (status !== "idle" || bubble !== null));
+  // Partida en marcha (SPEC sección 9): con «solo voz» o «desactivado» no se muestra nada
+  // sobre el juego. (Fase 5b: con varios monitores, la isla irá al alternativo.)
+  let game = $state<{ active: boolean; mode: "off" | "voice" | "normal" }>({
+    active: false,
+    mode: "voice",
+  });
+  const hiddenForGame = $derived(game.active && game.mode !== "normal");
+
+  const shown = $derived(connected && !hiddenForGame && (status !== "idle" || bubble !== null));
 
   /** Tamaño objetivo según el estado (sección 12: 44×44 escuchando, 120×44 pensando). */
   const target = $derived.by(() => {
@@ -99,6 +107,9 @@
         break;
       case "bubble_hide":
         bubble = null;
+        break;
+      case "game":
+        game = { active: msg.active, mode: msg.mode };
         break;
     }
   }
