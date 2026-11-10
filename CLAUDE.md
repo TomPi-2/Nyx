@@ -17,7 +17,7 @@ Eres el desarrollador principal de Nyx. La especificación completa está en [do
 
 ## Estado
 
-Fase actual: **5 — Modo partida e interfaz final**: plan aprobado (5a → 5b → 5c → 5d); 5a (modo partida) hecho, pendiente de probar con juegos más adelante. Antes de 5c (acordado el 2026-11-10): motor gráfico de cristal (`ui/src-tauri/src/glass`, galería en la bandeja), pendiente de que el usuario lo vea y lo apruebe. Fases 1 y 2 cerradas el 2026-11-09; fases 3 y 4 cerradas el 2026-11-10.
+Fase actual: **5 — Modo partida e interfaz final**: plan aprobado (5a → 5b → 5c → 5d); 5a (modo partida) hecho, pendiente de probar con juegos más adelante. Motor de cristal aprobado (`ui/src-tauri/src/glass`, galería en la bandeja). Plan aprobado el 2026-11-10: cierre de 5b (paneles sobre el motor: prototipo en la galería → paneles en su propia ventana, hueco fijo de 14 px con Nyx, campo de texto con el motor) y después 5c (Ajustes en dos entregas: 5c‑1 ventana, controles, protocolo, Apariencia, Respuestas y Modo partida; 5c‑2 el resto). Ajustes solo muestra lo que ya existe. Fases 1 y 2 cerradas el 2026-11-09; fases 3 y 4 cerradas el 2026-11-10.
 
 ## Decisiones tomadas
 
@@ -31,6 +31,7 @@ Fase actual: **5 — Modo partida e interfaz final**: plan aprobado (5a → 5b �
 | 2026-11-09 | Sin cuenta. Datos de uso anónimos solo con permiso (SPEC sección 8). |
 | 2026-11-09 | Interfaz en ventanas flotantes propias, ocultas en reposo; el monitor se elige según ajustes y modo partida (SPEC sección 11). |
 | 2026-11-09 | LLM provisional `qwen2.5:7b`; Whisper large-v3-turbo q5 con Vulkan (0,17 s por frase). Falta la prueba del portátil para los requisitos mínimos. |
+| 2026-11-10 | Motor de cristal propio (SPEC sección 12): niveles Auto/Alto/Medio/Bajo, en partida Bajo sin excepción. Nyx y los paneles en ventanas distintas para que Nyx salga siempre en capturas; «Mostrar Nyx en capturas y directos» pasa los paneles a Bajo. Hueco fijo de 14 px entre Nyx y los paneles. |
 
 El historial completo de decisiones está en la sección 18 de `docs/SPEC.md`.
 
@@ -98,4 +99,4 @@ Problema conocido en este equipo: la caché de uv está en una carpeta sincroniz
 - Modelo de LLM final tras la batería de pruebas (provisional: `qwen2.5:7b`).
 - Requisitos mínimos: faltan las pruebas del portátil (RTX 3070 Laptop).
 - Ubicación fija para el tiempo (ciudad).
-- Motor gráfico de cristal, instalador propio y onda de «Nyx listo»: propuesta del 2026-11-10 en [docs/INSTALADOR-Y-MOTOR-GRAFICO.md](docs/INSTALADOR-Y-MOTOR-GRAFICO.md). Pendiente de plan y aprobación; todavía no cambia la SPEC.
+- Instalador propio y onda de «Nyx listo»: propuesta del 2026-11-10 en [docs/INSTALADOR-Y-MOTOR-GRAFICO.md](docs/INSTALADOR-Y-MOTOR-GRAFICO.md) (el motor ya está en la SPEC). Pendiente de plan y aprobación.

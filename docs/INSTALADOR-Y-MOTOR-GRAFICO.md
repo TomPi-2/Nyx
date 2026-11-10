@@ -1,6 +1,6 @@
 # Propuesta: motor gráfico de cristal, instalador propio y onda de «Nyx listo»
 
-**Estado:** el motor gráfico (apartado 2) entra antes de la fase 5c (acordado el 2026-11-10) y tiene una primera versión completa en `ui/src-tauri/src/glass` con una galería de ejemplos (bandeja → «Motor gráfico (ejemplos)»), pendiente de que el usuario la vea y la apruebe. Lo demás sigue siendo propuesta. **Todavía no cambia `docs/SPEC.md`.**
+**Estado:** el motor gráfico (apartado 2) está hecho y aprobado (2026-11-10) y ya forma parte de `docs/SPEC.md` (sección 12, «Motor de cristal»). El instalador (apartado 3) y la onda (apartado 4) siguen siendo propuesta.
 Recoge lo que pidió el usuario el 2026-11-10 y el análisis de viabilidad hecho ese día, para poder retomarlo desde VS Code.
 
 ## 0. Decisiones del usuario tras ver la galería (2026-11-10)

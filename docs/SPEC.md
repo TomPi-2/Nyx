@@ -29,7 +29,7 @@ Nyx se divide en dos procesos: un núcleo en Python que escucha, piensa y actúa
 | Núcleo | Python 3.12, asyncio | — | Ecosistema de voz e IA más maduro |
 | Interfaz | Tauri 2 + Svelte 5 + TypeScript + Canvas/WebGL | PySide6 + QML | Animaciones y cristal con tecnología web; WebView2 viene con Windows 11. Tauri es el proceso principal y lanza el núcleo |
 | Entorno Python | uv | — | Instala Python 3.12 y gestiona dependencias |
-| Efecto cristal | `window-vibrancy` (Acrylic/Mica) | CSS `backdrop-filter` | Translucidez nativa de Windows 11 |
+| Efecto cristal | Motor propio en Rust: Windows.Graphics.Capture + Direct3D 11 + composición de Windows (`ui/src-tauri/src/glass`) | Tinte gris translúcido en CSS | Cristal en tiempo real con silueta líquida (sección 12). Acrylic y el pincel de fondo de Windows se probaron y se descartaron |
 | Activación | openWakeWord (ONNX) | Vosk con gramática | Modelo propio para "Nyx"; Vosk para palabras personalizadas |
 | Detección de voz (VAD) | Silero VAD (ONNX) | WebRTC VAD | Corta la grabación al dejar de hablar |
 | Voz a texto | whisper.cpp con backend Vulkan | whisper.cpp en CPU | faster-whisper no acelera en AMD; usar large-v3-turbo cuantizado |
@@ -274,6 +274,7 @@ Nada destructivo se ejecuta sin confirmación, y lo que se borra va siempre a la
 - **Registro de acciones:** cada acción guarda fecha, frase, herramientas, parámetros y resultado (local, rotación a 30 días), consultable desde ajustes.
 - **Contenido externo no da órdenes:** el texto de webs, archivos o el portapapeles nunca se interpreta como instrucciones (protección ante inyección de prompts).
 - **Privacidad:** el audio no se guarda salvo las muestras de calibración que el usuario grabe; nada sale del PC salvo las peticiones que lo requieren (tiempo, webs y nube opcional) y los datos de uso anónimos si el usuario los activa.
+- **Capturas del motor de cristal:** para dibujar el cristal en los niveles Alto y Medio, Nyx captura el monitor mientras hay un panel visible. Esas imágenes se quedan en la memoria de la GPU: nunca se guardan en disco, no se envían y no pasan al núcleo ni al LLM. Nunca se captura con una partida abierta. Ajustes → Apariencia lo explica.
 
 ### Sin cuenta
 
@@ -406,8 +407,10 @@ Nyx no tiene ventana principal: cada elemento (la isla, una burbuja, un aviso) e
 **Estilo visual:**
 
 - **Identidad:** grises, cristal translúcido, todo redondeado y sin bordes (detalle y paleta en la sección 12).
-- **Translúcido solo donde hay contenido:** el cristal se aplica únicamente a la isla, las burbujas y los botones; el resto de la capa es invisible.
-- **Cristal sin desenfoque real** (resultado de la prueba de la fase 1, 2026-11-09): el CSS `backdrop-filter` no desenfoca lo que hay detrás de una ventana transparente, y el Acrylic de Windows 11 se ve sólido en ventanas que nunca toman el foco; además, recortarlo con una región deja bordes en escalones y esquinas sin pintar. Por eso la isla y las burbujas usan un **tinte gris translúcido al 84 %** con un degradado muy sutil y sombra, dibujado en CSS: deja ver lo de detrás (sin desenfocarlo) y Windows lo compone en el mismo fotograma, así que el cambio es instantáneo al cambiar lo de detrás (medido: menos de 25 ms, también con Chrome; el retraso de unos 2 s que se vio en la primera ronda lo causaba el Acrylic). El cristal con desenfoque real queda para un motor propio más adelante (sección 12, "Más adelante").
+- **Translúcido solo donde hay contenido:** el cristal se aplica únicamente a los paneles (burbujas, confirmación, deshacer, campo de texto, Ajustes); el resto de cada ventana es invisible.
+- **Cristal con el motor propio** (sección 12, «Motor de cristal»): lo dibuja Nyx detrás de la WebView de cada ventana. El CSS `backdrop-filter` no desenfoca lo que hay detrás de una ventana transparente; el Acrylic de Windows 11 se ve sólido sin foco y recortado deja escalones (fase 1); el pincel de fondo de Windows no está disponible en todos los equipos (2026-11-10). Si el motor no puede dibujar, se usa el **tinte gris translúcido al 84 %** de CSS de la fase 1.
+- **La forma de Nyx y los paneles van en ventanas distintas:** las ventanas que capturan la pantalla para el cristal se excluyen de las capturas (si no, el cristal se vería a sí mismo). Así Nyx sigue saliendo siempre en capturas y directos, y solo los paneles desaparecen de ellos en Alto y Medio. Con «Mostrar Nyx en capturas y directos» (Ajustes → Apariencia) los paneles usan el nivel Bajo y salen también.
+- **Nunca se solapan:** entre la forma de Nyx y cualquier panel queda siempre un hueco fijo de 14 px, medido desde lo más lejos que puede llegar la forma (giro, división en cuatro, estiramiento y ondulación) y contando la ondulación del borde del panel. La ventana de Ajustes es la excepción: se mueve libremente como cualquier ventana.
 - **Quitar el borde de Windows:** Windows 11 dibuja un borde de 1 px en todas las ventanas; desactivarlo con `DWMWA_BORDER_COLOR = DWMWA_COLOR_NONE`.
 - Tema oscuro y claro según Windows, ambos en grises.
 - **Animaciones** tipo iOS: muelles (spring) de 200–350 ms, aparición con escala 0,96 → 1 y desenfoque → nítido. Respetar "reducir movimiento" de Windows.
@@ -471,13 +474,22 @@ baja frecuencia (ondas amplias y profundas, sin rizos pequeños).
 - **Color:** blanco opaco siempre. Si detrás hay un fondo muy claro, pasa al gris justo para distinguirse. Volumen muy sutil (algo de sombra en el borde y un brillo arriba a la izquierda) para que se lea como un sólido.
 - **Valores aprobados:** fluidez 1, velocidad 1, redondez 42 % del semilado y tamaño 100 px. **El tamaño se ajusta en Ajustes → Apariencia.**
 - **Posición:** arriba en el centro del monitor elegido (sección 11), con 12 px de margen; atraviesa los clics.
-- **Paneles** (respuesta, confirmación, deshacer, campo de texto): se diseñan desde cero después de la forma; hasta entonces se usan las burbujas actuales.
+- **Paneles** (respuesta, confirmación, deshacer, campo de texto): se diseñan desde cero sobre el motor de cristal, con un prototipo que el usuario aprueba antes de integrarlos; hasta entonces se usan las burbujas actuales.
+
+### Motor de cristal
+
+Aprobado el 2026-11-10 tras verlo en la galería de ejemplos (bandeja → «Motor gráfico (ejemplos)»). Propuesta y mediciones en [INSTALADOR-Y-MOTOR-GRAFICO.md](INSTALADOR-Y-MOTOR-GRAFICO.md).
+
+- **Qué hace:** cristal en tiempo real según lo que hay detrás, al estilo de iOS, en los paneles, Ajustes y (más adelante) el instalador y la onda de «Nyx listo». **Sin bordes:** la silueta de cada panel ondula como un líquido no newtoniano, con el mismo ruido que la forma de Nyx, y el cristal sigue al borde.
+- **Cómo:** un hilo propio en Rust. Captura del monitor con Windows.Graphics.Capture (sin borde amarillo ni cursor, máximo 30 Hz y solo cuando cambia la pantalla), desenfoque Kawase doble a resolución reducida y una pasada final en Direct3D 11 con campo de distancia: cobertura, refracción en una franja junto al borde, brillo especular, tinte, grano y sombra. El resultado va a una cadena de intercambio con alfa por píxel que la composición de Windows pone detrás de la WebView (sin regiones ni escalones). En reposo no hace nada.
+- **Niveles** (Ajustes → Apariencia): **Auto** (predeterminado), **Alto** (desenfoque, refracción y brillo), **Medio** (desenfoque y tinte) y **Bajo** (tinte al 84 %, sin captura). En Auto baja solo con batería (a Medio), ahorro de energía o transparencias de Windows desactivadas (a Bajo) y si la GPU no llega (más de 8 ms por fotograma durante 5 s: un nivel). Con un nivel concreto se respeta, salvo **en partida, donde pasa a Bajo sin excepción**; Ajustes lo dice junto al selector.
+- **Borde líquido:** se mueve siempre, solo al aparecer e interactuar, o nunca, a 30 fotogramas por segundo; las partidas y «reducir movimiento» de Windows lo paran. Amplitud ajustable con una barra de 0 a 10, de 1 en 1, que va de 0 a 7 px (predeterminado: 5 = 3,5 px).
+- **Valores predeterminados** (elegidos en la galería): desenfoque 0,6, refracción 10 px, saturación 1,15, velocidad ×1, tinte gris 0,45, brillo 0,35, sombra 0,4.
+- **GPU:** la que tiene conectada la pantalla (en portátiles, la integrada): ahí están la composición y las capturas de Windows, y así no se despierta la dedicada ni hay copias entre tarjetas.
 
 ### Más adelante
 
 **Personalización (fase 7):** otros estilos (ondas, cara), otras ubicaciones (esquinas, pantalla completa con brillo en los bordes, oculto) y tamaños. El código del indicador debe aislarse desde el principio (`Indicator` con estado y nivel de audio como entrada) para que añadirlos no toque nada más.
-
-**Cristal nativo (después de la v1):** motor propio que haga el desenfoque real detrás de la isla y las burbujas de forma nativa y optimizada (sin depender del Acrylic de Windows, que no funciona en ventanas sin foco). Hasta entonces, tinte gris translúcido al 84 %. Requisitos: coste de GPU mínimo, nunca capturar ni tocar la ventana de un juego, y volver al tinte si no se puede.
 
 **Estados:**
 
@@ -505,9 +517,9 @@ La ventana de Ajustes es la única ventana clásica de Nyx y sigue la misma iden
 
 **Diseño de la ventana de Ajustes:**
 
-- **Fondo:** Acrylic de Windows 11 en toda la ventana (`DWMWA_SYSTEMBACKDROP_TYPE`), con el tinte `glass`.
+- **Fondo:** el motor de cristal (sección 12) en toda la ventana, con el mismo aspecto que los paneles. Es una ventana normal: toma el foco, sale en la barra de tareas y en Alt+Tab y se mueve libremente.
 - **Sin bordes:** borde de ventana desactivado (`DWMWA_BORDER_COLOR = DWMWA_COLOR_NONE`), sin barra de título del sistema y sin líneas separadoras dentro. Barra de título propia invisible con zona de arrastre y tres botones circulares grises al pasar el ratón.
-- **Esquinas:** redondeo nativo de Windows 11 en la ventana (`DWMWA_WINDOW_CORNER_PREFERENCE = ROUND`); dentro, todo con radios grandes.
+- **Esquinas:** la silueta redondeada (28 px) la dibuja el motor; dentro, todo con radios grandes.
 - **Estructura tipo Ajustes de iOS:** barra lateral de cristal con secciones en pastilla (la seleccionada en `glass-raised`) y, a la derecha, grupos de opciones en tarjetas redondeadas de 20 px separadas por espacio, no por líneas.
 - **Controles propios en grises:** interruptores estilo iOS (encendido en `control-active`), deslizadores con tirador circular, selectores en pastilla y campos de texto sin contorno sobre `control`.
 - **Tamaño:** 880 × 600 px por defecto, redimensionable con mínimo 720 × 480; recuerda posición y monitor.
@@ -518,7 +530,7 @@ La ventana de Ajustes es la única ventana clásica de Nyx y sigue la misma iden
 | Activación | Palabra ("Nyx" o personalizada con validación), sensibilidad, recalibrar con muestras, verificación de voz, ventana de seguimiento, atajos de hablar, escribir y silenciar |
 | Voz | Voz (Lola, hombre · España, mujer · Argentina), velocidad, volumen, dispositivo de entrada y de salida, atenuar otras apps |
 | Respuestas | Responder también en voz a lo escrito (desactivado por defecto), cuándo hablar (siempre, solo preguntas, nunca), cuándo mostrar burbuja, duración, confirmación visual de acciones silenciosas |
-| Apariencia | Monitor de destino, tema claro u oscuro, vista previa del indicador (estilos, ubicaciones y tamaños en la fase 7) |
+| Apariencia | Monitor de destino, tema claro u oscuro, vista previa del indicador (estilos, ubicaciones y tamaños en la fase 7). Cristal: calidad (Auto, Alto, Medio, Bajo; con un nivel concreto, el aviso «En partida se cambia a Bajo automáticamente, sin excepción»), movimiento del borde (siempre, al interactuar, quieto), amplitud del borde (0–10), mostrar Nyx en capturas y directos, y qué hace con las capturas (sección 8) |
 | Modo partida | Nyx en partida (desactivado, solo voz, normal), monitor alternativo para la interfaz, herramientas permitidas, diferidas y bloqueadas, lista de juegos manual, descargar el LLM en partida |
 | Cerebro | Modelo local, nube opcional con clave propia, atajos aprendidos (ver y borrar), preferencias aprendidas |
 | Seguridad | Nivel de cada herramienta (sin poder bajar el de eliminar o PowerShell), rutas protegidas extra, registro de acciones |
@@ -544,6 +556,8 @@ Nyx debe sentirse instantáneo y no fallar nunca en silencio: cada error se expl
 | RAM del núcleo (sin contar el LLM) | < 600 MB |
 | VRAM total (LLM 8B q4 + Whisper turbo) | ≈ 7–8 GB |
 | Arranque hasta estar listo | < 10 s |
+| Motor de cristal en reposo | 0 % de GPU (ninguna captura ni redibujado) |
+| Motor de cristal con paneles visibles | < 8 ms de GPU por fotograma; el borde se redibuja a 30 fps |
 
 **Fiabilidad:**
 
@@ -676,7 +690,7 @@ nyx/
 2. **Bucle de voz:** micrófono → activación con Vosk provisional → VAD → whisper.cpp → respuesta del LLM → Kokoro. Indicador básico. Entrada por texto.
 3. **Acciones:** caché del sistema, router rápido, las 20 herramientas más usadas, SafetyGuard con confirmaciones y deshacer, registro de acciones.
 4. **"Nyx" de verdad:** entrenar el modelo propio, verificación en dos etapas, calibración con muestras del usuario, palabras personalizadas.
-5. **Modo partida e interfaz final:** detección de juegos, políticas, isla con orbe definitiva, burbujas pulidas, ventana de Ajustes translúcida, ajustes completos y asistente de primer arranque.
+5. **Modo partida e interfaz final:** detección de juegos, políticas, la forma de Nyx, motor de cristal, paneles rediseñados sobre el motor, ventana de Ajustes, ajustes completos y asistente de primer arranque.
 6. **Pulido y distribución (después, fase 7: personalización de la interfaz):** resto de herramientas, batería de 300+ frases, objetivos de rendimiento, instalador, arranque con Windows, actualizaciones automáticas (sección 15) y pruebas de cortes de luz simulados.
 
 **Criterio para cerrar cada fase:** sus pruebas pasan, los objetivos de la sección 14 que le afectan se cumplen y el usuario lo ha probado en su PC.
@@ -739,4 +753,6 @@ Reglas de trabajo:
 | 2026-11-10 | La isla con orbe se sustituye por la forma de Nyx: cuadrado redondeado blanco y opaco que se comporta como un líquido-sólido, se divide en cuatro al pensar y se junta al hablar (prototipo aprobado: fluidez 1, velocidad 1, redondez 42 %, tamaño 100 px ajustable). Los paneles se rediseñan desde cero después. | 11, 12 |
 | 2026-11-10 | «Pensando» se muestra en cuanto acaba la frase (antes, solo si tardaba más de 0,3 s) y la forma lo mantiene al menos 1,2 s para que se vea la división en cuatro. Multimedia con el control de Windows (SMTC): elige la sesión («de YouTube», «de Spotify») y distingue pausar de reanudar; las teclas multimedia quedan de respaldo. | 3, 7, 12 |
 | 2026-11-10 | Corrección: «pensando» solo cuando Nyx piensa de verdad (peticiones al LLM, al momento; acciones del router, solo si tardan más de 0,3 s). Si «Nyx» salta mientras Nyx piensa o habla, primero se confirma con whisper y solo entonces se interrumpe. En la ventana de seguimiento cuenta como dirigida a Nyx, sin clasificador, una frase que diga «Nyx» o que empiece con una orden. | 3, 4 |
+| 2026-11-10 | Motor de cristal propio (antes de 5c), aprobado tras verlo en la galería: captura + Direct3D 11 + composición de Windows, silueta líquida sin bordes y niveles Auto, Alto, Medio y Bajo. En partida, Bajo sin excepción; con un nivel concreto no hay más bajadas automáticas. El pincel de fondo de Windows se descarta (no disponible en el portátil). Amplitud del borde 0–10 (5 = 3,5 px) y valores predeterminados elegidos por el usuario. La GPU es la que tiene la pantalla (la integrada en portátiles). Las capturas no salen de la GPU. | 2, 8, 11, 12, 13, 14, 16 |
+| 2026-11-10 | Paneles: la forma de Nyx y los paneles en ventanas distintas, para que Nyx salga siempre en capturas y directos; ajuste «Mostrar Nyx en capturas y directos» (los paneles pasan a Bajo). Hueco fijo de 14 px entre Nyx (en su extensión máxima) y cualquier panel; Ajustes se mueve libremente. El campo de texto también usa el motor. Ajustes solo muestra lo que ya existe; el resto se añade cuando exista. Lo que queda de 5b: paneles con un prototipo previo; 5c: Ajustes en dos entregas. | 11, 12, 13 |
 | 2026-11-10 | Icono de Nyx: la propuesta «Sólido» (la forma casi cuadrada con un lóbulo). Bandeja según el tema de Windows (blanco / gris oscuro). En la web irá con una animación de un solo disparo: se divide en cuatro, dan un cuarto de vuelta con dos empujones y vuelven al icono (`docs/prototipos/icono-nyx.html`). | 12 |
