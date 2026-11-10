@@ -72,6 +72,44 @@ class Spring {
   }
 }
 
+/** Un cuarto de vuelta: con este giro, los cuatro (y cada cuadrado) se ven igual. */
+const QUARTER = Math.PI / 2;
+
+/** Siguiente múltiplo de 90° hacia delante (o el mismo, si ya lo es). */
+function forwardQuarter(x: number): number {
+  return Math.ceil(x / QUARTER - 1e-4) * QUARTER;
+}
+
+function isQuarter(x: number): boolean {
+  return Math.abs(x / QUARTER - Math.round(x / QUARTER)) < 1e-3;
+}
+
+/**
+ * Al dejar de pensar, los cuatro se acercan hasta casi tocarse (MERGE_HOLD) sin fundirse.
+ * Cada giro avanza (nunca retrocede) hasta el siguiente cuarto de vuelta con un empujón
+ * propio, más largo cuanto más le falte, y solo entonces se funden en un cuadrado.
+ */
+const MERGE_HOLD = 0.84; // separación casi cerrada mientras termina de girar (uMerge funde > 0,92)
+const MERGE_MIN_S = 0.45; // duración del último giro: mínimo…
+const MERGE_PER_QUARTER_S = 0.75; // …más esto por cada cuarto de vuelta que falte
+
+/** Al juntarse: giros al empezar, dónde terminan y el reloj del último empujón. */
+interface Merging {
+  orbit: number;
+  own: number[];
+  orbitTo: number;
+  ownTo: number[];
+  start: number;
+  duration: number;
+  fused: boolean;
+}
+
+/** Acelera y frena sin tirones (la misma curva que los empujones al pensar). */
+function ease(p: number): number {
+  const e = Math.min(1, Math.max(0, p));
+  return e * e * e * (e * (e * 6 - 15) + 10);
+}
+
 /** Empujón con esfuerzo: acelera y frena (78 % del tramo) y descansa el resto. */
 function effort(x: number): number {
   const k = Math.floor(x);
@@ -90,6 +128,15 @@ export class NyxShape {
   private rate = 0; // su velocidad (rad/s), que cambia con suavidad entre estados
   private waitMix = 0; // 1 = espera (matices de fluido no newtoniano), 0 = otros estados
   private thinkClock = 0; // tiempo pensando (los giros de los cuatro cuentan desde aquí)
+  // Giros de los cuatro al pensar: el de la órbita y el propio de cada uno (rad). Se
+  // acumulan mientras piensa; al juntarse terminan en el siguiente múltiplo de 90° hacia
+  // delante (los cuatro y cada cuadrado se ven igual cada cuarto de vuelta), así que la
+  // unión nunca deshace las vueltas dadas.
+  private orbitTerm = 0;
+  private ownTerm = [0, 0, 0, 0];
+  private orbitFrom = 0;
+  private ownFrom = [0, 0, 0, 0];
+  private merging: Merging | null = null;
   private last = 0;
   private frameId = 0;
   private level = 0; // nivel de audio que llega del núcleo (0-1)
@@ -144,6 +191,7 @@ export class NyxShape {
   setState(next: ShapeState): void {
     if (next === this.state) return;
     const now = performance.now() / 1000;
+    const wasThinking = this.state === "thinking";
     this.state = next;
     this.stateSince = now;
     const s = this.s;
@@ -159,12 +207,54 @@ export class NyxShape {
       s.scale.t = 1;
     }
     s.merge.t = next === "thinking" ? 0 : 1;
-    if (next === "thinking" && s.merge.v > 0.9) this.thinkClock = 0; // empieza a separarse
+    if (next === "thinking" && !wasThinking) this.startThinking();
+    if (wasThinking && next !== "thinking") this.startMerging();
     if (next === "thinking") s.merge.vel = -0.6;
     if (next === "speaking" && s.merge.v < 0.5) {
       s.flow.v = 1.0; // al juntarse se mece y se asienta
       s.flow.vel = 1.5;
     }
+  }
+
+  /** 0 = un solo cuadrado; 1 = los cuatro separados del todo. */
+  private separation(): number {
+    const m = Math.min(1.2, Math.max(-0.2, this.s.merge.v));
+    return 1 - Math.min(1, Math.max(0, m));
+  }
+
+  /**
+   * Empieza a pensar: los giros cuentan desde donde estén. Si estaba junto y alineado, se
+   * parte de cero (a múltiplos de 90° se ve igual); si se vuelve a pensar a mitad de la
+   * unión, se sigue desde ahí sin saltos.
+   */
+  private startThinking(): void {
+    const aligned = isQuarter(this.orbitTerm) && this.ownTerm.every(isQuarter);
+    if (this.separation() < 0.02 && aligned) {
+      this.orbitTerm = 0;
+      this.ownTerm = [0, 0, 0, 0];
+    }
+    this.orbitFrom = this.orbitTerm;
+    this.ownFrom = [...this.ownTerm];
+    this.merging = null;
+    this.thinkClock = 0;
+  }
+
+  /** Deja de pensar: cada giro irá hacia delante hasta el siguiente cuarto de vuelta. */
+  private startMerging(): void {
+    const orbitTo = forwardQuarter(this.orbitTerm);
+    const ownTo = this.ownTerm.map(forwardQuarter);
+    const left = Math.max(orbitTo - this.orbitTerm, ...ownTo.map((t, i) => t - this.ownTerm[i]));
+    this.merging = {
+      orbit: this.orbitTerm,
+      own: [...this.ownTerm],
+      orbitTo,
+      ownTo,
+      start: this.clock,
+      duration: MERGE_MIN_S + (MERGE_PER_QUARTER_S * left) / QUARTER,
+      fused: false,
+    };
+    // Se acercan, pero no se funden hasta terminar de girar (ver frame).
+    this.s.merge.t = MERGE_HOLD;
   }
 
   /** Nivel de audio (RMS del micro al escuchar, de la voz de Nyx al hablar). */
@@ -221,6 +311,13 @@ export class NyxShape {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     const scale = Math.max(0, s.scale.v);
+    // La unión termina aunque no se dibuje (si se oculta mientras gira, que no quede a medias
+    // y se funda al volver a aparecer).
+    const merging = this.merging;
+    if (merging && !merging.fused && this.clock - merging.start >= merging.duration) {
+      merging.fused = true;
+      s.merge.t = 1;
+    }
     if (scale < 0.002) return; // nada que dibujar: la GPU descansa
 
     // Una sola fase para todos los estados: cambiar de estado no hace saltar el ruido.
@@ -251,19 +348,36 @@ export class NyxShape {
     const m = Math.min(1.2, Math.max(-0.2, s.merge.v));
     const sep = 1 - Math.min(1, Math.max(0, m));
     const bursts = this.thinkClock / BURST_S;
-    const orbit = (effort(bursts) * (Math.PI / 2)) / 3;
+    if (state === "thinking") {
+      // Orbitan y giran con esfuerzo desde donde empezaron a pensar.
+      const orbit = (effort(bursts) * QUARTER) / 3;
+      this.orbitTerm = this.orbitFrom + orbit * sep;
+      for (let i = 0; i < 4; i++) {
+        const own = (effort(bursts + i * 0.12) - effort(i * 0.12)) * QUARTER;
+        this.ownTerm[i] = this.ownFrom[i] + own * sep;
+      }
+    } else if (this.merging) {
+      // El último giro hacia delante, con su propio empujón; al acabar, se funden.
+      const g = this.merging;
+      const k = ease((this.clock - g.start) / g.duration);
+      this.orbitTerm = g.orbit + (g.orbitTo - g.orbit) * k;
+      for (let i = 0; i < 4; i++) this.ownTerm[i] = g.own[i] + (g.ownTo[i] - g.own[i]) * k;
+      if (k >= 1 && !g.fused) {
+        g.fused = true;
+        s.merge.t = 1;
+      }
+    }
     const subHalf = half * (0.5 - 0.12 * sep);
     const dist = half * (0.5 + 0.24 * sep) * Math.SQRT2;
     const boxes: number[] = [];
     for (let i = 0; i < 4; i++) {
-      const base = Math.PI / 4 + (i * Math.PI) / 2 + globalAngle + orbit * sep;
+      const base = Math.PI / 4 + i * QUARTER + globalAngle + this.orbitTerm;
       const wob = sep * 0.05 * Math.sin(phase * 2 + i * 1.7);
-      const own = (effort(bursts + i * 0.12) - effort(i * 0.12)) * (Math.PI / 2);
       boxes.push(
         cx + Math.cos(base) * dist * (1 + wob),
         cy + Math.sin(base) * dist * (1 + wob),
         subHalf,
-        globalAngle + sep * own,
+        globalAngle + this.ownTerm[i],
       );
     }
     const u = this.u;

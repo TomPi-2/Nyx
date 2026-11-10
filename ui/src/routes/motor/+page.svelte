@@ -30,7 +30,14 @@
   import InputPanel from "$overlay/panels/InputPanel.svelte";
   import ResponsePanel from "$overlay/panels/ResponsePanel.svelte";
   import UndoPanel from "$overlay/panels/UndoPanel.svelte";
-  import { PANEL_GAP, SHAPE_TOP, panelTop, shapeReach } from "$overlay/panels/layout";
+  import {
+    PANEL_GAP,
+    PANEL_MOVE_MS,
+    SHAPE_EXIT_MS,
+    SHAPE_TOP,
+    panelTop,
+    shapeReach,
+  } from "$overlay/panels/layout";
 
   const QUALITIES: { value: GlassPreference; label: string }[] = [
     { value: "auto", label: "Auto" },
@@ -110,6 +117,26 @@
     panelKind = kind;
     panelRun++;
   }
+
+  // Sin Nyx, el panel sube a ocupar su sitio (como en la isla, tras irse la forma).
+  let lifted = $state(false);
+  // Si Nyx vuelve con el panel arriba, la forma espera a que el panel baje.
+  let holdShape = $state(false);
+  $effect(() => {
+    const away = nyxPreview === "oculta";
+    if (!away && lifted) {
+      holdShape = true;
+      setTimeout(() => (holdShape = false), PANEL_MOVE_MS);
+    }
+    const timer = setTimeout(
+      () => {
+        lifted = away;
+        glass.follow(PANEL_MOVE_MS + 60);
+      },
+      away ? SHAPE_EXIT_MS : 0,
+    );
+    return () => clearTimeout(timer);
+  });
 
   // El panel se desplaza sin cambiar de tamaño: el cristal tiene que saberlo.
   $effect(() => {
@@ -398,9 +425,19 @@
   {#if tab === "paneles"}
     <div class="island">
       <div class="nyx" style:top="{SHAPE_TOP}px">
-        <Indicator status={NYX_STATUS[nyxPreview]} {level} size={nyxSize} backdrop={null} />
+        <Indicator
+          status={holdShape ? "idle" : NYX_STATUS[nyxPreview]}
+          {level}
+          size={nyxSize}
+          backdrop={null}
+        />
       </div>
-      <div class="panel-slot" style:top="{panelTop(nyxSize, options.amplitude)}px">
+      <div
+        class="panel-slot"
+        style:top="{panelTop(nyxSize, options.amplitude)}px"
+        style:translate="0 {lifted ? SHAPE_TOP - panelTop(nyxSize, options.amplitude) : 0}px"
+        style:--move="{PANEL_MOVE_MS}ms"
+      >
         {#key panelRun}
           {#if panelKind === "respuesta"}
             <ResponsePanel display="22 °C" secondary="Madrid · soleado, máxima de 25 °C" />
@@ -559,6 +596,7 @@
     right: 0;
     display: flex;
     justify-content: center;
+    transition: translate var(--move) cubic-bezier(0.32, 0.72, 0, 1);
   }
 
   header {
