@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 6
+PROTOCOL_VERSION = 7
 
 
 class _Msg(BaseModel):
@@ -58,11 +58,21 @@ client_adapter: TypeAdapter[ClientMessage] = TypeAdapter(ClientMessage)
 # Núcleo → interfaz
 
 
+class GlassInfo(_Msg):
+    """v7: ajustes del motor de cristal (Ajustes → Apariencia; SPEC sección 12)."""
+
+    quality: Literal["auto", "alto", "medio", "bajo"] = "auto"
+    motion: Literal["siempre", "interaccion", "quieto"] = "siempre"
+    edge: int = Field(default=5, ge=0, le=10)  # amplitud del borde: 0–10 → 0–7 px
+    show_in_captures: bool = False
+
+
 class Welcome(_Msg):
     type: Literal["welcome"] = "welcome"
     version: str
     protocol: int = PROTOCOL_VERSION
     indicator_size: int = 100  # v6: lado de la forma de Nyx en px (Ajustes → Apariencia)
+    glass: GlassInfo = Field(default_factory=GlassInfo)  # v7
 
 
 class StateMsg(_Msg):
@@ -89,6 +99,9 @@ class BubbleMsg(_Msg):
     secondary: str | None = None
     actions: list[ActionButton] = []
     alert: bool = False  # v4: alarmas y avisos (la interfaz lanza la notificación de Windows)
+    # v7: qué panel la muestra y cuánto dura (cuenta atrás de confirmar y deshacer).
+    kind: Literal["response", "confirm", "undo", "alert"] = "response"
+    expires_s: float | None = None
 
 
 class BubbleHideMsg(_Msg):

@@ -155,6 +155,7 @@ class AlarmRinger:
                 secondary=secondary,
                 actions=(BubbleAction(self._button, "Parar", primary=True),),
                 alert=True,
+                kind="alert",
             )
         )
         self._ring = asyncio.create_task(self._ring_loop(spoken), name="alarm-ring")
@@ -188,7 +189,9 @@ class AlarmRinger:
 
     async def _on_missed(self, event: AlarmsMissed) -> None:
         display, secondary = missed_text(event.alarms)
-        await self.bus.publish(BubbleShown(display=display, secondary=secondary, alert=True))
+        await self.bus.publish(
+            BubbleShown(display=display, secondary=secondary, alert=True, kind="alert")
+        )
         await self._play_chime()
 
         async def hide_later() -> None:

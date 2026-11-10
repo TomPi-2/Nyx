@@ -50,7 +50,7 @@
     <button class="pill primary" onclick={() => onconfirm?.()}>{confirmLabel}</button>
   </div>
   <span class="expires">
-    {left > 0 ? `Se cancela sola en ${left} s · también puedes decir «sí» o «no»` : "Cancelada"}
+    {left > 0 ? `Se cancela sola en ${left} s` : "Cancelada"}
   </span>
 </div>
 

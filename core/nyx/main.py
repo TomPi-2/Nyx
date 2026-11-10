@@ -24,7 +24,7 @@ import threading
 from typing import Any
 
 from nyx import __version__
-from nyx.bridge.protocol import PROTOCOL_VERSION
+from nyx.bridge.protocol import PROTOCOL_VERSION, GlassInfo
 from nyx.bridge.server import UIBridge
 from nyx.bus import EventBus
 from nyx.events import TextEntered
@@ -116,7 +116,13 @@ async def run(args: argparse.Namespace) -> int:
         take_over()
 
     bus = EventBus()
-    bridge = UIBridge(bus, token, port=args.port, indicator_size=settings.appearance.indicator_size)
+    bridge = UIBridge(
+        bus,
+        token,
+        port=args.port,
+        indicator_size=settings.appearance.indicator_size,
+        glass=GlassInfo.model_validate(settings.appearance.glass.model_dump()),
+    )
     port = await bridge.start()
 
     print(json.dumps({"event": "ready", "port": port, "protocol": PROTOCOL_VERSION}), flush=True)

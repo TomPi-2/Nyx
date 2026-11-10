@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import Literal
 
 
 class NyxState(StrEnum):
@@ -39,6 +40,10 @@ class BubbleAction:
     primary: bool = False
 
 
+#: Qué panel la muestra (SPEC sección 11): respuesta, confirmación, deshacer o aviso.
+BubbleKind = Literal["response", "confirm", "undo", "alert"]
+
+
 @dataclass(frozen=True, slots=True)
 class BubbleShown:
     """Burbuja de respuesta: dato destacado grande + línea secundaria (+ botones)."""
@@ -47,6 +52,9 @@ class BubbleShown:
     secondary: str | None = None
     actions: tuple[BubbleAction, ...] = ()
     alert: bool = False  # alarmas y avisos: además, notificación de Windows
+    kind: BubbleKind = "response"
+    # Cuánto dura (confirmación que caduca, tiempo para deshacer): la interfaz lo enseña.
+    expires_s: float | None = None
 
 
 @dataclass(frozen=True, slots=True)

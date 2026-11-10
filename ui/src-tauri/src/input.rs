@@ -1,4 +1,4 @@
-//! Campo de texto (SPEC sección 11): pastilla de cristal arriba en el centro del monitor del
+//! Campo de texto (SPEC sección 11): pastilla sobre el motor de cristal arriba en el centro del monitor del
 //! ratón, en el mismo sitio que la isla. A diferencia de la isla, toma el foco para escribir.
 //! Enter envía, Esc o hacer clic fuera la cierran.
 
@@ -9,9 +9,10 @@ use tauri::{
 use crate::{island, win32};
 
 pub const LABEL: &str = "input";
-/// Pastilla de 520 × 52 px + margen para la sombra.
+/// Pastilla de 520 px que crece hacia abajo hasta 6 líneas (~166 px) + margen para la
+/// sombra y la ondulación del borde (motor de cristal).
 const WIDTH: f64 = 600.0;
-const HEIGHT: f64 = 120.0;
+const HEIGHT: f64 = 250.0;
 
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
     let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("input".into()))

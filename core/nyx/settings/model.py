@@ -86,10 +86,25 @@ class ResponseSettings(_Section):
     speak_typed: bool = False
 
 
+class GlassSettings(_Section):
+    """Motor de cristal de los paneles (SPEC sección 12, «Motor de cristal»)."""
+
+    # auto: el motor baja solo (batería, ahorro de energía…); un nivel concreto se respeta,
+    # salvo en partida, donde siempre se pasa a «bajo».
+    quality: Literal["auto", "alto", "medio", "bajo"] = "auto"
+    motion: Literal["siempre", "interaccion", "quieto"] = "siempre"
+    # Amplitud del borde líquido: barra de 0 a 10 que va de 0 a 7 px (5 = 3,5 px).
+    edge: int = Field(default=5, ge=0, le=10)
+    # Los paneles que capturan la pantalla no salen en capturas ni directos; con esto
+    # activado usan el nivel «bajo» y salen.
+    show_in_captures: bool = False
+
+
 class AppearanceSettings(_Section):
     """Apariencia (SPEC secciones 12 y 13)."""
 
     indicator_size: int = Field(default=100, ge=44, le=260)  # lado de la forma de Nyx (px)
+    glass: GlassSettings = Field(default_factory=GlassSettings)
 
 
 class GameSettings(_Section):

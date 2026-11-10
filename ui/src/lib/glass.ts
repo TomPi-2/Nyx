@@ -10,6 +10,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import type { GlassInfo } from "./protocol";
 
 /**
  * Lo que elige el usuario (decisión del 2026-11-10). En Auto el motor baja solo (batería,
@@ -174,6 +175,19 @@ class GlassSurface {
   }
 
   /**
+   * Sigue a los paneles durante una animación (aparecer, desaparecer, crecer): manda las
+   * formas en cada fotograma durante `ms`.
+   */
+  follow(ms: number): void {
+    const end = performance.now() + ms;
+    const step = () => {
+      this.flush();
+      if (performance.now() < end) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  /**
    * Vuelve a mandar las formas en el siguiente fotograma. Los cambios de tamaño se ven
    * solos; si un panel se mueve (animación, cambio de diseño), hay que llamarlo.
    */
@@ -197,6 +211,19 @@ class GlassSurface {
   private setFallback(on: boolean): void {
     document.documentElement.dataset.glass = on ? "css" : "engine";
   }
+}
+
+/**
+ * Opciones del motor a partir de los ajustes que manda el núcleo (Ajustes → Apariencia).
+ * «Mostrar Nyx en capturas y directos» pasa los paneles a Bajo: así no capturan la pantalla
+ * y no hace falta excluirlos de las capturas.
+ */
+export function glassFromSettings(info: GlassInfo): Partial<GlassOptions> {
+  return {
+    quality: info.show_in_captures ? "bajo" : info.quality,
+    motion: info.motion,
+    amplitude: edgeLevelToPx(info.edge),
+  };
 }
 
 /** La lámina de esta ventana (una por ventana). */

@@ -9,7 +9,8 @@
   interface Props {
     title: string;
     secondary?: string | null;
-    actionLabel?: string;
+    /** Sin botón (por ejemplo, alarmas perdidas): solo el aviso. */
+    actionLabel?: string | null;
     onaction?: () => void;
   }
   let { title, secondary = null, actionLabel = "Parar", onaction }: Props = $props();
@@ -37,7 +38,9 @@
     <span class="title">{title}</span>
     {#if secondary}<span class="secondary">{secondary}</span>{/if}
   </span>
-  <button class="pill" onclick={() => onaction?.()}>{actionLabel}</button>
+  {#if actionLabel}
+    <button class="pill" onclick={() => onaction?.()}>{actionLabel}</button>
+  {/if}
 </div>
 
 <style>

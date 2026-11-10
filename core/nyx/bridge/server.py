@@ -25,6 +25,7 @@ from nyx.bridge.protocol import (
     BubbleHideMsg,
     BubbleMsg,
     GameMsg,
+    GlassInfo,
     Hello,
     LevelMsg,
     StateMsg,
@@ -70,8 +71,10 @@ class UIBridge:
         port: int = 0,
         origins: Sequence[str] = DEFAULT_ORIGINS,
         indicator_size: int = 100,
+        glass: GlassInfo | None = None,
     ) -> None:
         self.indicator_size = indicator_size
+        self.glass = glass or GlassInfo()
         self._game: GameMsg | None = None
         self._bus = bus
         self._token = token
@@ -120,7 +123,9 @@ class UIBridge:
         log.info("Interfaz conectada (%d)", len(self._clients))
         try:
             await conn.send(
-                Welcome(version=__version__, indicator_size=self.indicator_size).model_dump_json()
+                Welcome(
+                    version=__version__, indicator_size=self.indicator_size, glass=self.glass
+                ).model_dump_json()
             )
             await conn.send(StateMsg(state=self._state).model_dump_json())
             if self._game is not None:  # una ventana que se abre a mitad de partida
@@ -189,6 +194,8 @@ class UIBridge:
                 secondary=event.secondary,
                 actions=actions,
                 alert=event.alert,
+                kind=event.kind,
+                expires_s=event.expires_s,
             )
         )
 

@@ -1,6 +1,6 @@
 // Espejo de core/nyx/bridge/protocol.py: cambia los dos a la vez y sube PROTOCOL_VERSION.
 
-export const PROTOCOL_VERSION = 6;
+export const PROTOCOL_VERSION = 7;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -18,6 +18,19 @@ export interface ActionButton {
   primary: boolean;
 }
 
+/** v7: ajustes del motor de cristal (Ajustes → Apariencia; SPEC sección 12). */
+export interface GlassInfo {
+  quality: "auto" | "alto" | "medio" | "bajo";
+  motion: "siempre" | "interaccion" | "quieto";
+  /** Amplitud del borde: 0–10 → 0–7 px. */
+  edge: number;
+  /** Los paneles usan el nivel Bajo para salir en capturas y directos. */
+  show_in_captures: boolean;
+}
+
+/** v7: qué panel muestra la burbuja (SPEC sección 11). */
+export type BubbleKind = "response" | "confirm" | "undo" | "alert";
+
 /** Interfaz → núcleo (después del hello). */
 export type ClientMessage =
   | { type: "text"; text: string }
@@ -31,6 +44,8 @@ export type ServerMessage =
       protocol: number;
       /** v6: lado de la forma de Nyx en px (Ajustes → Apariencia). */
       indicator_size: number;
+      /** v7 */
+      glass: GlassInfo;
     }
   | { type: "state"; state: NyxState }
   | { type: "level"; rms: number }
@@ -41,6 +56,10 @@ export type ServerMessage =
       actions: ActionButton[];
       /** v4: alarmas y avisos; además de la burbuja, notificación de Windows. */
       alert: boolean;
+      /** v7 */
+      kind: BubbleKind;
+      /** v7: cuánto dura (cuenta atrás de confirmar y deshacer), en segundos. */
+      expires_s: number | null;
     }
   | { type: "bubble_hide" }
   /** v5: partida en marcha; con «solo voz» o «desactivado» la isla no aparece sobre el juego. */
