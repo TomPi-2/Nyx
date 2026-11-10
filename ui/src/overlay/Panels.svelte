@@ -16,7 +16,15 @@
   import ResponsePanel from "./panels/ResponsePanel.svelte";
   import UndoPanel from "./panels/UndoPanel.svelte";
   import { POP_IN_MS, POP_OUT_MS } from "$lib/motion";
-  import { PANEL_MAX_WIDTH, PANEL_MOVE_MS, panelTop, raisedTop, trackAway } from "./panels/layout";
+  import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+  import {
+    NYX_EVENT,
+    PANEL_MAX_WIDTH,
+    PANEL_MOVE_MS,
+    panelTop,
+    raisedTop,
+    type NyxPresence,
+  } from "./panels/layout";
 
   /** Margen alrededor del panel dentro de la ventana: sombra y ondulación del borde. */
   const PAD = 28;
@@ -45,12 +53,14 @@
   let core: CoreConnection | undefined;
   let nextId = 0;
   let leaveTimer: ReturnType<typeof setTimeout> | undefined;
-  // Sin Nyx en pantalla, el panel sube a ocupar su sitio (panels/layout.ts).
+  // Sin Nyx en pantalla, el panel sube a ocupar su sitio (panels/layout.ts). Lo dice la
+  // ventana de la forma, que es la única que sabe cuándo ha desaparecido del todo.
   let away = $state(true);
-  const updateAway = trackAway((value) => {
+  function setAway(value: boolean) {
+    if (value === away) return;
     away = value;
     glass.follow(PANEL_MOVE_MS + 60);
-  });
+  }
 
   const hiddenForGame = $derived(game.active && game.mode !== "normal");
   const visible = $derived(connected && !hiddenForGame && bubble !== null);
@@ -133,9 +143,6 @@
 
   function handle(msg: ServerMessage) {
     switch (msg.type) {
-      case "state":
-        updateAway(msg.state !== "idle" && msg.state !== "muted");
-        break;
       case "welcome":
         size = msg.indicator_size ?? 100;
         if (msg.glass) {
@@ -177,8 +184,12 @@
       if (!ok) bubble = null;
     });
     core = connection;
+    const offNyx = getCurrentWebviewWindow().listen<NyxPresence>(NYX_EVENT, (e) =>
+      setAway(e.payload === "gone"),
+    );
     return () => {
       connection.close();
+      void offNyx.then((off) => off());
       glass.detach();
     };
   });

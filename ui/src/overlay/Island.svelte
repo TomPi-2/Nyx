@@ -6,12 +6,12 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
-  import { listen } from "@tauri-apps/api/event";
+  import { emitTo, listen } from "@tauri-apps/api/event";
   import { connectCore } from "$lib/core";
   import type { NyxState, ServerMessage } from "$lib/protocol";
   import Indicator from "./shape/Indicator.svelte";
   import { SHAPE_PAD } from "./shape/nyxShape";
-  import { PANEL_MOVE_MS, SHAPE_TOP, trackAway } from "./panels/layout";
+  import { NYX_EVENT, PANEL_MOVE_MS, SHAPE_TOP, type NyxPresence } from "./panels/layout";
 
   const HIDE_AFTER_MS = 400; // deja terminar la animación de salida antes de ocultar la ventana
   const BACKDROP_MS = 500; // cada cuánto se mira el fondo (blanco o gris)
@@ -35,21 +35,39 @@
 
   const active = $derived(status !== "idle" && status !== "muted");
 
-  // Sin Nyx, el panel sube a ocupar su sitio (panels/layout.ts). Si Nyx vuelve con un panel
-  // arriba, la forma espera a que baje para no pisarlo.
+  const shown = $derived(connected && !hiddenForGame && active);
+
+  // Sin Nyx, el panel sube a ocupar su sitio (panels/layout.ts). Esta ventana es la única que
+  // sabe si la forma está a la vista (incluido el «pensando» mínimo y la animación de salida),
+  // así que es la que avisa a la de los paneles: «gone» cuando la forma ha desaparecido del
+  // todo y «coming» cuando va a aparecer. Si el panel estaba arriba, la forma espera a que
+  // baje para no pisarlo.
   let bubbleOn = false;
-  let away = true;
   let waitPanel = $state(false);
   let waitTimer: ReturnType<typeof setTimeout> | undefined;
-  const updateAway = trackAway((value) => {
-    if (!value && away && bubbleOn) {
-      waitPanel = true;
-      clearTimeout(waitTimer);
-      waitTimer = setTimeout(() => (waitPanel = false), PANEL_MOVE_MS);
+  let wanted = false;
+
+  function tellPanels(presence: NyxPresence) {
+    void emitTo("panels", NYX_EVENT, presence);
+  }
+
+  $effect(() => {
+    const want = shown;
+    if (want && !wanted) {
+      tellPanels("coming");
+      if (bubbleOn && !shapeVisible) {
+        waitPanel = true;
+        clearTimeout(waitTimer);
+        waitTimer = setTimeout(() => (waitPanel = false), PANEL_MOVE_MS);
+      }
     }
-    away = value;
+    wanted = want;
   });
-  const shown = $derived(connected && !hiddenForGame && active);
+
+  function onShapeVisible(visible: boolean) {
+    shapeVisible = visible;
+    if (!visible) tellPanels("gone");
+  }
 
   // La ventana mide lo que el lienzo de la forma.
   $effect(() => {
@@ -91,7 +109,6 @@
     switch (msg.type) {
       case "state":
         status = msg.state;
-        updateAway(msg.state !== "idle" && msg.state !== "muted");
         break;
       case "bubble":
         bubbleOn = true;
@@ -140,7 +157,7 @@
     {level}
     {size}
     {backdrop}
-    onvisible={(v) => (shapeVisible = v)}
+    onvisible={onShapeVisible}
   />
 </div>
 
