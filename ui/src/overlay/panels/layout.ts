@@ -22,38 +22,20 @@ export const PANEL_RADIUS = 26;
  * Cuando la forma de Nyx se va (por ejemplo, una respuesta escrita sin voz), el panel sube a
  * ocupar su sitio: un panel suelto lejos del borde superior queda mal. Si Nyx vuelve con el
  * panel visible, el panel baja a su hueco y la forma espera PANEL_MOVE_MS para aparecer, así
- * que nunca se tocan. Las dos ventanas (forma y paneles) aplican estas mismas reglas a los
- * mismos mensajes del núcleo, sin hablar entre ellas.
+ * que nunca se tocan.
+ *
+ * Quién está a la vista lo dice solo la ventana de la forma (Island.svelte) con el evento
+ * NYX_EVENT: «gone» cuando la forma ha desaparecido del todo (también tras el «pensando»
+ * mínimo y la animación de salida) y «coming» cuando va a aparecer. Deducirlo de los estados
+ * del núcleo fallaba: el núcleo pasa a reposo antes de que la forma termine de irse.
  */
-/** Lo que tarda la forma en desaparecer del todo; después, el panel puede subir. */
+export const NYX_EVENT = "island://nyx";
+export type NyxPresence = "coming" | "gone";
+
+/** Lo que suele tardar la forma en irse (solo para la vista previa de la galería). */
 export const SHAPE_EXIT_MS = 450;
 /** Lo que tarda el panel en subir o bajar. */
 export const PANEL_MOVE_MS = 280;
-
-/**
- * ¿Se ha ido Nyx? Pasa a «sí» SHAPE_EXIT_MS después de quedar en reposo y a «no» al momento
- * de volver. `onchange` recibe el valor nuevo.
- */
-export function trackAway(onchange: (away: boolean) => void): (active: boolean) => void {
-  let away = true;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  return (active: boolean) => {
-    if (active) {
-      clearTimeout(timer);
-      timer = undefined;
-      if (away) {
-        away = false;
-        onchange(false);
-      }
-    } else if (!away && timer === undefined) {
-      timer = setTimeout(() => {
-        timer = undefined;
-        away = true;
-        onchange(true);
-      }, SHAPE_EXIT_MS);
-    }
-  };
-}
 
 /**
  * Sin Nyx, el panel sube hasta donde empieza el cuadrado de Nyx en reposo (no hasta el borde
