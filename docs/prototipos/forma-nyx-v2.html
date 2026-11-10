@@ -1,0 +1,404 @@
+<title>Nyx Forma</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Escenario a pantalla completa con el cuadrado en el centro; controles en una barra abajo. */
+:root {
+  --bg: #e9e9ec;
+  --panel: rgba(255, 255, 255, 0.72);
+  --control: rgba(118, 118, 128, 0.14);
+  --control-on: rgba(44, 44, 46, 0.92);
+  --text: #1c1c1e;
+  --text-2: rgba(60, 60, 67, 0.62);
+  --text-on: #f5f5f7;
+  --font: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e0e10; --panel: rgba(28, 28, 30, 0.72); --control: rgba(118, 118, 128, 0.26);
+    --control-on: rgba(229, 229, 234, 0.92); --text: #f5f5f7; --text-2: rgba(235, 235, 245, 0.6);
+    --text-on: #1c1c1e; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e0e10; --panel: rgba(28, 28, 30, 0.72); --control: rgba(118, 118, 128, 0.26);
+  --control-on: rgba(229, 229, 234, 0.92); --text: #f5f5f7; --text-2: rgba(235, 235, 245, 0.6);
+  --text-on: #1c1c1e; color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; }
+#stage { position: fixed; inset: 0; transition: background 0.6s ease; }
+#stage.bg-oscuro { background: radial-gradient(120% 90% at 30% 20%, #2b2d33 0%, #15161a 55%, #0b0b0d 100%); }
+#stage.bg-claro { background: radial-gradient(120% 90% at 70% 10%, #f3f1ee 0%, #d9dde3 60%, #c3c8d0 100%); }
+#stage.bg-blanco { background: #ffffff; }
+#stage.bg-foto { background:
+  radial-gradient(60% 50% at 20% 25%, rgba(255, 196, 120, 0.9), transparent 60%),
+  radial-gradient(50% 60% at 80% 70%, rgba(60, 120, 200, 0.85), transparent 65%),
+  radial-gradient(70% 60% at 60% 20%, rgba(250, 240, 220, 0.8), transparent 60%),
+  linear-gradient(160deg, #3d5a80, #98c1d9 45%, #e0b48c 75%, #5b3b2c); }
+#stage.bg-juego { background:
+  repeating-linear-gradient(115deg, rgba(255, 70, 85, 0.18) 0 18px, transparent 18px 46px),
+  radial-gradient(40% 40% at 50% 50%, rgba(255, 255, 255, 0.25), transparent 70%),
+  linear-gradient(135deg, #0f1923 0%, #1f2b38 40%, #ff4655 41%, #ff4655 44%, #0f1923 45%, #253445 100%); }
+canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+.hud {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  width: min(920px, calc(100% - 32px));
+  background: var(--panel); border-radius: 26px; padding: 14px 16px;
+  backdrop-filter: blur(24px) saturate(1.4); -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+  display: grid; gap: 12px;
+}
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); margin-right: 4px; min-width: 64px; }
+button.pill {
+  font: 600 13px/1 var(--font); color: var(--text); background: var(--control);
+  border: 0; border-radius: 999px; padding: 9px 14px; cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.12s;
+}
+button.pill:hover { transform: translateY(-1px); }
+button.pill:active { transform: scale(0.97); }
+button.pill[aria-pressed="true"] { background: var(--control-on); color: var(--text-on); }
+button.pill:focus-visible { outline: 2px solid var(--text-2); outline-offset: 2px; }
+.sliders { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 16px; }
+.slider { display: grid; gap: 4px; min-width: 0; }
+.slider span { font-size: 12px; color: var(--text-2); display: flex; justify-content: space-between; }
+.slider output { font-variant-numeric: tabular-nums; color: var(--text); }
+input[type="range"] { width: 100%; accent-color: var(--control-on); }
+.status {
+  position: fixed; top: calc(16px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
+  font: 600 12px/1 var(--font); letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text); background: var(--panel); padding: 9px 14px; border-radius: 999px;
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  display: flex; gap: 10px; align-items: center; white-space: nowrap;
+}
+.status small { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--text-2); }
+.meter { width: 64px; height: 6px; border-radius: 999px; background: var(--control); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 0%; background: var(--control-on); border-radius: 999px; }
+@media (max-width: 720px) {
+  .sliders { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .label { min-width: 0; width: 100%; }
+}
+</style>
+
+<div id="stage" class="bg-oscuro"></div>
+<canvas id="gl" aria-label="Forma de Nyx"></canvas>
+
+<div class="status" role="status"><span id="stateName">Esperando</span><small id="stateHint">gira despacio, como un fluido</small><span class="meter" title="Nivel de voz"><i id="meter"></i></span></div>
+
+<div class="hud">
+  <div class="row" role="group" aria-label="Estado">
+    <span class="label">Estado</span>
+    <button class="pill" data-state="hidden">Oculto</button>
+    <button class="pill" data-state="waiting">Aparece y espera</button>
+    <button class="pill" data-state="listening">Escucha</button>
+    <button class="pill" data-state="thinking">Piensa</button>
+    <button class="pill" data-state="speaking">Habla</button>
+    <button class="pill" id="demo" aria-pressed="true">Secuencia completa</button>
+  </div>
+  <div class="row" role="group" aria-label="Fondo">
+    <span class="label">Fondo</span>
+    <button class="pill" data-bg="oscuro">Escritorio oscuro</button>
+    <button class="pill" data-bg="claro">Escritorio claro</button>
+    <button class="pill" data-bg="blanco">Blanco</button>
+    <button class="pill" data-bg="foto">Foto</button>
+    <button class="pill" data-bg="juego">Juego</button>
+  </div>
+  <div class="sliders">
+    <label class="slider"><span>Fluidez <output id="o-flow"></output></span><input id="flow" type="range" min="0" max="2" step="0.05" value="1"></label>
+    <label class="slider"><span>Velocidad <output id="o-speed"></output></span><input id="speed" type="range" min="0.25" max="2" step="0.05" value="1"></label>
+    <label class="slider"><span>Redondez <output id="o-round"></output></span><input id="round" type="range" min="0.1" max="0.6" step="0.01" value="0.42"></label>
+    <label class="slider"><span>Tamaño <output id="o-size"></output></span><input id="size" type="range" min="44" max="260" step="2" value="100"></label>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------- WebGL: el cuadrado es un campo de distancia (SDF) deformado por ruido ----------
+  const canvas = document.getElementById("gl");
+  const gl = canvas.getContext("webgl", { premultipliedAlpha: true, antialias: false, alpha: true });
+  if (!gl) { document.getElementById("stateHint").textContent = "este navegador no tiene WebGL"; return; }
+
+  const vs = `attribute vec2 a; void main(){ gl_Position = vec4(a, 0.0, 1.0); }`;
+  const fs = `
+precision highp float;
+uniform vec2 uRes;
+uniform vec4 uBox[4];      // centro (px), semilado (px), ángulo
+uniform float uMerge;      // 1 = un solo cuadrado, 0 = cuatro
+uniform vec4 uBig;         // cuadrado entero: centro, semilado, ángulo
+uniform float uRound;      // radio de esquina / semilado
+uniform float uK;          // unión suave (px): puentes de líquido
+uniform float uAmp;        // amplitud del ruido (px)
+uniform float uFreq;       // frecuencia del ruido (por semilado)
+uniform vec2 uLoop;        // (cos, sin) de la fase del bucle: ruido periódico
+uniform float uSeed;
+uniform float uAudio;      // nivel de voz (0-1)
+uniform float uTime;
+uniform vec2 uSquash;      // estirar/aplastar al hablar
+uniform vec3 uColor;
+uniform float uShade;      // volumen sutil (0-1)
+
+// Ruido simplex 3D (Ashima Arts, MIT)
+vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
+vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
+vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
+vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}
+float snoise(vec3 v){
+  const vec2 C=vec2(1.0/6.0,1.0/3.0); const vec4 D=vec4(0.0,0.5,1.0,2.0);
+  vec3 i=floor(v+dot(v,C.yyy)); vec3 x0=v-i+dot(i,C.xxx);
+  vec3 g=step(x0.yzx,x0.xyz); vec3 l=1.0-g; vec3 i1=min(g.xyz,l.zxy); vec3 i2=max(g.xyz,l.zxy);
+  vec3 x1=x0-i1+C.xxx; vec3 x2=x0-i2+C.yyy; vec3 x3=x0-D.yyy;
+  i=mod289(i);
+  vec4 p=permute(permute(permute(i.z+vec4(0.0,i1.z,i2.z,1.0))+i.y+vec4(0.0,i1.y,i2.y,1.0))+i.x+vec4(0.0,i1.x,i2.x,1.0));
+  float n_=0.142857142857; vec3 ns=n_*D.wyz-D.xzx;
+  vec4 j=p-49.0*floor(p*ns.z*ns.z); vec4 x_=floor(j*ns.z); vec4 y_=floor(j-7.0*x_);
+  vec4 x=x_*ns.x+ns.yyyy; vec4 y=y_*ns.x+ns.yyyy; vec4 h=1.0-abs(x)-abs(y);
+  vec4 b0=vec4(x.xy,y.xy); vec4 b1=vec4(x.zw,y.zw);
+  vec4 s0=floor(b0)*2.0+1.0; vec4 s1=floor(b1)*2.0+1.0; vec4 sh=-step(h,vec4(0.0));
+  vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy; vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;
+  vec3 p0=vec3(a0.xy,h.x); vec3 p1=vec3(a0.zw,h.y); vec3 p2=vec3(a1.xy,h.z); vec3 p3=vec3(a1.zw,h.w);
+  vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
+  p0*=norm.x; p1*=norm.y; p2*=norm.z; p3*=norm.w;
+  vec4 m=max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0); m=m*m;
+  return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
+}
+float sdRoundBox(vec2 p, float b, float r){ vec2 q=abs(p)-vec2(b)+r; return length(max(q,0.0))+min(max(q.x,q.y),0.0)-r; }
+float smin(float a,float b,float k){ float h=clamp(0.5+0.5*(b-a)/k,0.0,1.0); return mix(b,a,h)-k*h*(1.0-h); }
+mat2 rot(float a){ float c=cos(a), s=sin(a); return mat2(c,-s,s,c); }
+
+float boxAt(vec2 p, vec4 b){
+  vec2 q = rot(-b.w) * (p - b.xy);
+  q /= uSquash;
+  return sdRoundBox(q, b.z, b.z*uRound) * min(uSquash.x, uSquash.y);
+}
+float field(vec2 p){
+  float d4 = boxAt(p, uBox[0]);
+  for (int i=1;i<4;i++) d4 = smin(d4, boxAt(p, uBox[i]), uK);
+  float d1 = boxAt(p, uBig);
+  float d = mix(d4, d1, uMerge);
+  // Superficie viva: ruido periódico (la fase recorre un círculo: el bucle no tiene corte).
+  vec2 c = uBig.xy; float h = max(uBig.z, 1.0);
+  vec2 u = (p - c) / h;
+  // Ondas amplias y profundas (una sola octava de baja frecuencia: nada de rizos pequeños).
+  float n = snoise(vec3(u*uFreq + uLoop*0.45, uSeed));
+  n += 0.18*snoise(vec3(u*uFreq*1.6 - uLoop*0.35, uSeed+7.0));
+  d += uAmp * n;
+  // La voz mueve la superficie con lóbulos grandes (aquí no hace falta bucle: va con el sonido).
+  float a = atan(u.y, u.x);
+  d -= uAudio * h * 0.11 * (0.55 + 0.45*sin(a*2.0 + uTime*3.2)) * (0.6 + 0.4*snoise(vec3(u*0.9, uTime*1.1)));
+  return d;
+}
+void main(){
+  vec2 p = gl_FragCoord.xy; p.y = uRes.y - p.y;
+  float d = field(p);
+  float alpha = clamp(0.5 - d, 0.0, 1.0);
+  if (alpha <= 0.0) { gl_FragColor = vec4(0.0); return; }
+  // Volumen muy sutil: sigue siendo blanco y opaco, pero se lee como un sólido líquido.
+  float e = 1.5;
+  vec2 g = vec2(field(p+vec2(e,0.0))-field(p-vec2(e,0.0)), field(p+vec2(0.0,e))-field(p-vec2(0.0,e)));
+  vec3 nrm = normalize(vec3(-g, 2.2*e));
+  float rim = 1.0 - smoothstep(0.0, max(uBig.z,1.0)*0.22, -d);
+  float light = dot(nrm, normalize(vec3(-0.45, -0.6, 0.65)));
+  vec3 col = uColor * (1.0 - uShade*(0.07*rim - 0.035*light));
+  gl_FragColor = vec4(col*alpha, alpha);
+}`;
+
+  function compile(type, src) {
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER, vs));
+  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog); gl.useProgram(prog);
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, "a"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  const U = {};
+  ["uRes","uBox","uMerge","uBig","uRound","uK","uAmp","uFreq","uLoop","uSeed","uAudio","uTime","uSquash","uColor","uShade"].forEach(n => U[n] = gl.getUniformLocation(prog, n));
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+  // ---------- Muelles: cada parámetro va hacia su objetivo con física de muelle ----------
+  class Spring {
+    constructor(v, k = 120, c = 14) { this.v = v; this.t = v; this.vel = 0; this.k = k; this.c = c; }
+    step(dt) { const f = this.k * (this.t - this.v) - this.c * this.vel; this.vel += f * dt; this.v += this.vel * dt; return this.v; }
+  }
+  const S = {
+    scale: new Spring(0, 90, 9),      // aparición con rebote
+    merge: new Spring(1, 60, 11),     // 1 = un cuadrado, 0 = cuatro
+    flow:  new Spring(0.5, 40, 9),    // cuánto se deforma
+    spin:  new Spring(0, 30, 10),     // giro global
+    audio: new Spring(0, 260, 24),
+    squash: new Spring(0, 200, 16),
+  };
+
+  // ---------- Controles ----------
+  const ui = {
+    flow: document.getElementById("flow"), speed: document.getElementById("speed"),
+    round: document.getElementById("round"), size: document.getElementById("size"),
+  };
+  const fmt = { flow: v => (+v).toFixed(2), speed: v => (+v).toFixed(2) + "×", round: v => Math.round(v*100) + " %", size: v => v + " px" };
+  for (const [k, el] of Object.entries(ui)) {
+    const out = document.getElementById("o-" + k);
+    const sync = () => out.textContent = fmt[k](el.value);
+    el.addEventListener("input", sync); sync();
+  }
+  const stage = document.getElementById("stage");
+  const BG_LUMA = { oscuro: 0.08, claro: 0.78, blanco: 1.0, foto: 0.55, juego: 0.25 };
+  let bg = "oscuro";
+  function setBg(name) {
+    bg = name; stage.className = "bg-" + name;
+    document.querySelectorAll("[data-bg]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.bg === name)));
+  }
+  document.querySelectorAll("[data-bg]").forEach(b => b.addEventListener("click", () => setBg(b.dataset.bg)));
+  setBg("oscuro");
+
+  // ---------- Estados ----------
+  const STATES = {
+    hidden:    { name: "Oculto", hint: "en reposo no hay nada en pantalla" },
+    waiting:   { name: "Esperando", hint: "gira despacio, como un fluido no newtoniano" },
+    listening: { name: "Escuchando", hint: "la superficie sigue tu voz (simulada)" },
+    thinking:  { name: "Pensando", hint: "se divide en cuatro que orbitan" },
+    speaking:  { name: "Hablando", hint: "se une y respira con la voz de Nyx" },
+  };
+  let state = "hidden";
+  let stateSince = 0;
+  function setState(s, now) {
+    if (s === state) return;
+    state = s; stateSince = now;
+    document.getElementById("stateName").textContent = STATES[s].name;
+    document.getElementById("stateHint").textContent = STATES[s].hint;
+    document.querySelectorAll("[data-state]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.state === s)));
+    if (s === "hidden") { S.scale.t = 0; }
+    else {
+      if (S.scale.v < 0.05) { S.scale.v = 0.0; S.scale.vel = 6.5; S.flow.v = 2.2; } // nace como una gota que se asienta
+      S.scale.t = 1;
+    }
+    S.merge.t = s === "thinking" ? 0 : 1;
+    if (s === "thinking") { S.merge.vel = -0.6; }
+    if (s === "speaking" && S.merge.v < 0.5) { S.flow.v = 1.0; S.flow.vel = 1.5; } // al juntarse, se mece y se asienta
+  }
+
+  // Secuencia de demostración
+  const SEQ = [["hidden", 1.2], ["waiting", 3.6], ["listening", 4.2], ["thinking", 3.6], ["speaking", 4.6], ["hidden", 1.4]];
+  let demo = true, seqIndex = 0, seqUntil = 0;
+  const demoBtn = document.getElementById("demo");
+  demoBtn.addEventListener("click", () => { demo = !demo; demoBtn.setAttribute("aria-pressed", String(demo)); seqUntil = 0; });
+  document.querySelectorAll("[data-state]").forEach(b => b.addEventListener("click", () => {
+    demo = false; demoBtn.setAttribute("aria-pressed", "false"); setState(b.dataset.state, performance.now() / 1000);
+  }));
+
+  // ---------- Voz simulada: sílabas con pausas, como una frase real ----------
+  function voice(seed) {
+    let level = 0, target = 0, next = 0;
+    return (t, active) => {
+      if (!active) { target = 0; }
+      else if (t >= next) {
+        const pause = Math.random() < 0.18;
+        target = pause ? 0.02 : 0.35 + Math.random() * 0.65;
+        next = t + (pause ? 0.18 + Math.random() * 0.25 : 0.09 + Math.random() * 0.16);
+      }
+      level += (target - level) * 0.28;
+      return level;
+    };
+  }
+  const userVoice = voice(1), nyxVoice = voice(2);
+
+  // ---------- Bucle de dibujo ----------
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+  let last = performance.now() / 1000, clock = 0;
+  const meter = document.getElementById("meter");
+
+  function frame() {
+    const now = performance.now() / 1000;
+    let dt = Math.min(0.033, now - last); last = now;
+    const speed = +ui.speed.value * (reduce.matches ? 0.35 : 1);
+    clock += dt * speed;
+
+    if (demo && now >= seqUntil) {
+      const [s, d] = SEQ[seqIndex % SEQ.length]; seqIndex++;
+      setState(s, now); seqUntil = now + d;
+    }
+
+    // Objetivos por estado
+    const flow = +ui.flow.value;
+    const tIn = now - stateSince;
+    const a = state === "listening" ? userVoice(now, tIn > 0.5) : state === "speaking" ? nyxVoice(now, tIn > 0.45) : (userVoice(now, false), nyxVoice(now, false), 0);
+    S.audio.t = a;
+    S.flow.t = { hidden: 0.4, waiting: 0.55, listening: 0.35, thinking: 0.4, speaking: 0.3 }[state] * flow;
+    S.squash.t = state === "speaking" ? a : 0;
+    for (const sp of Object.values(S)) sp.step(dt);
+    meter.style.width = Math.round(Math.min(1, S.audio.v) * 100) + "%";
+
+    // Bucles sin corte: todo depende de una fase que da la vuelta completa.
+    const T = { waiting: 6.0, listening: 6.0, thinking: 4.8, speaking: 6.0, hidden: 6.0 }[state];
+    const phase = (clock / T) * Math.PI * 2;
+    // Fluido no newtoniano al esperar: gira con velocidad que sube y baja; al acelerar se
+    // «endurece» (menos ondas, esquinas más definidas) y al frenar se vuelve más líquido.
+    const spinRate = 1 + 0.75 * Math.sin(phase);              // velocidad relativa del giro
+    const stiff = 0.5 + 0.5 * Math.sin(phase);                // 0 líquido … 1 sólido
+    // Ángulo periódico: un cuarto de vuelta por bucle (el cuadrado es simétrico a 90°).
+    const globalAngle = (state === "waiting" || state === "hidden")
+      ? phase / 4 - 0.75 * Math.cos(phase) / 4
+      : phase / 4 * 0.5;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const W = canvas.clientWidth * dpr, H = canvas.clientHeight * dpr;
+    if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; gl.viewport(0, 0, W, H); }
+    const cx = W / 2, cy = H * 0.42;
+    const scale = Math.max(0, S.scale.v);
+    const listenPulse = state === "listening" ? 1 + 0.10 * S.audio.v : 1;
+    const half = (+ui.size.value / 2) * dpr * scale * listenPulse;
+
+    // Cuatro cuadrados: juntos forman el grande; separados orbitan y giran «con esfuerzo»:
+    // cada empujón acelera y frena (curva suave de ida y vuelta) y luego descansa un instante.
+    const m = Math.min(1.2, Math.max(-0.2, S.merge.v));
+    const sep = 1 - Math.min(1, Math.max(0, m));
+    const effort = (x) => {                                   // x en vueltas de empujón
+      const k = Math.floor(x), f = x - k;
+      const e = f < 0.78 ? f / 0.78 : 1;                      // 78 % empujando, 22 % quieto
+      return k + e * e * e * (e * (e * 6 - 15) + 10);         // aceleración y frenada suaves
+    };
+    const bursts = phase / (Math.PI * 2) * 3;                 // 3 empujones por bucle
+    const orbit = effort(bursts) * (Math.PI / 2) / 3;         // un cuarto de órbita por bucle
+    const subHalf = half * (0.5 - 0.12 * sep);
+    const dist = half * (0.5 + 0.24 * sep) * Math.SQRT2;      // más juntos que antes
+    const boxes = [];
+    for (let i = 0; i < 4; i++) {
+      const base = Math.PI / 4 + i * Math.PI / 2 + globalAngle + orbit * sep;
+      const wob = sep * 0.05 * Math.sin(phase * 2 + i * 1.7);  // respiración suave de cada uno
+      // Giro propio: un cuarto de vuelta por empujón, desfasado entre ellos.
+      const own = effort(bursts + i * 0.12) * (Math.PI / 2);
+      boxes.push(cx + Math.cos(base) * dist * (1 + wob), cy + Math.sin(base) * dist * (1 + wob), subHalf, globalAngle + sep * own);
+    }
+    gl.uniform2f(U.uRes, W, H);
+    gl.uniform4fv(U.uBox, new Float32Array(boxes));
+    gl.uniform1f(U.uMerge, Math.min(1, Math.max(0, (m - 0.92) / 0.08)));
+    gl.uniform4f(U.uBig, cx, cy, half, globalAngle);
+    const r = +ui.round.value;
+    gl.uniform1f(U.uRound, state === "waiting" ? r * (1.25 - 0.45 * stiff) : r);
+    // Puentes de líquido: grandes justo cuando se separan o se juntan.
+    gl.uniform1f(U.uK, half * (0.04 + 0.55 * Math.sin(Math.PI * Math.min(1, sep)) ** 2));
+    const waitWobble = state === "waiting" ? (1.25 - 0.9 * stiff) : 1;
+    gl.uniform1f(U.uAmp, half * 0.15 * Math.max(0, S.flow.v) * waitWobble);
+    gl.uniform1f(U.uFreq, 0.55 + 0.25 * sep);
+    gl.uniform2f(U.uLoop, Math.cos(phase), Math.sin(phase));
+    gl.uniform1f(U.uSeed, 3.7);
+    gl.uniform1f(U.uAudio, state === "listening" ? S.audio.v : state === "speaking" ? S.audio.v * 0.55 : 0);
+    gl.uniform1f(U.uTime, clock);
+    const sq = Math.max(0, S.squash.v);
+    gl.uniform2f(U.uSquash, 1 + 0.06 * sq, 1 - 0.11 * sq);
+    // Blanco siempre; sobre fondos muy claros, gris lo justo para distinguirse.
+    const luma = BG_LUMA[bg];
+    const g = luma > 0.85 ? 0.62 : luma > 0.7 ? 0.86 : 1.0;
+    gl.uniform3f(U.uColor, g, g, g * 1.005);
+    gl.uniform1f(U.uShade, 1.0);
+    gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+    if (scale > 0.002) gl.drawArrays(gl.TRIANGLES, 0, 3);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>

@@ -451,11 +451,27 @@ Valores iniciales a afinar en la fase 1 viéndolos sobre fondos reales (escritor
 
 ### Indicador
 
-**Indicador de la v1: la isla.** Una pastilla de cristal gris centrada en la parte superior del monitor activo, inspirada en la Dynamic Island de iOS. En reposo no se ve. Al escuchar aparece pequeña con un orbe plateado dentro; al responder se expande con un muelle y se convierte en la burbuja de texto, de modo que indicador y respuesta son un mismo elemento.
+**Indicador de la v1: la forma de Nyx** (diseño aprobado el 2026-11-10; prototipo en
+[prototipos/forma-nyx-v2.html](prototipos/forma-nyx-v2.html)). Un cuadrado redondeado blanco,
+opaco y sin ningún fondo, que se comporta como un líquido-sólido (fluido no newtoniano). En
+reposo no existe. Se dibuja con un shader WebGL: campo de distancia de cuadrados redondeados
+unidos con unión suave (los puentes de líquido al dividirse o juntarse) y deformado con ruido de
+baja frecuencia (ondas amplias y profundas, sin rizos pequeños).
 
-- **Orbe:** esfera de luz gris plateada con núcleo blanco (`glow`), hecha con un shader WebGL de ruido suave que se deforma con el sonido.
-- **Tamaños:** reposo 0, escuchando 44 × 44 px, pensando 120 × 44 px, respuesta hasta 520 px de ancho y la altura que pida el texto.
-- **Margen superior:** 12 px; atraviesa los clics salvo cuando muestra botones.
+| Estado | Animación |
+| --- | --- |
+| Aparece | Nace como una gota pequeña que salta, rebota con un muelle y se asienta en cuadrado. |
+| Espera | Gira despacio (un cuarto de vuelta por ciclo de 6 s). Al acelerar se endurece (esquinas más definidas, menos ondas); al frenar se vuelve más líquido. |
+| Escucha | El borde ondula con lóbulos grandes y la forma crece un poco al ritmo de la voz del usuario. |
+| Piensa | Se divide en cuatro cuadrados con puentes de líquido que se estiran y se rompen. Los cuatro, juntos, orbitan y giran «con esfuerzo»: 3 empujones por ciclo que aceleran, frenan y descansan, algo desfasados entre ellos. |
+| Habla | Los cuatro se juntan con un balanceo que se asienta, y el cuadrado se estira y aplasta con la voz de Nyx. |
+| Desaparece | Se encoge con el mismo muelle. |
+
+- **Bucles sin corte:** todo depende de una fase que da la vuelta completa (el ruido recorre un círculo y los giros son múltiplos de 90°). Lo que sigue a la voz (escucha y habla) depende del nivel de audio, del micrófono o de la salida de Nyx.
+- **Color:** blanco opaco siempre. Si detrás hay un fondo muy claro, pasa al gris justo para distinguirse. Volumen muy sutil (algo de sombra en el borde y un brillo arriba a la izquierda) para que se lea como un sólido.
+- **Valores aprobados:** fluidez 1, velocidad 1, redondez 42 % del semilado y tamaño 100 px. **El tamaño se ajusta en Ajustes → Apariencia.**
+- **Posición:** arriba en el centro del monitor elegido (sección 11), con 12 px de margen; atraviesa los clics.
+- **Paneles** (respuesta, confirmación, deshacer, campo de texto): se diseñan desde cero después de la forma; hasta entonces se usan las burbujas actuales.
 
 ### Más adelante
 
@@ -720,3 +736,4 @@ Reglas de trabajo:
 | 2026-11-10 | Bloque 4d: la calibración con las muestras del usuario se mide con validación cruzada y solo se aplica si mejora (con 50 muestras no mejora: +1 acierto a cambio de 3,5× saltos). «Nyx, eso no era para ti» sube el umbral. Palabras personalizadas con Vosk y validación. La verificación de voz (ECAPA) se pasa a la fase 6: los modelos de hablante preentrenados se entrenan con VoxCeleb y hay que revisar sus condiciones de uso antes. | 4 |
 | 2026-11-10 | Fase 4 cerrada: modelo propio de «Nyx» por defecto (88 % de aciertos con la voz del usuario frente al 74 % de Vosk, 0 activaciones falsas en 30 min), registro de activaciones, «eso no era para ti» y palabras personalizadas. Pendiente para la fase 6: verificación de voz y más datos del usuario para calibrar. | 4, 16 |
 | 2026-11-10 | Fase 5 en cuatro bloques (5a modo partida, 5b interfaz final, 5c Ajustes, 5d asistente). «Nyx en partida» por defecto en «solo voz». En partida, las acciones rojas se difieren salvo en modo normal; una pantalla completa de navegador o reproductor no cuenta como partida; la partida termina tras 5 s sin juego. Las pruebas con juegos reales se hacen más adelante. | 9, 16 |
+| 2026-11-10 | La isla con orbe se sustituye por la forma de Nyx: cuadrado redondeado blanco y opaco que se comporta como un líquido-sólido, se divide en cuatro al pensar y se junta al hablar (prototipo aprobado: fluidez 1, velocidad 1, redondez 42 %, tamaño 100 px ajustable). Los paneles se rediseñan desde cero después. | 11, 12 |
