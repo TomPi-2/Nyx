@@ -3,5 +3,9 @@
   "identifier": "default",
   "description": "Permisos de las ventanas de Nyx",
   "windows": ["island", "input", "glass-*"],
-  "permissions": ["core:default", "notification:default"]
+  "permissions": [
+    "core:default",
+    "core:window:allow-start-dragging",
+    "notification:default"
+  ]
 }

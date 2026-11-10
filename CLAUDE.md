@@ -17,7 +17,7 @@ Eres el desarrollador principal de Nyx. La especificación completa está en [do
 
 ## Estado
 
-Fase actual: **5 — Modo partida e interfaz final**: plan aprobado (5a → 5b → 5c → 5d); 5a (modo partida) hecho, pendiente de probar con juegos más adelante. Fases 1 y 2 cerradas el 2026-11-09; fases 3 y 4 cerradas el 2026-11-10.
+Fase actual: **5 — Modo partida e interfaz final**: plan aprobado (5a → 5b → 5c → 5d); 5a (modo partida) hecho, pendiente de probar con juegos más adelante. Antes de 5c (acordado el 2026-11-10): motor gráfico de cristal (`ui/src-tauri/src/glass`, galería en la bandeja), pendiente de que el usuario lo vea y lo apruebe. Fases 1 y 2 cerradas el 2026-11-09; fases 3 y 4 cerradas el 2026-11-10.
 
 ## Decisiones tomadas
 

@@ -1,7 +1,31 @@
 # Propuesta: motor gráfico de cristal, instalador propio y onda de «Nyx listo»
 
-**Estado:** propuesta pendiente de plan y aprobación. **Nada de esto está implementado ni cambia todavía `docs/SPEC.md`.**
+**Estado:** el motor gráfico (apartado 2) entra antes de la fase 5c (acordado el 2026-11-10) y tiene una primera versión completa en `ui/src-tauri/src/glass` con una galería de ejemplos (bandeja → «Motor gráfico (ejemplos)»), pendiente de que el usuario la vea y la apruebe. Lo demás sigue siendo propuesta. **Todavía no cambia `docs/SPEC.md`.**
 Recoge lo que pidió el usuario el 2026-11-10 y el análisis de viabilidad hecho ese día, para poder retomarlo desde VS Code.
+
+## 0. Decisiones del usuario tras ver la galería (2026-11-10)
+
+- **Ruta A descartada.** El pincel de fondo de Windows (`HostBackdropBrush`) no está disponible en el portátil de pruebas, así que el nivel «Compositor» se quita. Quedan Alto, Medio y Bajo (apartado 2.5).
+- **Calidad en Ajustes:** «Auto» (predeterminado) o un nivel concreto.
+  - En Auto, el motor baja solo con batería, ahorro de energía, transparencias de Windows desactivadas o una GPU que no llega.
+  - Con un nivel concreto, el motor lo respeta, salvo en partida, donde pasa a Bajo **sin excepción**. Ajustes debe decirlo junto al selector: «En partida se cambia a Bajo automáticamente, sin excepción».
+- **Valores predeterminados:**
+
+  | Parámetro | Valor |
+  | --- | --- |
+  | Amplitud del borde | 3,5 px |
+  | Desenfoque | 0,6 |
+  | Refracción | 10 px |
+  | Saturación | 1,15 |
+  | Velocidad | ×1 |
+  | Tinte gris | 0,45 |
+  | Brillo | 0,35 |
+  | Sombra | 0,4 |
+
+- **Amplitud del borde personalizable en Ajustes:** una barra de 0 a 10, de 1 en 1, que va de 0 a 7 px (0,7 px por paso). El 5 (3,5 px) es el valor predeterminado.
+- **Separación entre Nyx y los paneles:** el cuadrado blanco de Nyx y el rectángulo de la respuesta de texto (y cualquier otro panel de la isla) dejan siempre un espacio entre ellos. Nunca se solapan, contando también la ondulación del borde y la deformación de Nyx. Excepción: la ventana de Ajustes, que se mueve libremente como cualquier otra ventana.
+- **El campo de texto para escribirle a Nyx también usa el motor.**
+- La GPU que usa el motor en el portátil es la integrada (AMD Radeon Graphics).
 
 Objetivo que lo une todo: que Nyx sea una experiencia completa y coherente, desde que se instala hasta que se usa a diario.
 
@@ -46,7 +70,7 @@ Conclusión: para ver lo de detrás en tiempo real, o lo hace el compositor de W
 
 | Ruta | Cómo | A favor | En contra / por comprobar |
 | --- | --- | --- | --- |
-| **A. Compositor de Windows** | `Windows.UI.Composition` con un pincel de fondo (`HostBackdropBrush` + efectos de desenfoque, tinte y saturación) y un recorte con geometría animada. | Lo dibuja el propio compositor: sin capturas, coste bajo, siempre al día. | Hay que comprobar que funciona en ventanas sin foco (el fallo del Acrylic puede ser de su política y no del pincel). Su lista de efectos no parece incluir desplazamiento, así que **no daría refracción real**, solo desenfoque. Se apaga si el usuario desactiva los efectos de transparencia de Windows. |
+| **A. Compositor de Windows** (descartada el 2026-11-10: el pincel no está disponible; ver apartado 0) | `Windows.UI.Composition` con un pincel de fondo (`HostBackdropBrush` + efectos de desenfoque, tinte y saturación) y un recorte con geometría animada. | Lo dibuja el propio compositor: sin capturas, coste bajo, siempre al día. | Hay que comprobar que funciona en ventanas sin foco (el fallo del Acrylic puede ser de su política y no del pincel). Su lista de efectos no parece incluir desplazamiento, así que **no daría refracción real**, solo desenfoque. Se apaga si el usuario desactiva los efectos de transparencia de Windows. |
 | **B. Captura + shader propio** | `Windows.Graphics.Capture` del monitor (sin borde amarillo ni cursor, con las ventanas de Nyx excluidas mediante `WDA_EXCLUDEFROMCAPTURE`) y un shader Direct3D 11 nativo en Rust que dibuja el cristal. La interfaz Svelte va encima con fondo transparente. | Control total: refracción, brillos, borde líquido y la onda. Es la única ruta que da el cristal «tipo iOS» completo. | Coste de GPU por capturar y procesar. El contenido protegido (DRM) sale en negro. Hay que resolver cómo se compone la capa nativa bajo la WebView de Tauri. |
 | **C. Sin lo de detrás** | El tinte actual, mejorado con degradado, brillo especular y grano fino. | Casi gratis; ya funciona. | No es cristal real. Es el respaldo obligatorio. |
 
