@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 12
+PROTOCOL_VERSION = 13
 
 
 class _Msg(BaseModel):
@@ -77,6 +77,8 @@ class SetupMsg(_Msg):
         "mic_test_stop",
         "clear_samples",
         "clear_activations",
+        "install_everything",  # v13
+        "start_everything",  # v13
     ]
     arg: str = Field(default="", max_length=500)
 

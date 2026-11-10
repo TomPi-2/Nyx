@@ -15,13 +15,19 @@ export const POP_OUT_MS = 360;
  */
 export function pop(
   _node: Element,
-  { duration = POP_IN_MS }: { duration?: number } = {},
+  { duration = POP_IN_MS, bounce = true }: { duration?: number; bounce?: boolean } = {},
 ): { duration: number; easing: (t: number) => number; css: (t: number) => string } {
   return {
     duration,
-    easing: backOut,
+    // Sin rebote: crece y se para en su tamaño, sin pasarse (contenido grande, como los
+    // pasos del asistente, donde el rebote se nota demasiado).
+    easing: bounce ? backOut : quartOut,
     css: (t) => `scale: ${t}; opacity: ${Math.min(1, t * 2.5)}`,
   };
+}
+
+function quartOut(t: number): number {
+  return 1 - (1 - t) ** 4;
 }
 
 /** Pasa un poco de 1 y vuelve (el rebote del muelle). */

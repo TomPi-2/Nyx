@@ -41,6 +41,7 @@ from nyx.index.service import SystemIndex
 from nyx.models import CATALOG, DownloadError, ModelFile, download, is_present
 from nyx.paths import local_dir
 from nyx.settings.model import Settings
+from nyx.setup import everything, hardware
 
 log = logging.getLogger(__name__)
 
@@ -73,6 +74,7 @@ class SetupService:
         self._downloading = False
         self._scanning = False
         self._mic: asyncio.Task[None] | None = None
+        self._installing = False
         self._unsubscribe = bus.subscribe(SetupRequested, self._on_request)
 
     async def close(self) -> None:
@@ -103,6 +105,10 @@ class SetupService:
             "ollama": await self._ollama_status(),
             "whisper": self.whisper_server is not None and self.whisper_server().exists(),
             "downloading": self._downloading,
+            # v13: tarjeta gráfica, modelos posibles y el recomendado; estado de Everything.
+            "llm": await asyncio.to_thread(hardware.llm_status),
+            "everything": await asyncio.to_thread(everything.status),
+            "installing_everything": self._installing,
             "index": None
             if index is None
             else {
@@ -152,6 +158,8 @@ class SetupService:
             "clear_activations": lambda: self._clear(
                 "clear_activations", self.root / "activaciones"
             ),
+            "install_everything": self._install_everything,
+            "start_everything": self._start_everything,
         }
         handler = handlers.get(event.action)
         if handler is not None:
@@ -230,6 +238,26 @@ class SetupService:
             return False
         await self.bus.publish(SetupProgress(key, name, 1, 1, True))
         return True
+
+    async def _install_everything(self) -> None:
+        """Opcional: solo si el usuario lo marca en el asistente (o lo pide en Caché)."""
+        if self._installing:
+            return
+        self._installing = True
+        await self._publish_status()
+        try:
+            ok = await everything.install()
+        finally:
+            self._installing = False
+        message = None if ok else "No se pudo instalar Everything (¿se canceló el permiso?)"
+        await self.bus.publish(SetupResult("install_everything", ok, message))
+        await self._publish_status()
+
+    async def _start_everything(self) -> None:
+        ok = await asyncio.to_thread(everything.start)
+        await self.bus.publish(SetupResult("start_everything", ok))
+        await asyncio.sleep(1.0)  # que le dé tiempo a arrancar antes de mirar
+        await self._publish_status()
 
     async def _scan(self) -> None:
         index = self.index()

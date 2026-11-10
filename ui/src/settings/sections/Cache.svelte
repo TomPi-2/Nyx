@@ -6,6 +6,7 @@
   import Button from "$lib/controls/Button.svelte";
   import Card from "$lib/controls/Card.svelte";
   import Row from "$lib/controls/Row.svelte";
+  import EverythingRow from "../EverythingRow.svelte";
   import { onMount } from "svelte";
   import { settings } from "../store.svelte";
 
@@ -43,24 +44,10 @@
         {index.scanning ? "Escaneando…" : "Volver a escanear"}
       </Button>
     </Row>
-    <Row
-      label="Búsqueda de archivos"
-      hint={index.everything
-        ? "Everything está instalado: Nyx encuentra cualquier archivo al momento."
-        : "Se usa el índice de Windows. Con Everything (gratis) las búsquedas son instantáneas en todo el disco."}
-    >
-      <span class="state">{index.everything ? "Everything" : "Índice de Windows"}</span>
-    </Row>
+    <EverythingRow />
   {:else}
     <Row label="Nyx está arrancando" hint="La caché estará lista en unos segundos.">
       <span></span>
     </Row>
   {/if}
 </Card>
-
-<style>
-  .state {
-    font-size: 13px;
-    color: var(--text-secondary);
-  }
-</style>
