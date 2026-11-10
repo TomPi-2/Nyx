@@ -69,7 +69,9 @@ class UIBridge:
         host: str = "127.0.0.1",
         port: int = 0,
         origins: Sequence[str] = DEFAULT_ORIGINS,
+        indicator_size: int = 100,
     ) -> None:
+        self.indicator_size = indicator_size
         self._game: GameMsg | None = None
         self._bus = bus
         self._token = token
@@ -117,7 +119,9 @@ class UIBridge:
         self._clients.add(conn)
         log.info("Interfaz conectada (%d)", len(self._clients))
         try:
-            await conn.send(Welcome(version=__version__).model_dump_json())
+            await conn.send(
+                Welcome(version=__version__, indicator_size=self.indicator_size).model_dump_json()
+            )
             await conn.send(StateMsg(state=self._state).model_dump_json())
             if self._game is not None:  # una ventana que se abre a mitad de partida
                 await conn.send(self._game.model_dump_json())

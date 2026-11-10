@@ -12,8 +12,9 @@ use crate::win32;
 
 pub const LABEL: &str = "island";
 /// Tamaño lógico de la ventana: burbuja máxima (520 px) + margen para la sombra.
+// Tamaño inicial; la interfaz lo ajusta al de la forma de Nyx (island_set_size).
 const WIDTH: f64 = 600.0;
-const HEIGHT: f64 = 240.0;
+const HEIGHT: f64 = 420.0;
 /// Frecuencia con la que se sigue al ratón entre monitores mientras la isla es visible.
 const FOLLOW_INTERVAL: Duration = Duration::from_millis(150);
 
@@ -25,6 +26,8 @@ pub struct IslandState {
     visible: AtomicBool,
     /// Botones visibles, en píxeles CSS de la ventana: solo ahí la isla recibe clics.
     hit_rects: Mutex<Vec<[f64; 4]>>,
+    /// Tamaño de la ventana en píxeles CSS (depende del tamaño de la forma, ajustable).
+    size: Mutex<(f64, f64)>,
 }
 
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
@@ -49,7 +52,10 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         win32::set_click_through(hwnd, true);
     }
 
-    let state = Arc::new(IslandState::default());
+    let state = Arc::new(IslandState {
+        size: Mutex::new((WIDTH, HEIGHT)),
+        ..IslandState::default()
+    });
     app.manage(state.clone());
     tauri::async_runtime::spawn(follow_cursor(window.clone(), state.clone()));
     tauri::async_runtime::spawn(hover(window, state));
@@ -128,7 +134,40 @@ async fn follow_cursor<R: Runtime>(window: WebviewWindow<R>, state: Arc<IslandSt
 }
 
 fn place<R: Runtime>(window: &WebviewWindow<R>) {
-    place_top_center(window, WIDTH, HEIGHT);
+    let (width, height) = window
+        .try_state::<Arc<IslandState>>()
+        .and_then(|s| s.size.lock().ok().map(|v| *v))
+        .unwrap_or((WIDTH, HEIGHT));
+    place_top_center(window, width, height);
+}
+
+/// La interfaz pide el tamaño que necesita (la forma de Nyx se ajusta en Apariencia).
+#[tauri::command]
+pub fn island_set_size<R: Runtime>(
+    window: WebviewWindow<R>,
+    state: State<'_, Arc<IslandState>>,
+    width: f64,
+    height: f64,
+) {
+    let width = width.clamp(200.0, 1200.0);
+    let height = height.clamp(120.0, 1000.0);
+    if let Ok(mut size) = state.size.lock() {
+        *size = (width, height);
+    }
+    if state.visible.load(Ordering::Relaxed) {
+        place(&window);
+    }
+}
+
+/// Luminancia (0–1) alrededor de la forma, para pasar de blanco a gris sobre fondos claros.
+#[tauri::command]
+pub fn island_backdrop_luma<R: Runtime>(
+    window: WebviewWindow<R>,
+    cx: f64,
+    cy: f64,
+    radius: f64,
+) -> Option<f64> {
+    win32::ring_luma(win32::hwnd(&window)?, cx, cy, radius)
 }
 
 /// Centra la ventana arriba del monitor del ratón. Se recalcula cada vez, así que los

@@ -116,7 +116,7 @@ async def run(args: argparse.Namespace) -> int:
         take_over()
 
     bus = EventBus()
-    bridge = UIBridge(bus, token, port=args.port)
+    bridge = UIBridge(bus, token, port=args.port, indicator_size=settings.appearance.indicator_size)
     port = await bridge.start()
 
     print(json.dumps({"event": "ready", "port": port, "protocol": PROTOCOL_VERSION}), flush=True)

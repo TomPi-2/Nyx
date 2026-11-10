@@ -1,6 +1,6 @@
 // Espejo de core/nyx/bridge/protocol.py: cambia los dos a la vez y sube PROTOCOL_VERSION.
 
-export const PROTOCOL_VERSION = 5;
+export const PROTOCOL_VERSION = 6;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -25,7 +25,13 @@ export type ClientMessage =
   | { type: "action"; id: string };
 
 export type ServerMessage =
-  | { type: "welcome"; version: string; protocol: number }
+  | {
+      type: "welcome";
+      version: string;
+      protocol: number;
+      /** v6: lado de la forma de Nyx en px (Ajustes → Apariencia). */
+      indicator_size: number;
+    }
   | { type: "state"; state: NyxState }
   | { type: "level"; rms: number }
   | {
