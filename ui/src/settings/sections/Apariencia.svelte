@@ -17,6 +17,10 @@
     type NyxColorId,
     type PanelTintId,
   } from "$theme/palette";
+  import { onMount } from "svelte";
+  import Select from "$lib/controls/Select.svelte";
+  import type { MonitorSettings } from "$lib/protocol";
+  import { monitors } from "../monitors.svelte";
   import { settings } from "../store.svelte";
 
   const QUALITY: { value: GlassInfo["quality"]; label: string }[] = [
@@ -64,6 +68,16 @@
   function setGlass(patch: Partial<GlassInfo>, debounce = false) {
     settings.set({ appearance: { glass: { ...glass!, ...patch } } }, debounce);
   }
+  const FOLLOW: { value: MonitorSettings["follow"]; label: string }[] = [
+    { value: "cursor", label: "Sigue al ratón" },
+    { value: "fixed", label: "Siempre en uno" },
+  ];
+
+  function setMonitor(patch: Partial<MonitorSettings>) {
+    settings.set({ appearance: { monitor: { ...data!.appearance.monitor, ...patch } } });
+  }
+
+  onMount(() => monitors.watch());
 </script>
 
 {#if data && glass}
@@ -99,6 +113,48 @@
         }}
       />
     </Row>
+  </Card>
+
+  <Card
+    title="Monitor"
+    note={monitors.single ? "Solo hay un monitor conectado: Nyx aparece en él." : undefined}
+  >
+    <div class="lockable" class:locked={monitors.single} aria-disabled={monitors.single}>
+      <Row
+        label="Dónde aparece Nyx"
+        hint={data.appearance.monitor.follow === "cursor"
+          ? "En el monitor donde tengas el ratón; si lo pasas a otro, Nyx se va con él."
+          : "Siempre en el mismo monitor, tengas el ratón donde lo tengas."}
+        stacked
+      >
+        <Segmented
+          label="Dónde aparece Nyx"
+          options={FOLLOW}
+          value={data.appearance.monitor.follow}
+          onchange={(follow) => setMonitor({ follow })}
+        />
+      </Row>
+      {#if data.appearance.monitor.follow === "fixed"}
+        <Row label="Monitor" stacked>
+          <Select
+            label="Monitor de Nyx"
+            options={monitors.list.map((m) => ({ value: m.device, label: m.label }))}
+            value={data.appearance.monitor.fixed ?? monitors.primary?.device ?? ""}
+            onchange={(fixed) => setMonitor({ fixed })}
+          />
+        </Row>
+      {/if}
+      <Row
+        label="Animación al cambiar de monitor"
+        hint="Nyx y sus paneles se encogen en el monitor de antes y aparecen en el nuevo."
+      >
+        <Toggle
+          label="Animación al cambiar de monitor"
+          checked={data.appearance.monitor.transition}
+          onchange={(transition) => setMonitor({ transition })}
+        />
+      </Row>
+    </div>
   </Card>
 
   <Card title="Texto">

@@ -10,6 +10,9 @@
   import Slider from "$lib/controls/Slider.svelte";
   import Toggle from "$lib/controls/Toggle.svelte";
   import type { GamePolicy, NyxSettings } from "$lib/protocol";
+  import { onMount } from "svelte";
+  import Select from "$lib/controls/Select.svelte";
+  import { monitors } from "../monitors.svelte";
   import { settings } from "../store.svelte";
   import { toolLabel } from "../tools";
 
@@ -57,6 +60,10 @@
     if (!name) return "";
     return name.endsWith(".exe") ? name : `${name}.exe`;
   };
+  /** En el desplegable, «automático» es la opción vacía. */
+  const AUTO = "";
+
+  onMount(() => monitors.watch());
 </script>
 
 {#if game}
@@ -69,6 +76,31 @@
         onchange={(mode) => setGame({ mode })}
       />
     </Row>
+  </Card>
+
+  <Card
+    title="Monitor en partida"
+    note={monitors.single
+      ? "Solo hay un monitor conectado: en «Solo voz», Nyx no aparece mientras juegas."
+      : undefined}
+  >
+    <div class="lockable" class:locked={monitors.single} aria-disabled={monitors.single}>
+      <Row
+        label="Si Nyx tuviera que salir en el monitor del juego"
+        hint="Con «Solo voz», Nyx aparece en otro monitor para no ponerse encima del juego. Automático: el principal, o el primero sin el juego."
+        stacked
+      >
+        <Select
+          label="Monitor en partida"
+          options={[
+            { value: AUTO, label: "Automático" },
+            ...monitors.list.map((m) => ({ value: m.device, label: m.label })),
+          ]}
+          value={game.alt_monitor ?? AUTO}
+          onchange={(v) => setGame({ alt_monitor: v || null })}
+        />
+      </Row>
+    </div>
   </Card>
 
   <Card title="Rendimiento">

@@ -148,3 +148,21 @@ async def test_restart_notice_goes_away_when_reverted(tmp_path: Path) -> None:
     await bus.publish(SettingsRequested({"appearance": {"nyx_color": "azul"}}))
     await bus.publish(SettingsRequested({"tts": {"voice": "lola"}}))
     assert [e.restart for e in got] == [("tts.voice",), ("tts.voice",), ()]
+
+
+def test_monitor_settings_are_live(tmp_path: Path) -> None:
+    """5d‑1: monitor de Nyx y monitor en partida, desde Ajustes y sin reiniciar."""
+    service, settings, _ = _service(tmp_path)
+    restart = service.apply(
+        {
+            "appearance": {"monitor": {"follow": "fixed", "fixed": r"\.\DISPLAY2"}},
+            "game": {"alt_monitor": r"\.\DISPLAY3"},
+        }
+    )
+    assert restart == []
+    assert settings.appearance.monitor.follow == "fixed"
+    assert settings.appearance.monitor.fixed == r"\.\DISPLAY2"
+    assert settings.appearance.monitor.transition is True
+    assert settings.game.alt_monitor == r"\.\DISPLAY3"
+    with pytest.raises(SettingsError, match="follow"):
+        service.apply({"appearance": {"monitor": {"follow": "ventana"}}})

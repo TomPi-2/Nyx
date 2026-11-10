@@ -54,6 +54,8 @@ class GameStateChanged:
     process: str = ""
     title: str = ""
     mode: str = "voice"  # «Nyx en partida»: off | voice | normal
+    # Monitor del juego («\.DISPLAY1»): con varios, la interfaz va a otro (SPEC 11).
+    monitor: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,6 +66,7 @@ class Probe:
     title: str
     hwnd: int
     fullscreen_d3d: bool
+    monitor: str = ""
 
 
 def notification_state() -> int:
@@ -80,7 +83,8 @@ def probe() -> Probe | None:
     if fg is None:
         return None
     state = notification_state()
-    return Probe(fg.process, fg.title, fg.hwnd, state in (QUNS_RUNNING_D3D_FULL_SCREEN, QUNS_APP))
+    full = state in (QUNS_RUNNING_D3D_FULL_SCREEN, QUNS_APP)
+    return Probe(fg.process, fg.title, fg.hwnd, full, windows.monitor_device(fg.hwnd))
 
 
 def looks_like_game(
@@ -124,6 +128,7 @@ class GameDetector:
         self.is_game_window = is_game_window
         self.active = False
         self.process = ""
+        self.monitor = ""
         self._last_seen = 0.0
         self._task: asyncio.Task[None] | None = None
 
@@ -145,13 +150,19 @@ class GameDetector:
         )
         if game and p is not None:
             self._last_seen = now
-            if not self.active:
-                self.active, self.process = True, p.process
-                log.info("Partida: %s («%s»)", p.process, p.title)
-                await self.bus.publish(GameStateChanged(True, p.process, p.title, self.mode()))
+            # Empieza la partida, o el juego se ha pasado a otro monitor.
+            if not self.active or (p.monitor and p.monitor != self.monitor):
+                started = not self.active
+                self.active, self.process, self.monitor = True, p.process, p.monitor
+                if started:
+                    log.info("Partida: %s («%s») en %s", p.process, p.title, p.monitor or "?")
+                await self.bus.publish(
+                    GameStateChanged(True, p.process, p.title, self.mode(), p.monitor)
+                )
         elif self.active and now - self._last_seen >= EXIT_AFTER_S:
             log.info("Fin de la partida (%s)", self.process)
             self.active = False
+            self.monitor = ""
             await self.bus.publish(GameStateChanged(False, self.process, mode=self.mode()))
         return self.active
 

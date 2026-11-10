@@ -262,5 +262,9 @@ class UIBridge:
 
     async def _on_game(self, event: GameStateChanged) -> None:
         mode = event.mode if event.mode in ("off", "voice", "normal") else "voice"
-        self._game = GameMsg(active=event.active, mode=mode)  # type: ignore[arg-type]
+        self._game = GameMsg(
+            active=event.active,
+            mode=mode,  # type: ignore[arg-type]
+            monitor=event.monitor,
+        )
         await self.broadcast(self._game)

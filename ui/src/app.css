@@ -112,3 +112,54 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background-color: var(--text-tertiary);
 }
+
+/*
+ * Cambio de monitor estando visible (Ajustes → Apariencia → Monitor): rápido pero limpio. Se
+ * encoge en el monitor de antes (130 ms, lo espera island.rs) y aparece en el nuevo con un
+ * pequeño rebote.
+ */
+@keyframes nyx-move-out {
+  to {
+    scale: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes nyx-move-in {
+  0% {
+    scale: 0.4;
+    opacity: 0;
+  }
+  60% {
+    scale: 1.04;
+    opacity: 1;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+.move-out {
+  animation: nyx-move-out 130ms cubic-bezier(0.55, 0, 1, 0.45) both;
+}
+
+.move-in {
+  animation: nyx-move-in 220ms cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .move-out,
+  .move-in {
+    animation-duration: 1ms;
+  }
+}
+
+/* Opciones que no aplican ahora (por ejemplo, de monitores con uno solo): gris oscuro y sin
+   poder tocarse. */
+.lockable.locked {
+  opacity: 0.4;
+  filter: grayscale(1);
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 200ms ease;
+}
