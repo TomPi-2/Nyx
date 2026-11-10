@@ -412,10 +412,10 @@ Nyx no tiene ventana principal: cada elemento (la isla, una burbuja, un aviso) e
 - **Cristal con el motor propio** (sección 12, «Motor de cristal»): lo dibuja Nyx detrás de la WebView de cada ventana. El CSS `backdrop-filter` no desenfoca lo que hay detrás de una ventana transparente; el Acrylic de Windows 11 se ve sólido sin foco y recortado deja escalones (fase 1); el pincel de fondo de Windows no está disponible en todos los equipos (2026-11-10). Si el motor no puede dibujar, se usa el **tinte gris translúcido al 84 %** de CSS de la fase 1.
 - **La forma de Nyx y los paneles van en ventanas distintas:** las ventanas que capturan la pantalla para el cristal se excluyen de las capturas (si no, el cristal se vería a sí mismo). Así Nyx sigue saliendo siempre en capturas y directos, y solo los paneles desaparecen de ellos en Alto y Medio. Con «Mostrar Nyx en capturas y directos» (Ajustes → Apariencia) los paneles usan el nivel Bajo y salen también.
 - **Nunca se solapan:** entre la forma de Nyx y cualquier panel queda siempre un hueco fijo de 14 px, medido desde lo más lejos que puede llegar la forma (giro, división en cuatro, estiramiento y ondulación) y contando la ondulación del borde del panel. La ventana de Ajustes es la excepción: se mueve libremente como cualquier ventana.
-- **Sin Nyx, el panel sube:** cuando la forma se va (una respuesta sin voz, un aviso con Nyx en reposo), el panel se desliza hasta arriba (12 px del borde) para no quedarse suelto lejos del borde superior. Si Nyx vuelve con el panel visible, el panel baja a su hueco y la forma aparece al terminar (≈ 0,3 s), así que nunca se tocan.
+- **Sin Nyx, el panel sube:** cuando la forma se va (una respuesta sin voz, un aviso con Nyx en reposo), el panel se desliza hasta donde empieza el cuadrado de Nyx en reposo (≈ 52 px del borde con el tamaño 100), ocupando su sitio sin pegarse al borde ni quedarse suelto. El campo de texto aparece en ese mismo sitio. Si Nyx vuelve con el panel visible, el panel baja a su hueco y la forma aparece al terminar (≈ 0,3 s), así que nunca se tocan.
 - **Quitar el borde de Windows:** Windows 11 dibuja un borde de 1 px en todas las ventanas; desactivarlo con `DWMWA_BORDER_COLOR = DWMWA_COLOR_NONE`.
 - Tema oscuro y claro según Windows, ambos en grises.
-- **Animaciones** tipo iOS: muelles (spring) de 200–350 ms, aparición con escala 0,96 → 1 y desenfoque → nítido. Respetar "reducir movimiento" de Windows.
+- **Animaciones** como la forma de Nyx: los paneles, el campo de texto y la ventana de Ajustes aparecen creciendo desde el centro con un rebote de muelle (0 → 1,06 → 1, ≈ 0,5 s) y se van hinchándose un poco y encogiéndose hasta desaparecer (≈ 0,35 s), cristal y texto a la vez (`ui/src/lib/motion.ts`). Al encogerse, el borde deja de ondular cuando el panel es muy pequeño. Respetar "reducir movimiento" de Windows.
 
 **Tiempos y lectura:**
 
@@ -529,7 +529,7 @@ La ventana de Ajustes es la única ventana clásica de Nyx y sigue la misma iden
 | Sección | Ajustes |
 | --- | --- |
 | General | Iniciar con Windows, idioma, ubicación para el tiempo, navegador preferido, carpeta de capturas y grabaciones |
-| Activación | Palabra ("Nyx" o personalizada con validación), sensibilidad, recalibrar con muestras, verificación de voz, ventana de seguimiento, atajos de hablar, escribir y silenciar |
+| Activación | Palabra ("Nyx" o personalizada con validación), sensibilidad, recalibrar con muestras, verificación de voz, ventana de seguimiento, atajos de hablar (`Win+Alt+H`), escribir (`Win+Alt+N`), abrir Ajustes (`Win+Alt+,`) y silenciar |
 | Voz | Voz (Lola, hombre · España, mujer · Argentina), velocidad, volumen, dispositivo de entrada y de salida, atenuar otras apps |
 | Respuestas | Responder también en voz a lo escrito (desactivado por defecto), cuándo hablar (siempre, solo preguntas, nunca), cuándo mostrar burbuja, duración, confirmación visual de acciones silenciosas |
 | Apariencia | Monitor de destino, tema claro u oscuro, vista previa del indicador (estilos, ubicaciones y tamaños en la fase 7). Cristal: calidad (Auto, Alto, Medio, Bajo; con un nivel concreto, el aviso «En partida se cambia a Bajo automáticamente, sin excepción»), movimiento del borde (siempre, al interactuar, quieto), amplitud del borde (0–10), mostrar Nyx en capturas y directos, y qué hace con las capturas (sección 8) |
@@ -542,7 +542,7 @@ La ventana de Ajustes es la única ventana clásica de Nyx y sigue la misma iden
 
 **Primer arranque (asistente de 5 pasos):** descargar modelos → probar micrófono y grabar muestras de "Nyx" → ver el indicador y elegir monitor → escaneo del sistema → ¿ayudar a mejorar Nyx con datos anónimos? (sin marcar por defecto). Todo con opción de saltar y volver más tarde. Sin registro ni inicio de sesión.
 
-Ajustes se abre desde la bandeja, abriendo Nyx otra vez o pidiéndoselo a Nyx («abre tus ajustes», «los ajustes de Nyx del modo partida»). Algunos ajustes se pueden cambiar por voz con `nyx_control` ("Nyx, modo silencio", "Nyx, ponte en la esquina de abajo").
+Ajustes se abre desde la bandeja, con `Win+Alt+,`, abriendo Nyx otra vez o pidiéndoselo a Nyx («abre tus ajustes», «los ajustes de Nyx del modo partida»). Algunos ajustes se pueden cambiar por voz con `nyx_control` ("Nyx, modo silencio", "Nyx, ponte en la esquina de abajo").
 
 ## 14. Rendimiento, fiabilidad y casos límite
 

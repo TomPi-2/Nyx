@@ -36,6 +36,7 @@
     SHAPE_EXIT_MS,
     SHAPE_TOP,
     panelTop,
+    raisedTop,
     shapeReach,
   } from "$overlay/panels/layout";
 
@@ -435,7 +436,9 @@
       <div
         class="panel-slot"
         style:top="{panelTop(nyxSize, options.amplitude)}px"
-        style:translate="0 {lifted ? SHAPE_TOP - panelTop(nyxSize, options.amplitude) : 0}px"
+        style:translate="0 {lifted
+          ? raisedTop(nyxSize) - panelTop(nyxSize, options.amplitude)
+          : 0}px"
         style:--move="{PANEL_MOVE_MS}ms"
       >
         {#key panelRun}

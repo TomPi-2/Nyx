@@ -89,6 +89,8 @@ export interface ShapeOptions {
 }
 
 const MAX_SHAPES = 8;
+/** Por debajo de este tamaño (px), el borde ondula menos cuanto más pequeño. */
+const SMALL_PX = 48;
 
 function prefersDark(): boolean {
   return matchMedia("(prefers-color-scheme: dark)").matches;
@@ -203,7 +205,17 @@ class GlassSurface {
     if (!this.attached) return;
     const shapes = [...this.shapes].map(([el, o]) => {
       const r = el.getBoundingClientRect();
-      return { x: r.x, y: r.y, w: r.width, h: r.height, radius: o.radius, wobble: o.wobble ?? 1 };
+      // Al encogerse (aparecer y desaparecer), un panel diminuto deja de ondular: si no,
+      // quedaría una gotita temblando al final.
+      const small = Math.min(1, Math.min(r.width, r.height) / SMALL_PX);
+      return {
+        x: r.x,
+        y: r.y,
+        w: r.width,
+        h: r.height,
+        radius: o.radius,
+        wobble: (o.wobble ?? 1) * small,
+      };
     });
     void invoke("glass_set_shapes", { shapes });
   }

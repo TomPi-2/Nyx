@@ -28,3 +28,50 @@ body {
   background: var(--glass-sheen), var(--glass-fallback);
   box-shadow: var(--shadow);
 }
+
+/*
+ * Aparecer y desaparecer como la forma de Nyx (src/lib/motion.ts): crece desde el centro con
+ * un rebote de muelle y, al irse, se hincha un poco y se encoge hasta desaparecer. El panel
+ * entero (cristal y texto) cambia de tamaño a la vez.
+ */
+@keyframes nyx-pop-in {
+  0% {
+    scale: 0;
+  }
+  55% {
+    scale: 1.06;
+  }
+  78% {
+    scale: 0.985;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes nyx-pop-out {
+  0% {
+    scale: 1;
+  }
+  28% {
+    scale: 1.035;
+  }
+  100% {
+    scale: 0;
+  }
+}
+
+.pop-in {
+  animation: nyx-pop-in 520ms cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
+.pop-out {
+  animation: nyx-pop-out 360ms cubic-bezier(0.55, 0, 0.8, 0.25) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pop-in,
+  .pop-out {
+    animation-duration: 1ms;
+  }
+}

@@ -15,13 +15,13 @@
   import ConfirmPanel from "./panels/ConfirmPanel.svelte";
   import ResponsePanel from "./panels/ResponsePanel.svelte";
   import UndoPanel from "./panels/UndoPanel.svelte";
-  import { PANEL_MAX_WIDTH, PANEL_MOVE_MS, SHAPE_TOP, panelTop, trackAway } from "./panels/layout";
+  import { POP_IN_MS, POP_OUT_MS } from "$lib/motion";
+  import { PANEL_MAX_WIDTH, PANEL_MOVE_MS, panelTop, raisedTop, trackAway } from "./panels/layout";
 
   /** Margen alrededor del panel dentro de la ventana: sombra y ondulación del borde. */
   const PAD = 28;
   /** Alto máximo de un panel (la respuesta larga se desplaza por dentro). */
   const AREA_HEIGHT = 340;
-  const ANIM_MS = 320;
 
   interface Bubble {
     id: number;
@@ -58,7 +58,7 @@
   // Con Nyx, debajo de la forma con el hueco fijo (contando la ondulación del borde); sin
   // Nyx, arriba del todo. La ventana empieza en el borde superior y cubre los dos sitios.
   const lowered = $derived(panelTop(size, edgePx));
-  const lift = $derived(away ? lowered - SHAPE_TOP : 0);
+  const lift = $derived(away ? lowered - raisedTop(size) : 0);
   $effect(() => {
     void invoke("island_set_size", {
       width: PANEL_MAX_WIDTH + 2 * PAD,
@@ -87,7 +87,7 @@
     void away;
     requestAnimationFrame(updateHitRects);
     // Tras la animación de entrada o el cambio de sitio.
-    const timer = setTimeout(updateHitRects, Math.max(ANIM_MS, PANEL_MOVE_MS) + 50);
+    const timer = setTimeout(updateHitRects, Math.max(POP_IN_MS, PANEL_MOVE_MS) + 50);
     return () => clearTimeout(timer);
   });
 
@@ -113,17 +113,17 @@
         msg.expires_s !== null && msg.expires_s !== undefined ? msg.expires_s * 1000 : null,
     };
     glass.poke();
-    glass.follow(ANIM_MS + 80);
+    glass.follow(POP_IN_MS + 80);
   }
 
   function hide() {
     if (!bubble || leaving) return;
     leaving = true;
-    glass.follow(ANIM_MS);
+    glass.follow(POP_OUT_MS + 40);
     leaveTimer = setTimeout(() => {
       bubble = null;
       leaving = false;
-    }, ANIM_MS);
+    }, POP_OUT_MS);
   }
 
   function choose(id: string) {
@@ -186,7 +186,6 @@
 
 <div
   class="slot"
-  class:leaving
   style:top="{lowered}px"
   style:translate="0 {-lift}px"
   style:--move="{PANEL_MOVE_MS}ms"
@@ -194,7 +193,8 @@
 >
   {#if bubble}
     {#key bubble.id}
-      <div class="enter">
+      <!-- Aparece y se va como la forma de Nyx (lib/motion.ts): cristal y texto a la vez. -->
+      <div class="pop" class:pop-in={!leaving} class:pop-out={leaving}>
         {#if bubble.kind === "confirm"}
           <ConfirmPanel
             title={bubble.display}
@@ -235,41 +235,18 @@
     right: 0;
     display: flex;
     justify-content: center;
-    transform-origin: top center;
-    transition:
-      opacity 220ms ease,
-      scale 260ms ease,
-      filter 220ms ease,
-      translate var(--move) cubic-bezier(0.32, 0.72, 0, 1);
+    transition: translate var(--move) cubic-bezier(0.32, 0.72, 0, 1);
   }
 
-  /* Aparecer: escala 0,96 → 1 y desenfoque → nítido (SPEC sección 11). */
-  .enter {
+  .pop {
     display: flex;
     justify-content: center;
-    transform-origin: top center;
-    animation: enter 320ms cubic-bezier(0.34, 1.4, 0.64, 1);
-  }
-
-  @keyframes enter {
-    from {
-      opacity: 0;
-      scale: 0.96;
-      filter: blur(6px);
-    }
-  }
-
-  .leaving {
-    opacity: 0;
-    scale: 0.96;
-    filter: blur(6px);
+    transform-origin: center;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .slot,
-    .enter {
+    .slot {
       transition: none;
-      animation: none;
     }
   }
 </style>
