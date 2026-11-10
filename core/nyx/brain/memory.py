@@ -11,7 +11,7 @@ from nyx.brain.base import ChatMessage
 
 MAX_TURNS = 6
 # Pasado este tiempo sin hablar, la conversación anterior ya no sirve de contexto.
-EXPIRE_S = 10 * 60
+EXPIRE_S = 3 * 60
 
 
 class ShortMemory:

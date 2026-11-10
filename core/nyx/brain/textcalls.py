@@ -21,7 +21,8 @@ from typing import Any
 from nyx.brain.base import LLMToolCall
 
 _TAGS = re.compile(r"</?tool_call>")
-_CALL_START = re.compile(r"^\s*(?:<tool_call>|\{|`*\s*([A-Za-z_]+)\s*\()")
+_CALL_START = re.compile(r"^\s*(?:<tool_call>|\{|`*\s*([A-Za-z_]+)\s*[({])")
+_SPACED = re.compile(r"^([A-Za-z_]+)\s+(\{.*\})$")  # «mediacontrol {"action": …}»
 _FENCE_LANGS = {"", "json", "python", "tool_code"}
 
 
@@ -108,11 +109,19 @@ def parse_text_calls(text: str, tool_names: Iterable[str]) -> list[LLMToolCall]:
         if line in _FENCE_LANGS:  # ``` o ```python
             continue
         found: LLMToolCall | None
+        spaced = _SPACED.match(line)
         if line.startswith("{"):
             try:
                 found = _from_json(json.loads(line), names)
             except ValueError:
                 found = None
+        elif spaced and _key(spaced.group(1)) in names:  # «mediacontrol {"action": …}»
+            try:
+                args = json.loads(spaced.group(2))
+            except ValueError:
+                args = None
+            name = names[_key(spaced.group(1))]
+            found = LLMToolCall(name, args) if isinstance(args, dict) else None
         else:
             found = _from_python(line, names)
         if found is None:

@@ -40,7 +40,7 @@ from nyx.events import (
     TalkKey,
     TextEntered,
 )
-from nyx.executor import Confirmation, Executor, ToolCall, with_waits
+from nyx.executor import Confirmation, Executor, ToolCall, fix_enums, with_waits
 from nyx.game.policy import GameGate
 from nyx.index.aliases import normalize as normalize_alias
 from nyx.log import new_request_id
@@ -792,6 +792,8 @@ class Pipeline:
         self, plan: ToolPlan, text: str, marks: _Marks, *, from_voice: bool, retried: bool
     ) -> None:
         calls = with_waits([ToolCall(c.name, c.arguments) for c in plan.calls])
+        if self.executor is not None:
+            calls = fix_enums(calls, self.executor.registry)
         log.info("Plan del LLM: %s", [(c.name, c.arguments) for c in calls])
         if not retried and self.executor is not None:
             # SPEC sección 6: si la llamada no es válida, se reintenta una vez con el error.

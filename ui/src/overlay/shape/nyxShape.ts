@@ -15,6 +15,7 @@ export type ShapeState = "hidden" | "waiting" | "listening" | "thinking" | "spea
 /** Lienzo = tamaño × esto: sitio para deformarse, girar y separarse en cuatro. */
 export const SHAPE_PAD = 1.8;
 
+const BURST_S = 1.6; // un empujón de los cuatro al pensar (3 por bucle de 4,8 s, como el prototipo)
 const FLOW = 1;
 const SPEED = 1;
 const ROUND = 0.42;
@@ -85,6 +86,10 @@ export class NyxShape {
   private state: ShapeState = "hidden";
   private stateSince = 0;
   private clock = 0;
+  private angle = 0; // giro continuo del conjunto
+  private rate = 0; // su velocidad (rad/s), que cambia con suavidad entre estados
+  private waitMix = 0; // 1 = espera (matices de fluido no newtoniano), 0 = otros estados
+  private thinkClock = 0; // tiempo pensando (los giros de los cuatro cuentan desde aquí)
   private last = 0;
   private frameId = 0;
   private level = 0; // nivel de audio que llega del núcleo (0-1)
@@ -154,6 +159,7 @@ export class NyxShape {
       s.scale.t = 1;
     }
     s.merge.t = next === "thinking" ? 0 : 1;
+    if (next === "thinking" && s.merge.v > 0.9) this.thinkClock = 0; // empieza a separarse
     if (next === "thinking") s.merge.vel = -0.6;
     if (next === "speaking" && s.merge.v < 0.5) {
       s.flow.v = 1.0; // al juntarse se mece y se asienta
@@ -211,11 +217,25 @@ export class NyxShape {
     const scale = Math.max(0, s.scale.v);
     if (scale < 0.002) return; // nada que dibujar: la GPU descansa
 
-    const phase = (this.clock / LOOP_S[state]) * Math.PI * 2;
-    // Al esperar, gira con velocidad que sube y baja: al acelerar se endurece.
+    // Una sola fase para todos los estados: cambiar de estado no hace saltar el ruido.
+    const phase = (this.clock / LOOP_S.waiting) * Math.PI * 2;
+    // Al esperar, gira con velocidad que sube y baja: al acelerar se endurece. El giro es un
+    // ángulo continuo (solo cambia su velocidad, con suavidad): pasar de espera a escucha no
+    // lo hace saltar. En un bucle de espera da justo un cuarto de vuelta (la media del seno
+    // es cero), así que tampoco se nota el corte.
     const stiff = 0.5 + 0.5 * Math.sin(phase);
-    const waiting = state === "waiting" || state === "hidden";
-    const globalAngle = waiting ? phase / 4 - (0.75 * Math.cos(phase)) / 4 : (phase / 4) * 0.5;
+    const quarterPerLoop = Math.PI / 2 / LOOP_S.waiting;
+    const waitingNow = state === "waiting";
+    const rateTarget = waitingNow
+      ? quarterPerLoop * (1 + 0.75 * Math.sin(phase))
+      : quarterPerLoop * 0.5;
+    this.rate += (rateTarget - this.rate) * Math.min(1, dt * 3);
+    this.angle += this.rate * dt * speed;
+    this.waitMix += ((waitingNow ? 1 : 0) - this.waitMix) * Math.min(1, dt * 4);
+    const globalAngle = this.angle;
+    // Al pensar, los giros cuentan desde que empezó a pensar (si no, al separarse recorrían
+    // de golpe todo el ángulo acumulado desde que arrancó Nyx).
+    if (state === "thinking") this.thinkClock += dt * speed;
     const cx = W / 2;
     const cy = H / 2;
     const listenPulse = state === "listening" ? 1 + 0.1 * s.audio.v : 1;
@@ -224,7 +244,7 @@ export class NyxShape {
     // Cuatro cuadrados: juntos forman el grande; separados orbitan y giran con esfuerzo.
     const m = Math.min(1.2, Math.max(-0.2, s.merge.v));
     const sep = 1 - Math.min(1, Math.max(0, m));
-    const bursts = (phase / (Math.PI * 2)) * 3;
+    const bursts = this.thinkClock / BURST_S;
     const orbit = (effort(bursts) * (Math.PI / 2)) / 3;
     const subHalf = half * (0.5 - 0.12 * sep);
     const dist = half * (0.5 + 0.24 * sep) * Math.SQRT2;
@@ -232,7 +252,7 @@ export class NyxShape {
     for (let i = 0; i < 4; i++) {
       const base = Math.PI / 4 + (i * Math.PI) / 2 + globalAngle + orbit * sep;
       const wob = sep * 0.05 * Math.sin(phase * 2 + i * 1.7);
-      const own = effort(bursts + i * 0.12) * (Math.PI / 2);
+      const own = (effort(bursts + i * 0.12) - effort(i * 0.12)) * (Math.PI / 2);
       boxes.push(
         cx + Math.cos(base) * dist * (1 + wob),
         cy + Math.sin(base) * dist * (1 + wob),
@@ -245,9 +265,11 @@ export class NyxShape {
     gl.uniform4fv(u.uBox, new Float32Array(boxes));
     gl.uniform1f(u.uMerge, Math.min(1, Math.max(0, (m - 0.92) / 0.08)));
     gl.uniform4f(u.uBig, cx, cy, half, globalAngle);
-    gl.uniform1f(u.uRound, state === "waiting" ? ROUND * (1.25 - 0.45 * stiff) : ROUND);
+    // Los matices de la espera (redondez y ondas que cambian con el giro) entran y salen poco
+    // a poco, para que el paso a escucha sea continuo.
+    gl.uniform1f(u.uRound, ROUND * (1 + this.waitMix * (0.25 - 0.45 * stiff)));
     gl.uniform1f(u.uK, half * (0.04 + 0.55 * Math.sin(Math.PI * Math.min(1, sep)) ** 2));
-    const waitWobble = state === "waiting" ? 1.25 - 0.9 * stiff : 1;
+    const waitWobble = 1 + this.waitMix * (0.25 - 0.9 * stiff);
     gl.uniform1f(u.uAmp, half * 0.15 * Math.max(0, s.flow.v) * waitWobble);
     gl.uniform1f(u.uFreq, 0.55 + 0.25 * sep);
     gl.uniform2f(u.uLoop, Math.cos(phase), Math.sin(phase));

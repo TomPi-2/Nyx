@@ -115,3 +115,8 @@ async def test_written_call_after_a_header_line() -> None:
     events = await collect(["[acciones]", "\n", "closeapp(", '{"name": "Spotify"})'])
     assert not [e for e in events if isinstance(e, SpokenDelta)]
     assert events[-1] == ToolPlan([LLMToolCall("close_app", {"name": "Spotify"})])
+
+
+def test_spaced_written_call() -> None:
+    calls = parse_text_calls('mediacontrol {"action": "playpause"}', ["media_control"])
+    assert calls == [LLMToolCall("media_control", {"action": "playpause"})]
