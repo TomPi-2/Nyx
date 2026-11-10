@@ -52,6 +52,17 @@ class ToolPlan:
     calls: list[LLMToolCall]
 
 
+def worth_remembering(reply: Reply) -> bool:
+    """Las respuestas raras («pausa», «aún no sé hacer eso») no se guardan: con ellas en la
+    memoria corta, el modelo las imita en las preguntas siguientes (pasó en la fase 5)."""
+    from nyx.index.aliases import normalize
+
+    spoken = normalize(reply.spoken)
+    if not spoken or spoken.startswith(("aun no se", "aun no puedo")):
+        return False
+    return len(spoken.split()) >= 4 or reply.spoken.rstrip().endswith((".", "?", "!"))
+
+
 def describe_plan(calls: Sequence[LLMToolCall]) -> str:
     """Lo que se guarda en la memoria corta: «y ahora ciérralo» necesita saber qué se abrió."""
     parts = [f"{c.name}({json.dumps(c.arguments, ensure_ascii=False)})" for c in calls]
@@ -126,7 +137,10 @@ class Brain:
             yield event
         if not reply.spoken:
             log.warning("Respuesta vacía del LLM para %r", text)
-        self.memory.add(text, f"[{reply.display} | {reply.secondary}]\n{reply.spoken}")
+        if worth_remembering(reply):
+            self.memory.add(text, f"[{reply.display} | {reply.secondary}]\n{reply.spoken}")
+        else:
+            log.info("Respuesta que no se guarda en la memoria: %r", reply.spoken)
         yield ReplyDone(reply)
 
     async def addressed(self, text: str) -> bool:

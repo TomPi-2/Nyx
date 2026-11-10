@@ -69,6 +69,44 @@ _NEEDS_WINDOW = {
 }
 
 
+def _enum_options(schema: dict[str, Any], prop: dict[str, Any]) -> list[str]:
+    """Valores permitidos de un parámetro (enum directo, anyOf o referencia a $defs)."""
+    if "$ref" in prop:
+        prop = schema.get("$defs", {}).get(prop["$ref"].rsplit("/", 1)[-1], {})
+    options = list(prop.get("enum", []))
+    for alt in prop.get("anyOf", []):
+        options += _enum_options(schema, alt)
+    return [o for o in options if isinstance(o, str)]
+
+
+def fix_enums(calls: list[ToolCall], registry: ToolRegistry) -> list[ToolCall]:
+    """«playpause» → «play_pause»: el modelo a veces escribe una opción sin guiones bajos o
+    con otras mayúsculas. Se corrige solo si queda exactamente una opción equivalente."""
+
+    def key(v: str) -> str:
+        return v.replace("_", "").replace("-", "").replace(" ", "").lower()
+
+    fixed: list[ToolCall] = []
+    for call in calls:
+        tool = registry.get(call.name)
+        if tool is None:
+            fixed.append(call)
+            continue
+        schema = tool.params_model.model_json_schema()
+        args = dict(call.arguments)
+        for name, value in call.arguments.items():
+            prop = schema.get("properties", {}).get(name)
+            if not isinstance(value, str) or prop is None:
+                continue
+            options = _enum_options(schema, prop)
+            if options and value not in options:
+                same = [o for o in options if key(o) == key(value)]
+                if len(same) == 1:
+                    args[name] = same[0]
+        fixed.append(ToolCall(call.name, args))
+    return fixed
+
+
 def with_waits(calls: list[ToolCall]) -> list[ToolCall]:
     """SPEC sección 6: «el ejecutor hace las esperas, no el LLM». Tras open_app, si el paso
     siguiente usa ventanas, se espera a que la app abra la suya."""

@@ -7,6 +7,7 @@ from nyx.executor import ToolCall, with_waits
 from nyx.index.service import SystemIndex
 from nyx.pipeline import Mode
 from nyx.tools.base import ToolResult
+from nyx.tools.registry import default_registry
 from tests.test_pipeline import Harness
 
 
@@ -16,6 +17,7 @@ class FakeExecutor:
         self.calls: list[ToolCall] = []
         self.confirm = None
         self.invalid: list[str] = []  # respuestas sucesivas de check()
+        self.registry = default_registry()
 
     def check(self, calls: list[ToolCall]) -> str:
         return self.invalid.pop(0) if self.invalid else ""

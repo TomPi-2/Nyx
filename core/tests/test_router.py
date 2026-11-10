@@ -301,3 +301,17 @@ def test_battery_fixes(index: SystemIndex, text: str, tool: str | None) -> None:
         assert result is None
     else:
         assert isinstance(result, Route) and result.calls[0].name == tool
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Para el vídeo de YouTube.",
+        "Pausa el vídeo de YouTube.",
+        "reanuda el vídeo de YouTube",
+        "dale al play en Spotify",
+    ],
+)
+def test_media_with_source(index: SystemIndex, text: str) -> None:
+    result = route(text, index)
+    assert isinstance(result, Route) and result.calls[0].arguments == {"action": "play_pause"}

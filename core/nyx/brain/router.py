@@ -203,7 +203,8 @@ def _mute(m: re.Match[str], index: SystemIndex) -> Route | None:
 
 @rule(
     "media_pause",
-    r"^(?:pausa|pausar|para|parar|deten|pausa la|para la)(?:\s+(?:la\s+|el\s+)?(?:musica|cancion|video|reproduccion|spotify))?$",
+    r"^(?:pausa|pausar|para|parar|deten|pausa la|para la)(?:\s+(?:la\s+|el\s+)?(?:musica|cancion|video|reproduccion|spotify|youtube))?"
+    r"(?:\s+(?:de|en|del)\s+[a-z0-9 ]+)?$",
 )
 def _pause(m: re.Match[str], _: SystemIndex) -> Route:
     return _call("media_pause", "media_control", action="play_pause")
@@ -211,8 +212,9 @@ def _pause(m: re.Match[str], _: SystemIndex) -> Route:
 
 @rule(
     "media_play",
-    r"^(?:(?:reanuda|reanudar|continua|play|dale al play|reproduce|quita la pausa)(?:\s+(?:la\s+|el\s+)?(?:musica|cancion|video))?"
-    r"|(?:pon|ponme|quiero)\s+(?:algo de\s+|un poco de\s+|la\s+)?musica)$",
+    r"^(?:(?:reanuda|reanudar|continua|play|dale al play|dale a play|reproduce|quita la pausa)(?:\s+(?:la\s+|el\s+|a la\s+|al\s+)?(?:musica|cancion|video))?"
+    r"|(?:pon|ponme|quiero)\s+(?:algo de\s+|un poco de\s+|la\s+)?musica)"
+    r"(?:\s+(?:de|en|del)\s+[a-z0-9 ]+)?$",
 )
 def _play(m: re.Match[str], _: SystemIndex) -> Route:
     return _call("media_play", "media_control", action="play_pause")
