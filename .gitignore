@@ -21,6 +21,8 @@ ui/src-tauri/gen/schemas/
 # Modelos y datos (se descargan en %LOCALAPPDATA%\Nyx\models)
 models/
 *.onnx
+# …salvo el detector propio de «Nyx» (nuestro, va dentro de Nyx)
+!core/nyx/wake/data/*.onnx
 *.gguf
 *.bin
 core/training/data/
