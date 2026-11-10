@@ -2,7 +2,7 @@
 
 import type { FontId, NyxColorId, PanelTintId } from "$theme/palette";
 
-export const PROTOCOL_VERSION = 12;
+export const PROTOCOL_VERSION = 13;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -103,7 +103,20 @@ export type SetupAction =
   | "mic_test_start"
   | "mic_test_stop"
   | "clear_samples"
-  | "clear_activations";
+  | "clear_activations"
+  /** v13 */
+  | "install_everything"
+  | "start_everything";
+
+/** v13: modelo de lenguaje posible (core/nyx/setup/hardware.py). */
+export interface LlmChoice {
+  id: string;
+  label: string;
+  size_gb: number;
+  min_vram_gb: number;
+  note: string;
+  tested: boolean;
+}
 
 /** v12: estado de modelos, Ollama, whisper, caché, atajos aprendidos y grabaciones. */
 export interface SetupStatus {
@@ -124,6 +137,15 @@ export interface SetupStatus {
   shortcuts: { phrase: string; tool: string; uses: number }[];
   samples: number;
   activations: number;
+  /** v13: tarjeta gráfica, modelos posibles y el recomendado. */
+  llm: {
+    gpu: { name: string; vram_gb: number } | null;
+    choices: LlmChoice[];
+    recommended: string;
+  };
+  /** v13: Everything instalado, abierto y con su línea de órdenes (es.exe). */
+  everything: { installed: boolean; running: boolean; cli: boolean };
+  installing_everything: boolean;
 }
 
 /** Cambio parcial de ajustes: solo lo que cambia. */

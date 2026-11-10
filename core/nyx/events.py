@@ -124,6 +124,8 @@ SetupAction = Literal[
     "mic_test_stop",
     "clear_samples",
     "clear_activations",
+    "install_everything",
+    "start_everything",
 ]
 
 

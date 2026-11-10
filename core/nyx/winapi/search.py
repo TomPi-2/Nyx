@@ -72,9 +72,13 @@ def windows_search(query: str, roots: Iterable[Path], limit: int = LIMIT) -> lis
 
 
 def everything_exe() -> str | None:
-    """es.exe (línea de órdenes de Everything): en el PATH o junto a Everything."""
+    """es.exe (línea de órdenes de Everything): en el PATH, donde lo deja winget o junto a
+    Everything. (Instalado con winget mientras Nyx funciona, el PATH de Nyx aún no lo tiene.)"""
     if exe := shutil.which("es.exe"):
         return exe
+    local = os.environ.get("LOCALAPPDATA")
+    if local and (winget := Path(local) / "Microsoft" / "WinGet" / "Links" / "es.exe").exists():
+        return str(winget)
     for base in (os.environ.get("PROGRAMFILES"), os.environ.get("PROGRAMFILES(X86)")):
         if base and (candidate := Path(base) / "Everything" / "es.exe").exists():
             return str(candidate)

@@ -22,6 +22,7 @@
   import Indicator from "$overlay/shape/Indicator.svelte";
   import { monitors } from "../settings/monitors.svelte";
   import { settings } from "../settings/store.svelte";
+  import EverythingRow from "../settings/EverythingRow.svelte";
   import UsageData from "../settings/UsageData.svelte";
 
   const STATUS_EVERY_MS = 3000;
@@ -39,6 +40,12 @@
   let downloaded = $state(false);
   /** En el paso del micrófono: ¿se ha activado al decir «Nyx»? */
   let heard = $state(false);
+  /** Everything es opcional: solo se instala si se marca. */
+  let wantEverything = $state(false);
+  /** Se ha elegido otro modelo: al terminar se reinicia Nyx para usarlo. */
+  let modelChanged = $state(false);
+  /** Tamaño de Nyx mientras se arrastra (se guarda al soltar). */
+  let liveSize = $state<number | null>(null);
 
   const step = $derived(STEPS[index]);
   const data = $derived(settings.data);
@@ -46,6 +53,26 @@
   const missing = $derived(status?.models.filter((m) => !m.present) ?? []);
   const missingMb = $derived(missing.reduce((n, m) => n + m.size_mb, 0));
   const downloads = $derived(Object.entries(settings.downloads));
+  const llm = $derived(status?.llm);
+  const installedModels = $derived(status?.ollama.models ?? []);
+  const isInstalled = (id: string) => installedModels.some((m) => m === id || m === `${id}:latest`);
+  const chosen = $derived(data?.llm.model ?? "");
+  const needsModel = $derived(!!status?.ollama.running && !!chosen && !isInstalled(chosen));
+  const needsEverything = $derived(wantEverything && !status?.everything.installed);
+  const anythingToDownload = $derived(missing.length > 0 || needsModel || needsEverything);
+  const size = $derived(liveSize ?? data?.appearance.indicator_size ?? 100);
+
+  function chooseModel(id: string) {
+    if (id === chosen) return;
+    modelChanged = true;
+    settings.set({ llm: { model: id } });
+    settings.setup("status"); // para saber si ya está instalado
+  }
+
+  function startDownloads() {
+    if (missing.length || needsModel) settings.setup("download");
+    if (needsEverything) settings.setup("install_everything");
+  }
   const win = getCurrentWindow();
 
   // Cristal y apariencia como el resto de Nyx.
@@ -100,7 +127,8 @@
   function finish() {
     settings.set({ onboarding: { done: true } });
     // Se espera un poco para que el núcleo guarde «hecho» antes de reiniciarlo.
-    close(downloaded ? () => settings.restartCore() : undefined, POP_OUT_MS + 400);
+    const restart = downloaded || modelChanged;
+    close(restart ? () => settings.restartCore() : undefined, POP_OUT_MS + 400);
   }
 
   // En los pasos que dependen del estado (modelos, tu equipo), se vuelve a preguntar cada
@@ -112,6 +140,7 @@
     return () => clearInterval(timer);
   });
 
+  const fmtGb = (gb: number) => `${gb.toLocaleString("es-ES", { maximumFractionDigits: 1 })} GB`;
   const fmtMb = (mb: number) =>
     mb >= 1024
       ? `${(mb / 1024).toLocaleString("es-ES", { maximumFractionDigits: 1 })} GB`
@@ -163,7 +192,7 @@
   </header>
 
   {#key step}
-    <main in:pop={{ duration: POP_IN_MS }}>
+    <main in:pop={{ duration: POP_IN_MS, bounce: false }}>
       {#if step === "hola"}
         <div class="hero">
           <Indicator
@@ -182,13 +211,13 @@
         </div>
       {:else if step === "modelos"}
         <h1>Lo que necesito para oírte y pensar</h1>
-        <p>Modelos que funcionan en tu equipo, sin internet una vez descargados.</p>
-        {#if !status}
+        <p>Todo funciona en tu equipo, sin internet una vez descargado.</p>
+        {#if !status || !llm}
           <p class="muted">Comprobando…</p>
         {:else}
-          <Card>
+          <Card title="Voz y activación">
             <Row
-              label="Voz y activación"
+              label="Modelos de voz"
               hint={missing.length
                 ? `Faltan ${missing.length} archivos (${fmtMb(missingMb)}).`
                 : "Todo descargado."}
@@ -198,28 +227,64 @@
               >
             </Row>
             <Row
-              label="Cerebro ({status.ollama.wanted})"
-              hint={!status.ollama.running
-                ? "Ollama no está en marcha. Instálalo o ábrelo y vuelve a este paso; el instalador de Nyx lo traerá más adelante."
-                : status.ollama.has_wanted
-                  ? "Instalado en Ollama."
-                  : "Se descarga en Ollama (unos 4,7 GB)."}
-            >
-              <span class="ok" class:no={!status.ollama.has_wanted}>
-                {status.ollama.has_wanted ? "Listo" : "Falta"}
-              </span>
-            </Row>
-            <Row
               label="Transcripción"
               hint={status.whisper
                 ? "whisper-server listo."
-                : "Falta whisper-server.exe: llegará con el instalador. Mientras tanto puedes escribirle a Nyx con Win+Alt+N."}
+                : "Falta whisper-server.exe: llegará con el instalador. Mientras tanto puedes escribirme con Win+Alt+N."}
             >
               <span class="ok" class:no={!status.whisper}>{status.whisper ? "Listo" : "Falta"}</span
               >
             </Row>
           </Card>
-          {#if downloads.length}
+
+          <Card
+            title="Cerebro"
+            note={!status.ollama.running
+              ? "Ollama no está en marcha: ábrelo (o instálalo) para descargar el modelo. El instalador de Nyx lo traerá más adelante."
+              : llm.gpu
+                ? `Tu tarjeta: ${llm.gpu.name} (${fmtGb(llm.gpu.vram_gb)}). El recomendado es el más capaz que cabe entero en ella, y así responde rápido.`
+                : "No he podido ver tu tarjeta gráfica: te recomiendo el de por defecto."}
+          >
+            <div class="choices" role="radiogroup" aria-label="Modelo del cerebro">
+              {#each llm.choices as choice (choice.id)}
+                <button
+                  class="choice"
+                  class:on={chosen === choice.id}
+                  role="radio"
+                  aria-checked={chosen === choice.id}
+                  onclick={() => chooseModel(choice.id)}
+                >
+                  <span class="choice-head">
+                    <b>{choice.label}</b>
+                    {#if choice.id === llm.recommended}<span class="badge">Recomendado</span>{/if}
+                    <span class="choice-size">
+                      {isInstalled(choice.id) ? "Instalado" : fmtGb(choice.size_gb)}
+                    </span>
+                  </span>
+                  <span class="choice-note">{choice.note}</span>
+                </button>
+              {/each}
+            </div>
+          </Card>
+
+          <Card title="Opcional">
+            <Row
+              label="Everything"
+              hint="Búsqueda de archivos instantánea en todo el disco (gratis, de voidtools). Windows te pedirá permiso para instalarlo."
+            >
+              {#if status.everything.installed}
+                <span class="ok">Instalado</span>
+              {:else}
+                <Toggle
+                  label="Instalar Everything"
+                  checked={wantEverything}
+                  onchange={(v) => (wantEverything = v)}
+                />
+              {/if}
+            </Row>
+          </Card>
+
+          {#if downloads.length || status.installing_everything}
             <div class="downloads">
               {#each downloads as [key, d] (key)}
                 <div class="download">
@@ -238,16 +303,23 @@
                   </span>
                 </div>
               {/each}
+              {#if status.installing_everything}
+                <div class="download">
+                  <span class="name">Everything</span>
+                  <span class="bar busy"><span></span></span>
+                  <span class="muted">instalando…</span>
+                </div>
+              {/if}
             </div>
           {/if}
-          {#if missing.length || (status.ollama.running && !status.ollama.has_wanted)}
+          {#if anythingToDownload}
             <div class="actions">
               <Button
                 primary
-                disabled={status.downloading}
-                onclick={() => settings.setup("download")}
+                disabled={status.downloading || status.installing_everything}
+                onclick={startDownloads}
               >
-                {status.downloading ? "Descargando…" : "Descargar"}
+                {status.downloading || status.installing_everything ? "Descargando…" : "Descargar"}
               </Button>
             </div>
           {/if}
@@ -288,51 +360,61 @@
         <h1>Así soy yo</h1>
         <p>Elige mi color y mi tamaño. Puedes cambiarlo cuando quieras en Ajustes → Apariencia.</p>
         {#if data}
-          <div class="preview">
-            <Indicator
-              status="listening"
-              level={0}
-              size={Math.min(data.appearance.indicator_size, 110)}
-              backdrop={null}
-              color={data.appearance.nyx_color}
-            />
+          <div class="nyx-step">
+            <!-- Caja de tamaño fijo: la vista previa crece y encoge sin mover nada más. -->
+            <div class="stage">
+              <Indicator
+                status="listening"
+                level={0}
+                size={Math.round(size * 0.6)}
+                backdrop={null}
+                color={data.appearance.nyx_color}
+              />
+              <span class="stage-size">{size} px</span>
+            </div>
+            <div class="controls">
+              <Card>
+                <Row label="Color" stacked>
+                  <Swatches
+                    label="Color de Nyx"
+                    options={COLORS}
+                    value={data.appearance.nyx_color}
+                    onchange={(nyx_color) => settings.set({ appearance: { nyx_color } })}
+                  />
+                </Row>
+                <Row label="Tamaño" stacked>
+                  <Slider
+                    label="Tamaño de Nyx"
+                    min={60}
+                    max={180}
+                    step={10}
+                    value={size}
+                    oninput={(v) => (liveSize = v)}
+                    onchange={(indicator_size) => {
+                      settings.set({ appearance: { indicator_size } });
+                      liveSize = null;
+                    }}
+                  />
+                </Row>
+                {#if !monitors.single}
+                  <Row label="Monitor" stacked>
+                    <Segmented
+                      label="Dónde aparece Nyx"
+                      options={[
+                        { value: "cursor", label: "Sigue al ratón" },
+                        { value: "fixed", label: "Siempre en uno" },
+                      ]}
+                      value={data.appearance.monitor.follow}
+                      onchange={(follow) =>
+                        settings.set({
+                          appearance: { monitor: { ...data.appearance.monitor, follow } },
+                        })}
+                    />
+                  </Row>
+                {/if}
+              </Card>
+            </div>
           </div>
-          <Card>
-            <Row label="Color" stacked>
-              <Swatches
-                label="Color de Nyx"
-                options={COLORS}
-                value={data.appearance.nyx_color}
-                onchange={(nyx_color) => settings.set({ appearance: { nyx_color } })}
-              />
-            </Row>
-            <Row label="Tamaño" value="{data.appearance.indicator_size} px" stacked>
-              <Slider
-                label="Tamaño de Nyx"
-                min={60}
-                max={180}
-                step={10}
-                value={data.appearance.indicator_size}
-                onchange={(indicator_size) => settings.set({ appearance: { indicator_size } })}
-              />
-            </Row>
-            {#if !monitors.single}
-              <Row label="Monitor" stacked>
-                <Segmented
-                  label="Dónde aparece Nyx"
-                  options={[
-                    { value: "cursor", label: "Sigue al ratón" },
-                    { value: "fixed", label: "Siempre en uno" },
-                  ]}
-                  value={data.appearance.monitor.follow}
-                  onchange={(follow) =>
-                    settings.set({
-                      appearance: { monitor: { ...data.appearance.monitor, follow } },
-                    })}
-                />
-              </Row>
-            {/if}
-          </Card>
         {/if}
       {:else if step === "equipo"}
         <h1>Conocer tu equipo</h1>
@@ -345,14 +427,15 @@
             <Row
               label="{status.index.apps} aplicaciones · {status.index.games} juegos · {status.index
                 .folders} carpetas"
-              hint={status.index.everything
-                ? "Everything está instalado: encontraré cualquier archivo al momento."
-                : "Para buscar archivos uso el índice de Windows. Con Everything (gratis) sería instantáneo."}
+              hint="Lo vuelvo a mirar solo de vez en cuando y cuando instalas algo."
             >
               <Button disabled={status.index.scanning} onclick={() => settings.setup("scan")}>
                 {status.index.scanning ? "Escaneando…" : "Escanear"}
               </Button>
             </Row>
+          </Card>
+          <Card title="Búsqueda de archivos">
+            <EverythingRow />
           </Card>
         {:else}
           <p class="muted">Arrancando…</p>
@@ -390,8 +473,8 @@
             <li><b>Win + Alt + N</b> para escribirme</li>
             <li><b>Win + Alt + ,</b> para abrir mis Ajustes</li>
           </ul>
-          {#if downloaded}
-            <p class="muted">Al terminar me reinicio para usar lo que hemos descargado.</p>
+          {#if downloaded || modelChanged}
+            <p class="muted">Al terminar me reinicio para usar lo que hemos preparado.</p>
           {/if}
         </div>
       {/if}
@@ -513,9 +596,107 @@
     max-width: 52ch;
   }
 
-  .preview {
+  .nyx-step {
     display: flex;
-    justify-content: center;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  .stage {
+    position: relative;
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 210px;
+    height: 210px;
+    border-radius: 20px;
+    background: var(--glass-raised);
+  }
+
+  .stage-size {
+    position: absolute;
+    bottom: 10px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .controls {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 0;
+  }
+
+  .choice {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 14px;
+    border: none;
+    border-radius: 14px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 160ms ease;
+  }
+
+  .choice:hover {
+    background: var(--control);
+  }
+
+  .choice.on {
+    background: var(--control);
+    box-shadow: inset 0 0 0 2px var(--control-active);
+  }
+
+  .choice-head {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 14px;
+  }
+
+  .badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--control-active);
+    color: var(--text-on-active);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .choice-size {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .choice-note {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+  }
+
+  .bar.busy span {
+    width: 30%;
+    animation: busy 1.2s ease-in-out infinite;
+  }
+
+  @keyframes busy {
+    from {
+      left: -30%;
+    }
+    to {
+      left: 100%;
+    }
   }
 
   .muted {
