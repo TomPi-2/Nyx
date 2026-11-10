@@ -21,7 +21,7 @@
   const SHORTCUTS = [
     [
       "Win + Alt + H",
-      "Hablar (un toque escucha hasta que te calles; mantenido, mientras lo mantienes)",
+      "Hablar con Nyx: púlsalo una vez y te escucha hasta que termines de hablar, o mantenlo pulsado mientras hablas",
     ],
     ["Win + Alt + N", "Escribirle a Nyx"],
     ["Win + Alt + ,", "Abrir estos Ajustes"],

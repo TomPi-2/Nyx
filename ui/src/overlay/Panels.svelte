@@ -7,6 +7,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
+  import { emitTo } from "@tauri-apps/api/event";
   import { sendNotification } from "@tauri-apps/plugin-notification";
   import { connectCore, type CoreConnection } from "$lib/core";
   import { applyAppearance } from "$theme/apply";
@@ -19,11 +20,16 @@
   import { POP_IN_MS, POP_OUT_MS } from "$lib/motion";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
   import {
+    INPUT_EVENT,
+    INPUT_MAX_HEIGHT,
     NYX_EVENT,
+    PANEL_GAP,
+    PANELS_EVENT,
     PANEL_MAX_WIDTH,
     PANEL_MOVE_MS,
     panelTop,
     raisedTop,
+    type InputLayout,
     type NyxPresence,
   } from "./panels/layout";
 
@@ -69,11 +75,32 @@
   // Con Nyx, debajo de la forma con el hueco fijo (contando la ondulación del borde); sin
   // Nyx, arriba del todo. La ventana empieza en el borde superior y cubre los dos sitios.
   const lowered = $derived(panelTop(size, edgePx));
-  const lift = $derived(away ? lowered - raisedTop(size) : 0);
+  // Con el campo de texto abierto, el panel va debajo de él (con el mismo hueco); si no, en
+  // su sitio de siempre: bajo Nyx o, sin Nyx, arriba.
+  let input = $state<InputLayout>({ open: false, bottom: 0 });
+  const target = $derived(
+    input.open
+      ? Math.max(away ? 0 : lowered, input.bottom + PANEL_GAP + edgePx)
+      : away
+        ? raisedTop(size)
+        : lowered,
+  );
+  $effect(() => {
+    void target;
+    glass.follow(PANEL_MOVE_MS + 60);
+  });
+  // Al campo de texto: ¿hay un panel arriba, en su sitio? (Entonces espera a que baje.)
+  $effect(() => {
+    void emitTo("input", PANELS_EVENT, visible && away && !input.open);
+  });
   $effect(() => {
     void invoke("island_set_size", {
       width: PANEL_MAX_WIDTH + 2 * PAD,
-      height: lowered + AREA_HEIGHT + PAD,
+      // Cabe en cualquier sitio: bajo Nyx o bajo el campo de texto con 6 líneas.
+      height:
+        Math.max(lowered, raisedTop(size) + INPUT_MAX_HEIGHT + PANEL_GAP + edgePx) +
+        AREA_HEIGHT +
+        PAD,
       top: 0,
     });
   });
@@ -95,7 +122,7 @@
   $effect(() => {
     void bubble;
     void visible;
-    void away;
+    void target;
     requestAnimationFrame(updateHitRects);
     // Tras la animación de entrada o el cambio de sitio.
     const timer = setTimeout(updateHitRects, Math.max(POP_IN_MS, PANEL_MOVE_MS) + 50);
@@ -187,12 +214,17 @@
       if (!ok) bubble = null;
     });
     core = connection;
+    const offInput = getCurrentWebviewWindow().listen<InputLayout>(
+      INPUT_EVENT,
+      (e) => (input = e.payload),
+    );
     const offNyx = getCurrentWebviewWindow().listen<NyxPresence>(NYX_EVENT, (e) =>
       setAway(e.payload === "gone"),
     );
     return () => {
       connection.close();
       void offNyx.then((off) => off());
+      void offInput.then((off) => off());
       glass.detach();
     };
   });
@@ -200,8 +232,8 @@
 
 <div
   class="slot"
-  style:top="{lowered}px"
-  style:translate="0 {-lift}px"
+  style:top="0px"
+  style:translate="0 {target}px"
   style:--move="{PANEL_MOVE_MS}ms"
   bind:this={slot}
 >

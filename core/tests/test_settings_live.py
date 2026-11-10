@@ -132,3 +132,19 @@ async def test_reading_lists_audio_devices(tmp_path: Path) -> None:
     await bus.publish(SettingsRequested({"tts": {"enabled": False}}))
     assert got[0].inputs == ("Micro USB",) and got[0].outputs == ("Altavoces",)
     assert got[1].inputs == ()  # al cambiar algo no se vuelven a listar
+
+
+async def test_restart_notice_goes_away_when_reverted(tmp_path: Path) -> None:
+    """Cambiar la voz pide reiniciar; volver a dejarla como estaba, ya no."""
+    bus = EventBus()
+    SettingsService(bus, Settings(), tmp_path / "s.json")
+    got: list[SettingsChanged] = []
+
+    async def collect(event: SettingsChanged) -> None:
+        got.append(event)
+
+    bus.subscribe(SettingsChanged, collect)
+    await bus.publish(SettingsRequested({"tts": {"voice": "davefx"}}))
+    await bus.publish(SettingsRequested({"appearance": {"nyx_color": "azul"}}))
+    await bus.publish(SettingsRequested({"tts": {"voice": "lola"}}))
+    assert [e.restart for e in got] == [("tts.voice",), ("tts.voice",), ()]

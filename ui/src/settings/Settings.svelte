@@ -9,7 +9,7 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import type { SettingsSection } from "$lib/protocol";
   import { glass, glassFromSettings, glassPoke, glassShape } from "$lib/glass";
-  import { POP_IN_MS, POP_OUT_MS } from "$lib/motion";
+  import { POP_IN_MS, POP_OUT_MS, pop } from "$lib/motion";
   import { applyAppearance } from "$theme/apply";
   import Activacion from "./sections/Activacion.svelte";
   import Apariencia from "./sections/Apariencia.svelte";
@@ -139,15 +139,25 @@
     </main>
   </div>
 
+  <!-- Avisos: aparecen y se van como Nyx; si cambia el aviso, uno se va y entra el otro. -->
   {#if settings.error || settings.restart.length}
-    <div class="toast" role="status">
-      {#if settings.error}
-        {settings.error}
-      {:else}
-        Algunos cambios se aplican al reiniciar Nyx.
-        <button class="restart" onclick={() => void settings.restartCore()}>Reiniciar ahora</button>
-      {/if}
-    </div>
+    {#key settings.error ?? "reiniciar"}
+      <div
+        class="toast"
+        role="status"
+        in:pop|global={{ duration: POP_IN_MS }}
+        out:pop|global={{ duration: POP_OUT_MS }}
+      >
+        {#if settings.error}
+          {settings.error}
+        {:else}
+          Algunos cambios se aplican al reiniciar Nyx.
+          <button class="restart" onclick={() => void settings.restartCore()}
+            >Reiniciar ahora</button
+          >
+        {/if}
+      </div>
+    {/key}
   {/if}
 </div>
 
@@ -257,10 +267,14 @@
     flex-direction: column;
     gap: 22px;
     min-width: 0;
-    padding: 4px 28px 32px 12px;
+    margin-right: 6px;
+    padding: 4px 22px 32px 12px;
     overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--control) transparent;
+  }
+
+  /* La barra no baja hasta la esquina redondeada (radio de 28 px) ni toca el borde. */
+  main::-webkit-scrollbar-track {
+    margin: 4px 0 26px;
   }
 
   h2 {

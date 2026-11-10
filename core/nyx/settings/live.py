@@ -67,6 +67,8 @@ class SettingsService:
         self.path = path
         # Micrófonos y altavoces (nombres), para Ajustes → Voz.
         self.devices = devices
+        # Con lo que arrancó el núcleo: lo que se lee al arrancar solo cambia al reiniciar.
+        self._started_with = self.snapshot()
         self._unsubscribe = bus.subscribe(SettingsRequested, self._on_request)
 
     def close(self) -> None:
@@ -99,14 +101,19 @@ class SettingsService:
             log.info("Ajustes cambiados: %s", ", ".join(changed))
         return [p for p in changed if p.startswith(NEEDS_RESTART)]
 
+    def pending_restart(self) -> list[str]:
+        """Lo que es distinto de cuando arrancó el núcleo y solo se aplica al reiniciar. Si se
+        vuelve a dejar como estaba, deja de contar (y Ajustes quita el aviso)."""
+        changed = _changed_paths(self._started_with, self.snapshot())
+        return [p for p in changed if p.startswith(NEEDS_RESTART)]
+
     async def _on_request(self, event: SettingsRequested) -> None:
-        restart: list[str] = []
         error: str | None = None
         inputs: list[str] = []
         outputs: list[str] = []
         if event.patch is not None:
             try:
-                restart = self.apply(event.patch)
+                self.apply(event.patch)
             except SettingsError as err:
                 error = str(err)
                 log.warning("Ajustes: %s", error)
@@ -116,7 +123,7 @@ class SettingsService:
         await self.bus.publish(
             SettingsChanged(
                 data=self.snapshot(),
-                restart=tuple(restart),
+                restart=tuple(self.pending_restart()),
                 error=error,
                 inputs=tuple(inputs),
                 outputs=tuple(outputs),

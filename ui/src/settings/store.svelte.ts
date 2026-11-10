@@ -10,6 +10,8 @@ import type { NyxSettings, ServerMessage, SettingsPatch, ToolInfo } from "$lib/p
 
 /** Mientras se arrastra un deslizador no se guarda en cada paso. */
 const SAVE_AFTER_MS = 300;
+/** Cuánto se ve el aviso de un cambio rechazado («necesita al menos 2 sílabas»…). */
+const ERROR_SHOWN_MS = 6000;
 
 function merge<T>(base: T, patch: Record<string, unknown>): T {
   const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
@@ -41,6 +43,7 @@ class SettingsStore {
   private core: CoreConnection | undefined;
   private pending: SettingsPatch = {};
   private timer: ReturnType<typeof setTimeout> | undefined;
+  private errorTimer: ReturnType<typeof setTimeout> | undefined;
 
   /** Reinicia el núcleo para aplicar lo que lo necesita (bandeja → Reiniciar núcleo). */
   async restartCore(): Promise<void> {
@@ -96,7 +99,11 @@ class SettingsStore {
       this.outputs = msg.outputs;
     }
     this.error = msg.error;
-    if (msg.restart.length) this.restart = [...new Set([...this.restart, ...msg.restart])];
+    // El aviso de un cambio rechazado se va solo (también si llega otro bueno antes).
+    clearTimeout(this.errorTimer);
+    if (msg.error) this.errorTimer = setTimeout(() => (this.error = null), ERROR_SHOWN_MS);
+    // El núcleo dice todo lo pendiente (si se deshace un cambio, deja de estar).
+    this.restart = msg.restart;
   }
 }
 
