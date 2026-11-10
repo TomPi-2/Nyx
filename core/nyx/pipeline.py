@@ -46,12 +46,13 @@ from nyx.log import new_request_id
 from nyx.safety.undo import UNDO_TTL_S
 from nyx.settings.model import ListenSettings
 from nyx.stt.base import STTEngine, STTError
-from nyx.stt.normalize import has_wake_word, normalize
+from nyx.stt.normalize import normalize
 from nyx.tools.base import ToolResult
 from nyx.tts.base import TTSEngine, TTSError
 from nyx.tts.sentences import SentenceSplitter
 from nyx.wake.activations import ActivationLog, is_not_for_you
 from nyx.wake.base import WakeWordEngine
+from nyx.wake.custom import WakePhrase
 from nyx.winapi import windows
 
 log = logging.getLogger(__name__)
@@ -261,6 +262,7 @@ class Pipeline:
         shortcuts: ShortcutStore | None = None,
         refuse: Callable[[str], tuple[str, str] | None] | None = None,
         activations: ActivationLog | None = None,
+        wake_phrase: WakePhrase | None = None,
         clock: Callable[[], float] = time.perf_counter,
     ) -> None:
         self.bus = bus
@@ -280,6 +282,7 @@ class Pipeline:
         self.shortcuts = shortcuts
         self.refuse = refuse
         self.activations = activations
+        self.wake_phrase = wake_phrase or WakePhrase()  # «Nyx» o la palabra personalizada
         # Umbral del detector sin el ajuste por errores (para recalcularlo al apuntar uno).
         threshold = getattr(wake, "threshold", None)
         offset = activations.offset if activations is not None else 0.0
@@ -372,7 +375,7 @@ class Pipeline:
             if self._listening is not None and self.mode is Mode.LISTENING:
                 await self._set_state(NyxState.LISTENING)
             return True
-        ok = has_wake_word(text)
+        ok = self.wake_phrase.heard(text)
         log.info("Verificación de «Nyx» (%d ms): %r → %s", _ms(self._clock() - t0), text, ok)
         self._record_activation(ok, text)
         listening = self._listening
@@ -476,7 +479,7 @@ class Pipeline:
 
     def _is_complete(self, raw: str) -> bool:
         """¿Es ya una petición entera? Una orden que el router entiende o una pregunta."""
-        text = normalize(raw)
+        text = self.wake_phrase.without(normalize(raw))
         if not text:
             return False
         if self.router is not None and isinstance(self.router(text), Route):
@@ -595,7 +598,7 @@ class Pipeline:
             if raw is None:
                 raw = await self.stt.transcribe(audio, prompt=STT_PROMPT)
             # Vale si whisper oyó «Nyx» en el fragmento corto o al principio de la frase.
-            verified = verify is None or await verify or has_wake_word(raw, first_words=3)
+            verified = verify is None or await verify or self.wake_phrase.heard(raw, first_words=3)
         except STTError:
             log.exception("Fallo al transcribir")
             await self._fail("No he podido oírte bien", "fallo al transcribir", None)
@@ -603,7 +606,7 @@ class Pipeline:
         finally:
             thinking.cancel()
         marks.stt = self._clock()
-        text = normalize(raw)
+        text = self.wake_phrase.without(normalize(raw))
         log.info("Transcripción (%d ms): %r → %r", _ms(marks.stt - marks.end), raw, text)
         if not verified:
             log.info("Activación descartada: whisper no ha oído «Nyx»")

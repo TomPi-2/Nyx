@@ -17,7 +17,7 @@ Eres el desarrollador principal de Nyx. La especificación completa está en [do
 
 ## Estado
 
-Fase actual: **4 — «Nyx» de verdad**: 4a (medir), 4b (entrenar) y 4c (integrar) hechos; falta 4d (calibración con muestras del usuario, registro de activaciones, palabras personalizadas, verificación de voz opcional). Fases 1 y 2 cerradas el 2026-11-09; fase 3 cerrada el 2026-11-10.
+Fase actual: **4 — «Nyx» de verdad**: 4a–4d hechos (la verificación de voz pasa a la fase 6); falta la prueba del usuario para cerrar la fase 4. Fases 1 y 2 cerradas el 2026-11-09; fase 3 cerrada el 2026-11-10.
 
 ## Decisiones tomadas
 
@@ -70,6 +70,7 @@ uv run python scripts/check_ollama.py    # prueba de GPU (ver docs/benchmarks)
 uv run python scripts/battery.py        # batería de frases con Ollama (no ejecuta nada)
 uv run python scripts/record_samples.py positivos   # grabar «Nyx» (también: parecidas, continuo)
 uv run python scripts/wake_eval.py --motor propio    # medir la activación
+uv run python scripts/calibrate.py   # calibrar con las grabaciones (solo guarda si mejora)
 uv run python training/download.py ; generate.py ; filter.py ; build.py ; train.py   # entrenar
 ```
 

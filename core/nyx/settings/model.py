@@ -38,8 +38,10 @@ class WakeSettings(_Section):
     engine: Literal["propio", "vosk"] = "propio"
     # 1 = solo salta si está muy seguro … 10 = salta con poco (whisper verifica después).
     sensitivity: int = Field(default=6, ge=1, le=10)
-    # Palabra para Vosk (y para palabras personalizadas).
+    # Palabra para Vosk.
     word: str = "nix"
+    # Palabra personalizada (p. ej. «oye lumen»): si hay, se usa Vosk con ella en vez de «Nyx».
+    custom_word: str = ""
     # Audio anterior a la detección que se incluye en la frase («Nyx abre…» de una tirada).
     prebuffer_s: float = Field(default=1.5, ge=0.0, le=2.0)
 
