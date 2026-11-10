@@ -164,15 +164,16 @@ section { display: grid; gap: 14px; }
 </main>
 
 <script>
+// Las familias van con comillas simples: se meten dentro de atributos style="…".
 const FONTS = [
-  { name: "Segoe UI Variable", family: '"Segoe UI Variable Text", "Segoe UI", sans-serif', display: '"Segoe UI Variable Display", "Segoe UI", sans-serif', note: "actual · de Windows" },
-  { name: "Inter", family: '"Inter", sans-serif', note: "neutra, muy legible" },
-  { name: "Geist", family: '"Geist", sans-serif', note: "moderna y limpia" },
-  { name: "Figtree", family: '"Figtree", sans-serif', note: "amable, algo redonda" },
-  { name: "Manrope", family: '"Manrope", sans-serif', note: "geométrica" },
-  { name: "Plus Jakarta Sans", family: '"Plus Jakarta Sans", sans-serif', note: "elegante" },
-  { name: "Outfit", family: '"Outfit", sans-serif', note: "geométrica y suave" },
-  { name: "Nunito", family: '"Nunito", sans-serif', note: "redondeada" },
+  { name: "Segoe UI Variable", family: "'Segoe UI Variable Text', 'Segoe UI', sans-serif", display: "'Segoe UI Variable Display', 'Segoe UI', sans-serif", note: "actual · de Windows" },
+  { name: "Inter", family: "'Inter', sans-serif", note: "neutra, muy legible" },
+  { name: "Geist", family: "'Geist', sans-serif", note: "moderna y limpia" },
+  { name: "Figtree", family: "'Figtree', sans-serif", note: "amable, algo redonda" },
+  { name: "Manrope", family: "'Manrope', sans-serif", note: "geométrica" },
+  { name: "Plus Jakarta Sans", family: "'Plus Jakarta Sans', sans-serif", note: "elegante" },
+  { name: "Outfit", family: "'Outfit', sans-serif", note: "geométrica y suave" },
+  { name: "Nunito", family: "'Nunito', sans-serif", note: "redondeada" },
 ];
 
 // Colores de la forma de Nyx: [nombre, color]. Opacos y suaves.
@@ -195,6 +196,14 @@ const TINTS = [
 ];
 
 const state = { theme: "dark", bg: "color", font: 0, nyx: 0, tint: 0 };
+
+// ¿Ha llegado la fuente? (Si no, el navegador usaría otra sin avisar.)
+let fontsReady = false;
+function loaded(f) {
+  if (!fontsReady || f.name === "Segoe UI Variable") return true;
+  return document.fonts.check(`16px ${f.family.split(",")[0]}`);
+}
+document.fonts.ready.then(() => { fontsReady = true; render(); });
 const $ = (id) => document.getElementById(id);
 
 function seg(id, key) {
@@ -239,7 +248,7 @@ function render() {
   $("fonts").innerHTML = FONTS.map((f, i) => `
     <button class="font-card ${i === state.font ? "on" : ""}" data-i="${i}" style="font-family:${f.family}">
       <div class="desk" data-bg="${state.bg}">
-        <div class="font-name"><b>${f.name}</b><small>${f.note}</small></div>
+        <div class="font-name"><b>${f.name}</b><small>${loaded(f) ? f.note : "no se ha podido cargar (¿sin internet?)"}</small></div>
         ${panels(f)}
       </div>
     </button>`).join("");
