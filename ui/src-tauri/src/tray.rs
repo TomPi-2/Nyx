@@ -5,14 +5,14 @@ use std::time::Duration;
 
 use tauri::AppHandle;
 use tauri::image::Image;
-use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
 
 use crate::{core_process, glass};
 
 pub fn build(app: &AppHandle) -> tauri::Result<()> {
     let glass_item =
-        CheckMenuItem::with_id(app, "glass", "Prueba de cristal", true, false, None::<&str>)?;
+        MenuItem::with_id(app, "glass", "Motor gráfico (ejemplos)", true, None::<&str>)?;
     let restart = MenuItem::with_id(app, "restart-core", "Reiniciar núcleo", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Salir", true, None::<&str>)?;
     let menu = Menu::with_items(
@@ -30,7 +30,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
         .menu(&menu)
         .show_menu_on_left_click(true)
         .on_menu_event(|app, event| match event.id().as_ref() {
-            "glass" => glass::toggle(app),
+            "glass" => glass::gallery::toggle(app),
             "restart-core" => core_process::restart(app),
             "quit" => app.exit(0),
             _ => {}

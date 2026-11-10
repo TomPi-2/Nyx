@@ -28,17 +28,27 @@ pub fn run() {
             island::island_set_size,
             island::island_backdrop_luma,
             input::input_hide,
+            glass::glass_attach,
+            glass::glass_set_options,
+            glass::glass_set_shapes,
+            glass::glass_poke,
+            glass::glass_detach,
+            glass::glass_set_game,
+            glass::gallery::glass_toggle_bubble,
+            glass::gallery::glass_close_gallery,
         ])
         .setup(|app| {
             let handle = app.handle();
+            // Antes que las ventanas: el motor de cristal (no toca la GPU hasta que se usa).
+            glass::init(handle);
             core_process::start(handle);
             island::create(handle)?;
             input::create(handle)?;
             hotkeys::register(handle);
             tray::build(handle)?;
-            // Ayuda de desarrollo: NYX_GLASS_TEST=1 abre la prueba de cristal al arrancar.
-            if std::env::var("NYX_GLASS_TEST").as_deref() == Ok("1") {
-                glass::toggle(handle);
+            // Ayuda de desarrollo: NYX_GLASS=1 abre la galería del motor de cristal al arrancar.
+            if std::env::var("NYX_GLASS").as_deref() == Ok("1") {
+                glass::gallery::toggle(handle);
             }
             Ok(())
         })

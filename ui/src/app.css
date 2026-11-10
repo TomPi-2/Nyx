@@ -22,3 +22,9 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* Respaldo si el motor de cristal no puede dibujar (src/lib/glass.ts): el tinte de siempre. */
+:root[data-glass="css"] .glass-shape {
+  background: var(--glass-sheen), var(--glass-fallback);
+  box-shadow: var(--shadow);
+}
