@@ -332,7 +332,8 @@ async def test_false_activation_is_discarded_while_listening() -> None:
     await h.feed(WAKE)
     await h.feed(SPEECH, n(0.2))
     assert h.p.mode is Mode.IDLE
-    assert h.states == [NyxState.LISTENING, NyxState.IDLE]
+    # Fase 4c: el indicador espera a whisper, así que una activación falsa ni se ve.
+    assert h.states == []
     assert h.llm.requests == []
     await h.feed(SPEECH, n(1.0))  # lo que siga diciendo ya no se escucha
     assert h.stt.full_calls == []
@@ -453,4 +454,18 @@ async def test_new_text_cancels_running_request() -> None:
     assert h.llm.asked[-1] == "segunda"
     assert h.player.cleared >= 1
     assert h.p.mode is Mode.IDLE
+    await h.p.close()
+
+
+async def test_indicator_waits_for_whisper_confirmation() -> None:
+    # Fase 4c: se graba desde el salto del detector, pero «escuchando» se ve al confirmar.
+    stt = FakeSTT(text="Nyx, ¿qué hora es?", clip_text="Nyx.")
+    stt.clip_gate = asyncio.Event()
+    h = Harness(stt=stt)
+    await h.feed(SILENCE, n(0.5))
+    await h.feed(WAKE)
+    assert h.p.mode is Mode.LISTENING and h.states == []  # grabando, aún sin indicador
+    stt.clip_gate.set()
+    await asyncio.sleep(0.01)
+    assert h.states == [NyxState.LISTENING]
     await h.p.close()

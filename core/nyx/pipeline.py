@@ -340,7 +340,8 @@ class Pipeline:
         elif self.wake is not None and self.voice_enabled and self.wake.process(frame):
             log.info("Activación")
             clip = self.capture.prebuffer(VERIFY_CLIP_S) if self.capture is not None else []
-            await self.start_listening(self.wake_prebuffer_s)
+            verifies = bool(clip) and self.stt is not None
+            await self.start_listening(self.wake_prebuffer_s, show=not verifies)
             if self._listening is not None and clip:
                 self._listening.verify = asyncio.create_task(
                     self._verify_wake(np.concatenate(clip).astype(np.int16)), name="verify"
@@ -358,10 +359,14 @@ class Pipeline:
             text = await self.stt.transcribe(clip, prompt=STT_PROMPT)
         except STTError:
             log.warning("No se pudo verificar «Nyx»: se da por buena", exc_info=True)
+            if self._listening is not None and self.mode is Mode.LISTENING:
+                await self._set_state(NyxState.LISTENING)
             return True
         ok = has_wake_word(text)
         log.info("Verificación de «Nyx» (%d ms): %r → %s", _ms(self._clock() - t0), text, ok)
         listening = self._listening
+        if ok and listening is not None and self.mode is Mode.LISTENING:
+            await self._set_state(NyxState.LISTENING)  # ahora sí: se enciende el indicador
         if not ok and listening is not None and listening.verify is asyncio.current_task():
             log.info("Activación descartada: whisper no ha oído «Nyx»")
             self._drop_listening(cancel_verify=False)
@@ -378,8 +383,15 @@ class Pipeline:
             self.wake.reset()
 
     async def start_listening(
-        self, prebuffer_s: float = 0.0, *, followup: bool = False, manual: bool = False
+        self,
+        prebuffer_s: float = 0.0,
+        *,
+        followup: bool = False,
+        manual: bool = False,
+        show: bool = True,
     ) -> None:
+        """`show=False`: se graba ya, pero el indicador espera a que whisper confirme «Nyx»
+        (el detector propio salta más a menudo y whisper descarta casi todo)."""
         self._drop_listening()
         await self._cancel_request()
         if self.vad is not None:
@@ -402,7 +414,8 @@ class Pipeline:
             pressed_at=self._clock(),
         )
         self.mode = Mode.LISTENING
-        await self._set_state(NyxState.LISTENING)
+        if show:
+            await self._set_state(NyxState.LISTENING)
 
     async def _listen_frame(self, frame: Frame) -> None:
         listening = self._listening

@@ -15,6 +15,10 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
   - Scripts de prueba de GPU para Ollama y whisper.cpp con informe por equipo en `docs/benchmarks/`.
   - Resultados del PC de referencia (RX 7700 XT): Qwen 2.5 7B y Llama 3.1 8B al 100 % en GPU (77 y 72 tokens/s, 3/3 herramientas); whisper.cpp con Vulkan, 0,17 s por frase. LLM provisional: `qwen2.5:7b`.
   - CI en GitHub Actions (Windows): ruff, mypy, pytest, prettier, svelte-check, rustfmt y clippy.
+- Fase 4 (en curso): «Nyx» de verdad.
+  - 4a: `scripts/record_samples.py` (grabar positivos, palabras parecidas y uso normal) y `scripts/wake_eval.py` (aciertos por tipo y activaciones falsas por hora tras whisper).
+  - 4b: modelo propio entrenado solo con datos libres (voces de Piper davefx, sharvard y LibriTTS; OpenSLR 28, 61, 71 y 72; nada de los modelos ni datos de openWakeWord, que son CC BY-NC-SA). Generación, filtro con whisper, montaje con reverberación y ruido, y entrenamiento en CPU (`core/training/`).
+  - 4c: el modelo propio es el detector por defecto (`wake.engine`, `wake.sensitivity` de 1 a 10); Vosk queda como alternativa y para el «sí/no». El indicador de «escuchando» se enciende cuando whisper confirma «Nyx»: las activaciones descartadas ya no se ven. Con la voz del usuario: 88 % de aciertos (Vosk: 74 %) y 0 activaciones falsas en 30 min.
 - Fase 3c (cerrada; fase 3 cerrada el 2026-11-10): LLM con herramientas, alarmas y atajos aprendidos.
   - El LLM recibe las 20 herramientas en cada petición: para una acción devuelve un plan (una o varias llamadas, en orden) que pasa por el mismo ejecutor que el router (SafetyGuard, confirmaciones, deshacer y registro); para una pregunta, texto a trozos con la línea `[dato | contexto]` para la burbuja.
   - El ejecutor hace las esperas: tras abrir una app, si el paso siguiente usa su ventana, espera a que aparezca (`wait_for_window`). Un plan con parámetros no válidos se reintenta una vez con el error.

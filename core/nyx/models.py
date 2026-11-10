@@ -50,6 +50,24 @@ CATALOG: tuple[ModelFile, ...] = (
         size_mb=2,
         license="MIT",
     ),
+    # Rasgos del detector propio de «Nyx» (openWakeWord: código Apache-2.0; modelo base de
+    # Google, Apache-2.0). El detector entrenado va dentro de Nyx (nyx/wake/data).
+    ModelFile(
+        key="wake-melspec",
+        filename="melspectrogram.onnx",
+        url="https://github.com/dscripka/openWakeWord/releases/download/v0.5.1/melspectrogram.onnx",
+        sha256="ba2b0e0f8b7b875369a2c89cb13360ff53bac436f2895cced9f479fa65eb176f",
+        size_mb=1,
+        license="Apache-2.0",
+    ),
+    ModelFile(
+        key="wake-embedding",
+        filename="embedding_model.onnx",
+        url="https://github.com/dscripka/openWakeWord/releases/download/v0.5.1/embedding_model.onnx",
+        sha256="70d164290c1d095d1d4ee149bc5e00543250a7316b59f31d056cff7bd3075c1f",
+        size_mb=2,
+        license="Apache-2.0",
+    ),
     ModelFile(
         key="wake",
         filename="vosk-model-small-es-0.42.zip",

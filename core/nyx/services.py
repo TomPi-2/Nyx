@@ -12,6 +12,7 @@ import logging
 import time
 from collections.abc import Awaitable, Callable
 from pathlib import Path
+from typing import Any
 
 from nyx.alarms.ringer import AlarmRinger
 from nyx.alarms.scheduler import AlarmScheduler
@@ -46,6 +47,8 @@ from nyx.tts.base import TTSEngine
 from nyx.tts.piper import PiperTTS
 from nyx.tts.pocket import PocketTTS
 from nyx.tts.voices import Engine, voice_for
+from nyx.wake.base import WakeWordEngine
+from nyx.wake.own_engine import OWN_MODEL, OwnWakeWord, threshold_for
 from nyx.wake.vosk_engine import VoskWakeWord, VoskYesNo
 
 log = logging.getLogger(__name__)
@@ -165,8 +168,19 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     async def load_vad() -> SileroVAD:
         return await asyncio.to_thread(SileroVAD, MODELS["vad"].path())
 
-    async def load_wake() -> VoskWakeWord:
-        return await asyncio.to_thread(VoskWakeWord, MODELS["wake"].path(), settings.wake.word)
+    vosk_model: Any = None  # modelo de Vosk, también para el «sí / no» por voz
+
+    async def load_wake() -> WakeWordEngine:
+        vosk = await asyncio.to_thread(VoskWakeWord, MODELS["wake"].path(), settings.wake.word)
+        nonlocal vosk_model
+        vosk_model = vosk.model  # el «sí / no» por voz sigue con Vosk
+        if settings.wake.engine == "vosk":
+            return vosk
+        try:
+            return await asyncio.to_thread(own_wake_word, settings)
+        except Exception:
+            log.warning("No se pudo cargar el detector propio: se usa Vosk", exc_info=True)
+            return vosk
 
     async def nothing() -> None:
         return None
@@ -177,7 +191,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         _attempt("Transcripción (whisper)", problems, load_stt) if voice else nothing(),
         _attempt("Voz", problems, load_tts) if settings.tts.enabled else nothing(),
         _attempt("Detección de voz (Silero)", problems, load_vad) if voice else nothing(),
-        _attempt("Activación (Vosk)", problems, load_wake) if use_wake else nothing(),
+        _attempt("Activación", problems, load_wake) if use_wake else nothing(),
     )
 
     capture: AudioCapture | None = None
@@ -205,7 +219,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     ringer = AlarmRinger(bus, tts=tts, player=player)
     executor = Executor(registry, tools_ctx, action_log=ActionLog.default())
     # «Sí» / «no» por voz con el mismo modelo de Vosk que la activación.
-    yesno = VoskYesNo(wake.model) if wake is not None else None
+    yesno = VoskYesNo(vosk_model) if vosk_model is not None else None
     pipeline = Pipeline(
         bus,
         brain,
@@ -243,6 +257,16 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     if problems:
         services.notice = asyncio.create_task(_notice(bus, problems), name="startup-notice")
     return services
+
+
+def own_wake_word(settings: Settings) -> OwnWakeWord:
+    """Detector propio de «Nyx» (fase 4) con la sensibilidad de los ajustes."""
+    return OwnWakeWord(
+        OWN_MODEL,
+        MODELS["wake-melspec"].path(),
+        MODELS["wake-embedding"].path(),
+        threshold=threshold_for(settings.wake.sensitivity),
+    )
 
 
 def start_watcher(index: SystemIndex) -> IndexWatcher | None:
