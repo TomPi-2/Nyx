@@ -33,12 +33,12 @@
 {"frase": "silencia Discord", "tool": "set_volume", "args": {"mute": true}}
 {"frase": "baja el volumen de Discord al 20", "tool": "set_volume", "args": {"level": 20}}
 {"frase": "sube el volumen de Spotify", "tool": "app_action", "args": {"app": "Spotify", "action": "volume_up"}}
-{"frase": "pausa la música", "tool": "media_control", "args": {"action": "play_pause"}}
+{"frase": "pausa la música", "tool": "media_control", "args": {"action": "pause"}}
 {"frase": "siguiente canción", "tool": "media_control", "args": {"action": "next"}}
 {"frase": "pasa la siguiente canción en Spotify", "tool": "media_control", "args": {"action": "next"}}
 {"frase": "pon la anterior", "tool": "media_control", "args": {"action": "previous"}}
-{"frase": "pon música", "tool": "media_control", "args": {"action": "play_pause"}}
-{"frase": "dale al play", "tool": "media_control", "args": {"action": "play_pause"}}
+{"frase": "pon música", "tool": "media_control", "args": {"action": "play"}}
+{"frase": "dale al play", "tool": "media_control", "args": {"action": "play"}}
 {"frase": "pon el aleatorio en Spotify", "tool": "app_action", "args": {"app": "Spotify", "action": "shuffle"}}
 {"frase": "dale a me gusta a esta canción", "tool": "app_action", "args": {"action": "like"}}
 {"frase": "Haz una captura de pantalla", "tool": "screenshot"}
@@ -97,3 +97,4 @@
 {"frase": "vacía la papelera", "tipo": "no_sabe"}
 {"frase": "compra unas zapatillas en Amazon", "tipo": "no_sabe"}
 {"frase": "escribe en el chat del Valorant que voy", "tipo": "no_sabe"}
+{"frase": "pausa el vídeo de YouTube", "tool": "media_control", "args": {"action": "pause", "source": "youtube"}}

@@ -66,6 +66,7 @@ class FakeDesktop:
         mp.setattr(media, "app_sessions", lambda: sorted(self.sessions))
         mp.setattr(media, "set_app", self._set_app)
         mp.setattr(media, "press_media_key", self.keys.append)
+        mp.setattr(media, "smtc_control", lambda action, source=None: None)
 
     def _set_master(self, level: int | None = None, mute: bool | None = None) -> tuple[int, bool]:
         if level is not None:

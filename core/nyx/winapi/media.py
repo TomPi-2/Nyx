@@ -7,7 +7,11 @@ llaman desde asyncio.to_thread, así que inicializan COM ellas mismas.
 from __future__ import annotations
 
 import contextlib
+import logging
 from collections.abc import Iterator
+from typing import Any
+
+log = logging.getLogger(__name__)
 
 VK_MEDIA = {"next": 0xB0, "previous": 0xB1, "stop": 0xB2, "play_pause": 0xB3}
 
@@ -92,3 +96,61 @@ def set_app(
                 volume.SetMute(1 if mute else 0, None)
             result = round(volume.GetMasterVolume() * 100)
     return result
+
+
+# --- Control multimedia de Windows (SMTC) ---
+# Más fiable que las teclas multimedia (Opera GX, por ejemplo, las ignora) y permite elegir
+# la sesión: «pausa el vídeo de YouTube» → la del navegador, «… de Spotify» → Spotify.
+
+BROWSERS = ("opera", "chrome", "msedge", "edge", "firefox", "brave", "vivaldi", "browser")
+WEB_SOURCES = {"youtube", "twitch", "netflix", "video", "navegador", "web", "prime", "disney"}
+
+
+def _pick_session(sessions: list[Any], current: Any, source: str | None) -> Any:
+    """La sesión que encaja con `source` («youtube», «spotify»…) o, si no, la actual."""
+    if source:
+        want = source.casefold().strip()
+        ids = [(s, str(s.source_app_user_model_id).casefold()) for s in sessions]
+        if want in WEB_SOURCES:
+            for s, aumid in ids:
+                if any(b in aumid for b in BROWSERS):
+                    return s
+        for s, aumid in ids:
+            if want.replace(" ", "") in aumid.replace(" ", ""):
+                return s
+    return current or (sessions[0] if sessions else None)
+
+
+async def _smtc(action: str, source: str | None) -> str | None:
+    from winrt.windows.media.control import (
+        GlobalSystemMediaTransportControlsSessionManager as Manager,
+    )
+
+    manager = await Manager.request_async()
+    sessions = list(manager.get_sessions())
+    session = _pick_session(sessions, manager.get_current_session(), source)
+    if session is None:
+        return None
+    command = {
+        "play": session.try_play_async,
+        "pause": session.try_pause_async,
+        "play_pause": session.try_toggle_play_pause_async,
+        "next": session.try_skip_next_async,
+        "previous": session.try_skip_previous_async,
+        "stop": session.try_stop_async,
+    }[action]
+    if not await command():
+        return None
+    return str(session.source_app_user_model_id)
+
+
+def smtc_control(action: str, source: str | None = None) -> str | None:
+    """Pausa, reanuda, salta… la sesión multimedia elegida. Devuelve su app o None (sin
+    sesiones o Windows no lo permite: entonces se usan las teclas multimedia)."""
+    import asyncio
+
+    try:
+        return asyncio.run(_smtc(action, source))
+    except Exception:
+        log.debug("Control multimedia de Windows no disponible", exc_info=True)
+        return None

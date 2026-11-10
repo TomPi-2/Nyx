@@ -60,7 +60,7 @@ log = logging.getLogger(__name__)
 
 # Vocabulario para Whisper: mejora la transcripción de «Nyx» (fase 3: apps y carpetas de la caché).
 STT_PROMPT = "Nyx."
-THINKING_AFTER_S = 0.3  # «pensando» solo si la transcripción tarda (SPEC sección 3)
+THINKING_AFTER_S = 0.0  # «pensando» en cuanto acaba la frase (la forma de Nyx se divide; fase 5b)
 HOLD_S = 0.4  # mantener el atajo más que esto = hablar mientras se mantiene
 TALK_PREBUFFER_S = 0.3
 VERIFY_CLIP_S = 2.0  # audio que whisper revisa para confirmar «Nyx»
@@ -632,7 +632,9 @@ class Pipeline:
 
     async def _thinking_later(self) -> None:
         await asyncio.sleep(THINKING_AFTER_S)
-        await self._set_state(NyxState.THINKING)
+        # Una confirmación o una respuesta que ya está en marcha no se pisan.
+        if self.state in (NyxState.LISTENING, NyxState.IDLE):
+            await self._set_state(NyxState.THINKING)
 
     async def _handle_text(
         self, text: str, marks: _Marks, *, from_voice: bool, followup: bool = False
