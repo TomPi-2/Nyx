@@ -46,3 +46,14 @@ def test_window_needs_enough_audio(extractor: FeatureExtractor) -> None:
     stream.feed(np.zeros(16000, dtype=np.int16))
     window = stream.window()
     assert window is not None and window.shape == (N_EMB, EMB_DIM)
+
+
+def test_sensitivity_maps_to_threshold() -> None:
+    from nyx.wake.own_engine import threshold_for
+
+    assert threshold_for(1) == 0.9 and threshold_for(10) == 0.18
+    assert threshold_for(6) == 0.5
+    assert threshold_for(0) == 0.9 and threshold_for(99) == 0.18  # fuera de rango
+    assert [threshold_for(i) for i in range(1, 11)] == sorted(
+        (threshold_for(i) for i in range(1, 11)), reverse=True
+    )
