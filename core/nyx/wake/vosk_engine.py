@@ -21,7 +21,8 @@ DISTRACTORS = ("ni", "mix", "six", "nike", "no", "existe", "nos", "nunca", "nada
 
 
 def heard(text: str, word: str) -> bool:
-    return word.casefold() in text.casefold().split()
+    """¿Está la palabra (o frase: «oye lumen») en lo reconocido?"""
+    return f" {' '.join(word.casefold().split())} " in f" {' '.join(text.casefold().split())} "
 
 
 class VoskWakeWord:

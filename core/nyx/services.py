@@ -49,6 +49,7 @@ from nyx.tts.pocket import PocketTTS
 from nyx.tts.voices import Engine, voice_for
 from nyx.wake.activations import ActivationLog
 from nyx.wake.base import WakeWordEngine
+from nyx.wake.custom import WakePhrase, validate, vosk_vocabulary
 from nyx.wake.own_engine import OWN_MODEL, OwnWakeWord, threshold_for
 from nyx.wake.vosk_engine import VoskWakeWord, VoskYesNo
 
@@ -170,11 +171,19 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         return await asyncio.to_thread(SileroVAD, MODELS["vad"].path())
 
     vosk_model: Any = None  # modelo de Vosk, también para el «sí / no» por voz
+    wake_phrase = WakePhrase()  # «Nyx», salvo palabra personalizada válida
 
     async def load_wake() -> WakeWordEngine:
         vosk = await asyncio.to_thread(VoskWakeWord, MODELS["wake"].path(), settings.wake.word)
-        nonlocal vosk_model
+        nonlocal vosk_model, wake_phrase
         vosk_model = vosk.model  # el «sí / no» por voz sigue con Vosk
+        if custom := settings.wake.custom_word.strip():
+            check = validate(custom, vosk_vocabulary(vosk.model))
+            if check.ok:
+                wake_phrase = WakePhrase.custom(custom)
+                log.info("Palabra personalizada: «%s» %s", custom, check.warnings or "")
+                return await asyncio.to_thread(VoskWakeWord, MODELS["wake"].path(), custom)
+            problems.append(f"palabra «{custom}» no válida ({'; '.join(check.problems)})")
         if settings.wake.engine == "vosk":
             return vosk
         try:
@@ -244,6 +253,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         ringer=ringer,
         shortcuts=ShortcutStore.default(),
         activations=activations,
+        wake_phrase=wake_phrase,
     )
     log.info(
         "Servicios listos en %.1f s (voz: %s, activación: %s, respuesta hablada: %s)",
