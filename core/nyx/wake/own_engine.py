@@ -61,6 +61,13 @@ class OwnWakeWord:
         return False
 
     def reset(self) -> None:
+        """Tras una activación: se conserva el audio reciente (si no, el detector quedaría
+        ciego ~2 s mientras se llena otra vez la ventana)."""
+        self.last_score = 0.0
+        self._cooldown = REFRACTORY_S
+
+    def clear(self) -> None:
+        """Olvida también el audio (otro micrófono, otra grabación)."""
         self.features.reset()
         self.last_score = 0.0
         self._cooldown = 0.0

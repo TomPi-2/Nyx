@@ -42,6 +42,7 @@ from nyx.wake.vosk_engine import VoskWakeWord
 
 RECORDINGS = local_dir() / "training" / "grabaciones"
 VERIFY = True  # --sin-whisper: medir solo el detector
+LEAD_S = 2.0  # silencio delante de cada archivo (ver scan)
 REFRACTORY_S = 2.0  # tras una activación, Nyx escucha la orden: no se cuenta otra
 SOUNDS_THE_SAME = {"nix", "nicks"}  # homófonos de «Nyx» en las palabras parecidas
 
@@ -70,8 +71,15 @@ async def scan(
     path: Path, engine: WakeWordEngine, stt: WhisperServer, *, tail_s: float = 1.0
 ) -> tuple[list[Trigger], float]:
     """Activaciones en un archivo (con verificación de whisper) y su duración."""
+    # 2 s de silencio delante: en Nyx el micro está siempre abierto y el detector propio
+    # necesita ~2 s de audio previo para llenar su ventana (sin esto, el clip empieza ya
+    # con «Nyx» y la palabra nunca cae al final de la ventana).
+    lead = np.zeros(int(LEAD_S * SAMPLE_RATE), dtype=np.int16)
     audio = read_wav(path)
-    audio = np.concatenate([audio, np.zeros(int(tail_s * SAMPLE_RATE), dtype=np.int16)])
+    audio = np.concatenate([lead, audio, np.zeros(int(tail_s * SAMPLE_RATE), dtype=np.int16)])
+    clear = getattr(engine, "clear", None)
+    if callable(clear):
+        clear()  # cada archivo empieza de cero
     engine.reset()
     ring: deque[Frame] = deque(maxlen=int(VERIFY_CLIP_S / FRAME_S) + 1)
     triggers: list[Trigger] = []
@@ -79,7 +87,7 @@ async def scan(
     for i in range(len(audio) // FRAME_SAMPLES):
         frame = audio[i * FRAME_SAMPLES : (i + 1) * FRAME_SAMPLES]
         ring.append(frame)
-        t = (i + 1) * FRAME_S
+        t = (i + 1) * FRAME_S - LEAD_S
         if not engine.process(frame) or t < quiet_until:
             continue
         clip = np.concatenate(list(ring))
@@ -90,7 +98,7 @@ async def scan(
             triggers.append(Trigger(path.name, t, True, "(sin whisper)"))
         quiet_until = t + REFRACTORY_S
         engine.reset()
-    return triggers, len(audio) / SAMPLE_RATE - tail_s
+    return triggers, len(audio) / SAMPLE_RATE - tail_s - LEAD_S
 
 
 def tag_of(name: str) -> str:
