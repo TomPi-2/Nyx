@@ -26,6 +26,34 @@ export function pop(
   };
 }
 
+/**
+ * Se cumple cuando `el` termina de encogerse con `pop-out` (app.css), para cerrar la ventana
+ * entonces y no a mitad. Un temporizador fijo cortaba el final: la animación empieza uno o
+ * dos fotogramas después de pedirla y su último tramo es el más rápido. Hay que llamarlo
+ * antes de poner la clase `pop-out`. Si el evento no llega (ventana tapada, «reducir
+ * movimiento»), sigue igual tras un margen.
+ */
+export function popOutDone(el: HTMLElement | undefined): Promise<void> {
+  return new Promise((resolve) => {
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      el?.removeEventListener("animationend", onEnd);
+      clearTimeout(fallback);
+      // Un par de fotogramas más para que el último (tamaño 0) llegue a pintarse y al motor
+      // de cristal; con la ventana oculta no hay fotogramas, así que también con un tiempo.
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      setTimeout(resolve, 80);
+    };
+    const onEnd = (e: AnimationEvent) => {
+      if (e.target === el && e.animationName === "nyx-pop-out") finish();
+    };
+    el?.addEventListener("animationend", onEnd);
+    const fallback = setTimeout(finish, POP_OUT_MS + 500);
+  });
+}
+
 function quartOut(t: number): number {
   return 1 - (1 - t) ** 4;
 }

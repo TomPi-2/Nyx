@@ -13,7 +13,14 @@
   import type { MonitorSettings, NyxState, ServerMessage } from "$lib/protocol";
   import Indicator from "./shape/Indicator.svelte";
   import { SHAPE_PAD } from "./shape/nyxShape";
-  import { NYX_EVENT, PANEL_MOVE_MS, SHAPE_TOP, type NyxPresence } from "./panels/layout";
+  import {
+    INPUT_EVENT,
+    NYX_EVENT,
+    PANEL_MOVE_MS,
+    SHAPE_TOP,
+    type InputLayout,
+    type NyxPresence,
+  } from "./panels/layout";
 
   const HIDE_AFTER_MS = 400; // deja terminar la animación de salida antes de ocultar la ventana
   const BACKDROP_MS = 500; // cada cuánto se mira el fondo (blanco o gris)
@@ -68,19 +75,22 @@
   // todo y «coming» cuando va a aparecer. Si el panel estaba arriba, la forma espera a que
   // baje para no pisarlo.
   let bubbleOn = false;
+  /** El campo de texto está abierto (en el sitio de Nyx si no está): también hay que esperar. */
+  let inputOpen = false;
   let waitPanel = $state(false);
   let waitTimer: ReturnType<typeof setTimeout> | undefined;
   let wanted = false;
 
   function tellPanels(presence: NyxPresence) {
     void emitTo("panels", NYX_EVENT, presence);
+    void emitTo("input", NYX_EVENT, presence);
   }
 
   $effect(() => {
     const want = shown;
     if (want && !wanted) {
       tellPanels("coming");
-      if (bubbleOn && !shapeVisible) {
+      if ((bubbleOn || inputOpen) && !shapeVisible) {
         waitPanel = true;
         clearTimeout(waitTimer);
         waitTimer = setTimeout(() => (waitPanel = false), PANEL_MOVE_MS);
@@ -185,6 +195,9 @@
       moving = e.payload;
       if (e.payload === "in") movingTimer = setTimeout(() => (moving = null), MOVE_IN_MS);
     });
+    const offInput = getCurrentWebviewWindow().listen<InputLayout>(INPUT_EVENT, (e) => {
+      inputOpen = e.payload.open;
+    });
     // Atajo de hablar (Win+Alt+H): llega del proceso principal y se reenvía al núcleo.
     const offTalk = listen<boolean>("hotkey://talk", (event) => {
       connection.send({ type: "talk", pressed: event.payload });
@@ -193,6 +206,7 @@
       connection.close();
       void offTalk.then((off) => off());
       void offMove.then((off) => off());
+      void offInput.then((off) => off());
     };
   });
 </script>

@@ -101,9 +101,10 @@
     void target;
     glass.follow(PANEL_MOVE_MS + 60);
   });
-  // Al campo de texto: ¿hay un panel arriba, en su sitio? (Entonces espera a que baje.)
+  // Al campo de texto: ¿hay un panel en su sitio (arriba sin Nyx, bajo Nyx con ella)?
+  // Entonces espera a que baje.
   $effect(() => {
-    void emitTo("input", PANELS_EVENT, visible && away && !input.open);
+    void emitTo("input", PANELS_EVENT, visible && !input.open);
   });
   $effect(() => {
     void invoke("island_set_size", {

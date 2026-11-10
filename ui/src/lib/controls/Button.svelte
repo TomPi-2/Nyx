@@ -66,4 +66,11 @@
     color: var(--text-tertiary);
     cursor: default;
   }
+
+  /* El principal desactivado («Descargando…») conserva su texto oscuro, más apagado: con el
+     gris terciario sobre el fondo claro no se leía. */
+  .primary:disabled {
+    color: var(--text-on-active);
+    opacity: 0.55;
+  }
 </style>

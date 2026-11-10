@@ -1,10 +1,17 @@
 <!-- Ajustes → Ayuda (SPEC sección 13): reiniciar Nyx, repetir el asistente y los registros. -->
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import Button from "$lib/controls/Button.svelte";
   import Card from "$lib/controls/Card.svelte";
   import Row from "$lib/controls/Row.svelte";
   import { settings } from "../store.svelte";
+
+  /** El asistente va solo: Ajustes se cierra y vuelve a abrirse aquí al terminarlo. */
+  async function repeatWelcome() {
+    await invoke("welcome_open", { returnTo: "ayuda" });
+    void getCurrentWindow().close();
+  }
 </script>
 
 <Card title="Si algo va mal">
@@ -12,13 +19,15 @@
     label="Reiniciar Nyx"
     hint="Vuelve a arrancar la voz y el cerebro de Nyx. También está en el icono de la bandeja."
   >
-    <Button onclick={() => void settings.restartCore()}>Reiniciar</Button>
+    <Button disabled={settings.restarting} onclick={() => void settings.restartCore()}>
+      {settings.restarting ? "Reiniciando…" : "Reiniciar"}
+    </Button>
   </Row>
   <Row
     label="Asistente de bienvenida"
     hint="Vuelve a pasar por los pasos del primer arranque: modelos, micrófono, Nyx y tu equipo."
   >
-    <Button onclick={() => void invoke("welcome_open")}>Repetir</Button>
+    <Button onclick={() => void repeatWelcome()}>Repetir</Button>
   </Row>
 </Card>
 

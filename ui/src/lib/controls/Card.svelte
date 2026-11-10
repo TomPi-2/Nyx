@@ -1,6 +1,7 @@
 <!--
   Grupo de opciones (SPEC sección 13): tarjeta redondeada de 20 px en `glass-raised`. Las
-  filas se separan con espacio, nunca con líneas.
+  filas se separan con espacio, nunca con líneas. Sin filas (una lista vacía) solo quedan el
+  título y la nota: una tarjeta vacía se vería como una raya gris.
 -->
 <script lang="ts">
   import type { Snippet } from "svelte";
@@ -8,16 +9,18 @@
   interface Props {
     title?: string;
     note?: string;
-    children: Snippet;
+    children?: Snippet;
   }
   let { title, note, children }: Props = $props();
 </script>
 
 <section class="group">
   {#if title}<h3>{title}</h3>{/if}
-  <div class="card">
-    {@render children()}
-  </div>
+  {#if children}
+    <div class="card">
+      {@render children()}
+    </div>
+  {/if}
   {#if note}<p class="note">{note}</p>{/if}
 </section>
 

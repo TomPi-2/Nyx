@@ -10,25 +10,32 @@ use crate::{island, win32};
 
 pub const LABEL: &str = "welcome";
 const WIDTH: f64 = 760.0;
-const HEIGHT: f64 = 580.0;
+const HEIGHT: f64 = 620.0;
 
-/// Abre el asistente o, si ya está abierto, lo trae al frente.
+/// Abre el asistente o, si ya está abierto, lo trae al frente. `return_to`: sección de
+/// Ajustes que se vuelve a abrir al cerrarlo (Ajustes → Ayuda → Repetir cierra Ajustes).
 /// Asíncrono: crear una ventana desde un comando síncrono bloquea Tauri en Windows.
 #[tauri::command]
-pub async fn welcome_open(app: AppHandle) {
+pub async fn welcome_open(app: AppHandle, return_to: Option<String>) {
     if let Some(window) = app.get_webview_window(LABEL) {
         let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
         return;
     }
-    if let Err(err) = create(&app) {
+    // Solo secciones conocidas (va en la dirección de la página).
+    let return_to = return_to.filter(|s| s.chars().all(|c| c.is_ascii_lowercase()));
+    if let Err(err) = create(&app, return_to.as_deref()) {
         eprintln!("[nyx] asistente: {err}");
     }
 }
 
-fn create(app: &AppHandle) -> tauri::Result<()> {
-    let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("bienvenida".into()))
+fn create(app: &AppHandle, return_to: Option<&str>) -> tauri::Result<()> {
+    let url = match return_to {
+        Some(section) => format!("bienvenida?volver={section}"),
+        None => "bienvenida".to_string(),
+    };
+    let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App(url.into()))
         .title("Bienvenida a Nyx")
         .inner_size(WIDTH, HEIGHT)
         .transparent(true)

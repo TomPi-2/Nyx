@@ -1,26 +1,29 @@
 <!--
   Asistente de primer arranque (SPEC sección 13). Pasos: bienvenida → modelos → micrófono →
-  Nyx (color, tamaño y monitor) → tu equipo → ayudar a mejorar Nyx → listo. Todos se pueden
-  saltar; si se cierra sin terminar, vuelve a salir la próxima vez que se abra Nyx. El
-  micrófono solo se prueba (decisión 2026-11-10: grabar muestras no mejoraba la activación).
+  Nyx (color, tamaño y tinte de los paneles) → tu equipo → ayudar a mejorar Nyx → listo. En la
+  bienvenida se puede saltar entero (va a «listo»); en los demás pasos, lo que no se toque se
+  queda como está. Si se cierra sin terminar, vuelve a salir la próxima vez que se abra Nyx.
+  El micrófono solo se prueba (decisión 2026-11-10: grabar muestras no mejoraba la
+  activación). Abierto desde Ajustes → Ayuda («?volver=ayuda»), Ajustes se cierra y vuelve a
+  abrirse en Ayuda al cerrar el asistente.
 -->
 <script lang="ts">
   import { onMount } from "svelte";
+  import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import Button from "$lib/controls/Button.svelte";
   import Card from "$lib/controls/Card.svelte";
   import Row from "$lib/controls/Row.svelte";
-  import Segmented from "$lib/controls/Segmented.svelte";
   import Select from "$lib/controls/Select.svelte";
   import Slider from "$lib/controls/Slider.svelte";
   import Swatches from "$lib/controls/Swatches.svelte";
   import Toggle from "$lib/controls/Toggle.svelte";
   import { glass, glassFromSettings, glassPoke, glassShape } from "$lib/glass";
-  import { POP_IN_MS, POP_OUT_MS, pop } from "$lib/motion";
+  import { POP_IN_MS, pop, popOutDone } from "$lib/motion";
+  import { SHAPE_PAD } from "$overlay/shape/nyxShape";
   import { applyAppearance } from "$theme/apply";
-  import { NYX_COLORS, type NyxColorId } from "$theme/palette";
+  import { NYX_COLORS, PANEL_TINTS, type NyxColorId, type PanelTintId } from "$theme/palette";
   import Indicator from "$overlay/shape/Indicator.svelte";
-  import { monitors } from "../settings/monitors.svelte";
   import { settings } from "../settings/store.svelte";
   import EverythingRow from "../settings/EverythingRow.svelte";
   import UsageData from "../settings/UsageData.svelte";
@@ -33,6 +36,14 @@
     label: NYX_COLORS[value].label,
     color: NYX_COLORS[value].hex,
   }));
+  // Las muestras de tinte, con la versión del tema actual (como en Apariencia).
+  const darkTheme = matchMedia("(prefers-color-scheme: dark)").matches;
+  const TINTS = (Object.keys(PANEL_TINTS) as PanelTintId[]).map((value) => {
+    const [r, g, b] = darkTheme ? PANEL_TINTS[value].dark : PANEL_TINTS[value].light;
+    return { value, label: PANEL_TINTS[value].label, color: `rgb(${r}, ${g}, ${b})` };
+  });
+  /** Sección de Ajustes a la que volver al cerrar (si se abrió desde allí). */
+  const returnTo = new URLSearchParams(location.search).get("volver");
 
   let index = $state(0);
   let closing = $state(false);
@@ -46,6 +57,7 @@
   let modelChanged = $state(false);
   /** Tamaño de Nyx mientras se arrastra (se guarda al soltar). */
   let liveSize = $state<number | null>(null);
+  let windowEl: HTMLDivElement | undefined = $state();
 
   const step = $derived(STEPS[index]);
   const data = $derived(settings.data);
@@ -105,30 +117,39 @@
     glass.poke();
   }
 
+  /** «Saltar» en la bienvenida: directo al final (con los atajos para empezar). */
+  function skipAll() {
+    index = STEPS.length - 1;
+    glass.poke();
+  }
+
   function back() {
     index = Math.max(0, index - 1);
     glass.poke();
   }
 
   /**
-   * Se encoge como Nyx y se cierra (la ventana de verdad, al terminar la animación). `before`
-   * se hace justo antes, ya sin verse.
+   * Se encoge como Nyx y se cierra la ventana de verdad cuando termina la animación (no con
+   * un tiempo fijo, que la cortaba a medias). `extraMs` y `before` van después, ya sin verse.
    */
-  function close(before?: () => Promise<void>, wait = POP_OUT_MS) {
+  function close(before?: () => Promise<void>, extraMs = 0) {
     if (closing) return;
+    const gone = popOutDone(windowEl);
     closing = true;
-    glass.follow(POP_OUT_MS + 40);
-    setTimeout(async () => {
+    glass.followUntil(gone);
+    void gone.then(async () => {
+      if (extraMs) await new Promise((resolve) => setTimeout(resolve, extraMs));
       await before?.();
+      if (returnTo) await invoke("settings_open", { section: returnTo }).catch(() => {});
       void win.destroy();
-    }, wait);
+    });
   }
 
   function finish() {
     settings.set({ onboarding: { done: true } });
     // Se espera un poco para que el núcleo guarde «hecho» antes de reiniciarlo.
     const restart = downloaded || modelChanged;
-    close(restart ? () => settings.restartCore() : undefined, POP_OUT_MS + 400);
+    close(restart ? () => settings.restartCore() : undefined, 400);
   }
 
   // En los pasos que dependen del estado (modelos, tu equipo), se vuelve a preguntar cada
@@ -148,7 +169,6 @@
 
   onMount(() => {
     const disconnect = settings.connect();
-    const stopMonitors = monitors.watch();
     void glass.attach({ lowOpacity: 0.97 }).then(() => glass.follow(POP_IN_MS + 80));
     // Cerrar sin terminar (Alt+F4…): con animación y sin marcarlo como hecho.
     const offClose = win.onCloseRequested((event) => {
@@ -159,7 +179,6 @@
     return () => {
       settings.setup("mic_test_stop");
       disconnect();
-      stopMonitors();
       glass.detach();
       void offClose.then((off) => off());
     };
@@ -167,6 +186,7 @@
 </script>
 
 <div
+  bind:this={windowEl}
   class="window"
   class:pop-in={!closing}
   class:pop-out={closing}
@@ -205,8 +225,8 @@
           <h1>Hola, soy Nyx</h1>
           <p>
             Tu asistente de voz para Windows. Funciono en tu equipo, sin cuenta y sin mandar tu voz
-            a ningún sitio. En unos pasos lo dejamos listo; todos se pueden saltar y repetir luego
-            desde Ajustes → Ayuda.
+            a ningún sitio. En unos pasos lo dejamos listo. Si prefieres hacerlo luego, sáltalo:
+            puedes repetirlo cuando quieras desde Ajustes → Ayuda.
           </p>
         </div>
       {:else if step === "modelos"}
@@ -358,15 +378,16 @@
         {/if}
       {:else if step === "nyx"}
         <h1>Así soy yo</h1>
-        <p>Elige mi color y mi tamaño. Puedes cambiarlo cuando quieras en Ajustes → Apariencia.</p>
+        <p>Elige mi color, mi tamaño y el color de mis paneles.</p>
         {#if data}
           <div class="nyx-step">
-            <!-- Caja de tamaño fijo: la vista previa crece y encoge sin mover nada más. -->
-            <div class="stage">
+            <!-- Nyx a su tamaño real, sin fondo. La caja mide lo que el lienzo más grande
+                 (180 px × SHAPE_PAD): crece y encoge sin mover nada más. -->
+            <div class="stage" style:--stage="{180 * SHAPE_PAD}px">
               <Indicator
                 status="listening"
                 level={0}
-                size={Math.round(size * 0.6)}
+                {size}
                 backdrop={null}
                 color={data.appearance.nyx_color}
               />
@@ -396,23 +417,19 @@
                     }}
                   />
                 </Row>
-                {#if !monitors.single}
-                  <Row label="Monitor" stacked>
-                    <Segmented
-                      label="Dónde aparece Nyx"
-                      options={[
-                        { value: "cursor", label: "Sigue al ratón" },
-                        { value: "fixed", label: "Siempre en uno" },
-                      ]}
-                      value={data.appearance.monitor.follow}
-                      onchange={(follow) =>
-                        settings.set({
-                          appearance: { monitor: { ...data.appearance.monitor, follow } },
-                        })}
-                    />
-                  </Row>
-                {/if}
+                <Row label="Paneles" stacked>
+                  <Swatches
+                    label="Color de los paneles"
+                    options={TINTS}
+                    value={data.appearance.panel_tint}
+                    onchange={(panel_tint) => settings.set({ appearance: { panel_tint } })}
+                  />
+                </Row>
               </Card>
+              <p class="muted more">
+                En Ajustes → Apariencia hay más: la letra, en qué monitor aparezco y cómo se ve el
+                cristal.
+              </p>
             </div>
           </div>
         {/if}
@@ -487,11 +504,11 @@
     {/if}
     <span class="spacer"></span>
     {#if step === "hola"}
+      <Button onclick={skipAll}>Saltar</Button>
       <Button primary onclick={next}>Empezar</Button>
     {:else if step === "listo"}
       <Button primary onclick={finish}>Terminar</Button>
     {:else}
-      <Button onclick={next}>Saltar</Button>
       <Button primary onclick={next}>Siguiente</Button>
     {/if}
   </footer>
@@ -598,32 +615,39 @@
 
   .nyx-step {
     display: flex;
-    gap: 20px;
-    align-items: flex-start;
+    gap: 12px;
+    align-items: center;
   }
 
+  /* Sin fondo: solo Nyx, centrado en un hueco del tamaño de su lienzo más grande. */
   .stage {
     position: relative;
     display: grid;
     flex: none;
     place-items: center;
-    width: 210px;
-    height: 210px;
-    border-radius: 20px;
-    background: var(--glass-raised);
+    width: calc(var(--stage) - 24px);
+    height: var(--stage);
   }
 
   .stage-size {
     position: absolute;
-    bottom: 10px;
+    bottom: 0;
     font-size: 12px;
     color: var(--text-tertiary);
     font-variant-numeric: tabular-nums;
   }
 
   .controls {
+    display: flex;
     flex: 1;
+    flex-direction: column;
+    gap: 8px;
     min-width: 0;
+  }
+
+  .more {
+    margin: 0 16px;
+    line-height: 1.45;
   }
 
   .choices {
