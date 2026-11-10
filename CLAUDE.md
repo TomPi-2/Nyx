@@ -98,3 +98,4 @@ Problema conocido en este equipo: la caché de uv está en una carpeta sincroniz
 - Modelo de LLM final tras la batería de pruebas (provisional: `qwen2.5:7b`).
 - Requisitos mínimos: faltan las pruebas del portátil (RTX 3070 Laptop).
 - Ubicación fija para el tiempo (ciudad).
+- Motor gráfico de cristal, instalador propio y onda de «Nyx listo»: propuesta del 2026-11-10 en [docs/INSTALADOR-Y-MOTOR-GRAFICO.md](docs/INSTALADOR-Y-MOTOR-GRAFICO.md). Pendiente de plan y aprobación; todavía no cambia la SPEC.
