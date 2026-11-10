@@ -90,8 +90,6 @@
     /* Respuestas muy largas: se desplazan por dentro en vez de llenar la pantalla. */
     max-height: 260px;
     overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--control) transparent;
   }
 
   .note {

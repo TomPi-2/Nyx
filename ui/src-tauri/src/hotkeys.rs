@@ -1,7 +1,7 @@
 //! Atajos globales (SPEC secciones 3 y 4). Configurables en la fase 5.
 //!
 //! - Win+Alt+N: campo de texto para escribir a Nyx.
-//! - Win+Alt+H: hablar. Un toque escucha hasta que te calles; mantenerlo escucha mientras
+//! - Win+Alt+H: hablar. Un toque escucha hasta que termines de hablar; mantenerlo escucha mientras
 //!   lo mantienes. El evento llega a la isla, que lo reenvía al núcleo por el WebSocket.
 //! - Win+Alt+, (coma): abrir Ajustes (como el «Ctrl+,» de muchos programas).
 

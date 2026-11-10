@@ -109,8 +109,6 @@
     line-height: 22px;
     caret-color: var(--text);
     user-select: text;
-    scrollbar-width: thin;
-    scrollbar-color: var(--control) transparent;
   }
 
   textarea::placeholder {

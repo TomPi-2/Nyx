@@ -32,6 +32,22 @@ export const PANEL_RADIUS = 26;
 export const NYX_EVENT = "island://nyx";
 export type NyxPresence = "coming" | "gone";
 
+/**
+ * El campo de texto aparece donde empieza el cuadrado de Nyx. Si hay un panel arriba, el
+ * panel baja para ponerse debajo del campo (y lo sigue si el campo crece) y vuelve a subir
+ * cuando el campo se cierra del todo. El campo avisa a los paneles con INPUT_EVENT; los
+ * paneles le dicen con PANELS_EVENT si hay uno arriba, para que el campo espere a que baje.
+ */
+export const INPUT_EVENT = "input://layout";
+export const PANELS_EVENT = "panels://raised";
+export interface InputLayout {
+  open: boolean;
+  /** Borde inferior del campo, en px desde arriba del monitor. */
+  bottom: number;
+}
+/** Alto del campo de texto con 6 líneas (panels/InputPanel.svelte). */
+export const INPUT_MAX_HEIGHT = 166;
+
 /** Lo que suele tardar la forma en irse (solo para la vista previa de la galería). */
 export const SHAPE_EXIT_MS = 450;
 /** Lo que tarda el panel en subir o bajar. */

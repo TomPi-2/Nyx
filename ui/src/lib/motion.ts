@@ -7,3 +7,26 @@
 
 export const POP_IN_MS = 520;
 export const POP_OUT_MS = 360;
+
+/**
+ * La misma animación como transición de Svelte (`in:pop`, `out:pop`), para lo que aparece y
+ * desaparece dentro de una ventana: avisos de Ajustes, desplegables… Al salir se recorre al
+ * revés, así que se hincha un poco antes de encogerse.
+ */
+export function pop(
+  _node: Element,
+  { duration = POP_IN_MS }: { duration?: number } = {},
+): { duration: number; easing: (t: number) => number; css: (t: number) => string } {
+  return {
+    duration,
+    easing: backOut,
+    css: (t) => `scale: ${t}; opacity: ${Math.min(1, t * 2.5)}`,
+  };
+}
+
+/** Pasa un poco de 1 y vuelve (el rebote del muelle). */
+function backOut(t: number): number {
+  const s = 1.4;
+  const u = t - 1;
+  return u * u * ((s + 1) * u + s) + 1;
+}
