@@ -7,39 +7,42 @@
 <script lang="ts">
   import { onMount, type Component } from "svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
+  import type { SettingsSection } from "$lib/protocol";
   import { glass, glassFromSettings, glassPoke, glassShape } from "$lib/glass";
   import Apariencia from "./sections/Apariencia.svelte";
   import ModoPartida from "./sections/ModoPartida.svelte";
   import Respuestas from "./sections/Respuestas.svelte";
   import { settings } from "./store.svelte";
 
-  type SectionId = "apariencia" | "respuestas" | "partida";
-  const SECTIONS: { id: SectionId; label: string; component: Component }[] = [
+  const SECTIONS: { id: SettingsSection; label: string; component: Component }[] = [
     { id: "apariencia", label: "Apariencia", component: Apariencia },
     { id: "respuestas", label: "Respuestas", component: Respuestas },
     { id: "partida", label: "Modo partida", component: ModoPartida },
   ];
   const RADIUS = 28;
 
-  let current = $state<SectionId>("apariencia");
+  // «Abre tus ajustes del modo partida»: la sección llega en la dirección (ventana nueva) o
+  // en un evento (ya abierta).
+  const fromUrl = new URLSearchParams(location.search).get("section");
+  let current = $state<SettingsSection>(SECTIONS.find((s) => s.id === fromUrl)?.id ?? "apariencia");
   let maximized = $state(false);
   const section = $derived(SECTIONS.find((s) => s.id === current)!);
   const win = getCurrentWindow();
 
-  // El cristal de Ajustes sigue los ajustes de Apariencia. Es una ventana que puede estar
-  // abierta mucho rato: «Siempre» se queda en «al interactuar» para no redibujar sin parar.
+  // El cristal de Ajustes sigue los ajustes de Apariencia, igual que los paneles. Si otra
+  // ventana la tapa del todo o se minimiza, el motor deja de dibujarla solo.
   $effect(() => {
     const info = settings.data?.appearance.glass;
-    if (!info) return;
-    // Misma regla que los paneles (con «Mostrar Nyx en capturas», Bajo).
-    const options = glassFromSettings(info);
-    if (options.motion === "siempre") options.motion = "interaccion";
-    glass.set(options);
+    if (info) glass.set(glassFromSettings(info));
   });
 
   onMount(() => {
     const disconnect = settings.connect();
-    void glass.attach({ motion: "interaccion" });
+    void glass.attach();
+    const offSection = win.listen<string>("settings://section", (e) => {
+      const found = SECTIONS.find((s) => s.id === e.payload);
+      if (found) current = found.id;
+    });
     const updateMax = async () => {
       maximized = await win.isMaximized();
       glass.refresh();
@@ -50,6 +53,7 @@
       disconnect();
       glass.detach();
       void offResize.then((off) => off());
+      void offSection.then((off) => off());
     };
   });
 </script>

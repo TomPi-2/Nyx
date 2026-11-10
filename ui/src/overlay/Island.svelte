@@ -108,6 +108,10 @@
       case "settings":
         size = msg.data.appearance.indicator_size; // cambiado en Ajustes → Apariencia
         break;
+      case "open_settings":
+        // «Abre tus ajustes»: solo esta ventana lo hace (todas reciben el mensaje).
+        void invoke("settings_open", { section: msg.section });
+        break;
       case "game":
         game = { active: msg.active, mode: msg.mode };
         break;

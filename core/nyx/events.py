@@ -63,6 +63,13 @@ class BubbleHidden:
 
 
 @dataclass(frozen=True, slots=True)
+class OpenSettingsWindow:
+    """Abrir la ventana de Ajustes de Nyx (herramienta open_nyx_settings)."""
+
+    section: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class SettingsChanged:
     """Ajustes actuales tras leerlos o cambiarlos desde Ajustes (SPEC sección 13)."""
 

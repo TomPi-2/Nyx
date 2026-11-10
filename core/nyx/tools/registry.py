@@ -45,6 +45,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.media_control import MediaControl
     from nyx.tools.move_files import MoveFiles
     from nyx.tools.open_app import OpenApp
+    from nyx.tools.open_nyx_settings import OpenNyxSettings
     from nyx.tools.open_path import OpenPath
     from nyx.tools.open_settings import OpenSettings
     from nyx.tools.open_url import OpenUrl
@@ -66,6 +67,7 @@ def default_registry() -> ToolRegistry:
             WaitForWindow(),
             OpenUrl(),
             OpenSettings(),
+            OpenNyxSettings(),
             OpenPath(),
             SetVolume(),
             MediaControl(),

@@ -13,6 +13,7 @@ mod capture;
 mod compositor;
 mod engine;
 pub mod gallery;
+mod occlusion;
 pub mod quality;
 mod renderer;
 

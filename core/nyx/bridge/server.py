@@ -28,6 +28,7 @@ from nyx.bridge.protocol import (
     GlassInfo,
     Hello,
     LevelMsg,
+    OpenSettingsMsg,
     SettingsGetMsg,
     SettingsMsg,
     SettingsSetMsg,
@@ -46,6 +47,7 @@ from nyx.events import (
     BubbleHidden,
     BubbleShown,
     NyxState,
+    OpenSettingsWindow,
     SettingsChanged,
     SettingsRequested,
     StateChanged,
@@ -99,6 +101,7 @@ class UIBridge:
             bus.subscribe(BubbleHidden, self._on_bubble_hidden),
             bus.subscribe(GameStateChanged, self._on_game),
             bus.subscribe(SettingsChanged, self._on_settings),
+            bus.subscribe(OpenSettingsWindow, self._on_open_settings),
         ]
 
     @property
@@ -211,6 +214,14 @@ class UIBridge:
                 expires_s=event.expires_s,
             )
         )
+
+    async def _on_open_settings(self, event: OpenSettingsWindow) -> None:
+        # Una sección desconocida abre la primera (lo valida el propio mensaje).
+        try:
+            msg = OpenSettingsMsg.model_validate({"section": event.section})
+        except ValidationError:
+            msg = OpenSettingsMsg()
+        await self.broadcast(msg)
 
     async def _on_settings(self, event: SettingsChanged) -> None:
         # Las ventanas que se abran después reciben ya los valores nuevos en «welcome».
