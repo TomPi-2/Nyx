@@ -21,7 +21,7 @@ Comparación de los dos equipos de prueba y requisitos que salen de ella. Inform
 | LLM: primer token (script) | 0,021 s | 0,021 s | < 1,5 s |
 | LLM: velocidad | 77 tokens/s | 83 tokens/s | > 30 |
 | LLM: herramienta correcta | 3/3 | 3/3 | 3/3 |
-| Whisper large-v3-turbo q5 (Vulkan) | 0,17 s por frase | **pendiente** (se cae en la Radeon integrada, ver abajo) | ≤ 0,3 s |
+| Whisper large-v3-turbo q5 (Vulkan) | 0,17 s por frase | **pendiente** (el servidor se cae, ver abajo) | ≤ 0,3 s |
 | App: primer token, petición escrita | — | 0,31–0,66 s (8 peticiones) | < 1,5 s |
 | App: acción por regla (escrita) | — | 3 ms (ajustes), 546 ms (volumen) | < 500 ms |
 | App: arranque hasta «servicios listos» | — | 6,5–7,9 s (una vez 15,2 s) | < 10 s |
@@ -38,15 +38,19 @@ Notas:
 - El volumen tardó 546 ms en una petición escrita, así que es el tiempo de la propia acción, no del reconocimiento de voz. Hay que ver si se repite.
 - Falta la latencia de voz de extremo a extremo (fin de la frase → acción y → primera palabra hablada) en el portátil, porque Whisper no arrancó.
 
-### Whisper en un portátil con dos tarjetas
+### Por qué Whisper no arranca en el portátil
 
-whisper.cpp numera las tarjetas Vulkan con la Radeon integrada en el 0 y la RTX en el 1. Sin `--device` usa la 0 y el servidor se cae al arrancar, tanto en `check_whisper.py` como en la app (apuntado en `docs/ERRORES.md`). Para medirlo mientras tanto:
+El `whisper-server.exe` se copió del sobremesa, y allí se compiló con la opción por defecto `GGML_NATIVE=ON`. Con ella usa las instrucciones del Ryzen 7 7700X (AVX-512), que el Ryzen 7 6800H no tiene. Al arrancar se cae con 0xC000001D (instrucción no válida) en `ggml-cpu.dll`, tanto en la Radeon integrada como en la RTX. No tiene que ver con la gráfica.
+
+Arreglo: recompilar en el sobremesa con las opciones de `README.md` (sección 3), copiar otra vez la carpeta `Release` entera a `%LOCALAPPDATA%\Nyx\whisper\` y repetir la prueba en el portátil:
 
 ```powershell
-$env:GGML_VK_VISIBLE_DEVICES = "1"
 uv run python scripts/check_whisper.py --server $env:LOCALAPPDATA\Nyx\whisper\whisper-server.exe --model $env:LOCALAPPDATA\Nyx\models\ggml-large-v3-turbo-q5_0.bin
-Remove-Item Env:GGML_VK_VISIBLE_DEVICES
 ```
+
+Si `backend` nombra la Radeon integrada, repetirla con `$env:GGML_VK_VISIBLE_DEVICES = "1"`.
+
+Importa también para los usuarios: el whisper-server que se distribuya con Nyx tiene que compilarse igual, o se caerá en cualquier procesador distinto del que lo compiló.
 
 ## Requisitos (provisionales)
 

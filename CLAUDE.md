@@ -101,6 +101,6 @@ Errores vistos al usar Nyx: se apuntan en [docs/ERRORES.md](docs/ERRORES.md) y s
 
 - Ajuste fino de la paleta de grises sobre fondos reales.
 - Modelo de LLM final tras la batería de pruebas (provisional: `qwen2.5:7b`).
-- Requisitos mínimos: provisionales en la SPEC (sección 14) y en `docs/benchmarks/requisitos.md`. Falta medir Whisper y la latencia de voz en el portátil (whisper-server se cae en la Radeon integrada, ver `docs/ERRORES.md`).
+- Requisitos mínimos: provisionales en la SPEC (sección 14) y en `docs/benchmarks/requisitos.md`. Falta medir Whisper y la latencia de voz en el portátil (el whisper-server.exe compilado en el sobremesa usa instrucciones que el procesador del portátil no tiene; ver `docs/ERRORES.md`).
 - Ubicación fija para el tiempo (ciudad).
 - Instalador propio y onda de «Nyx listo»: propuesta del 2026-11-10 en [docs/INSTALADOR-Y-MOTOR-GRAFICO.md](docs/INSTALADOR-Y-MOTOR-GRAFICO.md) (el motor ya está en la SPEC). Pendiente de plan y aprobación.
