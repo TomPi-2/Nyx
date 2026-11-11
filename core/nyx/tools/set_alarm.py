@@ -17,22 +17,14 @@ from nyx.tools.base import Category, GamePolicy, Params, Risk, Tool, ToolContext
 
 
 class SetAlarmParams(Params):
-    time: str = Field(
-        pattern=r"^([01]?\d|2[0-3]):[0-5]\d$", description="Hora en formato 24 h (HH:MM)"
-    )
-    day: Literal["today", "tomorrow"] | None = Field(
-        default=None, description="Solo si el usuario dice «mañana» (o «hoy»)"
-    )
-    label: str = Field(default="", max_length=100, description="Qué recordar al sonar")
+    time: str = Field(pattern=r"^([01]?\d|2[0-3]):[0-5]\d$", description="Hora 24 h (HH:MM)")
+    day: Literal["today", "tomorrow"] | None = Field(default=None, description="Día (hoy o mañana)")
+    label: str = Field(default="", max_length=100, description="Texto del recordatorio")
 
 
 class SetAlarm(Tool[SetAlarmParams]):
     name = "set_alarm"
-    description = (
-        "Pone una alarma o un recordatorio a una hora. Ej.: «pon una alarma a las 7:30» "
-        "(time=07:30), «despiértame mañana a las 8» (time=08:00, day=tomorrow), «recuérdame "
-        "a las 5 de la tarde llamar a mamá» (time=17:00, label=llamar a mamá)."
-    )
+    description = "Pone alarma o recordatorio. Ej.: «alarma a las 7:30» (time=07:30)."
     risk = Risk.GREEN
     game_policy = GamePolicy.ALLOWED
     category = Category.TIME

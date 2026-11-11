@@ -34,8 +34,8 @@ _NOT_TARGETS = {"nyx-ui.exe", "nyx.exe"}
 
 class AppActionParams(Params):
     action: str = Field(description="Acción: " + ", ".join(ALL_ACTIONS))
-    app: str | None = Field(default=None, max_length=100, description="App (si no, la activa)")
-    times: int = Field(default=1, ge=1, le=10, description="Veces (p. ej. subir mucho = 3)")
+    app: str | None = Field(default=None, max_length=100, description="App (vacío = activa)")
+    times: int = Field(default=1, ge=1, le=10, description="Cuántas veces")
 
     @field_validator("action")
     @classmethod
@@ -52,13 +52,8 @@ def game_processes(ctx: ToolContext) -> set[str]:
 class AppAction(Tool[AppActionParams]):
     name = "app_action"
     description = (
-        "Hace algo dentro de una app abierta. Ej.: «abre una pestaña nueva en el bloc de "
-        "notas» (app=Bloc de notas, action=new_tab), «cierra esta pestaña» (action=close_tab), "
-        "«sube el volumen de Spotify» (app=Spotify, action=volume_up), «silencia el micro en "
-        "Discord» (app=Discord, action=toggle_mute), «abre una ventana de incógnito en Chrome» "
-        "(app=Chrome, action=incognito), «recarga la página» (action=reload), «dale a me gusta "
-        "a esta canción» (app=Spotify, action=like), «amplía la página» (action=zoom_in), "
-        "«busca un canal en Discord» (app=Discord, action=quick_switcher). Nunca en juegos."
+        "Acción dentro de una app abierta. Ej.: «amplía la página» (action=zoom_in), "
+        "«busca un canal en Discord» (app=Discord, action=quick_switcher)."
     )
     risk = Risk.YELLOW
     game_policy = GamePolicy.BLOCKED

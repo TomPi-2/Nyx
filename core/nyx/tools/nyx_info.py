@@ -65,17 +65,14 @@ class NyxInfoParams(Params):
     topic: str = Field(
         default="",
         max_length=100,
-        description="De qué: qué sabes hacer, modo partida, ajustes, atajos, lo que nunca "
-        "haces, privacidad, quién eres. Vacío = qué sabes hacer",
+        description="Apartado (modo partida, ajustes, privacidad…)",
     )
 
 
 class NyxInfo(Tool[NyxInfoParams]):
     name = "nyx_info"
     description = (
-        "Explica cosas sobre ti, Nyx: qué sabes hacer, cómo funcionas en partida, qué hay en "
-        "tus ajustes, tus atajos y lo que nunca haces. Úsala para responder, no abre nada. Ej.: "
-        "«¿qué puedes hacer?», «explícame tu modo partida» (topic=modo partida)."
+        "Explica qué hace Nyx o sus ajustes. Ej.: «explícame tu modo partida» (topic=modo partida)."
     )
     risk = Risk.GREEN
     game_policy = GamePolicy.ALLOWED

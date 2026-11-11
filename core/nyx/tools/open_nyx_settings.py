@@ -28,22 +28,12 @@ Section = Literal[
 
 
 class OpenNyxSettingsParams(Params):
-    section: Section = Field(
-        default="",
-        description=(
-            "Sección: apariencia, activacion (palabra «Nyx»), voz, respuestas, partida "
-            "(modo partida), cerebro (modelo), cache, privacidad o ayuda. Vacío = la primera"
-        ),
-    )
+    section: Section = Field(default="", description="Sección (vacío = primera)")
 
 
 class OpenNyxSettings(Tool[OpenNyxSettingsParams]):
     name = "open_nyx_settings"
-    description = (
-        "Abre los Ajustes de Nyx (los tuyos, no la Configuración de Windows). Ej.: «abre tus "
-        "ajustes», «abre los ajustes de Nyx», «tu configuración del modo partida» "
-        "(section=partida)."
-    )
+    description = "Abre los Ajustes de Nyx. Ej.: «tus ajustes de partida» (section=partida)."
     risk = Risk.GREEN
     # Como abrir cualquier ventana: con un juego abierto, al terminar la partida.
     game_policy = GamePolicy.DEFERRED

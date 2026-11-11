@@ -60,19 +60,13 @@ MAX_ITEMS = 500
 
 
 class FileSelection(Params):
-    folder: str = Field(
-        min_length=1, max_length=1000, description="Carpeta de origen (Descargas, Escritorio…)"
-    )
-    names: list[str] | None = Field(
-        default=None, max_length=50, description="Nombres de archivos concretos (o parte)"
-    )
-    newest: int | None = Field(
-        default=None, ge=1, le=MAX_ITEMS, description="Solo los N más recientes"
-    )
-    kind: FileKind | None = Field(default=None, description="Solo de este tipo")
-    extension: str | None = Field(default=None, max_length=10, description="p. ej. pdf")
-    all: bool = Field(default=False, description="Todos los archivos de la carpeta")
-    include_folders: bool = Field(default=False, description="Incluir también subcarpetas")
+    folder: str = Field(min_length=1, max_length=1000, description="Carpeta")
+    names: list[str] | None = Field(default=None, max_length=50, description="Nombres")
+    newest: int | None = Field(default=None, ge=1, le=MAX_ITEMS, description="Últimos N")
+    kind: FileKind | None = Field(default=None, description="Tipo")
+    extension: str | None = Field(default=None, max_length=10, description="Extensión")
+    all: bool = Field(default=False, description="Todos")
+    include_folders: bool = Field(default=False, description="Incluir carpetas")
 
 
 def resolve_folder(ctx: ToolContext, target: str) -> Path | ToolResult:

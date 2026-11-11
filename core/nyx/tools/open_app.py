@@ -13,19 +13,13 @@ from nyx.winapi import focus, launch
 
 
 class OpenAppParams(Params):
-    name: str = Field(min_length=1, max_length=100, description="Nombre de la app o del juego")
-    focus: bool = Field(
-        default=True,
-        description="Traer la ventana al frente; false si piden abrirlo en segundo plano",
-    )
+    name: str = Field(min_length=1, max_length=100, description="Nombre de la app")
+    focus: bool = Field(default=True, description="Traer al frente")
 
 
 class OpenApp(Tool[OpenAppParams]):
     name = "open_app"
-    description = (
-        "Abre una aplicación o un juego instalado. Ej.: «abre Spotify», «abre el Valorant», "
-        "«lanza Visual Studio Code», «abre Discord en segundo plano» (focus=false)."
-    )
+    description = "Abre una app o juego instalado. Ej.: «abre Spotify» (name=Spotify)."
     risk = Risk.GREEN
     game_policy = GamePolicy.DEFERRED
     category = Category.APPS

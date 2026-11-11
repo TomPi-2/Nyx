@@ -13,10 +13,8 @@ from nyx.tools.transfer import Plan, TransferParams, move_all, plan, targets
 class MoveFiles(Tool[TransferParams]):
     name = "move_files"
     description = (
-        "Mueve archivos a otra carpeta. Ej.: «mueve los últimos 5 archivos de Descargas a "
-        "Documentos» (folder=Descargas, newest=5, destination=Documentos); «muévelo a "
-        "Imágenes» justo después de encontrar foto.png en Descargas (folder=Descargas, "
-        "names=[foto.png], destination=Imágenes)."
+        "Mueve archivos a otra carpeta. Ej.: «mueve los 5 últimos a Documentos» (newest=5); "
+        "«muévelo a Imágenes» tras ver foto.png (names=[foto.png])."
     )
     risk = Risk.YELLOW
     game_policy = GamePolicy.DEFERRED

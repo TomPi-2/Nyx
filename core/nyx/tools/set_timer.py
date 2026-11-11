@@ -21,7 +21,7 @@ class SetTimerParams(Params):
     hours: int = Field(default=0, ge=0, le=24)
     minutes: int = Field(default=0, ge=0, le=24 * 60)
     seconds: int = Field(default=0, ge=0, le=3600)
-    label: str = Field(default="", max_length=100, description="Qué recordar al sonar")
+    label: str = Field(default="", max_length=100, description="Texto del recordatorio")
 
     @model_validator(mode="after")
     def some_time(self) -> Self:
@@ -37,9 +37,8 @@ class SetTimerParams(Params):
 class SetTimer(Tool[SetTimerParams]):
     name = "set_timer"
     description = (
-        "Pone un temporizador. Ej.: «temporizador de 5 minutos» (minutes=5), «avísame en "
-        "media hora» (minutes=30), «recuérdame en 10 minutos sacar la pizza» (minutes=10, "
-        "label=sacar la pizza)."
+        "Pone un temporizador. Ej.: «recuérdame en 10 min sacar la pizza» "
+        "(minutes=10, label=sacar la pizza)."
     )
     risk = Risk.GREEN
     game_policy = GamePolicy.ALLOWED

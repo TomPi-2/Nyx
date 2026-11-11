@@ -180,22 +180,20 @@ def _patch(path: str, value: Any) -> dict[str, Any]:
 
 
 class NyxControlParams(Params):
-    setting: SettingName = Field(description="Qué ajuste de Nyx cambiar")
+    setting: SettingName = Field(description="Ajuste de Nyx")
     value: str = Field(
         min_length=1,
         max_length=40,
-        description="El valor tal como lo dice el usuario: «baja», «más despacio», «solo voz», "
-        "«turquesa», «sí», «no», «más grande», un número…",
+        description="Valor dicho: «mínimo», «más despacio», «solo voz», «turquesa»…",
     )
 
 
 class NyxControl(Tool[NyxControlParams]):
     name = "nyx_control"
     description = (
-        "Cambia un ajuste tuyo, de Nyx. Ej.: «baja la calidad del cristal al mínimo» "
-        "(setting=calidad del cristal, value=mínimo), «habla más despacio» (setting=velocidad "
-        "de la voz, value=más despacio), «ponte de color turquesa» (setting=color, "
-        "value=turquesa), «en partida solo por voz» (setting=modo partida, value=solo voz)."
+        "Cambia un ajuste tuyo, de Nyx. Ej.: «habla más despacio» (setting=velocidad de la "
+        "voz, value=más despacio), «cuando juegue, solo por voz» (setting=modo partida, "
+        "value=solo voz)."
     )
     risk = Risk.GREEN
     game_policy = GamePolicy.ALLOWED

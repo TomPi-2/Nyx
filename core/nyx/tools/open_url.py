@@ -18,13 +18,8 @@ _DOMAIN = re.compile(r"^(?:https?://)?(?:[\w-]+\.)+[a-z]{2,}(?:[/?#]\S*)?$", re.
 
 
 class OpenUrlParams(Params):
-    target: str = Field(
-        min_length=1, max_length=2000, description="Nombre de la web (YouTube, Gmail…) o dirección"
-    )
-    focus: bool = Field(
-        default=True,
-        description="Traer la ventana al frente; false si piden abrirlo en segundo plano",
-    )
+    target: str = Field(min_length=1, max_length=2000, description="Web o dirección")
+    focus: bool = Field(default=True, description="Traer al frente")
 
 
 def to_url(target: str) -> str | None:
@@ -38,10 +33,7 @@ def to_url(target: str) -> str | None:
 
 class OpenUrl(Tool[OpenUrlParams]):
     name = "open_url"
-    description = (
-        "Abre una página web en el navegador. Ej.: «abre YouTube», «abre Claude en el "
-        "navegador», «entra en marca.com»."
-    )
+    description = "Abre una web en el navegador. Ej.: «abre YouTube» (target=YouTube)."
     risk = Risk.GREEN
     game_policy = GamePolicy.DEFERRED
     category = Category.WEB

@@ -35,9 +35,7 @@ _UNSAVED = re.compile(
 
 
 class CloseAppParams(Params):
-    name: str | None = Field(
-        default=None, max_length=100, description="App que cerrar; vacío = la ventana activa"
-    )
+    name: str | None = Field(default=None, max_length=100, description="App (vacío = activa)")
 
 
 def has_unsaved_changes(title: str) -> bool:
@@ -53,10 +51,7 @@ class Closing:
 
 class CloseApp(Tool[CloseAppParams]):
     name = "close_app"
-    description = (
-        "Cierra una aplicación (como pulsar la X). Ej.: «cierra Spotify», «cierra esta "
-        "ventana» (name vacío). Si tiene cambios sin guardar, pide confirmación."
-    )
+    description = "Cierra una aplicación. Ej.: «cierra Spotify» (name=Spotify)."
     risk = Risk.YELLOW
     game_policy = GamePolicy.BLOCKED
     category = Category.APPS

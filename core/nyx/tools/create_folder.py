@@ -25,10 +25,8 @@ _RESERVED = {"con", "prn", "aux", "nul"} | {f"{d}{i}" for d in ("com", "lpt") fo
 
 
 class CreateFolderParams(Params):
-    name: str = Field(min_length=1, max_length=200, description="Nombre de la carpeta nueva")
-    parent: str = Field(
-        default="Documentos", max_length=1000, description="Dónde crearla (Documentos, Escritorio…)"
-    )
+    name: str = Field(min_length=1, max_length=200, description="Nombre de la carpeta")
+    parent: str = Field(default="Documentos", max_length=1000, description="Carpeta donde crearla")
 
 
 def valid_name(name: str) -> str | None:
@@ -41,10 +39,7 @@ def valid_name(name: str) -> str | None:
 
 class CreateFolder(Tool[CreateFolderParams]):
     name = "create_folder"
-    description = (
-        "Crea una carpeta. Ej.: «crea una carpeta en Documentos llamada Fondos» "
-        "(name=Fondos, parent=Documentos)."
-    )
+    description = "Crea una carpeta. Ej.: «crea Fondos en Imágenes» (name=Fondos, parent=Imágenes)."
     risk = Risk.GREEN
     game_policy = GamePolicy.ALLOWED
     category = Category.FILES

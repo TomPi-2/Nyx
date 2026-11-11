@@ -15,12 +15,10 @@ DEFAULT_STEP = 10
 
 
 class SetVolumeParams(Params):
-    level: int | None = Field(default=None, ge=0, le=100, description="Volumen exacto (0–100)")
-    change: int | None = Field(
-        default=None, ge=-100, le=100, description="Subir (+) o bajar (−) tantos puntos"
-    )
-    mute: bool | None = Field(default=None, description="true = silenciar, false = quitar silencio")
-    app: str | None = Field(default=None, max_length=100, description="Solo esta app (Spotify…)")
+    level: int | None = Field(default=None, ge=0, le=100, description="Nivel (0–100)")
+    change: int | None = Field(default=None, ge=-100, le=100, description="Subir o bajar")
+    mute: bool | None = Field(default=None, description="Silenciar")
+    app: str | None = Field(default=None, max_length=100, description="Solo esta app")
 
     @model_validator(mode="after")
     def one_action(self) -> Self:
@@ -33,10 +31,7 @@ class SetVolumeParams(Params):
 
 class SetVolume(Tool[SetVolumeParams]):
     name = "set_volume"
-    description = (
-        "Cambia el volumen. Ej.: «sube el volumen» (change=10), «pon el volumen al 40» "
-        "(level=40), «silencia» (mute=true), «baja Spotify» (app=Spotify, change=-10)."
-    )
+    description = "Cambia o silencia el volumen. Ej.: «pon el volumen al 40» (level=40)."
     risk = Risk.GREEN
     game_policy = GamePolicy.ALLOWED
     category = Category.AUDIO

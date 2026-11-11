@@ -30,19 +30,13 @@ _NOT_TARGETS = {"nyx-ui.exe", "nyx.exe"}
 
 
 class SendHotkeyParams(Params):
-    keys: str = Field(
-        min_length=1, max_length=40, description="Atajo, p. ej. ctrl+t o ctrl+shift+n"
-    )
-    app: str | None = Field(default=None, max_length=100, description="App donde pulsarlo")
+    keys: str = Field(min_length=1, max_length=40, description="Atajo (p. ej. ctrl+s)")
+    app: str | None = Field(default=None, max_length=100, description="App (vacío = activa)")
 
 
 class SendHotkey(Tool[SendHotkeyParams]):
     name = "send_hotkey"
-    description = (
-        "Pulsa un atajo de teclado en una app. Ej.: «abre una pestaña nueva en el bloc de "
-        "notas» (keys=ctrl+t, app=Bloc de notas), «nueva pestaña en Chrome» (keys=ctrl+t, "
-        "app=Chrome), «guarda el documento» (keys=ctrl+s), «pantalla completa» (keys=f11)."
-    )
+    description = "Pulsa un atajo de teclado en una app. Ej.: «pulsa control s» (keys=ctrl+s)."
     risk = Risk.YELLOW
     game_policy = GamePolicy.BLOCKED
     category = Category.WINDOWS

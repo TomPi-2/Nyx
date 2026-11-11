@@ -13,23 +13,13 @@ from nyx.winapi import focus, launch
 
 
 class OpenSettingsParams(Params):
-    page: str = Field(
-        default="",
-        max_length=100,
-        description="Página: ratón, sonido, pantalla, wifi, bluetooth… Vacío = Configuración",
-    )
-    focus: bool = Field(
-        default=True,
-        description="Traer la ventana al frente; false si piden abrirlo en segundo plano",
-    )
+    page: str = Field(default="", max_length=100, description="Página (sonido, wifi, ratón…)")
+    focus: bool = Field(default=True, description="Traer al frente")
 
 
 class OpenSettings(Tool[OpenSettingsParams]):
     name = "open_settings"
-    description = (
-        "Abre una página de la Configuración de Windows. Ej.: «abre la configuración del "
-        "ratón», «ajustes de sonido», «abre Windows Update»."
-    )
+    description = "Abre la Configuración de Windows. Ej.: «ajustes de sonido» (page=sonido)."
     risk = Risk.GREEN
     game_policy = GamePolicy.DEFERRED
     category = Category.SYSTEM

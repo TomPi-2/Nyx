@@ -15,14 +15,8 @@ from nyx.tools.base import Category, GamePolicy, Params, Risk, Tool, ToolContext
 
 
 class PendingParams(Params):
-    action: Literal["list", "cancel"] = Field(
-        default="list", description="list: decir qué hay pendiente · cancel: quitar algo"
-    )
-    which: str = Field(
-        default="",
-        max_length=100,
-        description="Al cancelar: qué quitar («ajustes», «Discord», «1») o vacío para todo",
-    )
+    action: Literal["list", "cancel"] = Field(default="list", description="Ver o cancelar")
+    which: str = Field(default="", max_length=100, description="Qué cancelar (vacío = todo)")
 
 
 def _pick(summaries: list[str], which: str) -> int | None:
@@ -41,8 +35,7 @@ def _pick(summaries: list[str], which: str) -> int | None:
 class Pending(Tool[PendingParams]):
     name = "pending"
     description = (
-        "Lo que dejaste para después de la partida: verlo («¿qué tienes pendiente?») o "
-        "quitarlo («olvida lo de los ajustes», «no hagas nada de lo pendiente»: which vacío)."
+        "Ve o cancela lo diferido de la partida. Ej.: «¿qué tienes pendiente?» (action=list)."
     )
     risk = Risk.GREEN
     game_policy = GamePolicy.ALLOWED

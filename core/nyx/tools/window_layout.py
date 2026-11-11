@@ -15,10 +15,8 @@ Action = Literal["maximize", "minimize", "restore", "left", "right", "next_monit
 
 
 class WindowLayoutParams(Params):
-    action: Action = Field(description="Qué hacer con la ventana")
-    name: str | None = Field(
-        default=None, max_length=100, description="App o ventana; vacío = la ventana activa"
-    )
+    action: Action = Field(description="Posición o estado")
+    name: str | None = Field(default=None, max_length=100, description="App (vacío = activa)")
 
 
 def apply(hwnd: int, action: Action) -> None:
@@ -46,9 +44,8 @@ def apply(hwnd: int, action: Action) -> None:
 class WindowLayout(Tool[WindowLayoutParams]):
     name = "window_layout"
     description = (
-        "Coloca una ventana: maximizar, minimizar, restaurar, a la mitad izquierda o derecha, "
-        "o al otro monitor. Ej.: «maximiza Chrome», «pon esta ventana a la izquierda», "
-        "«mueve Discord al otro monitor»."
+        "Coloca o mueve una ventana. Ej.: «Discord al otro monitor» "
+        "(name=Discord, action=next_monitor)."
     )
     risk = Risk.GREEN
     game_policy = GamePolicy.DEFERRED

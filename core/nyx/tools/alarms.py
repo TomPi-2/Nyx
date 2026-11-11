@@ -49,11 +49,7 @@ class ListAlarmsParams(Params):
 
 class ListAlarms(Tool[ListAlarmsParams]):
     name = "list_alarms"
-    description = (
-        "Dice las alarmas, temporizadores y recordatorios pendientes y cuánto les queda. Ej.: "
-        "«¿qué alarmas tengo?», «¿cuánto le queda al temporizador?», «¿tengo algún "
-        "recordatorio?»."
-    )
+    description = "Lista alarmas y temporizadores pendientes. Ej.: «¿qué alarmas tengo?»."
     risk = Risk.GREEN
     game_policy = GamePolicy.ALLOWED
     category = Category.TIME
@@ -85,10 +81,7 @@ class CancelAlarmParams(Params):
     which: str = Field(
         default="",
         max_length=100,
-        description=(
-            "Cuál: la hora (07:30), el texto del recordatorio, «temporizador», o vacío si solo "
-            "hay una. «todas» para quitarlas todas"
-        ),
+        description="Hora, texto o «todas»",
     )
 
 
@@ -119,11 +112,7 @@ def pick(pending: list[Alarm], which: str) -> list[Alarm]:
 
 class CancelAlarm(Tool[CancelAlarmParams]):
     name = "cancel_alarm"
-    description = (
-        "Quita una alarma, temporizador o recordatorio pendiente. Ej.: «quita la alarma de las "
-        "7» (which=07:00), «cancela el temporizador» (which=temporizador), «ya no hace falta "
-        "lo de comprar pan» (which=comprar pan), «quita todas las alarmas» (which=todas)."
-    )
+    description = "Quita alarma o temporizador. Ej.: «quita la alarma de las 7» (which=07:00)."
     risk = Risk.GREEN
     game_policy = GamePolicy.ALLOWED
     category = Category.TIME

@@ -21,7 +21,7 @@ from nyx.winapi import windows
 
 
 class FocusWindowParams(Params):
-    name: str = Field(min_length=1, max_length=100, description="App o título de la ventana")
+    name: str = Field(min_length=1, max_length=100, description="App o título")
 
 
 def process_for(ctx: ToolContext, name: str) -> str | None:
@@ -32,10 +32,7 @@ def process_for(ctx: ToolContext, name: str) -> str | None:
 
 class FocusWindow(Tool[FocusWindowParams]):
     name = "focus_window"
-    description = (
-        "Trae al frente una ventana que ya está abierta. Ej.: «cambia a Chrome», «ve a "
-        "Discord», «enséñame el Spotify»."
-    )
+    description = "Trae al frente una ventana abierta. Ej.: «cambia a Chrome» (name=Chrome)."
     risk = Risk.GREEN
     game_policy = GamePolicy.DEFERRED
     category = Category.WINDOWS

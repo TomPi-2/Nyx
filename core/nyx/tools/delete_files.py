@@ -51,9 +51,8 @@ def trash_all(items: list[Path]) -> list[Path]:
 class DeleteFiles(Tool[FileSelection]):
     name = "delete_files"
     description = (
-        "Manda archivos o carpetas a la papelera (pide confirmación). Ej.: «borra los "
-        "últimos 3 archivos de Descargas» (folder=Descargas, newest=3), «elimina la carpeta "
-        "Fondos de Imágenes» (folder=Imágenes, names=[Fondos], include_folders=true)."
+        "Manda archivos o carpetas a la papelera. Ej.: «borra Fondos de Imágenes» "
+        "(folder=Imágenes, names=[Fondos], include_folders=true)."
     )
     risk = Risk.RED
     game_policy = GamePolicy.DEFERRED

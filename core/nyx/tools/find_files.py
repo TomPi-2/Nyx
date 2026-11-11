@@ -18,14 +18,12 @@ from nyx.winapi import search
 
 
 class FindFilesParams(Params):
-    query: str = Field(default="", max_length=200, description="Parte del nombre del archivo")
-    kind: FileKind | None = Field(default=None, description="Solo de este tipo")
-    extension: str | None = Field(default=None, max_length=10, description="p. ej. pdf")
-    folder: str | None = Field(default=None, max_length=1000, description="Buscar solo aquí")
+    query: str = Field(default="", max_length=200, description="Parte del nombre")
+    kind: FileKind | None = Field(default=None, description="Tipo")
+    extension: str | None = Field(default=None, max_length=10, description="Extensión (pdf)")
+    folder: str | None = Field(default=None, max_length=1000, description="Carpeta")
     limit: int = Field(default=10, ge=1, le=50)
-    newest: bool = Field(
-        default=False, description="Los más recientes primero («la última factura»)"
-    )
+    newest: bool = Field(default=False, description="Más recientes primero")
 
     @model_validator(mode="after")
     def needs_name_or_extension(self) -> FindFilesParams:
@@ -90,9 +88,8 @@ def search_roots() -> list[Path]:
 class FindFiles(Tool[FindFilesParams]):
     name = "find_files"
     description = (
-        "Busca archivos por su nombre. Ej.: «busca la factura de la luz», «busca fotos de "
-        "la playa» (kind=images), «busca el contrato en Documentos» (folder=Documentos), "
-        "«busca los pdf de Documentos» (extension=pdf, folder=Documentos)."
+        "Busca archivos por nombre. Ej.: «busca el contrato en Documentos» "
+        "(query=contrato, folder=Documentos)."
     )
     risk = Risk.GREEN
     game_policy = GamePolicy.ALLOWED

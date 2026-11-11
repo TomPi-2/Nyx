@@ -22,25 +22,15 @@ SPOTIFY_WAIT_S = 12.0  # lo que puede tardar Spotify en abrir y registrar su ses
 
 class MediaControlParams(Params):
     action: Literal["pause", "play", "play_pause", "next", "previous", "stop"] = Field(
-        description="pause: pausar · play: reanudar · play_pause: alternar"
+        description="Acción multimedia"
     )
-    source: str | None = Field(
-        default=None, max_length=60, description="De dónde: youtube, spotify, twitch…"
-    )
-    music: bool = Field(
-        default=False,
-        description="true si piden música sin decir dónde («pon música»): va a Spotify",
-    )
+    source: str | None = Field(default=None, max_length=60, description="App o web (youtube…)")
+    music: bool = Field(default=False, description="true en «pon música»")
 
 
 class MediaControl(Tool[MediaControlParams]):
     name = "media_control"
-    description = (
-        "Controla la música o el vídeo que suena. Ej.: «pausa» (pause), «pausa el vídeo de "
-        "YouTube» (pause, source=youtube), «reanuda» (play), «pon música» (play, music=true), "
-        "«siguiente "
-        "canción» (next), «la anterior» (previous)."
-    )
+    description = "Controla música o vídeo. Ej.: «pausa YouTube» (action=pause, source=youtube)."
     risk = Risk.GREEN
     game_policy = GamePolicy.ALLOWED
     category = Category.AUDIO

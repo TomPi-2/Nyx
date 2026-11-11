@@ -14,23 +14,13 @@ from nyx.winapi import focus, launch
 
 
 class OpenPathParams(Params):
-    target: str = Field(
-        min_length=1,
-        max_length=1000,
-        description="Carpeta (Descargas, Documentos…) o ruta completa",
-    )
-    focus: bool = Field(
-        default=True,
-        description="Traer la ventana al frente; false si piden abrirlo en segundo plano",
-    )
+    target: str = Field(min_length=1, max_length=1000, description="Carpeta o ruta")
+    focus: bool = Field(default=True, description="Traer al frente")
 
 
 class OpenPath(Tool[OpenPathParams]):
     name = "open_path"
-    description = (
-        "Abre una carpeta en el Explorador o un archivo con su programa. Ej.: «abre "
-        "Descargas», «abre la carpeta Fondos», «abre C:\\Proyectos»."
-    )
+    description = "Abre una carpeta o archivo. Ej.: «abre Descargas» (target=Descargas)."
     risk = Risk.GREEN
     game_policy = GamePolicy.DEFERRED
     category = Category.FILES

@@ -25,7 +25,7 @@ from nyx.tools.files import FileSelection, select
 
 class RenameParams(Params):
     folder: str = Field(min_length=1, max_length=1000, description="Carpeta donde está")
-    name: str = Field(min_length=1, max_length=255, description="Nombre actual (o parte)")
+    name: str = Field(min_length=1, max_length=255, description="Nombre actual")
     new_name: str = Field(min_length=1, max_length=255, description="Nombre nuevo")
 
 
@@ -45,8 +45,8 @@ def _new_path(src: Path, new_name: str) -> Path:
 class RenameFile(Tool[RenameParams]):
     name = "rename_file"
     description = (
-        "Cambia el nombre de un archivo o carpeta. Ej.: «renombra informe de Descargas a "
-        "informe final» (folder=Descargas, name=informe, new_name=informe final)."
+        "Renombra archivo o carpeta. Ej.: «renombra informe a final» "
+        "(folder=Descargas, name=informe, new_name=final)."
     )
     risk = Risk.YELLOW
     game_policy = GamePolicy.DEFERRED

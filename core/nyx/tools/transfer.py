@@ -20,9 +20,7 @@ log = logging.getLogger(__name__)
 
 
 class TransferParams(FileSelection):
-    destination: str = Field(
-        min_length=1, max_length=1000, description="Carpeta de destino (Documentos, Fondos…)"
-    )
+    destination: str = Field(min_length=1, max_length=1000, description="Carpeta de destino")
 
 
 @dataclass(frozen=True, slots=True)

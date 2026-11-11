@@ -19,10 +19,7 @@ Target = Literal["current", "primary", "all", "window"]
 
 
 class ScreenshotParams(Params):
-    target: Target = Field(
-        default="current",
-        description="current = monitor de la ventana activa; primary; all = todos; window",
-    )
+    target: Target = Field(default="current", description="Monitor o ventana")
 
 
 def pictures_dir() -> Path:
@@ -64,10 +61,7 @@ def take(target: Target, folder: Path) -> Path:
 
 class Screenshot(Tool[ScreenshotParams]):
     name = "screenshot"
-    description = (
-        "Hace una captura de pantalla, la guarda en Imágenes y la copia al portapapeles. Ej.: "
-        "«haz una captura», «captura del monitor principal», «captura de esta ventana»."
-    )
+    description = "Hace una captura de pantalla. Ej.: «captura esta ventana» (target=window)."
     risk = Risk.GREEN
     game_policy = GamePolicy.ALLOWED
     category = Category.CAPTURE

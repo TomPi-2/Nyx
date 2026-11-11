@@ -8,12 +8,12 @@ from nyx.tools.base import Category, GamePolicy, Params, Risk, Tool, ToolContext
 
 
 class UndoParams(Params):
-    id: str | None = Field(default=None, max_length=40, description="Vacío = la última acción")
+    id: str | None = Field(default=None, max_length=40, description="ID (vacío = última)")
 
 
 class UndoLast(Tool[UndoParams]):
     name = "undo"
-    description = "Deshace la última acción (mover, copiar, renombrar, cerrar). Ej.: «deshaz»."
+    description = "Deshace la última acción. Ej.: «deshaz»."
     risk = Risk.GREEN
     game_policy = GamePolicy.ALLOWED
     category = Category.SYSTEM

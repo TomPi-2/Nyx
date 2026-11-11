@@ -44,8 +44,8 @@ def plural(n: int, noun: str) -> str:
 class ListFiles(Tool[FileSelection]):
     name = "list_files"
     description = (
-        "Lista los archivos de una carpeta. Ej.: «qué hay en Descargas», «los últimos 5 "
-        "archivos de Descargas» (newest=5), «las imágenes del Escritorio» (kind=images)."
+        "Lista archivos de una carpeta. Ej.: «los últimos 5 de Descargas» "
+        "(folder=Descargas, newest=5)."
     )
     risk = Risk.GREEN
     game_policy = GamePolicy.ALLOWED

@@ -14,10 +14,8 @@ from nyx.tools.transfer import Plan, TransferParams, copy_all, plan, targets
 class CopyFiles(Tool[TransferParams]):
     name = "copy_files"
     description = (
-        "Copia archivos a otra carpeta. Ej.: «copia las fotos del Escritorio a Imágenes» "
-        "(folder=Escritorio, kind=images, destination=Imágenes); «cópialo al Escritorio» "
-        "justo después de encontrar CV.pdf en Documentos (folder=Documentos, names=[CV.pdf], "
-        "destination=Escritorio)."
+        "Copia archivos a otra carpeta. Ej.: «copia las fotos a Imágenes» (kind=images); "
+        "«cópialo al Escritorio» tras ver CV.pdf (names=[CV.pdf])."
     )
     risk = Risk.YELLOW
     game_policy = GamePolicy.DEFERRED
