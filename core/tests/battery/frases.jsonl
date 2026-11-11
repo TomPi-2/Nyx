@@ -121,3 +121,8 @@
 {"frase": "¿cuánta RAM uso?", "tool": "system_info", "args": {"what": "ram"}}
 {"frase": "¿cuánto espacio libre me queda en el disco?", "tool": "system_info", "args": {"what": "disk"}}
 {"frase": "¿qué consume más CPU?", "tool": "system_info", "args": {"what": "top"}}
+{"frase": "¿qué tengo copiado?", "tool": "clipboard", "args": {"action": "read"}}
+{"frase": "traduce lo que he copiado", "tool": "clipboard", "args": {"action": "read"}}
+{"frase": "resume lo copiado", "tool": "clipboard", "args": {"action": "read"}}
+{"frase": "copia hola mundo al portapapeles", "tool": "clipboard", "args": {"action": "write", "text": "hola mundo"}}
+{"frase": "escribe: llego en 10 minutos", "tool": "type_text", "args": {"text": "llego en 10 minutos"}}

@@ -151,6 +151,8 @@ _VERBS = {
     "nyx_info": "consultar cómo funciono, sobre",
     "get_weather": "mirar el tiempo",
     "system_info": "mirar el estado del equipo",
+    "clipboard": "usar el portapapeles",
+    "type_text": "escribir",
     "pending": "mirar lo pendiente",
     "media_control": "controlar la música",
     "set_volume": "cambiar el volumen",

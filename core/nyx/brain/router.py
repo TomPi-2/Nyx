@@ -812,6 +812,8 @@ def _find(m: re.Match[str], index: SystemIndex) -> Route | None:
     rf"^(?:que hay en|que tengo en|(?:lista(?:me)?|ensename|muestrame|dime)\s+(?:los|las)\s+(?:{_COUNT}\s+)?(?:archivos|ficheros|cosas)\s+(?:de|del|en))\s+(?:la carpeta\s+(?:de\s+)?)?(?P<f>.+)$",
 )
 def _list(m: re.Match[str], _: SystemIndex) -> Route | None:
+    if "portapapeles" in m.group("f"):
+        return None
     raw_n = m.group("n1") or m.group("n2")
     newest = parse_number(raw_n) if raw_n else None
     return _call("list", "list_files", folder=m.group("f"), newest=newest)
@@ -965,6 +967,52 @@ def _system_info(m: re.Match[str], __: SystemIndex) -> Route | None:
                 return None
             return _call("system_info", "system_info", what=kind)
     return None
+
+
+# --- portapapeles y dictado (6.10) ---
+
+
+@rule(
+    "clipboard_read",
+    r"^(?:(?:dime|mirame|ensename|lee(?:me)?)\s+)?(?:"
+    r"que\s+(?:tengo|hay|he)\s+copiado(?:\s+en\s+el\s+portapapeles)?|"
+    r"que\s+(?:tengo|hay)\s+en\s+el\s+portapapeles|"
+    r"(?:el\s+)?portapapeles|"
+    r"lo\s+(?:que\s+(?:tengo|hay|he)\s+)?copiado"
+    r")$"
+    r"|^(?:traduce(?:me)?(?:\s+al\s+[a-z]+)?|resume(?:me)?|corrige(?:me)?(?:\s+la\s+ortografia\s+de)?|explica(?:me)?)\s+"
+    r"(?:lo\s+(?:que\s+(?:tengo|hay|he)\s+)?copiado|(?:lo\s+del\s+|el\s+)?portapapeles)(?:\s+al\s+[a-z]+)?$",
+)
+def _clipboard_read(_: re.Match[str], __: SystemIndex) -> Route:
+    return _call("clipboard_read", "clipboard", action="read")
+
+
+@rule(
+    "clipboard_write",
+    r"^(?:copia(?:me)?|guarda(?:me)?|pon(?:me)?)\s+(?:en\s+el\s+|al\s+)portapapeles\s+(?P<t1>.+)$"
+    r"|^copia(?:me)?\s+(?P<t2>.+?)\s+(?:en\s+el\s+|al\s+)portapapeles$",
+)
+def _clipboard_write(m: re.Match[str], __: SystemIndex) -> Route:
+    raw = (
+        _raw_after(r"(?:en\s+el\s+|al\s+)portapapeles[:\s]+(.+)$")
+        if m.group("t1")
+        else _original(m.group("t2"))
+    )
+    return _call(
+        "clipboard_write",
+        "clipboard",
+        action="write",
+        text=raw or _original(m.group("t1") or m.group("t2")),
+    )
+
+
+@rule(
+    "type_text",
+    r"^(?:escribe|teclea|dicta)\s+(?!en\s+|un\s+|una\s+)(?P<text>.+)$",
+)
+def _type_text(m: re.Match[str], __: SystemIndex) -> Route:
+    raw = _raw_after(r"(?:escribe|teclea|dicta)[:\s]+(.+)$")
+    return _call("type_text", "type_text", text=raw or _original(m.group("text")))
 
 
 # --- lo pendiente para después de la partida ---

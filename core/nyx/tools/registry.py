@@ -36,6 +36,7 @@ class ToolRegistry:
 def default_registry() -> ToolRegistry:
     from nyx.tools.alarms import CancelAlarm, ListAlarms
     from nyx.tools.app_action import AppAction
+    from nyx.tools.clipboard import Clipboard
     from nyx.tools.close_app import CloseApp
     from nyx.tools.copy_files import CopyFiles
     from nyx.tools.create_folder import CreateFolder
@@ -61,6 +62,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.set_timer import SetTimer
     from nyx.tools.set_volume import SetVolume
     from nyx.tools.system_info import SystemInfo
+    from nyx.tools.type_text import TypeText
     from nyx.tools.undo import UndoLast
     from nyx.tools.wait_for_window import WaitForWindow
     from nyx.tools.window_layout import WindowLayout
@@ -94,6 +96,8 @@ def default_registry() -> ToolRegistry:
             NyxControl(),
             GetWeather(),
             SystemInfo(),
+            Clipboard(),
+            TypeText(),
             SendHotkey(),
             AppAction(),
             DeleteFiles(),

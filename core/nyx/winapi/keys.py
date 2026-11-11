@@ -129,3 +129,72 @@ def press(hotkey: Hotkey) -> None:
     finally:
         for code in reversed(hotkey.codes):
             event(code, up=True)
+
+
+INPUT_KEYBOARD = 1
+KEYEVENTF_KEYUP = 0x0002
+KEYEVENTF_UNICODE = 0x0004
+VK_RETURN = 0x0D
+VK_TAB = 0x09
+
+
+def encode_unicode_events(text: str) -> list[tuple[int, int, int]]:
+    """Convierte texto Unicode en eventos (wVk, wScan, dwFlags) para SendInput."""
+    events: list[tuple[int, int, int]] = []
+    for ch in text.replace("\r\n", "\n").replace("\r", "\n"):
+        if ch == "\n":
+            events.append((VK_RETURN, 0, 0))
+            events.append((VK_RETURN, 0, KEYEVENTF_KEYUP))
+        elif ch == "\t":
+            events.append((VK_TAB, 0, 0))
+            events.append((VK_TAB, 0, KEYEVENTF_KEYUP))
+        else:
+            raw = ch.encode("utf-16-le")
+            for i in range(0, len(raw), 2):
+                unit = int.from_bytes(raw[i : i + 2], "little")
+                events.append((0, unit, KEYEVENTF_UNICODE))
+                events.append((0, unit, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP))
+    return events
+
+
+def write(text: str) -> None:
+    """Escribe texto Unicode en la ventana activa con SendInput (KEYEVENTF_UNICODE)."""
+    import ctypes
+
+    events = encode_unicode_events(text)
+    if not events:
+        return
+
+    class _MOUSEINPUT(ctypes.Structure):
+        _fields_ = [
+            ("dx", ctypes.c_long),
+            ("dy", ctypes.c_long),
+            ("mouseData", ctypes.c_ulong),
+            ("dwFlags", ctypes.c_ulong),
+            ("time", ctypes.c_ulong),
+            ("dwExtraInfo", ctypes.c_size_t),
+        ]
+
+    class _KEYBDINPUT(ctypes.Structure):
+        _fields_ = [
+            ("wVk", ctypes.c_ushort),
+            ("wScan", ctypes.c_ushort),
+            ("dwFlags", ctypes.c_ulong),
+            ("time", ctypes.c_ulong),
+            ("dwExtraInfo", ctypes.c_size_t),
+        ]
+
+    class _INPUTUNION(ctypes.Union):
+        _fields_ = [("mi", _MOUSEINPUT), ("ki", _KEYBDINPUT)]
+
+    class _INPUT(ctypes.Structure):
+        _fields_ = [("type", ctypes.c_ulong), ("u", _INPUTUNION)]
+
+    inputs = (_INPUT * len(events))()
+    for i, (vk, scan, flags) in enumerate(events):
+        inputs[i].type = INPUT_KEYBOARD
+        inputs[i].u.ki.wVk = vk
+        inputs[i].u.ki.wScan = scan
+        inputs[i].u.ki.dwFlags = flags
+
+    ctypes.windll.user32.SendInput(len(events), ctypes.byref(inputs), ctypes.sizeof(_INPUT))

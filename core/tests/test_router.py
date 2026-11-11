@@ -524,3 +524,26 @@ def test_weather_by_rule(index: SystemIndex, text: str, args: dict[str, object])
 )
 def test_system_info_by_rule(index: SystemIndex, text: str, what: str) -> None:
     assert call(text, index) == ("system_info", {"what": what})
+
+
+@pytest.mark.parametrize(
+    ("text", "tool", "args"),
+    [
+        ("¿qué tengo copiado?", "clipboard", {"action": "read"}),
+        ("¿qué hay en el portapapeles?", "clipboard", {"action": "read"}),
+        ("traduce lo que he copiado", "clipboard", {"action": "read"}),
+        ("resume lo copiado", "clipboard", {"action": "read"}),
+        ("corrige la ortografía de lo copiado", "clipboard", {"action": "read"}),
+        (
+            "copia hola mundo al portapapeles",
+            "clipboard",
+            {"action": "write", "text": "hola mundo"},
+        ),
+        ("escribe: llego en 10 minutos", "type_text", {"text": "llego en 10 minutos"}),
+        ("escribe hola qué tal", "type_text", {"text": "hola qué tal"}),
+    ],
+)
+def test_clipboard_and_type_text_by_rule(
+    index: SystemIndex, text: str, tool: str, args: dict[str, object]
+) -> None:
+    assert call(text, index) == (tool, args)
