@@ -488,3 +488,20 @@ def test_alarm_in_seconds_is_a_timer(index: SystemIndex) -> None:
         {"seconds": 10},
     )
     assert call("pon una alarma dentro de 5 minutos", index) == ("set_timer", {"minutes": 5})
+
+
+@pytest.mark.parametrize(
+    ("text", "args"),
+    [
+        ("¿va a llover mañana?", {}),
+        ("¿qué temperatura hace?", {}),
+        ("¿qué tiempo hace hoy?", {}),
+        ("¿qué tiempo hace en Madrid?", {"city": "Madrid"}),
+        ("¿va a llover mañana en Sevilla?", {"city": "Sevilla"}),
+        ("¿qué tiempo hará en Valencia mañana?", {"city": "Valencia"}),
+        ("¿hace falta paraguas hoy en Bilbao?", {"city": "Bilbao"}),
+        ("¿hace frío afuera?", {}),
+    ],
+)
+def test_weather_by_rule(index: SystemIndex, text: str, args: dict[str, object]) -> None:
+    assert call(text, index) == ("get_weather", args)

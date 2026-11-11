@@ -109,7 +109,7 @@ Los atajos siguen el idioma de Windows (en español, «nuevo» es Ctrl+U y «gua
 | Traducciones | «¿cómo se dice hola en alemán?» | Hecho |
 | Hora y fecha | «¿qué hora es?», «¿qué día cae el 25?» | Hecho |
 | Cálculos y conversiones | «¿cuánto es 17 por 23?», «pasa 30 dólares a euros» (cambio: internet) | Hecho (cálculo) / F6 (divisas) |
-| El tiempo | «¿va a llover mañana?» (Open-Meteo, ciudad fija en ajustes) | F6 |
+| El tiempo | «¿va a llover mañana?» (Open-Meteo, ciudad fija en ajustes) | Hecho |
 | Actualidad | «¿quién ganó ayer el Madrid?» (búsqueda web + resumen, con la fuente) | F6 |
 | Definiciones y sinónimos | «otra palabra para bonito» | Hecho (LLM) |
 | Sobre el PC | «¿cuánta RAM uso?», «¿qué consume más CPU?», «temperatura de la gráfica» | F6 |

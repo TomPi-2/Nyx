@@ -15,6 +15,7 @@ from nyx.tools.base import Category, GamePolicy, Params, Risk, Tool, ToolContext
 #: Secciones de la ventana (ui/src/settings/Settings.svelte).
 Section = Literal[
     "",
+    "general",
     "apariencia",
     "activacion",
     "voz",

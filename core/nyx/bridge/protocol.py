@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 13
+PROTOCOL_VERSION = 14
 
 
 class _Msg(BaseModel):
@@ -194,6 +194,7 @@ class OpenSettingsMsg(_Msg):
     type: Literal["open_settings"] = "open_settings"
     section: (
         Literal[
+            "general",
             "apariencia",
             "activacion",
             "voz",

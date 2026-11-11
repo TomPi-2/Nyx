@@ -16,6 +16,7 @@
   import Ayuda from "./sections/Ayuda.svelte";
   import Cache from "./sections/Cache.svelte";
   import Cerebro from "./sections/Cerebro.svelte";
+  import General from "./sections/General.svelte";
   import Privacidad from "./sections/Privacidad.svelte";
   import ModoPartida from "./sections/ModoPartida.svelte";
   import Respuestas from "./sections/Respuestas.svelte";
@@ -23,6 +24,7 @@
   import { settings } from "./store.svelte";
 
   const SECTIONS: { id: SettingsSection; label: string; component: Component }[] = [
+    { id: "general", label: "General", component: General },
     { id: "apariencia", label: "Apariencia", component: Apariencia },
     { id: "activacion", label: "Activación", component: Activacion },
     { id: "voz", label: "Voz", component: Voz },

@@ -111,3 +111,8 @@
 {"frase": "ponte de color turquesa", "tool": "nyx_control", "args": {"setting": "color", "value": "turquesa"}}
 {"frase": "cuando juegue, háblame solo por voz", "tool": "nyx_control", "args": {"setting": "modo partida"}}
 {"frase": "hazte un poco más grande", "tool": "nyx_control", "args": {"setting": "tamaño"}}
+{"frase": "¿va a llover mañana?", "tool": "get_weather"}
+{"frase": "¿qué temperatura hace?", "tool": "get_weather"}
+{"frase": "¿qué tiempo hace hoy?", "tool": "get_weather"}
+{"frase": "¿qué tiempo hace en Madrid?", "tool": "get_weather", "args": {"city": "Madrid"}}
+{"frase": "¿hace falta paraguas hoy en Bilbao?", "tool": "get_weather", "args": {"city": "Bilbao"}}

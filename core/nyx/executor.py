@@ -149,6 +149,7 @@ _VERBS = {
     "set_alarm": "poner una alarma a las",
     "set_timer": "poner un temporizador",
     "nyx_info": "consultar cómo funciono, sobre",
+    "get_weather": "mirar el tiempo",
     "pending": "mirar lo pendiente",
     "media_control": "controlar la música",
     "set_volume": "cambiar el volumen",

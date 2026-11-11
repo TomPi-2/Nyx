@@ -31,6 +31,7 @@ log = logging.getLogger(__name__)
 #: Lo que se puede cambiar desde Ajustes: secciones enteras (terminan en «.») o ajustes
 #: concretos. Nada de rutas a programas ni direcciones de red.
 EDITABLE: tuple[str, ...] = (
+    "general.",
     "appearance.",
     "responses.",
     "game.",

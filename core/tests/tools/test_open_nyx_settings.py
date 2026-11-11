@@ -49,6 +49,7 @@ def test_is_green_and_waits_for_the_game() -> None:
         ("abre tus ajustes de la palabra de activación", "activacion"),
         ("abre tus ajustes del modelo", "cerebro"),
         ("abre tus ajustes de privacidad", "privacidad"),
+        ("abre tus ajustes generales", "general"),
     ],
 )
 def test_router_opens_nyx_settings(text: str, section: str | None, index: SystemIndex) -> None:

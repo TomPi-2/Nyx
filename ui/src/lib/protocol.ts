@@ -2,7 +2,7 @@
 
 import type { FontId, NyxColorId, PanelTintId } from "$theme/palette";
 
-export const PROTOCOL_VERSION = 13;
+export const PROTOCOL_VERSION = 14;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -47,6 +47,7 @@ export type GamePolicy = "allowed" | "deferred" | "blocked";
  * cambia la ventana de Ajustes; el resto llega igual pero no se toca.
  */
 export interface NyxSettings {
+  general: { city: string };
   appearance: {
     indicator_size: number;
     glass: GlassInfo;
@@ -235,6 +236,7 @@ export type ServerMessage =
 
 /** Secciones de la ventana de Ajustes (ui/src/settings/Settings.svelte). */
 export type SettingsSection =
+  | "general"
   | "apariencia"
   | "activacion"
   | "voz"

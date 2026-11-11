@@ -156,6 +156,12 @@ class GameSettings(_Section):
     alt_monitor: str | None = Field(default=None, max_length=64)
 
 
+class GeneralSettings(_Section):
+    """Ajustes generales (SPEC sección 13): ciudad para el tiempo."""
+
+    city: str = Field(default="", max_length=100)
+
+
 class OnboardingSettings(_Section):
     """Asistente de primer arranque (SPEC sección 13)."""
 
@@ -172,6 +178,7 @@ class Settings(BaseModel):
     model_config = ConfigDict(extra="ignore", validate_assignment=True)
 
     version: int = SCHEMA_VERSION
+    general: GeneralSettings = Field(default_factory=GeneralSettings)
     audio: AudioSettings = Field(default_factory=AudioSettings)
     wake: WakeSettings = Field(default_factory=WakeSettings)
     listen: ListenSettings = Field(default_factory=ListenSettings)

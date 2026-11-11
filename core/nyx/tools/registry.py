@@ -42,6 +42,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.delete_files import DeleteFiles
     from nyx.tools.find_files import FindFiles
     from nyx.tools.focus_window import FocusWindow
+    from nyx.tools.get_weather import GetWeather
     from nyx.tools.list_files import ListFiles
     from nyx.tools.media_control import MediaControl
     from nyx.tools.move_files import MoveFiles
@@ -90,6 +91,7 @@ def default_registry() -> ToolRegistry:
             CancelAlarm(),
             NyxInfo(),
             NyxControl(),
+            GetWeather(),
             SendHotkey(),
             AppAction(),
             DeleteFiles(),
