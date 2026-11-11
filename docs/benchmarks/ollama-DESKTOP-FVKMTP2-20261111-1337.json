@@ -1,0 +1,26 @@
+{
+  "hardware": {
+    "machine": "DESKTOP-FVKMTP2",
+    "python": "3.12.12",
+    "cpu": "AMD Ryzen 7 6800H with Radeon Graphics",
+    "ram_gb": 15.2,
+    "gpus": [
+      "AMD Radeon(TM) Graphics (31.0.12024.2005)",
+      "NVIDIA GeForce RTX 3070 Laptop GPU (32.0.15.9579)"
+    ],
+    "os": "Microsoft Windows 11 Pro build 26300"
+  },
+  "ollama": "0.40.16",
+  "models": {
+    "qwen2.5:7b": {
+      "load_s": 7.62,
+      "vram_gb": 4.43,
+      "gpu_percent": 100,
+      "ttft_s": 0.021,
+      "tokens_per_s": 83.0,
+      "tool_hits": "3/3",
+      "tool_call_s": 0.37,
+      "meets_ttft_1_5s": true
+    }
+  }
+}
