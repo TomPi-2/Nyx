@@ -17,7 +17,7 @@ Eres el desarrollador principal de Nyx. La especificación completa está en [do
 
 ## Estado
 
-Fase actual: **versión 0.6 — Cerebro** (fase 6a; `docs/HOJA-DE-RUTA.md` §2 y §3): pendiente de plan. Al empezarla, proponer el plan corto con los archivos y esperar el visto bueno. Las versiones de la hoja de ruta sustituyen a las fases 6 y 7 de la SPEC. Fase 5 (versión 0.5) cerrada el 2026-11-11. Pendiente de la 0.5, sin parar el plan: medir el coste en partida en el portátil (`scripts/game_bench.py`), probar el modo partida con más juegos (Valorant) y confirmar que Ajustes sale con cristal al abrirse desde la cola (si no, mirar `glass.log`). Fases 1 y 2 cerradas el 2026-11-09; fases 3 y 4 el 2026-11-10.
+Fase actual: **versión 0.6 — Cerebro** (fase 6a): plan en [docs/PLAN-0.6.md](docs/PLAN-0.6.md), aprobado el 2026-11-11. Se trabaja tarea a tarea según ese plan (una por sesión, con su commit y su fila en el Registro); también lo sigue Gemini (`GEMINI.md`) cuando no hay Claude, y Claude revisa después lo que haya hecho. Al empezarla, proponer el plan corto con los archivos y esperar el visto bueno. Las versiones de la hoja de ruta sustituyen a las fases 6 y 7 de la SPEC. Fase 5 (versión 0.5) cerrada el 2026-11-11. Pendiente de la 0.5, sin parar el plan: medir el coste en partida en el portátil (`scripts/game_bench.py`) y probar el modo partida con más juegos (Valorant). Fases 1 y 2 cerradas el 2026-11-09; fases 3 y 4 el 2026-11-10.
 
 ## Decisiones tomadas
 
@@ -35,6 +35,7 @@ Fase actual: **versión 0.6 — Cerebro** (fase 6a; `docs/HOJA-DE-RUTA.md` §2 y
 | 2026-11-10 | Motor de cristal propio (SPEC sección 12): niveles Auto/Alto/Medio/Bajo, en partida Bajo sin excepción. Nyx y los paneles en ventanas distintas para que Nyx salga siempre en capturas; «Mostrar Nyx en capturas y directos» pasa los paneles a Bajo. Hueco fijo de 14 px entre Nyx y los paneles. |
 | 2026-11-11 | Requisitos tras probar el portátil (SPEC 14, `docs/benchmarks/requisitos.md`): mínimos Windows 11, gráfica dedicada con Vulkan y 8 GB de VRAM, 8 núcleos, 16 GB de RAM y ~8 GB de disco; recomendados 12 GB de VRAM y 32 GB de RAM. |
 | 2026-11-11 | Fase 5 cerrada (versión 0.5). Siguiente: 0.6, cerebro. |
+| 2026-11-11 | Versiones con SemVer `vMAYOR.MENOR.PARCHE` y cualquier número de cifras en cada parte (v1.0.0, v1.142.245, v23.45.132). Aún no se ponen en el código ni en git. |
 | 2026-11-11 | Un solo cerebro en la primera versión: `qwen2.5:7b` (el 14B, 8 veces más lento sin acertar más, no cabe en 8 GB y da tirones en partida). En partida se queda en la gráfica («Sí» o «Solo órdenes»); nunca el procesador (medido en Rocket League). Objetivo: con Nyx pensando cada 8 s, < 5 % de FPS y peor fotograma ≤ 1,5× el del juego solo. |
 | 2026-11-11 | Hoja de ruta aprobada (`docs/HOJA-DE-RUTA.md`): 0.5 partida → 0.6 cerebro → 0.7 extensiones → 0.8 organización → 0.9 beta (instalador y primer arranque como conversación con Nyx) → 1.0. Overlay solo como ventana aparte, sin inyectarse; si un servicio no permite algo, Nyx lo dice y ofrece guiar; kit de extensiones con licencia MIT; buscador a valorar en la 0.6. |
 

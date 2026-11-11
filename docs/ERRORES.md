@@ -14,12 +14,12 @@ Fallos vistos al usar Nyx que quedan pendientes de corregir. Se apuntan aquí pa
 | 2026-11-11 | «Busca qué aplicaciones ha creado Tepnyx» | Busca archivos en el disco. | Buscar en internet. | Falta `web_search` (fase 6); el router no debe mandar preguntas a `find_files`. |
 | 2026-11-11 | «Explícame tu configuración para el modo partida» | Abre Ajustes. | Explicarla con voz y burbuja. | Nyx no se conoce a sí misma (HOJA-DE-RUTA §3.7). |
 | 2026-11-11 | Arrancar Nyx en el portátil (Radeon integrada + RTX 3070 Laptop) | «Servicios listos» a los 23,3 s (sin Whisper, 6,5–7,9 s). whisper-server arranca primero en la integrada (dispositivo Vulkan 0, 4,2 s), se relanza en la RTX (1,6 s) y la transcripción de calentamiento tarda ~17 s. Además, `scripts/check_whisper.py` no elige tarjeta: en la integrada devuelve «!!!!…» y tarda ~10 s por frase. | Arranque en < 10 s (SPEC 14) y el script midiendo en la dedicada. | Elegir el dispositivo antes del primer arranque (p. ej. con `GGML_VK_VISIBLE_DEVICES` o leyendo la lista de `--list-devices` si existe) en `WhisperServer.start` y en `check_whisper.py`. Medir un segundo arranque: los ~17 s pueden ser la compilación de shaders de Vulkan de la primera vez (el controlador la guarda). |
-| 2026-11-11 | Abrir los Ajustes desde la cola de la partida los deja sin fondo de cristal (siempre, también con una sola ventana). | No se ve nada del fondo: el motor no la dibuja. | Que salgan con su cristal. | Hipótesis: un overlay del juego «siempre encima» a pantalla completa hace creer al motor que Ajustes está tapada; ahora se ignoran. Si sigue, mirar `%LOCALAPPDATA%\Nyx\logs\glass.log` (dice qué ventana la tapa). |
 
 ## Corregidos
 
 | Fecha | Error | Commit |
 | --- | --- | --- |
+| 2026-11-11 | Ajustes, abierta desde la cola de la partida, salía sin fondo de cristal: el motor la daba por tapada por un overlay «siempre encima» del juego. Ahora esas ventanas no cuentan (confirmado por el usuario). | `ede328a` |
 | 2026-11-11 | Tirones en Rocket League cuando Nyx pensaba con el 14B (no cabe junto al juego: −80 % de FPS). En partida, el 7B en la gráfica (−3,4 %, sin tirones) o sin cerebro si no cabe. | 0.5, bloque 4 (pendiente de probar) |
 | 2026-11-11 | «Pon música» le daba al play al vídeo de YouTube que estaba abierto. Ahora va a Spotify si está instalada; en la 0.6, a la app donde el usuario suela escuchar música. | 0.5 (pendiente de probar) |
 | 2026-11-11 | En partida, «muéstrame los FPS…» se dejaba para después como `focus_window` y fallaba al terminar (parecía que solo hacía la última). Ahora se comprueba antes de diferir, la cola se guarda en disco, se puede ver y cancelar («¿qué tienes pendiente?») y el resumen final se dice en voz. | 0.5, bloque 2 (pendiente de probar) |
