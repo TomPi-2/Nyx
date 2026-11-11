@@ -93,9 +93,12 @@ class Brain:
         ]
 
     async def respond(
-        self, text: str, extra: str = ""
+        self, text: str, extra: str = "", *, continuing: bool = False
     ) -> AsyncGenerator[ReplyEvent | ReplyDone | ToolPlan, None]:
-        """`extra`: contexto de esta petición (ventana activa, candidatos si no se encontró…)."""
+        """`extra`: contexto de esta petición (ventana activa, candidatos si no se encontró…).
+
+        `continuing`: es otra vuelta de la misma petición (bucle de agente): el turno de la
+        memoria corta se sustituye en vez de añadir otro."""
         parser = TextReplyParser()
         calls: list[LLMToolCall] = []
         names = [t["function"]["name"] for t in self.tools]
@@ -129,7 +132,7 @@ class Brain:
                 for event in parser.feed(held):
                     yield event
         if calls:
-            self.memory.add(text, describe_plan(calls))
+            self.memory.add(text, describe_plan(calls), replace=continuing)
             yield ToolPlan(calls)
             return
         tail, reply = parser.finish()
@@ -138,7 +141,9 @@ class Brain:
         if not reply.spoken:
             log.warning("Respuesta vacía del LLM para %r", text)
         if worth_remembering(reply):
-            self.memory.add(text, f"[{reply.display} | {reply.secondary}]\n{reply.spoken}")
+            self.memory.add(
+                text, f"[{reply.display} | {reply.secondary}]\n{reply.spoken}", replace=continuing
+            )
         else:
             log.info("Respuesta que no se guarda en la memoria: %r", reply.spoken)
         yield ReplyDone(reply)

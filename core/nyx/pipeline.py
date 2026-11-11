@@ -24,6 +24,7 @@ from nyx.alarms.ringer import AlarmRinger
 from nyx.audio.capture import AudioCapture, Frame, rms_level
 from nyx.audio.playback import Player
 from nyx.audio.vad import Endpointer, EndReason, VoiceDetector
+from nyx.brain.agent import MAX_SECONDS, MAX_STEPS, AgentRun, continuation_hint
 from nyx.brain.base import LLMError, LLMErrorKind
 from nyx.brain.guard import GARBLED_REPLY, looks_like_code
 from nyx.brain.reply import BubbleReady, Reply, SpokenDelta, SpokenEnd
@@ -326,6 +327,7 @@ class Pipeline:
         self._actions: dict[str, Callable[[], None]] = {}
         self._answer: asyncio.Future[bool] | None = None  # confirmación pendiente
         self._from_voice = False  # la petición en curso se hizo hablando
+        self._agent = AgentRun()  # lo hecho en la petición en curso (bucle de agente, 6.01)
         self._side_tasks: set[asyncio.Task[None]] = set()
         self._barge: asyncio.Task[None] | None = None
         if executor is not None and executor.confirm is None:
@@ -688,6 +690,7 @@ class Pipeline:
     ) -> None:
         """Router rápido primero (acciones sin LLM); si no encaja, el LLM."""
         marks.phrase = text
+        self._agent = AgentRun()
         if self.ringer is not None and self.ringer.swallow(text):
             # «Nyx, para» con la alarma sonando: es para ella, no para la música.
             await self.ringer.stop()
@@ -760,6 +763,14 @@ class Pipeline:
         )
         speak = from_voice or self.speak_typed
         failed = next((r for r in results if not r.ok), None)
+        self._agent.done += list(zip(routed.calls, results, strict=False))
+        if failed is None and self._should_continue(routed.calls, marks):
+            # Consultó algo (archivos, alarmas…): el resultado vuelve al LLM para contarlo o
+            # para dar el siguiente paso (HOJA-DE-RUTA §3.1).
+            self._agent.steps += 1
+            hint = continuation_hint(self._agent)
+            await self._respond(marks.phrase, marks, from_voice=from_voice, hint=hint)
+            return results
         if failed is not None and failed.data.get("cancelled"):
             await self._show_bubble("Cancelado", failed.secondary or "")
             self._schedule_bubble_hide(CANCELLED_BUBBLE_S)
@@ -859,6 +870,11 @@ class Pipeline:
         if self.executor is not None:
             calls = fix_enums(calls, self.executor.registry)
         log.info("Plan del LLM: %s", [(c.name, c.arguments) for c in calls])
+        if self._agent.steps and self._agent.repeats(calls):
+            # Pide otra vez lo mismo: no avanza. Se enseña lo que ya se sabe.
+            log.info("Bucle de agente: repite lo ya hecho; respondo con lo que hay")
+            await self._show_known()
+            return
         if not retried and self.executor is not None:
             # SPEC sección 6: si la llamada no es válida, se reintenta una vez con el error.
             invalid = self.executor.check(calls)
@@ -875,8 +891,23 @@ class Pipeline:
                 await self._respond(text, marks, from_voice=from_voice, hint=hint, retried=True)
                 return
         results = await self._act(Route(calls, "llm"), marks, from_voice=from_voice)
-        if len(plan.calls) == 1 and results and all(r.ok for r in results):
+        if (
+            self._agent.steps == 0
+            and len(plan.calls) == 1
+            and results
+            and all(r.ok for r in results)
+        ):
             self._learn(text, ToolCall(plan.calls[0].name, plan.calls[0].arguments))
+
+    def _should_continue(self, calls: list[ToolCall], marks: _Marks) -> bool:
+        """¿Hay que volver al LLM con lo consultado? Con límites de vueltas y de tiempo."""
+        if self.executor is None or self._brain_off():
+            return False
+        if self._agent.steps >= MAX_STEPS or self._clock() - marks.end > MAX_SECONDS:
+            log.info("Bucle de agente: límite alcanzado (%d vueltas)", self._agent.steps)
+            return False
+        tools = (self.executor.registry.get(c.name) for c in calls)
+        return any(t is not None and t.observe for t in tools)
 
     def _brain_off(self) -> bool:
         return self.game is not None and self.game.active and self.game.brain_off
@@ -890,6 +921,14 @@ class Pipeline:
             if tool is not None and self.game.policy_for(tool) is GamePolicy.BLOCKED:
                 return True
         return False
+
+    async def _show_known(self) -> None:
+        """Lo último consultado, en su burbuja (cuando el modelo no sabe seguir)."""
+        shown = next((r for _, r in reversed(self._agent.done) if r.display), None)
+        if shown is not None and shown.display:
+            await self._show_bubble(shown.display, shown.secondary or "")
+            self._schedule_bubble_hide(bubble_duration(shown.display, shown.secondary or ""))
+        await self._go_idle()
 
     async def _not_found(self, miss: Miss, *, from_voice: bool) -> None:
         best = miss.candidates[0].entry.name if miss.candidates else None
@@ -963,7 +1002,9 @@ class Pipeline:
                 speech.say(sentence)
 
         try:
-            async with contextlib.aclosing(self.brain.respond(text, extra)) as events:
+            continuing = self._agent.steps > 0
+            respond = self.brain.respond(text, extra, continuing=continuing)
+            async with contextlib.aclosing(respond) as events:
                 async for event in events:
                     if marks.first_token is None:
                         marks.first_token = self._clock()

@@ -49,6 +49,7 @@ class FindFiles(Tool[FindFilesParams]):
     game_policy = GamePolicy.ALLOWED
     category = Category.FILES
     params_model = FindFilesParams
+    observe = True
     timeout_s = 15.0
 
     async def run(self, params: FindFilesParams, ctx: ToolContext) -> ToolResult:

@@ -111,6 +111,9 @@ class Tool[P: Params](ABC):
     category: ClassVar[Category]
     params_model: type[P]
     timeout_s: ClassVar[float] = 10.0
+    # Consulta algo que hay que contar (listar, buscar, ver alarmas…): su resultado vuelve al
+    # LLM para que lo diga en una frase (bucle de agente, brain/agent.py).
+    observe: ClassVar[bool] = False
 
     # Cada herramienta redefine `run` (sencillas) o `prepare` + `execute` (las que tocan
     # archivos o ventanas: SafetyGuard revisa lo preparado antes de ejecutarlo).

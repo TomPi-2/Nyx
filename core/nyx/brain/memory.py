@@ -30,8 +30,11 @@ class ShortMemory:
         if self._clock() - self._last > self._expire_s:
             self._turns.clear()
 
-    def add(self, user: str, assistant: str) -> None:
+    def add(self, user: str, assistant: str, *, replace: bool = False) -> None:
+        """`replace`: sustituye el último turno si es de la misma petición (bucle de agente)."""
         self._expire()
+        if replace and self._turns and self._turns[-1][0] == user:
+            self._turns.pop()
         self._turns.append((user, assistant))
         self._last = self._clock()
 

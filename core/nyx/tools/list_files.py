@@ -21,6 +21,7 @@ class ListFiles(Tool[FileSelection]):
     game_policy = GamePolicy.ALLOWED
     category = Category.FILES
     params_model = FileSelection
+    observe = True
 
     async def run(self, params: FileSelection, ctx: ToolContext) -> ToolResult:
         if not (params.names or params.newest or params.kind or params.extension or params.all):

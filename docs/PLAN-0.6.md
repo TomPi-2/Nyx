@@ -143,6 +143,10 @@ Todas las herramientas nuevas siguen esto. Lee antes `core/nyx/tools/base.py`,
    - Devuelve `ToolResult(ok=..., message=..., display=..., secondary=...)`. Sin `display`,
      el éxito es silencioso (SPEC §3). Errores con `ToolResult.fail("frase corta", "pista")`.
    - Lo bloqueante (Win32, psutil, red síncrona) dentro de `await asyncio.to_thread(...)`.
+   - Si **consulta** algo que hay que contar, `observe = True` (tarea 6.01): el resultado
+     vuelve al LLM para que lo diga en una frase. Pon en `message` lo que hay que contar, en
+     español y sin rutas ni nombres internos (se leería en voz alta). Si son archivos, mételos
+     en `data["paths"]`: `brain/agent.py` los prepara para decirlos.
 2. **Registrarla** en `default_registry()` de `core/nyx/tools/registry.py` y actualizar el
    número de herramientas en `core/tests/test_executor.py`
    (`test_default_registry_tools_are_complete`).
@@ -473,3 +477,4 @@ Una fila por tarea terminada. «Revisado» lo rellena Claude al repasar.
 
 | Tarea | Agente | Commit | Notas para la revisión | Revisado |
 | --- | --- | --- | --- | --- |
+| 6.01 | Claude | (este commit) | `Tool.observe`; el resultado vuelve al LLM en el mensaje del usuario (no como `role="tool"`: así no cambia el prefijo en caché ni hace falta guardar las llamadas del asistente). Límites: 6 vueltas, 20 s; si repite lo mismo, se enseña lo último consultado. Probado con el 7B real: ~1,5 s la segunda vuelta; los nombres de archivo se le pasan ya «para decir» (sin rutas ni guiones bajos) porque si no los leía con la ruta. | Sí (Claude) |

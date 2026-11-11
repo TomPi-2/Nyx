@@ -4,6 +4,11 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
 
 ## [Sin publicar]
 
+### Añadido
+
+- 0.6, cerebro (`docs/PLAN-0.6.md`):
+  - 6.01, bucle de agente: las herramientas que consultan (`observe`: listar y buscar archivos, y las que vengan) devuelven su resultado al LLM, que lo cuenta en una frase o da el siguiente paso, hasta 6 vueltas y 20 s (`nyx/brain/agent.py`). Los nombres de archivo le llegan ya preparados para decirlos, sin rutas. Las acciones siguen sin segunda llamada al LLM. La memoria corta guarda un solo turno por petición.
+
 ## [0.5.0] - 2026-11-11
 
 Primera versión interna completa (fases 1 a 5 de la SPEC; versión 0.5 de `docs/HOJA-DE-RUTA.md`). Sin publicar: solo en los equipos de prueba.
