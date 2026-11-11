@@ -223,6 +223,7 @@
     {size}
     {backdrop}
     {color}
+    gaming={game.active}
     onvisible={onShapeVisible}
   />
 </div>

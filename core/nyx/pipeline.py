@@ -711,7 +711,11 @@ class Pipeline:
             routed = None
         # Ventana de seguimiento: lo que no es una orden clara solo se atiende si va dirigido
         # a Nyx (el usuario puede estar hablando con otra persona).
-        if followup and not self._clearly_for_nyx(text) and not await self.brain.addressed(text):
+        if (
+            followup
+            and not self._clearly_for_nyx(text)
+            and (self._brain_off() or not await self.brain.addressed(text))
+        ):
             log.info("Seguimiento ignorado: no iba dirigido a Nyx (%r)", text)
             await self._go_idle()
             return
@@ -874,6 +878,9 @@ class Pipeline:
         if len(plan.calls) == 1 and results and all(r.ok for r in results):
             self._learn(text, ToolCall(plan.calls[0].name, plan.calls[0].arguments))
 
+    def _brain_off(self) -> bool:
+        return self.game is not None and self.game.active and self.game.brain_off
+
     def _blocked_in_game(self, calls: list[ToolCall]) -> bool:
         """¿Alguna llamada está bloqueada por la partida en curso?"""
         if self.game is None or not self.game.active or self.executor is None:
@@ -904,6 +911,16 @@ class Pipeline:
         hint: str = "",
         retried: bool = False,
     ) -> None:
+        if self._brain_off():
+            # En partida sin cerebro (no cabe junto al juego): solo las reglas.
+            log.info("En partida sin cerebro: %r se deja para después", text)
+            spoken = "En partida no puedo pensarlo. Pregúntamelo al terminar."
+            await self._fail(
+                "En partida no puedo pensarlo",
+                "pregúntamelo al terminar",
+                spoken if from_voice or self.speak_typed else None,
+            )
+            return
         await self._set_state(NyxState.THINKING)
         plan: ToolPlan | None = None
         extra = "\n".join(part for part in (await self._context(), hint) if part)

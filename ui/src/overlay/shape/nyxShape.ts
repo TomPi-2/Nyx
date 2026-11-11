@@ -139,6 +139,8 @@ export class NyxShape {
   private merging: Merging | null = null;
   private last = 0;
   private frameId = 0;
+  /** Fotogramas por segundo como mucho (0 = los de la pantalla). En partida, 30. */
+  maxFps = 0;
   private level = 0; // nivel de audio que llega del núcleo (0-1)
   private gray = 1; // 1 = blanco; menos = gris (fondo muy claro detrás)
   private grayTarget = 1;
@@ -287,7 +289,10 @@ export class NyxShape {
   private frame = (): void => {
     this.frameId = requestAnimationFrame(this.frame);
     const now = performance.now() / 1000;
-    const dt = Math.min(0.033, now - this.last);
+    // Con un tope (en partida), se salta el fotograma si aún no toca: medio margen para no
+    // perder uno de cada dos por redondeo.
+    if (this.maxFps > 0 && now - this.last < 0.5 / this.maxFps + 0.5 / 60) return;
+    const dt = Math.min(0.05, now - this.last);
     this.last = now;
     const speed = SPEED * (this.reduceMotion.matches ? 0.35 : 1);
     this.clock += dt * speed;

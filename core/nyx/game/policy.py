@@ -57,6 +57,7 @@ class GameGate:
     active: bool = False
     queue: list[Deferred] = field(default_factory=list)
     path: Path | None = None  # dónde se guarda la cola (None: solo en memoria)
+    brain_off: bool = False  # en partida sin cerebro: no cabe junto al juego (game/brain.py)
 
     @property
     def mode(self) -> str:

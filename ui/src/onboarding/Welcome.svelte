@@ -262,8 +262,8 @@
             note={!status.ollama.running
               ? "Ollama no está en marcha: ábrelo (o instálalo) para descargar el modelo. El instalador de Nyx lo traerá más adelante."
               : llm.gpu
-                ? `Tu tarjeta: ${llm.gpu.name} (${fmtGb(llm.gpu.vram_gb)}). El recomendado es el más capaz que cabe entero en ella, y así responde rápido.`
-                : "No he podido ver tu tarjeta gráfica: te recomiendo el de por defecto."}
+                ? `Tu tarjeta: ${llm.gpu.name} (${fmtGb(llm.gpu.vram_gb)}). El cerebro de Nyx cabe entero en ella, así responde rápido.`
+                : "No he podido ver tu tarjeta gráfica: el cerebro de Nyx necesita una con 6 GB o más."}
           >
             <div class="choices" role="radiogroup" aria-label="Modelo del cerebro">
               {#each llm.choices as choice (choice.id)}

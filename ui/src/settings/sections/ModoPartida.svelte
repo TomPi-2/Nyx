@@ -28,6 +28,14 @@
     voice: "Nyx responde por voz y no aparece nada sobre el juego.",
     normal: "Nyx aparece como siempre, también sobre el juego.",
   };
+  const BRAINS: { value: Game["brain"]; label: string }[] = [
+    { value: "auto", label: "Sí" },
+    { value: "off", label: "Solo órdenes" },
+  ];
+  const BRAIN_HINT: Record<Game["brain"], string> = {
+    auto: "Nyx sigue entendiendo y respondiendo mientras juegas. Cuesta muy poco: unos pocos FPS, sin tirones.",
+    off: "Mientras juegas, Nyx no usa el modelo: hace las órdenes de siempre (música, volumen, alarmas…) y las preguntas te las contesta al terminar.",
+  };
   const POLICIES: { value: GamePolicy; label: string }[] = [
     { value: "allowed", label: "Sí" },
     { value: "deferred", label: "Después" },
@@ -104,6 +112,14 @@
   </Card>
 
   <Card title="Rendimiento">
+    <Row label="Cerebro en partida" hint={BRAIN_HINT[game.brain ?? "auto"]} stacked>
+      <Segmented
+        label="Cerebro en partida"
+        options={BRAINS}
+        value={game.brain ?? "auto"}
+        onchange={(brain) => setGame({ brain })}
+      />
+    </Row>
     <Row label="Prioridad baja" hint="Nyx y sus procesos ceden la CPU al juego mientras juegas.">
       <Toggle
         label="Prioridad baja en partida"

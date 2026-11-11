@@ -17,8 +17,14 @@
   const shortcuts = $derived(settings.setupStatus?.shortcuts ?? []);
   let timeout = $state<number | null>(null);
 
+  /** Los modelos probados con la batería de frases (core/nyx/setup/hardware.py, LLM_CHOICES).
+   *  En la primera versión, uno solo: el 7B (decisión 2026-11-11). */
+  const SUPPORTED = ["qwen2.5:7b"];
+
   function modelOptions(installed: string[], current: string) {
-    const list = installed.map((m) => ({ value: m, label: m }));
+    const list = installed
+      .filter((m) => SUPPORTED.some((s) => m === s || m === `${s}:latest`))
+      .map((m) => ({ value: m, label: m }));
     if (current && !installed.some((m) => m === current || m === `${current}:latest`)) {
       list.unshift({ value: current, label: `${current} (no instalado)` });
     }
@@ -42,7 +48,7 @@
     <div class="lockable" class:locked={!ollama?.running}>
       <Row
         label="Modelo local"
-        hint="El que usa Nyx para entender lo que pides y responder. Se elige entre los que tienes en Ollama."
+        hint="El que usa Nyx para entender lo que pides y responder. Por ahora, uno solo: el que se ha probado a fondo con Nyx."
         stacked
       >
         <Select

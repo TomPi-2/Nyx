@@ -28,6 +28,7 @@ from nyx.brain.shortcuts import ShortcutStore
 from nyx.bus import EventBus
 from nyx.events import BubbleHidden, BubbleShown, OpenSettingsWindow, SettingsChanged
 from nyx.executor import Executor
+from nyx.game.brain import GameBrain
 from nyx.game.controller import GameController
 from nyx.game.detector import GameDetector
 from nyx.game.policy import GameGate
@@ -301,7 +302,12 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     )
     services.alarms_start = asyncio.create_task(_start_alarms(alarms), name="alarms-start")
     services.game_controller = GameController(
-        bus, game, executor, unload_llm=llm.unload, reload_llm=brain.warmup
+        bus,
+        game,
+        executor,
+        unload_llm=llm.unload,
+        reload_llm=brain.warmup,
+        brain=GameBrain(game, llm, brain.warmup),
     )
     services.game_detector = GameDetector(
         bus,

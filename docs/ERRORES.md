@@ -8,7 +8,6 @@ Fallos vistos al usar Nyx que quedan pendientes de corregir. Se apuntan aquí pa
 | --- | --- | --- | --- | --- |
 | 2026-11-10 | «Explícame qué es un agujero negro» (escrito, portátil) | Responde que aún no puede buscar en internet. | Explicarlo con el LLM local, sin internet: es conocimiento general. | Probablemente «explícame» o «qué es» acaba en la negativa de búsqueda web en vez de en una pregunta al LLM. Revisar el router y las negativas fijas (`refusal`). |
 | 2026-11-10 | «Elimina la carpeta llamada "carpeta nueva" del escritorio» | Dice que no hay ningún archivo así. | Encontrar la carpeta (en Windows suele llamarse «Nueva carpeta») y pedir confirmación para moverla a la papelera. | Revisar cómo se extrae el nombre con «llamada» y comillas, y si la búsqueda difusa tolera el orden de las palabras. Si no existe, sugerir la más parecida (SPEC sección 14). |
-| 2026-11-11 | Jugando a Rocket League con `qwen2.5:14b`, cada vez que Nyx piensa | El juego va a tirones. Latencia de 2 a 19 s hasta la voz. | Ningún tirón; en partida, Nyx usa un cerebro que quepa junto al juego. | 14B (~9 GB) + Whisper + el juego superan los 12 GB de VRAM, y el LLM ocupa la GPU al 100 % mientras genera. Ver HOJA-DE-RUTA §1.1. |
 | 2026-11-11 | «Bájate la calidad del cristal al mínimo» (en partida) | `app_action zoom_out` ×3 sobre Rocket League (bloqueado por la partida). | Cambiar `appearance.glass.quality` a «bajo». | Falta `nyx_control` (fase 6). |
 | 2026-11-11 | «¿Cuánto le queda a la alarma?» | «No hay ninguna alarma programada actualmente» (había una). | Decir cuánto le queda. | Falta `list_alarms` y la regla de no afirmar nada del PC sin una herramienta. |
 | 2026-11-11 | «Cierra la carpeta que tengo abierta» / «Cierra la carpeta llamada nueva carpeta» | «No veo la carpeta … abierto». | Cerrar esa ventana del Explorador. | `close_app` no conoce las ventanas del Explorador por carpeta. |
@@ -21,6 +20,7 @@ Fallos vistos al usar Nyx que quedan pendientes de corregir. Se apuntan aquí pa
 
 | Fecha | Error | Commit |
 | --- | --- | --- |
+| 2026-11-11 | Tirones en Rocket League cuando Nyx pensaba con el 14B (no cabe junto al juego: −80 % de FPS). En partida, el 7B en la gráfica (−3,4 %, sin tirones) o sin cerebro si no cabe. | 0.5, bloque 4 (pendiente de probar) |
 | 2026-11-11 | «Pon música» le daba al play al vídeo de YouTube que estaba abierto. Ahora va a Spotify si está instalada; en la 0.6, a la app donde el usuario suela escuchar música. | 0.5 (pendiente de probar) |
 | 2026-11-11 | En partida, «muéstrame los FPS…» se dejaba para después como `focus_window` y fallaba al terminar (parecía que solo hacía la última). Ahora se comprueba antes de diferir, la cola se guarda en disco, se puede ver y cancelar («¿qué tienes pendiente?») y el resumen final se dice en voz. | 0.5, bloque 2 (pendiente de probar) |
 | 2026-11-11 | Leía en voz alta `appaction({…}); appaction({…})`. En partida, «salta», «acelera»… tienen negativa fija; un plan bloqueado por la partida no se reintenta; el intérprete entiende varias llamadas en una línea y nunca se dice ni se muestra código. | 0.5, bloque 1 (pendiente de probar) |

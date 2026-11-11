@@ -105,7 +105,7 @@ async def test_download_with_nothing_missing(
 
 @pytest.mark.parametrize(
     ("vram", "model"),
-    [(None, "qwen2.5:7b"), (2.0, "qwen2.5:7b"), (8.0, "qwen2.5:7b"), (12.0, "qwen2.5:14b")],
+    [(None, "qwen2.5:7b"), (2.0, "qwen2.5:7b"), (8.0, "qwen2.5:7b"), (12.0, "qwen2.5:7b")],
 )
 def test_recommended_model_by_gpu_memory(vram: float | None, model: str) -> None:
     """El más capaz que cabe entero en la GPU; sin tarjeta conocida, el de por defecto."""
@@ -120,6 +120,6 @@ async def test_status_has_llm_choices_and_everything(tmp_path: Path) -> None:
     got = Collect(bus)
     await bus.publish(SetupRequested("status"))
     status = got.status[-1]
-    assert {c["id"] for c in status["llm"]["choices"]} >= {"qwen2.5:7b", "qwen2.5:14b"}
+    assert {c["id"] for c in status["llm"]["choices"]} == {"qwen2.5:7b"}  # uno solo (2026-11-11)
     assert status["llm"]["recommended"] in {c["id"] for c in status["llm"]["choices"]}
     assert set(status["everything"]) == {"installed", "running", "cli"}

@@ -33,12 +33,14 @@ Datos sacados del registro (`%LOCALAPPDATA%\Nyx\logs\core.log` y `actions\2026-1
 
 1. **Presupuesto de VRAM en partida.** Al empezar una partida, Nyx lee la VRAM libre (DXGI `QueryVideoMemoryInfo`). Si el cerebro no cabe con margen (≥ 1,5 GB libres para el juego), lo descarga y usa el **cerebro de partida**.
 2. **Cerebro de partida** (ajuste nuevo en Modo partida, «Automático» por defecto): un modelo pequeño en la GPU si cabe o el 7B en la CPU si no. Lo frecuente en partida (música, volumen, hora, alarmas) ya lo resuelve el router sin LLM, así que el LLM solo entra en preguntas.
-3. **Nunca el 14B en partida.** Si el usuario lo tiene elegido, en partida se usa el de partida y Ajustes lo dice.
+3. **Nunca el 14B en partida.** Resuelto de raíz el 2026-11-11: el 14B sale de la primera versión (sección 1.2).
 4. **La forma de Nyx a 30 fps en partida** (hoy 60) y el cristal ya en Bajo.
 5. **Medirlo de verdad:** PresentMon (licencia MIT, de Intel; lee los tiempos de fotograma por ETW sin tocar el juego) con y sin Nyx pensando. Objetivo nuevo para la sección 14: **menos de un 2 % de FPS medios y ningún tirón (fotograma > 2× la media) mientras Nyx piensa o habla**. Se prueba en los dos equipos.
 6. A investigar: bajar la prioridad de GPU de Ollama y whisper-server (prioridad de planificación de GPU de Windows). Si funciona, mejor que cambiar de modelo.
 
 ### 1.2 El 14B responde mejor pero tarda más
+
+**Decisión del 2026-11-11: fuera de la primera versión.** En la batería de frases acertaba lo mismo (100 %) pero tardaba 8 veces más (4,4 s de mediana frente a 0,55 s), no cabe en tarjetas de 8 GB y junto a un juego da tirones; y cambiar de modelo al entrar y salir de las partidas era frágil (con Alt+Tab, el 14B se quedaba unos segundos junto al juego). Lo que aportaba (respuestas más completas) llega con la búsqueda en internet (0.6), más código alrededor del 7B (0.6) y la nube opcional (2.0). Lo que sigue es el análisis original.
 
 Es lo esperado: tiene el doble de parámetros (≈ 40 tokens/s frente a 77 en la RX 7700 XT). No se arregla eligiendo uno, sino con **dos niveles de cerebro** (0.6, ver sección 3): el rápido decide y responde lo corto, y el grande solo entra cuando hace falta pensar («explícame…», «compara…», o si el usuario dice «piénsalo bien»). Además, la 0.6 prueba modelos más nuevos con licencia Apache 2.0 o MIT (por ejemplo la familia Qwen3, que tiene 4B, 8B y 14B y modo de razonamiento opcional) con la batería de frases.
 
@@ -189,11 +191,11 @@ Hoy el LLM devuelve un plan de una vez y Nyx lo ejecuta. Para tareas abiertas es
 | | Rápido | Grande |
 | --- | --- | --- |
 | Para qué | Elegir herramientas, respuestas cortas, seguimiento | Explicar, comparar, redactar, planes largos, resumir webs |
-| Modelo (a confirmar con la batería) | 7–8B, o 4B en portátiles y en partida | 14B, o el rápido con razonamiento activado |
+| Modelo | El 7B (local) | La nube opcional (2.0), con la clave del usuario o con Nyx Plus; el 14B local se descartó el 2026-11-11 |
 | Cuándo | Siempre | Si el rápido lo pide, si la pregunta es larga o con «piénsalo bien» |
-| En partida | El de partida (sección 1.1) | Nunca |
+| En partida | El 7B, en la gráfica | Nunca |
 
-Si los dos no caben a la vez en la VRAM, el grande se carga solo cuando hace falta y lo dice («Dame un momento, lo pienso mejor»).
+Hasta la 2.0, solo el nivel rápido: lo que no sepa, lo busca en internet (sección 3.5).
 
 ### 3.3 Muchas herramientas sin saturar al modelo
 

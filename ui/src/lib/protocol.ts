@@ -79,6 +79,8 @@ export interface NyxSettings {
     policies: Record<string, GamePolicy>;
     low_priority: boolean;
     unload_llm_after_min: number;
+    /** Cerebro en partida: el 7B si cabe junto al juego, o solo reglas (core/nyx/game/brain.py). */
+    brain: "auto" | "off";
     /** v11: monitor en partida («solo voz»); null = automático. */
     alt_monitor: string | null;
   };

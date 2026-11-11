@@ -36,23 +36,17 @@ class LlmChoice:
     tested: bool  # pasado por la batería de frases de Nyx
 
 
-#: De menos a más exigente. La batería de frases solo se ha pasado con el de 7B.
+#: Los modelos que se ofrecen. En la primera versión, uno solo (decisión 2026-11-11): el 14B
+#: era 8 veces más lento en la batería de frases sin acertar más, no cabe en tarjetas de 8 GB
+#: y junto a un juego da tirones. Para respuestas más elaboradas, la nube opcional (2.0).
 LLM_CHOICES: tuple[LlmChoice, ...] = (
     LlmChoice(
         "qwen2.5:7b",
         "Qwen 2.5 · 7B",
         4.7,
         6,
-        "Rápido y fiable con las acciones. El que usa Nyx por defecto.",
+        "Rápido y fiable con las acciones y las preguntas. Cabe junto a tus juegos.",
         True,
-    ),
-    LlmChoice(
-        "qwen2.5:14b",
-        "Qwen 2.5 · 14B",
-        9.0,
-        12,
-        "Entiende mejor las peticiones largas o ambiguas. Necesita una tarjeta con 12 GB.",
-        False,
     ),
 )
 

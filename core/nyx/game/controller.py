@@ -21,6 +21,7 @@ from nyx.game.policy import GameGate
 
 if TYPE_CHECKING:
     from nyx.executor import Executor
+    from nyx.game.brain import GameBrain
 
 log = logging.getLogger(__name__)
 
@@ -58,8 +59,11 @@ class GameController:
         reload_llm: Callable[[], Awaitable[None]] | None = None,
         set_priority: Callable[[bool], None] = set_low_priority,
         after_game_s: float = AFTER_GAME_S,
+        brain: GameBrain | None = None,
     ) -> None:
         self.after_game_s = after_game_s
+        self.brain = brain
+        self._brain_start: asyncio.Task[None] | None = None
         self.bus = bus
         self.gate = gate
         self.executor = executor
@@ -77,7 +81,7 @@ class GameController:
 
     async def close(self) -> None:
         self._unsubscribe()
-        for task in (self._unload_timer, self._hide, self._resume):
+        for task in (self._unload_timer, self._hide, self._resume, self._brain_start):
             if task is not None:
                 task.cancel()
 
@@ -87,6 +91,9 @@ class GameController:
             self.gate.active = True
             if settings.low_priority:
                 await asyncio.to_thread(self.set_priority, True)
+            if self.brain is not None:
+                # Cambiar de modelo tarda unos segundos: no se bloquea a quien publica.
+                self._brain_start = asyncio.create_task(self.brain.start(), name="game-brain")
             if settings.unload_llm_after_min and self.unload_llm is not None:
                 self._unload_timer = asyncio.create_task(
                     self._unload_later(settings.unload_llm_after_min * 60), name="llm-unload"
@@ -98,6 +105,12 @@ class GameController:
             self._unload_timer = None
         if settings.low_priority:
             await asyncio.to_thread(self.set_priority, False)
+        if self.brain is not None:
+            if self._brain_start is not None:
+                with contextlib.suppress(Exception):
+                    await self._brain_start  # que termine de decidir antes de deshacerlo
+                self._brain_start = None
+            await self.brain.stop()
         if self._unloaded and self.reload_llm is not None:
             self._unloaded = False
             with contextlib.suppress(Exception):

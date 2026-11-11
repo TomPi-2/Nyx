@@ -33,7 +33,7 @@ Nyx se divide en dos procesos: un núcleo en Python que escucha, piensa y actúa
 | Activación | openWakeWord (ONNX) | Vosk con gramática | Modelo propio para "Nyx"; Vosk para palabras personalizadas |
 | Detección de voz (VAD) | Silero VAD (ONNX) | WebRTC VAD | Corta la grabación al dejar de hablar |
 | Voz a texto | whisper.cpp con backend Vulkan | whisper.cpp en CPU | faster-whisper no acelera en AMD; usar large-v3-turbo cuantizado |
-| Cerebro | Ollama (ROCm o Vulkan) | LM Studio | Modelo instruct de 7–8B con tool calling; 14B cuantizado como opción |
+| Cerebro | Ollama (ROCm o Vulkan) | LM Studio | Un solo modelo: `qwen2.5:7b` (instruct con tool calling). El 14B se descartó para la primera versión (sección 18) |
 | Texto a voz | Pocket TTS (Kyutai; código MIT, pesos CC BY 4.0), voz «lola» | Piper (GPL-3.0): davefx y daniela | En la CPU con 2 hilos; genera a trozos (primer audio en ~0,08 s). Necesita PyTorch para CPU |
 | Acciones Windows | pywin32, comtypes, pycaw, psutil, winsdk | PowerShell | Ventanas, audio, procesos, notificaciones |
 | Papelera | send2trash | — | Nunca borrado permanente |
@@ -176,7 +176,7 @@ El cerebro decide qué herramientas ejecutar en dos niveles: un router determini
 
 **Nivel 2: LLM con herramientas:**
 
-- Ollama con modelo instruct de 7–8B que soporte tool calling (evaluar Qwen y Llama de esa talla con la batería de pruebas de la sección 14). 14B cuantizado como opción en ajustes.
+- Ollama con modelo instruct de 7–8B que soporte tool calling (evaluar Qwen y Llama de esa talla con la batería de pruebas de la sección 14). En la primera versión, un solo modelo, el 7B: el 14B se descartó porque en la batería de frases acertaba lo mismo (100 %) pero tardaba 8 veces más (4,4 s de mediana frente a 0,55 s), no cabe en tarjetas de 8 GB y junto a un juego da tirones (decisión 2026-11-11). Para respuestas más elaboradas, la nube opcional (nivel 3).
 - Modelo siempre cargado (`keep_alive` largo) y contexto corto (8k tokens; las herramientas ocupan ~3,4k) para responder rápido. El prefijo fijo (sistema + herramientas) se precalienta y no cambia entre peticiones: la hora y la ventana activa van con el mensaje del usuario.
 - **Prompt de sistema** con: identidad y tono de Nyx (breve, español, sin relleno), fecha y hora, app en primer plano, monitor activo, estado de modo partida, carpetas conocidas y reglas de seguridad.
 - **Herramientas expuestas de forma dinámica:** solo las relevantes según categoría detectada (máximo unas 15 por llamada) para no saturar un modelo pequeño.
@@ -333,6 +333,7 @@ El usuario puede mover cualquier herramienta entre columnas en ajustes.
 
 - **Anticheat:** sin inyección, sin overlay dentro del juego, sin leer su memoria ni enviarle teclas. La interfaz va en una ventana aparte que nunca toma el foco (`WS_EX_NOACTIVATE`).
 - **Rendimiento:** prioridad de proceso baja para Nyx, el LLM puede descargarse de la VRAM tras X minutos en partida (ajuste) y recargarse al terminar.
+- **Cerebro en partida** (decisión 2026-11-11, medido en `docs/benchmarks/partida-*.md`): el 7B se queda en la tarjeta gráfica (−3,4 % de FPS en Rocket League, sin tirones); nunca se pasa al procesador, que cuesta más (−23 %). Ajuste «Cerebro en partida»: «Sí» (predeterminado) o «Solo órdenes», con el que el modelo sale de la memoria mientras se juega, el router sigue y las preguntas se dejan para después («En partida no puedo pensarlo»). Sin cambios de modelo al entrar y salir del juego: con el 14B, cada Alt+Tab lo dejaba unos segundos junto al juego y el juego iba a tirones. La forma de Nyx se dibuja a 30 fotogramas por segundo.
 - **Voz:** salida opcional por un dispositivo distinto (por ejemplo, solo cascos) y sin atenuar el audio del juego.
 - **Al salir de la partida:** Nyx ejecuta las acciones diferidas y lo notifica en una burbuja breve.
 - **Juegos en ventana sin bordes:** se detectan por la lista de juegos aunque no estén en pantalla completa exclusiva.
@@ -539,7 +540,7 @@ La ventana de Ajustes es la única ventana clásica de Nyx y sigue la misma iden
 | Voz | Voz (Lola, hombre · España, mujer · Argentina), velocidad, volumen, dispositivo de entrada y de salida, atenuar otras apps |
 | Respuestas | Responder también en voz a lo escrito (desactivado por defecto), cuándo hablar (siempre, solo preguntas, nunca), cuándo mostrar burbuja, duración, confirmación visual de acciones silenciosas |
 | Apariencia | Monitor de destino, tema claro u oscuro, vista previa del indicador (estilos, ubicaciones y tamaños en la fase 7). Fuente, color de Nyx y tinte de los paneles (opciones fijas, sección 12). Cristal: calidad (Auto, Alto, Medio, Bajo; con un nivel concreto, el aviso «En partida se cambia a Bajo automáticamente, sin excepción»), movimiento del borde (siempre, al interactuar, quieto), amplitud del borde (0–10), mostrar Nyx en capturas y directos, y qué hace con las capturas (sección 8) |
-| Modo partida | Nyx en partida (desactivado, solo voz, normal), monitor alternativo para la interfaz, herramientas permitidas, diferidas y bloqueadas, lista de juegos manual, descargar el LLM en partida |
+| Modo partida | Nyx en partida (desactivado, solo voz, normal), cerebro en partida (automático o solo órdenes), monitor alternativo para la interfaz, herramientas permitidas, diferidas y bloqueadas, lista de juegos manual, descargar el LLM en partida |
 | Cerebro | Modelo local, nube opcional con clave propia, atajos aprendidos (ver y borrar), preferencias aprendidas |
 | Seguridad | Nivel de cada herramienta (sin poder bajar el de eliminar o PowerShell), rutas protegidas extra, registro de acciones |
 | Caché | Reescanear ahora, alias personalizados, webs frecuentes, estado de Everything |
@@ -566,16 +567,17 @@ Nyx debe sentirse instantáneo y no fallar nunca en silencio: cada error se expl
 | Arranque hasta estar listo | < 10 s |
 | Motor de cristal en reposo | 0 % de GPU (ninguna captura ni redibujado) |
 | Motor de cristal con paneles visibles | < 8 ms de GPU por fotograma; el borde se redibuja a 30 fps |
+| Coste en partida (`scripts/game_bench.py`, Nyx pensando cada 8 s) | Menos de un 5 % de FPS medios y el peor fotograma como mucho 1,5 veces el del juego solo |
 
 **Requisitos del sistema:** detalle y mediciones en `docs/benchmarks/requisitos.md`. Solo con gráfica integrada no sirve (Whisper en la Radeon 680M: texto basura y ~10 s por frase).
 
 | | Mínimos (probado: RTX 3070 Laptop) | Recomendados (probado: RX 7700 XT) |
 | --- | --- | --- |
 | Sistema | Windows 11 de 64 bits | Windows 11 de 64 bits |
-| Tarjeta gráfica | Dedicada, Vulkan y 8 GB de VRAM | 12 GB de VRAM (necesarios para el modelo de 14B) |
+| Tarjeta gráfica | Dedicada, Vulkan y 8 GB de VRAM | 12 GB de VRAM |
 | Procesador | 8 núcleos (Ryzen 7 6800H o similar) | Ryzen 7 7700X o similar |
 | RAM | 16 GB | 32 GB |
-| Disco | ~8 GB libres | ~9 GB más para el modelo de 14B |
+| Disco | ~8 GB libres | ~8 GB libres |
 
 **Fiabilidad:**
 
@@ -736,7 +738,7 @@ Reglas de trabajo:
 **Preguntas abiertas para resolver con Claude durante el desarrollo:**
 
 - Ajuste fino de la paleta de grises sobre fondos reales.
-- Modelo de LLM final tras la batería de pruebas (7–8B frente a 14B). Provisional: `qwen2.5:7b` (sección 18).
+- ~~Modelo de LLM: 7–8B frente a 14B~~ Resuelta para la primera versión: solo `qwen2.5:7b` (sección 18). Más adelante, otros modelos de esa talla con la batería.
 - ~~Viabilidad del Acrylic con esquinas muy redondeadas~~ Resuelta: no es viable; tinte gris translúcido al 84 % (sección 11).
 - Ubicación fija para el tiempo (ciudad).
 
@@ -778,4 +780,6 @@ Reglas de trabajo:
 | 2026-11-10 | Paneles: la forma de Nyx y los paneles en ventanas distintas, para que Nyx salga siempre en capturas y directos; ajuste «Mostrar Nyx en capturas y directos» (los paneles pasan a Bajo). Hueco fijo de 14 px entre Nyx (en su extensión máxima) y cualquier panel; Ajustes se mueve libremente. El campo de texto también usa el motor. Ajustes solo muestra lo que ya existe; el resto se añade cuando exista. Lo que queda de 5b: paneles con un prototipo previo; 5c: Ajustes en dos entregas. | 11, 12, 13 |
 | 2026-11-10 | Apariencia personalizable con opciones fijas (entra en 5c‑2): color de Nyx (19, con un rojo intenso que combine con el tinte vino), tinte de los paneles (12) y fuente (Segoe UI Variable, Manrope o Nunito). Grises y blanco siguen siendo lo predeterminado. | 12, 13 |
 | 2026-11-10 | Icono de Nyx: la propuesta «Sólido» (la forma casi cuadrada con un lóbulo). Bandeja según el tema de Windows (blanco / gris oscuro). En la web irá con una animación de un solo disparo: se divide en cuatro, dan un cuarto de vuelta con dos empujones y vuelven al icono (`docs/prototipos/icono-nyx.html`). | 12 |
+| 2026-11-11 | Cerebro en partida, tras medir Rocket League en el PC de referencia (`docs/benchmarks/partida-TomPi-20261111-1717.md`): el 7B en la gráfica cuesta un 3,4 % de FPS sin tirones; el 14B, un 80 % (no cabe junto al juego); el 7B en el procesador, un 23 %. En partida, siempre el 7B en la gráfica, o sin cerebro si no cabe; nunca el procesador. Objetivo nuevo: con Nyx pensando cada 8 s, menos de un 5 % de FPS medios y el peor fotograma como mucho 1,5 veces el del juego solo. Falta medir el portátil. | 9, 13, 14 |
+| 2026-11-11 | Un solo cerebro en la primera versión, `qwen2.5:7b`: el 14B se descarta porque en la batería de frases acertaba lo mismo (100 %) pero tardaba 8 veces más (4,4 s de mediana frente a 0,55 s), no cabe en tarjetas de 8 GB y junto a un juego da tirones; además, cambiarlo al entrar y salir de las partidas era frágil. Sale del asistente y de Ajustes (quien lo tuviera pasa al 7B al arrancar). En partida, el 7B se queda en la gráfica; «Cerebro en partida»: «Sí» o «Solo órdenes». Lo más elaborado, con la nube opcional (2.0). | 2, 6, 9, 13, 14 |
 | 2026-11-11 | Requisitos del sistema tras las pruebas del portátil (RTX 3070 Laptop, 8 GB): `qwen2.5:7b` al 100 % en GPU, 4,4 GB de VRAM, 83 tokens/s y 3/3 herramientas, igual que en la RX 7700 XT. Mínimos: Windows 11, Vulkan y 8 GB de VRAM, 8 núcleos, 16 GB de RAM y ~8 GB de disco; recomendados: 12 GB de VRAM y 32 GB de RAM. Voz en el portátil: 0,4 s del fin de la frase a la voz (1,3 s con herramienta). whisper-server se compila sin `GGML_NATIVE` (el nativo del sobremesa usaba AVX-512 y se caía en el Ryzen 7 6800H); solo con gráfica integrada no sirve. Pendiente: arranque de 23 s con Whisper y ~800 MB de RAM del núcleo. | 14 |

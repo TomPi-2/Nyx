@@ -53,10 +53,10 @@ Notas:
 | | Mínimos (probado: portátil) | Recomendados (probado: sobremesa) |
 | --- | --- | --- |
 | Sistema | Windows 11 de 64 bits | Windows 11 de 64 bits |
-| Tarjeta gráfica | **Dedicada**, compatible con Vulkan y con **8 GB de VRAM** (por ejemplo RTX 3070 Laptop) | 12 GB de VRAM (por ejemplo RX 7700 XT); necesarios para el modelo de 14B |
+| Tarjeta gráfica | **Dedicada**, compatible con Vulkan y con **8 GB de VRAM** (por ejemplo RTX 3070 Laptop) | 12 GB de VRAM (por ejemplo RX 7700 XT): más margen para los juegos |
 | Procesador | 8 núcleos de la generación del Ryzen 7 6800H (AVX2) | Ryzen 7 7700X o similar |
 | RAM | 16 GB | 32 GB |
-| Disco | ~8 GB libres (LLM 4,7 GB y modelos de voz ~1 GB) | ~9 GB más para el modelo de 14B |
+| Disco | ~8 GB libres (LLM 4,7 GB y modelos de voz ~1 GB) | ~8 GB libres |
 | Otros | Micrófono; portátil enchufado para el rendimiento completo | — |
 
 - **¿Por qué 8 GB y no 6?** Con 6 GB, el LLM y Whisper (~5 GB) caben en teoría, pero no quedaría sitio para Windows ni para un juego, y no se ha probado. No se promete lo que no se ha probado. El asistente recomienda hoy el 7B a partir de 6 GB (`core/nyx/setup/hardware.py`). Se puede dejar así (cabe) o subirlo a 8 si se quieren alinear.

@@ -14,9 +14,18 @@
     size: number; // lado del cuadrado en px
     backdrop: number | null; // luminancia alrededor (0-1)
     color?: string; // color de Nyx elegido en Apariencia (theme/palette.ts)
+    gaming?: boolean; // partida en curso: 30 fotogramas por segundo como mucho
     onvisible?: (visible: boolean) => void;
   }
-  let { status, level, size, backdrop, color = "blanco", onvisible }: Props = $props();
+  let {
+    status,
+    level,
+    size,
+    backdrop,
+    color = "blanco",
+    gaming = false,
+    onvisible,
+  }: Props = $props();
 
   const VOICE_ON = 0.02; // RMS a partir del cual el usuario está hablando
   const VOICE_HOLD_MS = 450; // sin voz durante esto → vuelve a «espera»
@@ -49,6 +58,7 @@
     try {
       shape = new NyxShape(canvas, size);
       shape.setColor(nyxRgb(color));
+      shape.maxFps = gaming ? 30 : 0;
     } catch (e) {
       console.error("La forma de Nyx necesita WebGL", e);
       return;
@@ -104,6 +114,10 @@
 
   $effect(() => {
     shape?.setColor(nyxRgb(color));
+  });
+
+  $effect(() => {
+    if (shape) shape.maxFps = gaming ? 30 : 0;
   });
 </script>
 

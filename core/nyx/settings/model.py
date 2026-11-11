@@ -147,6 +147,9 @@ class GameSettings(_Section):
     policies: dict[str, Literal["allowed", "deferred", "blocked"]] = Field(default_factory=dict)
     low_priority: bool = True  # Nyx con prioridad baja mientras se juega
     unload_llm_after_min: int = Field(default=0, ge=0, le=240)  # 0 = no descargarlo
+    # Cerebro en partida: auto = se queda en la gráfica (el 7B cuesta un 3,4 % de FPS);
+    # off = «solo órdenes»: el modelo sale de la memoria mientras se juega (game/brain.py).
+    brain: Literal["auto", "off"] = "auto"
     # En «solo voz» con varios monitores, si Nyx tuviera que salir en el del juego, sale en
     # este; None = automático (el principal, o el primero sin el juego).
     alt_monitor: str | None = Field(default=None, max_length=64)
@@ -194,6 +197,11 @@ def migrate(data: dict[str, Any]) -> dict[str, Any]:
     ):
         tts["voice"] = "lola"  # voces retiradas (Kokoro; sharvard F) → la predeterminada
         tts.pop("lang", None)
+    llm = data.get("llm")
+    if isinstance(llm, dict) and llm.get("model") == "qwen2.5:14b":
+        # Decisión 2026-11-11: un solo modelo en la primera versión (el 14B era 8 veces más
+        # lento sin acertar más, no cabe en 8 GB y junto a un juego da tirones).
+        llm["model"] = "qwen2.5:7b"
     if not isinstance(version, int) or version > SCHEMA_VERSION:
         log.warning("Ajustes de una versión desconocida (%r): se leen tal cual", version)
     data["version"] = SCHEMA_VERSION
