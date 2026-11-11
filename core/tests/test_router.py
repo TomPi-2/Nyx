@@ -35,7 +35,7 @@ def call(text: str, index: SystemIndex) -> tuple[str, dict[str, object]]:
         ("quita el silencio", "set_volume", {"mute": False}),
         ("Pausa la música", "media_control", {"action": "pause"}),
         ("reanuda", "media_control", {"action": "play"}),
-        ("Pon algo de música", "media_control", {"action": "play"}),
+        ("Pon algo de música", "media_control", {"action": "play", "music": True}),
         (
             "Sube el volumen en Spotify",
             "app_action",
@@ -318,3 +318,78 @@ def test_media_with_source(index: SystemIndex, text: str) -> None:
     args = result.calls[0].arguments
     assert args["action"] in ("pause", "play")
     assert args["source"] in ("youtube", "spotify")
+
+
+@pytest.mark.parametrize(
+    ("text", "refused"),
+    [
+        # ERRORES.md, 2026-11-11: en partida no hace falta nombrar el juego.
+        ("Quiero que saltes y tires hacia adelante el coche.", True),
+        ("acelera", True),
+        ("dispara a ese", True),
+        ("juega por mí", True),
+        ("sube el volumen", False),
+        ("pon música", False),
+        ("mueve Discord al otro monitor", False),
+        ("¿qué hora es?", False),
+        ("abre el correo", False),
+    ],
+)
+def test_refusals_while_playing(index: SystemIndex, text: str, refused: bool) -> None:
+    from nyx.brain.router import refusal
+
+    assert (refusal(text, index, playing=True) is not None) is refused
+    # Sin partida, solo cuenta lo que nombra un juego.
+    assert refusal("salta", index) is None
+
+
+def test_focus_only_for_real_windows_or_apps(
+    index: SystemIndex, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from nyx.brain import router as router_module
+
+    monkeypatch.setattr(router_module, "_find_windows", lambda name, process: [])
+    result = route("muéstrame los FPS en el Rocket League", index)
+    assert not (isinstance(result, Route) and result.calls[0].name == "focus_window")
+    assert call("ve a Discord", index)[0] == "focus_window"
+
+
+def test_short_names_are_not_fuzzy(index: SystemIndex) -> None:
+    # «Ábrela» dejaba «la», que se parecía a «Calculadora» (ERRORES.md, 2026-11-11).
+    assert index.confident(index.resolve("la")) is None
+    assert index.confident(index.resolve("chrome")) is not None
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["¿qué tienes pendiente?", "¿Qué hay pendiente?", "Dime, Nix, ¿qué tienes pendiente ahora?"],
+)
+def test_pending_rules(index: SystemIndex, text: str) -> None:
+    assert call(text, index) == ("pending", {"action": "list"})
+    assert call("olvida lo pendiente", index) == ("pending", {"action": "cancel"})
+
+
+def test_several_orders_in_one_request(index: SystemIndex, monkeypatch: pytest.MonkeyPatch) -> None:
+    # ERRORES.md, 2026-11-11: «abre Discord, abre tus ajustes y…» era una sola app.
+    from nyx.brain import router as router_module
+
+    monkeypatch.setattr(router_module, "_find_windows", lambda name, process: [])
+    result = route("Abre Discord, abre tus ajustes y pon música", index)
+    assert isinstance(result, Route)
+    assert [c.name for c in result.calls] == ["open_app", "open_nyx_settings", "media_control"]
+    # Si una no la entienden las reglas, se encarga el LLM de la frase entera.
+    assert (
+        route("Abre Discord, abre tus ajustes y muéstrame los FPS en el Rocket League", index)
+        is None
+    )
+    # No se parte lo que no empieza por un verbo.
+    assert isinstance(route("Dime, Nix, ¿qué tienes pendiente?", index), Route)
+
+
+def test_resume_is_not_music(index: SystemIndex) -> None:
+    # «Reanuda» sigue lo que sonaba; «pon música» va a la app de música (Spotify).
+    assert call("reanuda", index) == ("media_control", {"action": "play"})
+    assert call("pon música de YouTube", index) == (
+        "media_control",
+        {"action": "play", "source": "youtube"},
+    )

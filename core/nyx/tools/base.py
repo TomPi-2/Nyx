@@ -24,6 +24,7 @@ from nyx.safety.undo import Undo, UndoStack
 
 if TYPE_CHECKING:
     from nyx.alarms.scheduler import AlarmScheduler
+    from nyx.game.policy import GameGate
     from nyx.index.service import SystemIndex
     from nyx.settings.model import Settings
 
@@ -83,6 +84,8 @@ class ToolContext:
     alarms: AlarmScheduler | None = None
     # Abre la ventana de Ajustes de Nyx (sección o None); la pone services.py.
     open_nyx_settings: Callable[[str | None], Awaitable[None]] | None = None
+    # La cola de la partida (lo diferido); la pone services.py.
+    game: GameGate | None = None
 
 
 @dataclass

@@ -7,7 +7,16 @@ import asyncio
 from pydantic import Field
 
 from nyx.index.model import Kind
-from nyx.tools.base import Category, GamePolicy, Params, Risk, Tool, ToolContext, ToolResult
+from nyx.tools.base import (
+    Category,
+    GamePolicy,
+    Params,
+    Prepared,
+    Risk,
+    Tool,
+    ToolContext,
+    ToolResult,
+)
 from nyx.winapi import windows
 
 
@@ -31,6 +40,20 @@ class FocusWindow(Tool[FocusWindowParams]):
     game_policy = GamePolicy.DEFERRED
     category = Category.WINDOWS
     params_model = FocusWindowParams
+
+    async def prepare(self, params: FocusWindowParams, ctx: ToolContext) -> Prepared:
+        """Si no hay ninguna ventana así, se dice ya (también en partida, antes de diferirlo)."""
+        found = await asyncio.to_thread(
+            windows.find_windows, params.name, process_for(ctx, params.name)
+        )
+        if not found and not ctx.index.confident(
+            ctx.index.resolve(params.name, {Kind.APP, Kind.GAME})
+        ):
+            return Prepared(
+                "",
+                error=ToolResult.fail(f"No veo ninguna ventana de {params.name}", "¿está abierta?"),
+            )
+        return Prepared(summary=f"Ventana {params.name}")
 
     async def run(self, params: FocusWindowParams, ctx: ToolContext) -> ToolResult:
         process = process_for(ctx, params.name)

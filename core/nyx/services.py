@@ -251,7 +251,9 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     )
     ringer = AlarmRinger(bus, tts=tts, player=player)
     # Modo partida (SPEC sección 9): qué herramientas se permiten, se difieren o se bloquean.
-    game = GameGate(settings.game)
+    game = GameGate(settings.game, path=local_dir() / "game-queue.json")
+    game.load()
+    tools_ctx.game = game
     executor = Executor(registry, tools_ctx, action_log=ActionLog.default(), game=game)
     # Registro de activaciones; los errores apuntados suben el umbral del detector propio.
     activations = ActivationLog.default()
@@ -272,7 +274,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         tts=tts,
         player=player,
         router=lambda text: route(text, index),
-        refuse=lambda text: refusal(text, index),
+        refuse=lambda text: refusal(text, index, playing=game.active),
         executor=executor,
         yesno=yesno,
         ringer=ringer,

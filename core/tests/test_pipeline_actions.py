@@ -22,7 +22,9 @@ class FakeExecutor:
     def check(self, calls: list[ToolCall]) -> str:
         return self.invalid.pop(0) if self.invalid else ""
 
-    async def run_plan(self, calls: list[ToolCall], *, phrase: str = "") -> list[ToolResult]:
+    async def run_plan(
+        self, calls: list[ToolCall], *, phrase: str = "", voice: bool = False
+    ) -> list[ToolResult]:
         self.calls += calls
         return self.results
 

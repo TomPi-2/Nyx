@@ -71,6 +71,9 @@ def dedupe(entries: Iterable[Entry]) -> list[Entry]:
     return list(by_key.values())
 
 
+MIN_FUZZY_LEN = 3  # consultas más cortas: solo coincidencia exacta
+
+
 class SystemIndex:
     def __init__(
         self,
@@ -174,7 +177,13 @@ class SystemIndex:
             return []
         exact = [(self._choices[i], 100.0, i) for i in allowed if self._choices[i] == q]
         choices = {i: self._choices[i] for i in allowed if len(self._choices[i]) > SHORT_ALIAS}
-        found = process.extract(q, choices, scorer=similarity, limit=40, score_cutoff=MIN_SCORE)
+        # Con menos de 3 letras solo vale el nombre exacto: «ábrela» dejaba «la», que se
+        # parecía a «Calculadora» o a «Aimlabs» (ERRORES.md, 2026-11-11).
+        found = (
+            process.extract(q, choices, scorer=similarity, limit=40, score_cutoff=MIN_SCORE)
+            if len(q) >= MIN_FUZZY_LEN
+            else []
+        )
         best: dict[str, Match] = {}
         for alias, score, i in [*exact, *found]:
             key = self._owners[i]

@@ -15,7 +15,7 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
 from nyx.bus import EventBus
-from nyx.events import BubbleHidden, BubbleShown
+from nyx.events import Announce, BubbleHidden, BubbleShown
 from nyx.game.detector import GameStateChanged
 from nyx.game.policy import GameGate
 
@@ -25,6 +25,15 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 DONE_BUBBLE_S = 6.0
+RESUME_AFTER_S = 10.0  # al arrancar, tiempo para que el detector vea si sigue la partida
+# Tras la partida, el juego tarda un poco en cerrar su ventana a pantalla completa: abrir
+# ventanas encima en ese momento las dejaba sin fondo de cristal.
+AFTER_GAME_S = 3.0
+
+
+def _join(items: list[str]) -> str:
+    """«a», «a y b», «a, b y c»."""
+    return items[0] if len(items) == 1 else f"{', '.join(items[:-1])} y {items[-1]}"
 
 
 def set_low_priority(low: bool) -> None:
@@ -48,7 +57,9 @@ class GameController:
         unload_llm: Callable[[], Awaitable[None]] | None = None,
         reload_llm: Callable[[], Awaitable[None]] | None = None,
         set_priority: Callable[[bool], None] = set_low_priority,
+        after_game_s: float = AFTER_GAME_S,
     ) -> None:
+        self.after_game_s = after_game_s
         self.bus = bus
         self.gate = gate
         self.executor = executor
@@ -59,10 +70,14 @@ class GameController:
         self._unloaded = False
         self._hide: asyncio.Task[None] | None = None
         self._unsubscribe = bus.subscribe(GameStateChanged, self._on_change)
+        # Lo que quedó pendiente antes de un reinicio o un corte de luz.
+        self._resume: asyncio.Task[None] | None = (
+            asyncio.create_task(self._resume_later(), name="game-resume") if gate.queue else None
+        )
 
     async def close(self) -> None:
         self._unsubscribe()
-        for task in (self._unload_timer, self._hide):
+        for task in (self._unload_timer, self._hide, self._resume):
             if task is not None:
                 task.cancel()
 
@@ -87,7 +102,10 @@ class GameController:
             self._unloaded = False
             with contextlib.suppress(Exception):
                 await self.reload_llm()
-        await self._run_deferred()
+        if self.gate.queue:
+            await asyncio.sleep(self.after_game_s)
+        if not self.gate.active:  # puede haber empezado otra partida mientras
+            await self._run_deferred()
 
     async def _unload_later(self, seconds: float) -> None:
         await asyncio.sleep(seconds)
@@ -96,6 +114,11 @@ class GameController:
             with contextlib.suppress(Exception):
                 await self.unload_llm()
                 self._unloaded = True
+
+    async def _resume_later(self) -> None:
+        await asyncio.sleep(RESUME_AFTER_S)
+        if not self.gate.active:
+            await self._run_deferred()
 
     async def _run_deferred(self) -> None:
         pending = self.gate.take()
@@ -107,8 +130,17 @@ class GameController:
             result = await self.executor.run(item.call, phrase=item.phrase)
             (done if result.ok else failed).append(item.summary)
         log.info("Al terminar la partida: hecho %s; falló %s", done, failed)
-        secondary = ", ".join(done) + (f" · no pude: {', '.join(failed)}" if failed else "")
-        await self.bus.publish(BubbleShown(display="Al terminar la partida", secondary=secondary))
+        lines = [f"Hecho: {_join(done)}"] if done else []
+        if failed:
+            lines.append(f"No pude: {_join(failed)}")
+        await self.bus.publish(
+            BubbleShown(display="Al terminar la partida", secondary=" · ".join(lines))
+        )
+        if any(item.voice for item in pending):
+            spoken = [f"Ya he hecho lo pendiente: {_join(done)}." if done else ""]
+            if failed:
+                spoken.append(f"No he podido {_join(failed)}.")
+            await self.bus.publish(Announce(" ".join(p for p in spoken if p)))
 
         async def hide_later() -> None:
             await asyncio.sleep(DONE_BUBBLE_S)

@@ -126,10 +126,31 @@ def with_waits(calls: list[ToolCall]) -> list[ToolCall]:
     return out
 
 
+_VERBS = {
+    "open_app": "abrir",
+    "close_app": "cerrar",
+    "focus_window": "ir a",
+    "window_layout": "colocar",
+    "open_url": "abrir",
+    "open_path": "abrir",
+    "open_settings": "abrir la configuración de",
+    "open_nyx_settings": "abrir mis ajustes",
+    "create_folder": "crear la carpeta",
+    "move_files": "mover",
+    "copy_files": "copiar",
+    "rename_file": "renombrar",
+    "delete_files": "mandar a la papelera",
+    "app_action": "hacer en",
+    "send_hotkey": "pulsar",
+}
+
+
 def describe_call(call: ToolCall) -> str:
-    """«open_app Discord» → algo legible para la burbuja de lo diferido."""
+    """«open_app Discord» → «abrir Discord»: legible para la burbuja y la voz de lo diferido."""
     values = [str(v) for v in call.arguments.values() if isinstance(v, str | int) and v != ""]
-    return " ".join([call.name.replace("_", " "), *values[:2]])
+    values = [v for v in values if v not in ("True", "False")]
+    verb = _VERBS.get(call.name, call.name.replace("_", " "))
+    return " ".join([verb, *values[:2]])
 
 
 class Executor:
@@ -185,7 +206,7 @@ class Executor:
                 return f"{call.name}: {where}: {first['msg']}"
         return ""
 
-    async def run(self, call: ToolCall, *, phrase: str = "") -> ToolResult:
+    async def run(self, call: ToolCall, *, phrase: str = "", voice: bool = False) -> ToolResult:
         tool = self.registry.get(call.name)
         if tool is None:
             log.warning("Herramienta desconocida: %s", call.name)
@@ -207,8 +228,33 @@ class Executor:
                 self._record(tool, call.name, args, Decision.BLOCKED, result, phrase)
                 return result
             if policy is GamePolicy.DEFERRED:
+                # Se comprueba ya si tiene sentido («no veo esa ventana»), para no descubrirlo
+                # al terminar la partida (ERRORES.md, 2026-11-11). Preparar no cambia nada.
+                try:
+                    early = await asyncio.wait_for(tool.prepare(params, self.ctx), tool.timeout_s)
+                except Exception:
+                    log.exception("Fallo comprobando %s antes de diferirlo", call.name)
+                    early = Prepared("")
+                if early.error is not None:
+                    self._record(tool, call.name, args, Decision.EXECUTED, early.error, phrase)
+                    return early.error
+                if any(
+                    d.call.name == call.name and d.call.arguments == call.arguments
+                    for d in self.game.queue
+                ):
+                    result = ToolResult(
+                        ok=True,
+                        message="Ya lo tengo pendiente",
+                        display="Ya lo tengo pendiente",
+                        secondary=describe_call(call),
+                        data={"deferred": True},
+                    )
+                    self._record(tool, call.name, args, Decision.DEFERRED, result, phrase)
+                    return result
                 summary = describe_call(call)
-                self.game.defer(ToolCall(call.name, dict(call.arguments)), phrase, summary)
+                self.game.defer(
+                    ToolCall(call.name, dict(call.arguments)), phrase, summary, voice=voice
+                )
                 result = ToolResult(
                     ok=True,
                     message="Te lo hago al terminar la partida",
@@ -274,10 +320,12 @@ class Executor:
         self._record(tool, call.name, args, logged, result, phrase)
         return result
 
-    async def run_plan(self, calls: list[ToolCall], *, phrase: str = "") -> list[ToolResult]:
+    async def run_plan(
+        self, calls: list[ToolCall], *, phrase: str = "", voice: bool = False
+    ) -> list[ToolResult]:
         results: list[ToolResult] = []
         for call in calls:
-            result = await self.run(call, phrase=phrase)
+            result = await self.run(call, phrase=phrase, voice=voice)
             results.append(result)
             if not result.ok:
                 break

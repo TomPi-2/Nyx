@@ -505,3 +505,21 @@ async def test_indicator_waits_for_whisper_confirmation() -> None:
 def test_clearly_for_nyx_in_followup(text: str, for_nyx: bool) -> None:
     h = Harness()
     assert h.p._clearly_for_nyx(text) is for_nyx
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        # ERRORES.md, 2026-11-11: lo que Nyx llegó a leer en voz alta.
+        '[acciones]\nappaction({"app": "Rocket League", "action": "jump"}); otra cosa(',
+        '[Vale | ]\nClaro. app_action({"app": "Rocket League", "action": "jump"})',
+    ],
+)
+async def test_code_in_reply_is_never_spoken(raw: str) -> None:
+    h = Harness(llm=FakeLLM(raw), speak_typed=True)
+    await h.bus.publish(TextEntered("salta"))
+    await h.p.wait_idle()
+    assert all("(" not in s and "{" not in s for s in h.tts.said)
+    assert h.tts.said[-1] == "No he podido hacerlo."
+    assert h.bubbles[-1] == ("No he podido hacerlo", "¿me lo pides de otra forma?")
+    await h.p.close()

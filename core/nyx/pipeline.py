@@ -25,13 +25,15 @@ from nyx.audio.capture import AudioCapture, Frame, rms_level
 from nyx.audio.playback import Player
 from nyx.audio.vad import Endpointer, EndReason, VoiceDetector
 from nyx.brain.base import LLMError, LLMErrorKind
+from nyx.brain.guard import GARBLED_REPLY, looks_like_code
 from nyx.brain.reply import BubbleReady, Reply, SpokenDelta, SpokenEnd
-from nyx.brain.router import Miss, Route
+from nyx.brain.router import IN_GAME_REFUSAL, Miss, Route
 from nyx.brain.service import Brain, ReplyDone, ToolPlan
 from nyx.brain.shortcuts import ShortcutStore
 from nyx.bus import EventBus
 from nyx.events import (
     ActionChosen,
+    Announce,
     AudioLevel,
     BubbleAction,
     BubbleHidden,
@@ -50,7 +52,7 @@ from nyx.safety.undo import UNDO_TTL_S
 from nyx.settings.model import ListenSettings
 from nyx.stt.base import STTEngine, STTError
 from nyx.stt.normalize import normalize
-from nyx.tools.base import ToolResult
+from nyx.tools.base import GamePolicy, ToolResult
 from nyx.tts.base import TTSEngine, TTSError
 from nyx.tts.sentences import SentenceSplitter
 from nyx.wake.activations import ActivationLog, is_not_for_you
@@ -332,6 +334,7 @@ class Pipeline:
             bus.subscribe(TextEntered, self._on_text),
             bus.subscribe(TalkKey, self._on_talk),
             bus.subscribe(ActionChosen, self._on_action),
+            bus.subscribe(Announce, self._on_announce),
         ]
 
     @property
@@ -741,7 +744,9 @@ class Pipeline:
         thinking = asyncio.create_task(self._thinking_later())
         try:
             self._from_voice = from_voice
-            results = await self.executor.run_plan(routed.calls, phrase=marks.phrase)
+            results = await self.executor.run_plan(
+                routed.calls, phrase=marks.phrase, voice=from_voice
+            )
         finally:
             thinking.cancel()
         log.info(
@@ -853,6 +858,13 @@ class Pipeline:
         if not retried and self.executor is not None:
             # SPEC sección 6: si la llamada no es válida, se reintenta una vez con el error.
             invalid = self.executor.check(calls)
+            if invalid and self._blocked_in_game(calls):
+                # Pedía actuar dentro del juego: reintentar solo hace que el modelo insista
+                # (y escriba la llamada como texto). Se dice la negativa y ya.
+                log.info("Plan no válido y bloqueado en partida (%s): negativa", invalid)
+                display, secondary = IN_GAME_REFUSAL
+                await self._fail(display, secondary, f"{display}." if from_voice else None)
+                return
             if invalid:
                 log.info("Plan no válido (%s): se reintenta", invalid)
                 hint = f"Tu llamada anterior no era válida: {invalid}. Corrígela."
@@ -861,6 +873,16 @@ class Pipeline:
         results = await self._act(Route(calls, "llm"), marks, from_voice=from_voice)
         if len(plan.calls) == 1 and results and all(r.ok for r in results):
             self._learn(text, ToolCall(plan.calls[0].name, plan.calls[0].arguments))
+
+    def _blocked_in_game(self, calls: list[ToolCall]) -> bool:
+        """¿Alguna llamada está bloqueada por la partida en curso?"""
+        if self.game is None or not self.game.active or self.executor is None:
+            return False
+        for call in calls:
+            tool = self.executor.registry.get(call.name)
+            if tool is not None and self.game.policy_for(tool) is GamePolicy.BLOCKED:
+                return True
+        return False
 
     async def _not_found(self, miss: Miss, *, from_voice: bool) -> None:
         best = miss.candidates[0].entry.name if miss.candidates else None
@@ -912,6 +934,17 @@ class Pipeline:
             if speak and self.tts is not None and self.player is not None
             else None
         )
+        garbled = False
+
+        def say(sentence: str) -> None:
+            nonlocal garbled
+            if garbled or looks_like_code(sentence):
+                garbled = True
+                return
+            if speech is not None:
+                marks.first_sentence = marks.first_sentence or self._clock()
+                speech.say(sentence)
+
         try:
             async with contextlib.aclosing(self.brain.respond(text, extra)) as events:
                 async for event in events:
@@ -920,30 +953,40 @@ class Pipeline:
                     if isinstance(event, ToolPlan):
                         plan = event
                     elif isinstance(event, BubbleReady):
+                        if looks_like_code(f"{event.display} {event.secondary}"):
+                            garbled = True
+                            continue
                         bubble = event
                         if bubble_shown:
                             await show_bubble()
                     elif isinstance(event, SpokenDelta) and speech is not None:
                         for sentence in splitter.feed(event.text):
-                            if marks.first_sentence is None:
-                                marks.first_sentence = self._clock()
-                            speech.say(sentence)
+                            say(sentence)
                     elif isinstance(event, SpokenEnd) and speech is not None:
                         if rest := splitter.flush():
-                            marks.first_sentence = marks.first_sentence or self._clock()
-                            speech.say(rest)
+                            say(rest)
                     elif isinstance(event, ReplyDone):
                         log.info("Respuesta: %s", event.reply.model_dump_json())
-                        if speech is None:
-                            bubble = text_bubble(event.reply)
+                        reply = event.reply
+                        if looks_like_code(f"{reply.display} {reply.secondary} {reply.spoken}"):
+                            garbled = True
+                        elif speech is None:
+                            bubble = text_bubble(reply)
+            if garbled and plan is None:
+                # Nunca se dice ni se enseña código (ERRORES.md, 2026-11-11).
+                log.warning("Respuesta con código o llamadas escritas: no se dice")
+                if speech is not None:
+                    await speech.abort()
+                display, secondary = GARBLED_REPLY
+                await self._fail(display, secondary, f"{display}." if speak else None)
+                return
             if plan is not None:
                 if speech is not None:
                     await speech.abort()
                 await self._run_plan(plan, text, marks, from_voice=from_voice, retried=retried)
                 return
             if speech is not None and (rest := splitter.flush()):
-                marks.first_sentence = marks.first_sentence or self._clock()
-                speech.say(rest)
+                say(rest)
             if speech is not None:
                 await speech.finish()
             if not bubble_shown:
@@ -1107,6 +1150,15 @@ class Pipeline:
         task = asyncio.create_task(coro)
         self._side_tasks.add(task)
         task.add_done_callback(self._side_tasks.discard)
+
+    async def _on_announce(self, event: Announce) -> None:
+        """Lo dice solo si Nyx está libre: nunca corta una petición en curso."""
+        if self.mode is not Mode.IDLE or self.tts is None or self.player is None:
+            return
+        try:
+            self.player.enqueue(await self.tts.synthesize(event.text))
+        except TTSError:
+            log.exception("No se pudo decir el aviso")
 
     async def _undo(self, undo_id: str) -> None:
         """Botón «Deshacer» de la burbuja."""

@@ -1,6 +1,6 @@
 # Hoja de ruta de Nyx: de la 0.5 a la 2.0
 
-> Propuesta del 2026-11-11, **pendiente de aprobación**. Cuando se apruebe (entera o por partes) se actualizan la sección 16 y la 18 de [SPEC.md](SPEC.md) y el estado de `CLAUDE.md`. Hasta entonces, la SPEC sigue mandando.
+> Propuesta del 2026-11-11, **aprobada por el usuario el mismo día** con las decisiones de la sección 7. La SPEC (secciones 1, 13, 14, 16 y 18) se actualiza al empezar cada versión con lo que le toque; hasta entonces, la SPEC sigue mandando en lo que ya está hecho. Requisitos del sistema medidos en los dos equipos: [benchmarks/requisitos.md](benchmarks/requisitos.md).
 
 Este documento reúne en un solo plan lo que queda de las fases 5 a 7, los fallos vistos al probar Nyx con Rocket League (2026-11-11), las ideas nuevas (Vision, Overlay, Extensiones, Modos, IA, productividad y seguridad) y cómo ganar dinero sin que el uso normal deje de ser gratis. Para cada cosa dice en qué versión entra y por qué ahí.
 
@@ -12,7 +12,7 @@ Este documento reúne en un solo plan lo que queda de las fases 5 a 7, los fallo
 | **0.6** | Cerebro | Nyx entiende mucho mejor y hace mucho más: bucle de agente, búsqueda en internet, aprender procedimientos, resto de herramientas, batería de 300+ frases, modelo final | 6a |
 | **0.7** | Extensiones | **Plataforma de extensiones (API 1.0)**, SDK, documentación, firma y revisión. Formas de Nyx como extensión. Modos (base) | 6b |
 | **0.8** | Organización y seguridad | Notas, listas, tareas, dictado, resúmenes, calendario local, bloquear el PC, modo privacidad, quién usa micro y cámara | 6c |
-| **0.9** | Beta pública | Instalador, actualizaciones, arranque con Windows, cortes de luz, requisitos mínimos (portátil), datos anónimos, repositorio público | 6d |
+| **0.9** | Beta pública | Instalador que deja listos el cerebro, Whisper y la voz; **primer arranque como conversación con Nyx**; actualizaciones, arranque con Windows, cortes de luz, datos anónimos, repositorio público | 6d |
 | **1.0** | Lanzamiento | Versión estable, web de extensiones en tepnyx.com, primeras extensiones oficiales gratuitas | — |
 | **1.1** | Personalización y streaming | Fase 7 (formas, ubicaciones), Nyx Overlay, modos Streaming y Relax, primeras extensiones de pago (OBS Pro, Rendimiento en juegos) | 7 |
 | **1.2** | Vision | Nyx entiende la pantalla con permiso (nunca en juegos), asistente contextual avanzado | 8 |
@@ -27,7 +27,7 @@ Datos sacados del registro (`%LOCALAPPDATA%\Nyx\logs\core.log` y `actions\2026-1
 
 ### 1.1 El juego va a tirones cuando Nyx piensa (crítico)
 
-**Causa:** el cerebro estaba en `qwen2.5:14b`. Ese modelo ocupa unos 9 GB de VRAM, Whisper otro ~1 GB y Rocket League 2–3 GB: más de los 12 GB de la RX 7700 XT. Al pasarse, el controlador mueve memoria entre la VRAM y la RAM y el juego se para. Además, aunque quepa, mientras el LLM genera usa la GPU al 100 % durante 1–10 s y le quita tiempo al juego. Las latencias de esa partida lo confirman: entre 2 y 19 s hasta la voz, frente a 0,8–1 s fuera de ella.
+**Causa:** el cerebro estaba en `qwen2.5:14b`. Ese modelo ocupa unos 9 GB de VRAM, Whisper otro ~0,6 GB y Rocket League 2–3 GB: más de los 12 GB de la RX 7700 XT. En el mínimo (8 GB, el portátil) es aún más justo: con el 7B y Whisper quedan unos 2,4 GB para el juego ([requisitos](benchmarks/requisitos.md)). Al pasarse, el controlador mueve memoria entre la VRAM y la RAM y el juego se para. Además, aunque quepa, mientras el LLM genera usa la GPU al 100 % durante 1–10 s y le quita tiempo al juego. Las latencias de esa partida lo confirman: entre 2 y 19 s hasta la voz, frente a 0,8–1 s fuera de ella.
 
 **Qué hacer:**
 
@@ -100,7 +100,7 @@ El salto grande: que Nyx entienda casi todo, haga casi todo lo que se puede hace
 - Asistente contextual básico: sabe qué app usas y adapta respuestas y acciones.
 - El resto de herramientas de la SPEC (`web_search`, `get_weather`, `system_power`, `system_info`, `clipboard`, `type_text`, `toggle_wifi`/`bluetooth`, `set_brightness`, `screen_record`, `nyx_control`, `run_powershell`) y lo marcado F6 en [ACCIONES.md](ACCIONES.md): ver y cancelar alarmas, alarmas repetidas, cronómetro, qué suena, cambiar la salida de audio, escritorios virtuales…
 - Batería de 300+ frases (y después 1.000) en la integración continua, con informe por modelo.
-- Elección del modelo final y de los requisitos mínimos (pruebas en el portátil).
+- Elección del modelo final con los requisitos ya medidos (mínimo 8 GB de VRAM y 16 GB de RAM; recomendado 12 GB y 32 GB). Pendiente de esas pruebas: arranque de 23 s en el portátil (objetivo 10 s), RAM del núcleo (~800 MB frente a 600) y los fallos de Whisper en el portátil (ERRORES.md), que se corrigen más adelante.
 - Verificación de voz (ECAPA), si sus condiciones de uso lo permiten (pendiente desde la fase 4).
 
 **Para cerrar:** ≥ 95 % en la batería, < 1,5 s a la primera palabra con el modelo rápido, cero estados inventados en las preguntas sobre el PC, y que el usuario lo use un par de días sin apuntar fallos graves.
@@ -115,7 +115,7 @@ Lo que hay que **dejar preparado en esta versión** para que, desde la 1.0, se i
 - Tipos: herramientas, acciones por app (sin código), formas de Nyx, preajustes de configuración, modos y conocimiento.
 - **La forma actual de Nyx pasa a ser la forma predeterminada** dentro de este sistema (prepara la fase 7).
 - Ajustes → Extensiones.
-- SDK (`nyx-sdk`, licencia MIT), plantilla, herramienta de línea de órdenes (`nyx-ext new / validate / pack / run`) y documentación con tres ejemplos: una herramienta, una forma y un modo.
+- SDK (`nyx-sdk`), plantilla, ejemplos y documentación, **todo con licencia MIT** (decisión del 2026-11-11), herramienta de línea de órdenes (`nyx-ext new / validate / pack / run`) y documentación con tres ejemplos: una herramienta, una forma y un modo.
 - **Modos (base):** el sistema de modos y Partida (el modo partida actual), Trabajo, Noche y Privacidad. Diseño en la sección 5.
 - Extensiones oficiales de prueba, gratuitas: OBS básico (grabar, directo, cambiar de escena) y Spotify (poner algo concreto).
 
@@ -132,7 +132,8 @@ Lo que hay que **dejar preparado en esta versión** para que, desde la 1.0, se i
 
 Lo que la SPEC ya tenía en la fase 6 de distribución, más lo que pide abrir el código:
 
-- Instalador propio con la onda de «Nyx listo» ([INSTALADOR-Y-MOTOR-GRAFICO.md](INSTALADOR-Y-MOTOR-GRAFICO.md)), arranque con Windows y actualizaciones con Velopack.
+- Instalador propio con la onda de «Nyx listo» ([INSTALADOR-Y-MOTOR-GRAFICO.md](INSTALADOR-Y-MOTOR-GRAFICO.md)) que **instala y deja preparados el cerebro, Whisper y la voz**, arranque con Windows y actualizaciones con Velopack.
+- **Primer arranque interactivo:** el asistente actual pasa a ser una conversación con Nyx (sección 11).
 - Pruebas de cortes de luz simulados.
 - Datos de uso anónimos (servicio a elegir, por ejemplo Aptabase).
 - La lista de `CLAUDE.md` antes de hacer público el repositorio: licencia y CLA, `SECURITY.md`, `CONTRIBUTING.md`, revisión de secretos, auditoría de licencias, SignPath.
@@ -208,7 +209,7 @@ Además de las herramientas concretas, tres herramientas genéricas cubren lo qu
 
 ### 3.5 Buscar en internet
 
-- **Proveedor intercambiable** (`SearchEngine`), como el resto de piezas. Hay que elegirlo con cuidado: DuckDuckGo no tiene API oficial (leer su web va contra sus condiciones y se rompe), las APIs con clave tienen límites o coste. Propuesta: Wikipedia para conocimiento, una API con plan gratuito para la búsqueda general y, para Nyx Plus, una de pago. A decidir en el plan de la 0.6 con precios actualizados.
+- **Proveedor intercambiable** (`SearchEngine`), como el resto de piezas. Lo ideal para el usuario es **su buscador predeterminado** (el del navegador), pero leer sus resultados desde un programa puede ir contra sus condiciones y romperse con cualquier cambio de la web; DuckDuckGo tampoco tiene API oficial y las APIs con clave tienen límites o coste. Se valora en el plan de la 0.6 (decisión del 2026-11-11), con estas opciones: el buscador predeterminado, Wikipedia para conocimiento, una API con plan gratuito y, para Nyx Plus, una de pago. Abrir la búsqueda en el navegador del usuario siempre está permitido y es el respaldo.
 - Leer la página (extracción del texto principal con trafilatura, Apache 2.0) y resumirla con el modelo grande, **siempre con la fuente en la burbuja**.
 - Nyx busca sola cuando no sabe algo o es de actualidad, y lo dice («Lo busco…»). Se puede desactivar.
 - El contenido de las webs nunca da órdenes (SPEC sección 8): va al modelo marcado como datos y no puede llamar a herramientas por sí mismo.
@@ -230,6 +231,7 @@ Las recetas que funcionen pueden mandarse (con permiso) a Tepnyx, revisarse y co
 - **Nunca afirma nada del PC sin una herramienta** (alarmas, archivos, ventanas, ajustes). Si no tiene herramienta, dice que no lo sabe.
 - **Se conoce a sí misma:** un documento interno con lo que sabe hacer y qué hace cada ajuste (sale de la SPEC y de ACCIONES), para responder «¿qué puedes hacer en partida?» o «explícame tu modo partida».
 - Memoria a largo plazo opcional y visible: preferencias y datos que el usuario le cuente («mi equipo es el Betis»), siempre consultables y borrables en Privacidad.
+- **Aprende de lo que hace el usuario:** dónde escucha música (si siempre es YouTube, «pon música» va a YouTube y no a Spotify), qué navegador o perfil usa, qué apps abre juntas. Se ve y se corrige en Ajustes → Cerebro.
 
 ### 3.8 Personalidad
 
@@ -343,6 +345,7 @@ Ejemplo de manifiesto:
 
 - **OBS** (con obs-websocket, que viene con OBS): cambiar de escena, empezar o parar el directo, silenciar fuentes, marcadores, **zoom a la cámara** («Nyx, acércate») animando la transformación de la fuente, repetición instantánea. Básica gratis, Pro de pago (sección 8).
 - **Discord:** lo que se puede hacer sin romper sus condiciones: silenciar, ensordecer, cambiar de canal (atajos y su API local para apps aprobadas), leer avisos. **Controlar la cuenta del usuario con un bot (self-bot) va contra las condiciones de Discord** y puede acabar en el cierre de la cuenta: no se permitirá en la revisión. Para mandar mensajes hay que usar lo que Discord ofrezca de forma oficial.
+- **Cuando un servicio no deja hacer algo** (decisión del 2026-11-11), Nyx lo dice y ofrece guiar al usuario: «Discord no me permite hacer eso, pero puedo guiarte: abre los ajustes del servidor y…». Vale para cualquier app o servicio, propio o de una extensión: las herramientas pueden devolver «no permitido» con los pasos para hacerlo a mano, y Nyx los enseña en un panel.
 - **Rendimiento en juegos:** FPS y tiempos de fotograma con PresentMon (ETW, sin tocar el juego), temperatura y uso de la GPU (ADLX en AMD, NVML en NVIDIA) y aviso por voz si los FPS caen o la GPU se calienta. PresentMon necesita permisos de registro de rendimiento de Windows: hay que ver cómo pedirlos una sola vez.
 - **Spotify, Steam, Hue, Home Assistant, Twitch, YouTube**, y formas como el gato o la cara.
 
@@ -400,10 +403,13 @@ A investigar: Windows no tiene una API pública para la luz nocturna ni para «n
 | Avisos de FPS y temperatura | 1.1 | Extensión Rendimiento en juegos |
 | Formas de Nyx (gato, cara) | 0.7 (el sistema), 1.1 (las formas) | |
 | Controlar el juego («salta», «avanza») | **Nunca** | Principio 5 y anticheat |
+| Primer arranque como conversación con Nyx | 0.9 | Con el instalador (sección 11); prototipo antes en la galería |
 
-## 7. Cambios a la SPEC que hay que decidir
+## 7. Cambios a la SPEC
 
-1. **Principio 5 y Nyx Overlay.** La SPEC dice «sin overlay dentro del juego». Propuesta: mantener la prohibición de **inyectarse** en el juego, y permitir (opcional, desactivado por defecto) una ventana aparte encima de juegos en ventana sin bordes, que nunca toma el foco ni recibe clics. Con pantalla completa exclusiva no se puede ver sin inyectarse, así que el Overlay irá al otro monitor o no saldrá. Hay que medir que no cueste FPS (una ventana siempre encima puede obligar a Windows a componer el juego, que es justo por lo que hoy Nyx no se queda visible en reposo).
+Decididos el 2026-11-11: el 1 (Overlay, aprobado tal cual), Discord y servicios que no lo permiten (Nyx lo avisa y ofrece guiar, sección 4.8), el kit de extensiones con licencia MIT y la búsqueda en internet (se valora en la 0.6, empezando por el buscador predeterminado). Los demás se aplican a la SPEC en la versión que les toca.
+
+1. **Principio 5 y Nyx Overlay (aprobado).** La SPEC dice «sin overlay dentro del juego». Se mantiene la prohibición de **inyectarse** en el juego, y permitir (opcional, desactivado por defecto) una ventana aparte encima de juegos en ventana sin bordes, que nunca toma el foco ni recibe clics. Con pantalla completa exclusiva no se puede ver sin inyectarse, así que el Overlay irá al otro monitor o no saldrá. Hay que medir que no cueste FPS (una ventana siempre encima puede obligar a Windows a componer el juego, que es justo por lo que hoy Nyx no se queda visible en reposo).
 2. **Principio 5 y Vision.** Se mantiene «nunca leer la pantalla de un juego». Vision no funciona con un juego en primer plano.
 3. **Rendimiento en juegos.** Leer los FPS con PresentMon no toca el juego (lo hace Windows), así que encaja con el principio 5. Se dice explícitamente en la SPEC.
 4. **«Fuera de alcance (v1)»** pasa a «fuera de alcance (1.x)» y se añade «extensiones que actúen dentro de juegos».
@@ -440,7 +446,7 @@ Nyx es gratis, de código abierto y funciona en local: todo lo que hoy hace segu
 
 ### 8.4 Temas legales a revisar (con un profesional)
 
-- **GPL‑3.0 y extensiones de pago:** una extensión en su propio proceso que habla con Nyx por una tubería se considera en general una obra aparte, así que puede tener su propia licencia. Para no dudar: el SDK con licencia MIT (si el SDK fuera GPL, toda extensión que lo use tendría que ser GPL). Las extensiones de Tepnyx no tienen problema, porque Tepnyx es dueña del código (gracias al CLA).
+- **GPL‑3.0 y extensiones de pago:** una extensión en su propio proceso que habla con Nyx por una tubería se considera en general una obra aparte, así que puede tener su propia licencia. Por eso todo el kit de extensiones (SDK, plantillas, ejemplos y documentación) va con licencia MIT (decidido el 2026-11-11): si fuera GPL, toda extensión que lo use tendría que ser GPL. Las extensiones de Tepnyx no tienen problema, porque Tepnyx es dueña del código (gracias al CLA).
 - **Web de extensiones:** normas para desarrolladores, términos de uso, política de privacidad (RGPD) y las obligaciones de la Ley de Servicios Digitales de la UE para plataformas que alojan contenido de otros (aviso de contenido ilegal, identificación de vendedores de pago).
 - **Ingresos:** darse de alta como autónomo o empresa en España cuando empiecen las ventas.
 
@@ -458,10 +464,67 @@ Alojamiento de la web y de los paquetes, el tiempo de revisión de extensiones (
 | Anticheat (Vanguard, EAC…) puede no gustarle algo | Nada se inyecta ni toca el juego; PresentMon y las ventanas aparte son lo que usan las herramientas habituales. Probar con Valorant y Rocket League antes de cada versión |
 | Funciones de Windows sin API pública (luz nocturna, no molestar) | Probar las vías no oficiales y tener siempre la página de Configuración como respaldo |
 | Búsqueda web gratis y legal | Elegir el proveedor en el plan de la 0.6 con precios y condiciones actuales |
-| Requisitos mínimos | Pendiente la prueba del portátil (RTX 3070 Laptop) en la 0.6 |
+| Requisitos mínimos | Medidos ([requisitos](benchmarks/requisitos.md)): 8 GB de VRAM y 16 GB de RAM. Con 8 GB, el cerebro de partida y Vision tienen que caber; cada función nueva se mide en el portátil |
+| El primer arranque interactivo depende de que todo esté instalado | Lo instala el instalador; si falta algo o no hay micrófono, el mismo recorrido funciona con botones y texto (sección 11) |
 
 ## 10. Próximos pasos
 
-1. Que revises este documento y me digas qué apruebas, qué cambias y qué descartas.
-2. Con eso, actualizo la SPEC (secciones 1, 13, 14, 16 y 18) y `CLAUDE.md`.
-3. Empiezo por la **0.5**: plan corto de las correcciones del modo partida (sección 1) con los archivos que voy a tocar, para tu visto bueno.
+1. Empezar por la **0.5**: plan corto de las correcciones del modo partida (sección 1) con los archivos que voy a tocar, para tu visto bueno.
+2. Al empezar cada versión, pasar a la SPEC lo que le toca de este documento.
+
+## 11. Instalación y primer arranque interactivos (0.9)
+
+La idea (2026-11-11): que instalar y preparar Nyx sea una experiencia. El asistente de primer arranque actual (5d‑2, una ventana con pasos) pasa a ser **una conversación con Nyx**: aparece la forma, habla, enseña paneles con las opciones y el usuario contesta por voz o con un clic.
+
+### 11.1 Dos partes
+
+1. **Instalador** (sin conversación todavía, porque Nyx aún no puede oír ni hablar): instala Nyx, Ollama si falta, el cerebro recomendado para la gráfica, Whisper y la voz, con progreso real y verificación de hash. Al final hace el **calentamiento** (cargar el cerebro y una transcripción de prueba), para que la primera frase no tarde: en el portátil la primera transcripción tarda ~17 s porque se compilan los shaders. Termina con la onda de «Nyx listo».
+2. **Primer arranque:** Nyx aparece y guía la configuración hablando.
+
+Para no hacer esperar: Whisper y la voz pesan ~1,5 GB y el cerebro ~4,7 GB. Se descargan primero los de voz; si la conversación puede empezar antes de que acabe el cerebro, empieza con los pasos que no lo necesitan y el cerebro sigue bajando en segundo plano (Nyx lo dice: «Mientras termino de descargar mi cerebro, vamos a conocernos»).
+
+### 11.2 Cómo funciona cada paso
+
+Ejemplo, el paso del color:
+
+1. Nyx habla: «Ahora, a ver qué color me queda bien. Elige uno de los de abajo».
+2. Debajo de Nyx aparece un panel con los 19 colores y su nombre.
+3. El usuario dice «turquesa» (o hace clic). Nyx cambia de color al momento con un pequeño rebote y dice: «¡Wow, me encanta este! ¿Lo dejamos así?».
+4. «Sí», «vale», «perfecto» o el botón **Confirmar** lo guardan; «otro», «no» o decir otro color siguen probando.
+
+Así con todos los pasos, siempre con estas reglas:
+
+- **Lo que dice Nyx está escrito de antemano** (con varias versiones de cada frase para que no se repita), no lo genera el LLM: así es rápido, siempre igual de bien y sin sorpresas. Lo que dice se ve también en el panel, en texto pequeño.
+- **Lo que dice el usuario se entiende contra las opciones del paso:** Whisper transcribe y se compara con los nombres de las opciones y con «sí/no/otro/atrás/saltar» (como la confirmación por voz actual). Es fiable, funciona aunque el cerebro aún se esté descargando y no da respuestas raras. El LLM solo entra si el usuario pregunta algo fuera del guion («¿y qué es el modo partida?»), y contesta con lo que Nyx sabe de sí misma (sección 3.7) antes de volver al paso.
+- **Todo se puede hacer sin voz:** cada paso tiene sus botones, y si no hay micrófono o el usuario lo prefiere, el recorrido entero funciona con clics y teclado (y Nyx sigue hablando, o en silencio si se le pide).
+- **Interrumpir:** hablar mientras Nyx habla la corta, como ahora.
+- **Atrás y Saltar** por voz y con botones, con las mismas reglas que el asistente actual; lo que no se toca se queda como está.
+- **Lo que no puede ser por voz:** el permiso de los datos de uso anónimos se da solo con un clic en la casilla (para que el consentimiento sea claro), como las confirmaciones de más de 50 archivos.
+- **Se repite desde Ajustes → Ayuda**, como ahora.
+
+### 11.3 Recorrido propuesto
+
+| Paso | Nyx dice (idea) | Panel | El usuario |
+| --- | --- | --- | --- |
+| Hola | «¡Hola! Soy Nyx. Te voy a ayudar a prepararme, solo son un par de minutos» | — | «Vale» / Empezar / Saltar |
+| Micrófono | «Di "Nyx" para ver si te oigo bien» | Nivel del micrófono y lista de micrófonos | Dice «Nyx»; si no le oye, ofrece elegir otro |
+| Color | «A ver qué color me queda bien…» | Los 19 colores con su nombre | Nombre del color, «sí» |
+| Tamaño | «¿Me prefieres más grande o más pequeña?» | Deslizador | «Más grande», «más pequeña», «así» |
+| Paneles | «Y los paneles donde te enseño cosas, ¿de qué tono?» | Los 12 tintes, con un panel de ejemplo | Nombre del tinte, «sí» |
+| Voz | Nyx habla con cada voz: «¿Te gusta cómo sueno así?» | Voces y velocidad | «Esta», «la siguiente», «más despacio» |
+| Juegos | «Cuando juegues, no te molesto. ¿Prefieres que solo te hable o que no haga nada?» | Las opciones de «Nyx en partida» | Opción por voz o clic |
+| Tu equipo | «Voy a aprenderme tus apps y juegos» | Escaneo con progreso; Everything opcional | — |
+| Datos anónimos | «¿Me ayudas a mejorar? Solo si quieres» | Lo que se envía y lo que nunca | **Solo clic** |
+| Pruébame | «Pídeme algo. Por ejemplo: "abre el bloc de notas"» | Tres ejemplos | Hace una petición de verdad |
+| Listo | «¡Listo! Llámame cuando quieras diciendo "Nyx"» | Atajos de teclado | — |
+
+### 11.4 Qué se reutiliza
+
+- El servicio del asistente actual (`core/nyx/setup/service.py`): estado, descargas, escaneo y prueba del micrófono.
+- Los ajustes que ya se aplican al momento (color, tamaño, tinte, fuente) y la forma de Nyx real como vista previa.
+- Los paneles sobre el motor de cristal (sección 12 de la SPEC) y el hueco de 14 px con Nyx.
+- La confirmación por voz con gramática cerrada.
+
+Lo nuevo es un **guion de pasos** en el núcleo (qué dice Nyx, qué panel enseña, qué respuestas acepta y qué hace con cada una), pensado para poder reutilizarlo más adelante en otros recorridos guiados (por ejemplo, al instalar una extensión o en el tutorial de un modo). Antes de integrarlo, un prototipo en la galería para aprobar cómo se ve y cómo suena.
+
+**Para cerrar:** el recorrido completo por voz y solo con clics en los dos equipos, sin esperas de más de 1 s entre lo que dice el usuario y la respuesta de Nyx.

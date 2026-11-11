@@ -120,3 +120,17 @@ async def test_written_call_after_a_header_line() -> None:
 def test_spaced_written_call() -> None:
     calls = parse_text_calls('mediacontrol {"action": "playpause"}', ["media_control"])
     assert calls == [LLMToolCall("media_control", {"action": "playpause"})]
+
+
+def test_several_calls_in_one_line_after_header() -> None:
+    # ERRORES.md, 2026-11-11: el formato de la memoria corta, imitado por el modelo.
+    text = (
+        'appaction({"app": "Rocket League", "action": "jump"}); '
+        'appaction({"app": "Rocket League", "action": "accelerate"})'
+    )
+    calls = parse_text_calls(text, ["app_action"])
+    assert calls == [
+        LLMToolCall("app_action", {"app": "Rocket League", "action": "jump"}),
+        LLMToolCall("app_action", {"app": "Rocket League", "action": "accelerate"}),
+    ]
+    assert parse_text_calls("hola; adiós", ["app_action"]) == []

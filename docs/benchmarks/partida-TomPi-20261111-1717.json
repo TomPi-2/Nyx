@@ -1,0 +1,101 @@
+{
+  "hardware": {
+    "machine": "TomPi",
+    "python": "3.12.16",
+    "cpu": "AMD Ryzen 7 7700X 8-Core Processor",
+    "ram_gb": 31.1,
+    "gpus": [
+      "AMD Radeon RX 7700 XT (32.0.32015.7029)",
+      "AMD Radeon(TM) Graphics (32.0.21045.16010)"
+    ],
+    "os": "Microsoft Windows 11 Pro build 26300"
+  },
+  "process": "RocketLeague.exe",
+  "results": [
+    {
+      "config": "sin",
+      "frames": 21556,
+      "avg_fps": 359.3,
+      "low1_fps": 212.0,
+      "median_ms": 2.76,
+      "worst_ms": 14.9,
+      "spikes": 17,
+      "thinks": 0,
+      "think_s": [],
+      "note": ""
+    },
+    {
+      "config": "qwen2.5:7b@gpu",
+      "frames": 20827,
+      "avg_fps": 347.1,
+      "low1_fps": 166.7,
+      "median_ms": 2.78,
+      "worst_ms": 14.6,
+      "spikes": 91,
+      "thinks": 7,
+      "think_s": [
+        1.62,
+        1.59,
+        1.36,
+        1.38,
+        1.7,
+        1.33,
+        1.49
+      ],
+      "note": ""
+    },
+    {
+      "config": "qwen2.5:14b@gpu",
+      "frames": 4288,
+      "avg_fps": 71.5,
+      "low1_fps": 18.6,
+      "median_ms": 11.53,
+      "worst_ms": 72.2,
+      "spikes": 584,
+      "thinks": 5,
+      "think_s": [
+        10.69,
+        12.06,
+        11.84,
+        11.46,
+        11.46
+      ],
+      "note": ""
+    },
+    {
+      "config": "qwen3:4b@gpu",
+      "frames": 18788,
+      "avg_fps": 313.2,
+      "low1_fps": 145.9,
+      "median_ms": 3.23,
+      "worst_ms": 68.7,
+      "spikes": 48,
+      "thinks": 2,
+      "think_s": [
+        25.79,
+        29.85
+      ],
+      "note": ""
+    },
+    {
+      "config": "qwen2.5:7b@cpu",
+      "frames": 16674,
+      "avg_fps": 278.0,
+      "low1_fps": 96.2,
+      "median_ms": 3.42,
+      "worst_ms": 32.7,
+      "spikes": 296,
+      "thinks": 7,
+      "think_s": [
+        8.39,
+        6.04,
+        7.55,
+        6.61,
+        6.25,
+        7.85,
+        5.2
+      ],
+      "note": ""
+    }
+  ]
+}

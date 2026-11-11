@@ -479,7 +479,11 @@ impl Engine {
                 && s.covered_at
                     .is_none_or(|t| now.duration_since(t) >= OCCLUSION_EVERY)
             {
-                s.covered = occlusion::fully_covered(s.hwnd, &client_rect(s.hwnd));
+                let cover = occlusion::covering(s.hwnd, &client_rect(s.hwnd));
+                if cover.is_some() != s.covered {
+                    log_cover(&s.label, cover);
+                }
+                s.covered = cover.is_some();
                 s.covered_at = Some(now);
             }
             s.visible = shown && !s.covered;
@@ -772,4 +776,30 @@ fn rect_size(r: &RECT) -> (u32, u32) {
 fn dpi_scale(hwnd: HWND) -> f32 {
     // SAFETY: consulta sobre una ventana viva.
     unsafe { GetDpiForWindow(hwnd) }.max(96) as f32 / 96.0
+}
+
+/// Apunta en %LOCALAPPDATA%\Nyx\logs\glass.log cuándo una ventana queda tapada (y por
+/// cuál) o vuelve a verse. Si un panel sale sin cristal, ahí se ve el motivo.
+fn log_cover(label: &str, cover: Option<HWND>) {
+    use std::io::Write;
+    let Some(base) = std::env::var_os("LOCALAPPDATA") else {
+        return;
+    };
+    let dir = std::path::PathBuf::from(base).join("Nyx").join("logs");
+    let _ = std::fs::create_dir_all(&dir);
+    let line = match cover {
+        Some(h) => format!("{label}: tapada por {}", occlusion::describe(h)),
+        None => format!("{label}: se ve"),
+    };
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or_default();
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(dir.join("glass.log"))
+    {
+        let _ = writeln!(f, "{secs} {line}");
+    }
 }

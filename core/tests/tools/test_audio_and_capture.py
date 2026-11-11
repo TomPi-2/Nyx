@@ -97,3 +97,22 @@ def test_media_session_choice() -> None:
     assert _pick_session(sessions, opera, None) is opera  # sin origen: la actual
     assert _pick_session(sessions, None, "discord") is spotify  # nada encaja: la primera
     assert _pick_session([], None, "youtube") is None
+    # «Pon música»: solo Spotify, nunca el vídeo que sonaba (ERRORES.md, 2026-11-11).
+    assert _pick_session([opera], opera, "spotify", strict=True) is None
+
+
+async def test_music_goes_to_spotify(
+    ctx: ToolContext, desktop: FakeDesktop, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from nyx.winapi import media
+
+    played: list[tuple[str, str | None, bool]] = []
+
+    def fake_smtc(action: str, source: str | None = None, strict: bool = False) -> str | None:
+        played.append((action, source, strict))
+        return "Spotify.exe" if source == "spotify" else "Opera"
+
+    monkeypatch.setattr(media, "smtc_control", fake_smtc)
+    result = await MediaControl().run(MediaControlParams(action="play", music=True), ctx)
+    assert result.ok and result.message == "Música en Spotify"
+    assert played == [("play", "spotify", True)]

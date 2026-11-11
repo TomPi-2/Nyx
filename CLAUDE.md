@@ -34,6 +34,7 @@ Fase actual: **5 — Modo partida e interfaz final**: plan aprobado (5a → 5b �
 | 2026-11-10 | Apariencia personalizable en 5c‑2 con opciones fijas (no paletas libres): fuente (Segoe UI Variable, Manrope o Nunito), color de Nyx (19, blanco por defecto) y tinte de los paneles (12, gris por defecto). Valores en `docs/prototipos/apariencia.html`. |
 | 2026-11-10 | Motor de cristal propio (SPEC sección 12): niveles Auto/Alto/Medio/Bajo, en partida Bajo sin excepción. Nyx y los paneles en ventanas distintas para que Nyx salga siempre en capturas; «Mostrar Nyx en capturas y directos» pasa los paneles a Bajo. Hueco fijo de 14 px entre Nyx y los paneles. |
 | 2026-11-11 | Requisitos tras probar el portátil (SPEC 14, `docs/benchmarks/requisitos.md`): mínimos Windows 11, gráfica dedicada con Vulkan y 8 GB de VRAM, 8 núcleos, 16 GB de RAM y ~8 GB de disco; recomendados 12 GB de VRAM y 32 GB de RAM. |
+| 2026-11-11 | Hoja de ruta aprobada (`docs/HOJA-DE-RUTA.md`): 0.5 partida → 0.6 cerebro → 0.7 extensiones → 0.8 organización → 0.9 beta (instalador y primer arranque como conversación con Nyx) → 1.0. Overlay solo como ventana aparte, sin inyectarse; si un servicio no permite algo, Nyx lo dice y ofrece guiar; kit de extensiones con licencia MIT; buscador a valorar en la 0.6. |
 
 El historial completo de decisiones está en la sección 18 de `docs/SPEC.md`.
 
@@ -102,5 +103,5 @@ Errores vistos al usar Nyx: se apuntan en [docs/ERRORES.md](docs/ERRORES.md) y s
 - Ajuste fino de la paleta de grises sobre fondos reales.
 - Modelo de LLM final tras la batería de pruebas (provisional: `qwen2.5:7b`).
 - Ubicación fija para el tiempo (ciudad).
-- Hoja de ruta de la 0.5 a la 2.0 (cerebro, extensiones, modos, Vision, Overlay, cómo ganar dinero): propuesta del 2026-11-11 en [docs/HOJA-DE-RUTA.md](docs/HOJA-DE-RUTA.md). Pendiente de aprobación.
+- Hoja de ruta de la 0.5 a la 2.0: **aprobada el 2026-11-11** en [docs/HOJA-DE-RUTA.md](docs/HOJA-DE-RUTA.md). Siguiente: plan de la 0.5 (correcciones del modo partida). Cada versión pasa a la SPEC al empezarla.
 - Instalador propio y onda de «Nyx listo»: propuesta del 2026-11-10 en [docs/INSTALADOR-Y-MOTOR-GRAFICO.md](docs/INSTALADOR-Y-MOTOR-GRAFICO.md) (el motor ya está en la SPEC). Pendiente de plan y aprobación.

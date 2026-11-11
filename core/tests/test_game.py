@@ -132,7 +132,7 @@ async def test_controller_runs_deferred_after_game(ctx: ToolContext) -> None:
         def __init__(self) -> None:
             self.calls: list[str] = []
 
-        async def run(self, call: ToolCall, *, phrase: str = "") -> object:
+        async def run(self, call: ToolCall, *, phrase: str = "", voice: bool = False) -> object:
             from nyx.tools.base import ToolResult
 
             self.calls.append(call.name)
@@ -144,6 +144,7 @@ async def test_controller_runs_deferred_after_game(ctx: ToolContext) -> None:
         g,
         executor,
         set_priority=priorities.append,  # type: ignore[arg-type]
+        after_game_s=0,
     )
     bubbles: list[BubbleShown] = []
 
@@ -212,3 +213,99 @@ async def test_detector_reports_the_game_monitor() -> None:
     assert await detector.check()
     assert [e.monitor for e in seen] == [r"\.\DISPLAY1", r"\.\DISPLAY2"]
     assert all(e.active for e in seen)
+
+
+async def test_nonsense_is_not_deferred(
+    ctx: ToolContext, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # ERRORES.md, 2026-11-11: «muéstrame los FPS en el Rocket League» se dejaba para después
+    # como focus_window y fallaba al terminar. Ahora se dice en el momento.
+    from nyx.winapi import windows
+
+    monkeypatch.setattr(windows, "find_windows", lambda name, process=None: [])
+    g = gate()
+    ex = Executor(default_registry(), ctx, action_log=ActionLog(tmp_path), game=g)
+    result = await ex.run(ToolCall("focus_window", {"name": "los fps en el rocket league"}))
+    assert not result.ok and "No veo" in result.message
+    assert g.queue == []
+
+
+def test_queue_survives_restart_and_can_be_cancelled(tmp_path: Path) -> None:
+    path = tmp_path / "game-queue.json"
+    g = GameGate(GameSettings(), path=path)
+    g.defer(ToolCall("open_app", {"name": "Discord"}), "abre discord", "abrir Discord")
+    g.defer(ToolCall("open_nyx_settings", {}), "abre tus ajustes", "abrir mis ajustes", voice=True)
+    again = GameGate(GameSettings(), path=path)
+    again.load()
+    assert [d.summary for d in again.queue] == ["abrir Discord", "abrir mis ajustes"]
+    assert again.queue[1].voice and again.queue[1].call.name == "open_nyx_settings"
+    assert [d.summary for d in again.cancel(0)] == ["abrir Discord"]
+    assert len(again.cancel()) == 1 and again.queue == []
+    third = GameGate(GameSettings(), path=path)
+    third.load()
+    assert third.queue == []
+
+
+async def test_pending_tool_lists_and_cancels(ctx: ToolContext) -> None:
+    from nyx.tools.pending import Pending, PendingParams
+
+    g = gate()
+    ctx.game = g
+    tool = Pending()
+    empty = await tool.run(PendingParams(), ctx)
+    assert empty.ok and "nada" in empty.message
+    g.defer(ToolCall("open_app", {"name": "Discord"}), "abre discord", "abrir Discord")
+    g.defer(ToolCall("open_nyx_settings", {}), "abre tus ajustes", "abrir mis ajustes")
+    listed = await tool.run(PendingParams(), ctx)
+    assert "1. abrir Discord" in listed.message and "2. abrir mis ajustes" in listed.message
+    gone = await tool.run(PendingParams(action="cancel", which="ajustes"), ctx)
+    assert gone.ok and [d.summary for d in g.queue] == ["abrir Discord"]
+    await tool.run(PendingParams(action="cancel"), ctx)
+    assert g.queue == []
+
+
+async def test_summary_is_spoken_when_asked_by_voice() -> None:
+    from nyx.events import Announce
+    from nyx.tools.base import ToolResult
+
+    bus = EventBus()
+    g = gate()
+
+    class FakeExecutor:
+        async def run(self, call: ToolCall, *, phrase: str = "", voice: bool = False) -> object:
+            return ToolResult(ok=call.name == "open_app", message="")
+
+    controller = GameController(
+        bus,
+        g,
+        FakeExecutor(),  # type: ignore[arg-type]
+        set_priority=lambda _: None,
+        after_game_s=0,
+    )
+    said: list[str] = []
+    bubbles: list[BubbleShown] = []
+
+    async def on_say(e: Announce) -> None:
+        said.append(e.text)
+
+    async def on_bubble(e: BubbleShown) -> None:
+        bubbles.append(e)
+
+    bus.subscribe(Announce, on_say)
+    bus.subscribe(BubbleShown, on_bubble)
+    g.defer(ToolCall("open_app", {"name": "Discord"}), "abre discord", "abrir Discord", voice=True)
+    g.defer(ToolCall("focus_window", {"name": "x"}), "ve a x", "ir a x")
+    await bus.publish(GameStateChanged(False, "rocketleague.exe"))
+    assert said == ["Ya he hecho lo pendiente: abrir Discord. No he podido ir a x."]
+    assert bubbles[-1].secondary == "Hecho: abrir Discord · No pude: ir a x"
+    await controller.close()
+
+
+async def test_same_action_is_not_queued_twice(ctx: ToolContext, tmp_path: Path) -> None:
+    # ERRORES.md, 2026-11-11: «abre tus ajustes» dos veces abría dos ventanas al terminar.
+    g = gate()
+    ex = Executor(default_registry(), ctx, action_log=ActionLog(tmp_path), game=g)
+    first = await ex.run(ToolCall("open_nyx_settings", {}))
+    second = await ex.run(ToolCall("open_nyx_settings", {}))
+    assert first.ok and second.ok and second.message == "Ya lo tengo pendiente"
+    assert len(g.queue) == 1

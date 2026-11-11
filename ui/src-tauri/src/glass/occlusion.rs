@@ -16,8 +16,8 @@ use windows::Win32::Graphics::Gdi::{
     CombineRgn, CreateRectRgn, DeleteObject, NULLREGION, RGN_DIFF,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    GW_HWNDPREV, GWL_EXSTYLE, GetWindow, GetWindowLongPtrW, GetWindowRect, IsIconic,
-    IsWindowVisible, WS_EX_LAYERED, WS_EX_TRANSPARENT,
+    GW_HWNDPREV, GWL_EXSTYLE, GetClassNameW, GetWindow, GetWindowLongPtrW, GetWindowRect,
+    GetWindowTextW, IsIconic, IsWindowVisible, WS_EX_LAYERED, WS_EX_TOPMOST, WS_EX_TRANSPARENT,
 };
 
 /// Como mucho se miran tantas ventanas por encima (de sobra en la práctica).
@@ -25,16 +25,17 @@ const MAX_ABOVE: usize = 512;
 
 /// ¿Está `area` (coordenadas de pantalla) totalmente tapada por ventanas que hay encima de
 /// `hwnd`?
-pub fn fully_covered(hwnd: HWND, area: &RECT) -> bool {
+/// Devuelve la ventana que termina de taparla (para el registro), o None si se ve algo.
+pub fn covering(hwnd: HWND, area: &RECT) -> Option<HWND> {
     if area.right <= area.left || area.bottom <= area.top {
-        return false;
+        return None;
     }
     // SAFETY: región propia; se libera al final en todos los caminos.
     let visible = unsafe { CreateRectRgn(area.left, area.top, area.right, area.bottom) };
     if visible.is_invalid() {
-        return false;
+        return None;
     }
-    let mut covered = false;
+    let mut covered = None;
     let mut current = hwnd;
     for _ in 0..MAX_ABOVE {
         // SAFETY: consulta del orden de ventanas; falla al llegar arriba del todo.
@@ -58,7 +59,7 @@ pub fn fully_covered(hwnd: HWND, area: &RECT) -> bool {
             let kind = CombineRgn(Some(visible), Some(visible), Some(cut), RGN_DIFF);
             let _ = DeleteObject(cut.into());
             if kind == NULLREGION {
-                covered = true;
+                covered = Some(above);
                 break;
             }
         }
@@ -78,6 +79,14 @@ fn opaque_bounds(hwnd: HWND) -> Option<RECT> {
         let ex = GetWindowLongPtrW(hwnd, GWL_EXSTYLE) as u32;
         if ex & (WS_EX_LAYERED.0 | WS_EX_TRANSPARENT.0) != 0 {
             return None; // transparente o superpuesta: puede dejar ver lo de debajo
+        }
+        // «Siempre encima»: así son los overlays (Epic, Steam, Discord, AMD…), que cubren la
+        // pantalla entera siendo casi del todo transparentes y sin marcarse como tales. Tras
+        // una partida pueden quedarse encima de Ajustes, que se quedaba sin cristal
+        // (ERRORES.md, 2026-11-11). Una app normal maximizada no lo es, así que se sigue
+        // ahorrando con Ajustes detrás de otras ventanas.
+        if ex & WS_EX_TOPMOST.0 != 0 {
+            return None;
         }
         let mut cloaked = 0u32;
         let _ = DwmGetWindowAttribute(
@@ -104,4 +113,22 @@ fn opaque_bounds(hwnd: HWND) -> Option<RECT> {
         }
         (rect.right > rect.left && rect.bottom > rect.top).then_some(rect)
     }
+}
+
+/// «clase · título» de una ventana, para el registro.
+pub fn describe(hwnd: HWND) -> String {
+    let mut class = [0u16; 128];
+    let mut title = [0u16; 128];
+    // SAFETY: búferes propios del tamaño indicado.
+    let (c, t) = unsafe {
+        (
+            GetClassNameW(hwnd, &mut class),
+            GetWindowTextW(hwnd, &mut title),
+        )
+    };
+    format!(
+        "{} · {}",
+        String::from_utf16_lossy(&class[..c.max(0) as usize]),
+        String::from_utf16_lossy(&title[..t.max(0) as usize])
+    )
 }

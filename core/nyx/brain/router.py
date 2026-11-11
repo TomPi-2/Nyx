@@ -100,6 +100,9 @@ def route(text: str, index: SystemIndex) -> Route | Miss | None:
     _RAW.set(text.strip().rstrip(".!¡?¿ "))
     # «marca.com» → «marca punto com»: la limpieza quita los puntos; open_url los recupera.
     clean = _clean(_DOMAIN_DOT.sub(" punto ", text))
+    clauses = _clauses(text)
+    if len(clauses) > 1:
+        return _route_several(clauses, index)
     if _SEVERAL_ACTIONS.search(clean):
         return None  # «abre el bloc de notas y abre una pestaña»: plan de varios pasos (LLM)
     # «abre Discord en segundo plano»: se abre sin quitarle el foco a la ventana actual.
@@ -116,6 +119,45 @@ def route(text: str, index: SystemIndex) -> Route | Miss | None:
                         call.arguments["focus"] = False
             return result
     return None
+
+
+# Una orden nueva empieza por un verbo tras una coma o tras «y», «luego», «después».
+_CLAUSE_VERBS = rf"(?:{_VERBS}|muestrame|ensename|quita|para|reanuda|ve a|vete a|cambia a)"
+_CLAUSE_SPLIT = re.compile(
+    rf"\s+(?:y luego|y despues|luego|despues|y)\s+(?=(?:{_CLAUSE_VERBS})"
+    r"(?:melo|mela|lo|la|los|las|le)?\b)"
+)
+_STARTS_WITH_VERB = re.compile(rf"^(?:{_CLAUSE_VERBS})(?:melo|mela|lo|la|los|las|le)?\b")
+# Lo que depende del paso anterior (escribir en la app recién abierta…): mejor el LLM, que
+# añade las esperas.
+_DEPENDENT = {"app_action", "send_hotkey"}
+
+
+def _clauses(text: str) -> list[str]:
+    """«Abre Discord, abre tus ajustes y pon música» → tres órdenes; [texto] si es una sola.
+
+    Solo se parte cuando cada trozo empieza por un verbo, así «Chrome a la izquierda y
+    Discord a la derecha» o «Dime, Nyx, ¿qué hora es?» siguen siendo una sola petición.
+    """
+    parts: list[str] = []
+    for piece in re.split(r"[,;]", text):
+        cleaned = _clean(piece)
+        if cleaned:
+            parts += [p for p in _CLAUSE_SPLIT.split(cleaned) if p]
+    if len(parts) < 2 or not all(_STARTS_WITH_VERB.match(p) for p in parts):
+        return [text]
+    return parts
+
+
+def _route_several(clauses: list[str], index: SystemIndex) -> Route | None:
+    """Todas por reglas → un plan; si alguna no, el LLM se encarga de la frase entera."""
+    calls: list[ToolCall] = []
+    for clause in clauses:
+        routed = route(clause, index)
+        if not isinstance(routed, Route) or any(c.name in _DEPENDENT for c in routed.calls):
+            return None
+        calls += routed.calls
+    return Route(calls, "several")
 
 
 def _call(rule_name: str, tool: str, **arguments: object) -> Route:
@@ -255,7 +297,11 @@ def _pause(m: re.Match[str], _: SystemIndex) -> Route:
     r"(?:\s+(?:de|en|del)\s+(?P<src>[a-z0-9 ]+))?$",
 )
 def _play(m: re.Match[str], _: SystemIndex) -> Route:
-    return _call("media_play", "media_control", action="play", source=m.group("src"))
+    # «Pon música» (sin decir dónde) es poner música, no reanudar lo último que sonó.
+    music = bool(re.match(r"(?:pon|ponme|quiero)\b", m.group(0))) and not m.group("src")
+    return _call(
+        "media_play", "media_control", action="play", source=m.group("src"), music=music or None
+    )
 
 
 @rule(
@@ -410,16 +456,34 @@ _IN_GAME = re.compile(
 )
 
 
-def refusal(text: str, index: SystemIndex) -> tuple[str, str] | None:
-    """(burbuja, línea secundaria) si es algo que Nyx no hace nunca; si no, None."""
+# Con una partida en marcha no hace falta nombrar el juego: «salta», «acelera», «dispara»…
+# piden actuar dentro de él. «mueve» o «escribe» solos no cuentan («mueve Discord al otro
+# monitor» se deja para después de la partida).
+_PLAYING = re.compile(
+    r"\b(?:salt[aeo]\w*|avanz\w*|aceler\w*|fren[aeo]\w*|gir[aeo]s?|girar|conduc\w*|"
+    r"dispar\w*|apunt[aeo]s?|apuntar|recarg\w*|agach\w*|esquiv\w*|ataca\w*|defiend\w*|"
+    r"constru\w*|juega|juegues|jugar por mi|tir[aeo]s?\s+(?:hacia|para)|"
+    r"chatea\w*|manda un mensaje en el chat)\b"
+    r"|\b(?:el coche|la pelota|el balon|el personaje|el muneco|mi jugador)\b"
+)
+IN_GAME_REFUSAL = ("Dentro de los juegos no toco nada", "puedo abrirlos, la música y el volumen")
+
+
+def refusal(text: str, index: SystemIndex, *, playing: bool = False) -> tuple[str, str] | None:
+    """(burbuja, línea secundaria) si es algo que Nyx no hace nunca; si no, None.
+
+    `playing`: hay una partida en marcha (modo partida activo).
+    """
     clean = _clean(text)
     if _EMPTY_BIN.search(clean) or _FOREVER.search(clean):
         return "Eso no lo hago", "borraría para siempre: lo que borro va a la papelera"
+    if playing and _PLAYING.search(clean):
+        return IN_GAME_REFUSAL
     if _IN_GAME.search(clean):
         games = {a for e in index.entries({Kind.GAME}) for a in (*e.aliases, normalize(e.name))}
         words = f" {clean} "
         if any(f" {alias} " in words for alias in games if len(alias) > 2):
-            return "Dentro de los juegos no toco nada", "puedo abrirlos, la música y el volumen"
+            return IN_GAME_REFUSAL
     return None
 
 
@@ -722,12 +786,38 @@ def _window_monitor(m: re.Match[str], _: SystemIndex) -> Route:
     )
 
 
+# --- lo pendiente para después de la partida ---
+
+
+@rule(
+    "pending",
+    rf"^(?:dime\s+)?(?:(?:{_NYX})\s+)?(?:que|cuales?)\s+(?:cosas\s+)?(?:tienes|hay|te queda|tenemos)"
+    r"\s+(?:de\s+|como\s+)?pendientes?(?:\s+(?:ahora|ahora mismo|para despues|al terminar))?$"
+    r"|^que vas a hacer (?:despues|al terminar)(?: la partida)?$",
+)
+def _pending(_: re.Match[str], __: SystemIndex) -> Route:
+    return _call("pending", "pending", action="list")
+
+
+@rule(
+    "pending_cancel",
+    r"^(?:olvida|olvidate de|cancela|quita|no hagas)(?: nada de)? lo (?:pendiente|de despues)$",
+)
+def _pending_cancel(_: re.Match[str], __: SystemIndex) -> Route:
+    return _call("pending_cancel", "pending", action="cancel")
+
+
 @rule(
     "focus",
     r"^(?:cambia a|ve a|vete a|pasa a|muestrame|ensename|trae)\s+(?:la ventana de\s+)?(?P<x>.+)$",
 )
-def _focus(m: re.Match[str], index: SystemIndex) -> Route:
-    return _call("focus", "focus_window", name=m.group("x"))
+def _focus(m: re.Match[str], index: SystemIndex) -> Route | None:
+    # Solo si lo que se pide es una app o una ventana que existe: «muéstrame los FPS en el
+    # Rocket League» no es «trae al frente la ventana "los fps…"» (ERRORES.md, 2026-11-11).
+    name = m.group("x")
+    if index.confident(index.resolve(name, {Kind.APP, Kind.GAME})) or _find_windows(name, None):
+        return _call("focus", "focus_window", name=name)
+    return None
 
 
 # --- abrir (lo último: es el patrón más general) ---

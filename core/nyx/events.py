@@ -92,6 +92,13 @@ class TextEntered:
 
 
 @dataclass(frozen=True, slots=True)
+class Announce:
+    """Algo que Nyx dice por su cuenta si está libre (lo hecho al terminar una partida)."""
+
+    text: str
+
+
+@dataclass(frozen=True, slots=True)
 class TalkKey:
     """Atajo de hablar pulsado o soltado."""
 

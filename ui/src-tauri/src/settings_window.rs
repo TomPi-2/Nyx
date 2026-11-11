@@ -6,6 +6,7 @@
 //! Recuerda posición, tamaño y monitor en %LOCALAPPDATA%\Nyx\settings-window.json.
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use serde::{Deserialize, Serialize};
 use tauri::{
@@ -35,6 +36,11 @@ pub fn open(app: &AppHandle) {
     open_at(app, None);
 }
 
+/// Una sola creación a la vez: dos «abre tus ajustes» seguidos (por ejemplo, de la cola de
+/// la partida) creaban dos ventanas con la misma etiqueta, y el cristal se quedaba sin fondo.
+/// Sin candados: la bandeja la abre desde el hilo principal, que también crea las ventanas.
+static CREATING: AtomicBool = AtomicBool::new(false);
+
 /// Igual, en una sección concreta («abre tus ajustes del modo partida»).
 pub fn open_at(app: &AppHandle, section: Option<&str>) {
     if let Some(window) = app.get_webview_window(LABEL) {
@@ -46,9 +52,16 @@ pub fn open_at(app: &AppHandle, section: Option<&str>) {
         }
         return;
     }
+    if CREATING
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        return; // ya se está creando: la segunda petición no hace falta
+    }
     if let Err(err) = create(app, section) {
         eprintln!("[nyx] ventana de Ajustes: {err}");
     }
+    CREATING.store(false, Ordering::SeqCst);
 }
 
 /// La isla lo pide cuando el núcleo dice «abre tus ajustes» (herramienta open_nyx_settings).

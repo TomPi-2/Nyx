@@ -106,8 +106,11 @@ BROWSERS = ("opera", "chrome", "msedge", "edge", "firefox", "brave", "vivaldi", 
 WEB_SOURCES = {"youtube", "twitch", "netflix", "video", "navegador", "web", "prime", "disney"}
 
 
-def _pick_session(sessions: list[Any], current: Any, source: str | None) -> Any:
-    """La sesión que encaja con `source` («youtube», «spotify»…) o, si no, la actual."""
+def _pick_session(
+    sessions: list[Any], current: Any, source: str | None, strict: bool = False
+) -> Any:
+    """La sesión que encaja con `source` («youtube», «spotify»…) o, si no, la actual
+    (con `strict`, None: «pon música» no debe darle al play a un vídeo de YouTube)."""
     if source:
         want = source.casefold().strip()
         ids = [(s, str(s.source_app_user_model_id).casefold()) for s in sessions]
@@ -118,17 +121,19 @@ def _pick_session(sessions: list[Any], current: Any, source: str | None) -> Any:
         for s, aumid in ids:
             if want.replace(" ", "") in aumid.replace(" ", ""):
                 return s
+        if strict:
+            return None
     return current or (sessions[0] if sessions else None)
 
 
-async def _smtc(action: str, source: str | None) -> str | None:
+async def _smtc(action: str, source: str | None, strict: bool = False) -> str | None:
     from winrt.windows.media.control import (
         GlobalSystemMediaTransportControlsSessionManager as Manager,
     )
 
     manager = await Manager.request_async()
     sessions = list(manager.get_sessions())
-    session = _pick_session(sessions, manager.get_current_session(), source)
+    session = _pick_session(sessions, manager.get_current_session(), source, strict)
     if session is None:
         return None
     command = {
@@ -144,13 +149,13 @@ async def _smtc(action: str, source: str | None) -> str | None:
     return str(session.source_app_user_model_id)
 
 
-def smtc_control(action: str, source: str | None = None) -> str | None:
+def smtc_control(action: str, source: str | None = None, strict: bool = False) -> str | None:
     """Pausa, reanuda, salta… la sesión multimedia elegida. Devuelve su app o None (sin
     sesiones o Windows no lo permite: entonces se usan las teclas multimedia)."""
     import asyncio
 
     try:
-        return asyncio.run(_smtc(action, source))
+        return asyncio.run(_smtc(action, source, strict))
     except Exception:
         log.debug("Control multimedia de Windows no disponible", exc_info=True)
         return None

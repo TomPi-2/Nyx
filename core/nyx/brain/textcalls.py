@@ -20,7 +20,7 @@ from typing import Any
 
 from nyx.brain.base import LLMToolCall
 
-_TAGS = re.compile(r"</?tool_call>")
+_TAGS = re.compile(r"</?tool_?call>")
 _CALL_START = re.compile(r"^\s*(?:<tool_call>|\{|`*\s*([A-Za-z_]+)\s*[({])")
 _SPACED = re.compile(r"^([A-Za-z_]+)\s+(\{.*\})$")  # «mediacontrol {"action": …}»
 _FENCE_LANGS = {"", "json", "python", "tool_code"}
@@ -125,6 +125,29 @@ def parse_text_calls(text: str, tool_names: Iterable[str]) -> list[LLMToolCall]:
         else:
             found = _from_python(line, names)
         if found is None:
-            return []
+            # Varias en la misma línea: «a({…}); b({…})» (el formato de la memoria corta).
+            several = _several(line, names)
+            if not several:
+                return []
+            calls += several
+            continue
         calls.append(found)
     return calls
+
+
+def _several(line: str, names: dict[str, str]) -> list[LLMToolCall]:
+    """Llamadas separadas por «;» en una línea; [] si alguna parte no lo es."""
+    try:
+        tree = ast.parse(line, mode="exec")
+    except SyntaxError:
+        return []
+    if len(tree.body) < 2:
+        return []
+    found: list[LLMToolCall] = []
+    for stmt in tree.body:
+        segment = ast.get_source_segment(line, stmt) if isinstance(stmt, ast.Expr) else None
+        call = _from_python(segment, names) if segment else None
+        if call is None:
+            return []
+        found.append(call)
+    return found
