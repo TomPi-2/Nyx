@@ -84,7 +84,7 @@ Los atajos siguen el idioma de Windows (en español, «nuevo» es Ctrl+U y «gua
 | Ordenar Descargas por tipo | «ordena Descargas» | F6 | Amarillo |
 | Comprimir y descomprimir | «comprime la carpeta Viaje», «descomprime el zip» | F6 | Amarillo |
 | Archivos recientes | «¿qué estuve editando ayer?» | Idea | Verde |
-| Espacio en disco | «¿cuánto espacio me queda?», «¿qué ocupa más?» | F6 | Verde |
+| Espacio en disco | «¿cuánto espacio me queda?», «¿qué ocupa más?» | Hecho (espacio libre) / F6 | Verde |
 | Convertir formatos | «pasa esta imagen a png», «une estos pdf» | Idea | Amarillo |
 
 ## 5. Tiempo, alarmas y organización
@@ -112,7 +112,7 @@ Los atajos siguen el idioma de Windows (en español, «nuevo» es Ctrl+U y «gua
 | El tiempo | «¿va a llover mañana?» (Open-Meteo, ciudad fija en ajustes) | Hecho |
 | Actualidad | «¿quién ganó ayer el Madrid?» (búsqueda web + resumen, con la fuente) | F6 |
 | Definiciones y sinónimos | «otra palabra para bonito» | Hecho (LLM) |
-| Sobre el PC | «¿cuánta RAM uso?», «¿qué consume más CPU?», «temperatura de la gráfica» | F6 |
+| Sobre el PC | «¿cuánta RAM uso?», «¿qué consume más CPU?», «temperatura de la gráfica» | Hecho (batería, CPU, RAM, disco, procesos) |
 | Sobre la red | «¿cuál es mi IP?», «¿va bien internet?» | F6 |
 | Lo que hay en pantalla | «¿qué pone aquí?», «resume esta página» (nunca en juegos) | Idea |
 

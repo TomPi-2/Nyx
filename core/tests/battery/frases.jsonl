@@ -116,3 +116,8 @@
 {"frase": "¿qué tiempo hace hoy?", "tool": "get_weather"}
 {"frase": "¿qué tiempo hace en Madrid?", "tool": "get_weather", "args": {"city": "Madrid"}}
 {"frase": "¿hace falta paraguas hoy en Bilbao?", "tool": "get_weather", "args": {"city": "Bilbao"}}
+{"frase": "¿cuánta batería me queda?", "tool": "system_info", "args": {"what": "battery"}}
+{"frase": "¿cuánta CPU estoy usando?", "tool": "system_info", "args": {"what": "cpu"}}
+{"frase": "¿cuánta RAM uso?", "tool": "system_info", "args": {"what": "ram"}}
+{"frase": "¿cuánto espacio libre me queda en el disco?", "tool": "system_info", "args": {"what": "disk"}}
+{"frase": "¿qué consume más CPU?", "tool": "system_info", "args": {"what": "top"}}

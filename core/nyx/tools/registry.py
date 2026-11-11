@@ -60,6 +60,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.set_alarm import SetAlarm
     from nyx.tools.set_timer import SetTimer
     from nyx.tools.set_volume import SetVolume
+    from nyx.tools.system_info import SystemInfo
     from nyx.tools.undo import UndoLast
     from nyx.tools.wait_for_window import WaitForWindow
     from nyx.tools.window_layout import WindowLayout
@@ -92,6 +93,7 @@ def default_registry() -> ToolRegistry:
             NyxInfo(),
             NyxControl(),
             GetWeather(),
+            SystemInfo(),
             SendHotkey(),
             AppAction(),
             DeleteFiles(),

@@ -7,6 +7,7 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
 ### Añadido
 
 - 0.6, cerebro (`docs/PLAN-0.6.md`):
+  - 6.09, estado del equipo (`system_info`): consulta con `psutil` la batería (porcentaje, si está enchufado y tiempo restante), el uso de CPU, la RAM usada y total, el espacio libre por disco («Te quedan 120 GB libres en C:») y el programa que más CPU o RAM consume (permitida en partida).
   - 6.08, el tiempo (`get_weather`): consulta el tiempo actual y la máxima/mínima de hoy con Open-Meteo (gratis, sin clave, caché de 15 min; permitida en partida). Sección nueva Ajustes → General con tu ciudad (`general.city`); si preguntas sin tener ciudad guardada ni decir cuál, Nyx abre esa sección y te pide configurarla.
   - 6.01, bucle de agente: las herramientas que consultan (`observe`: listar y buscar archivos, y las que vengan) devuelven su resultado al LLM, que lo cuenta en una frase o da el siguiente paso, hasta 6 vueltas y 20 s (`nyx/brain/agent.py`). Los nombres de archivo le llegan ya preparados para decirlos, sin rutas. Las acciones siguen sin segunda llamada al LLM. La memoria corta guarda un solo turno por petición.
   - 6.18b: descripciones de herramientas y parámetros acortadas: los tokens de herramientas bajan un 30 % (de 4.696 a 3.285; prefijo total en el 32 % del contexto de 12.288, primer token en frío 1,82 s) manteniendo el 100 % en la batería (113/113 con 3 pasadas).

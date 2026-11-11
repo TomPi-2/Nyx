@@ -505,3 +505,22 @@ def test_alarm_in_seconds_is_a_timer(index: SystemIndex) -> None:
 )
 def test_weather_by_rule(index: SystemIndex, text: str, args: dict[str, object]) -> None:
     assert call(text, index) == ("get_weather", args)
+
+
+@pytest.mark.parametrize(
+    ("text", "what"),
+    [
+        ("¿cuánta batería me queda?", "battery"),
+        ("¿está enchufado el portátil?", "battery"),
+        ("¿cuánta CPU estoy usando?", "cpu"),
+        ("¿a cuánto está el procesador?", "cpu"),
+        ("¿cuánta RAM uso?", "ram"),
+        ("¿cuánta memoria RAM me queda?", "ram"),
+        ("¿cuánto espacio me queda?", "disk"),
+        ("¿cuánto espacio libre tengo en el disco?", "disk"),
+        ("¿qué consume más CPU?", "top"),
+        ("¿qué programa consume más?", "top"),
+    ],
+)
+def test_system_info_by_rule(index: SystemIndex, text: str, what: str) -> None:
+    assert call(text, index) == ("system_info", {"what": what})
