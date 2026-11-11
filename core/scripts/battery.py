@@ -184,6 +184,13 @@ async def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--solo", help="solo las frases que contienen este texto")
     parser.add_argument("--informe", type=Path, help="guardar el informe en Markdown")
+    parser.add_argument(
+        "--veces",
+        type=int,
+        default=3,
+        help="cuántas veces se pasa cada frase del LLM; cuenta la mayoría (tarea 6.18: con "
+        "una sola pasada, la suerte engaña)",
+    )
     args = parser.parse_args()
 
     cases = [
@@ -203,6 +210,13 @@ async def main() -> int:
     outcomes: list[Outcome] = []
     for case in cases:
         outcome = await run_case(case, index, brain)
+        if outcome.path == "llm" and args.veces > 1:
+            # El modelo no responde siempre igual: se repite y cuenta la mayoría.
+            tries = [outcome] + [await run_case(case, index, brain) for _ in range(args.veces - 1)]
+            good = sum(t.ok for t in tries)
+            outcome = next(t for t in tries if t.ok == (good * 2 > len(tries)))
+            if 0 < good < len(tries):
+                outcome.why = (outcome.why + " " if outcome.why else "") + f"({good}/{len(tries)})"
         outcomes.append(outcome)
         mark = "✓" if outcome.ok else "✗"
         print(
