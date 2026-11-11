@@ -19,6 +19,10 @@ Fallos vistos al usar Nyx que quedan pendientes de corregir. Se apuntan aquí pa
 
 | Fecha | Error | Commit |
 | --- | --- | --- |
+| 2026-11-11 | La burbuja y la voz repetían lo mismo («10 archivos en Descargas, hay 10 archivos en Descargas»): si la línea secundaria dice lo mismo que el dato, se quita. | «Tras probar la 6.01» |
+| 2026-11-11 | «¿Qué hay en Descargas?» decía «10 archivos» con cientos dentro: ahora dice el total de archivos y carpetas y los 10 más recientes. | «Tras probar la 6.01» |
+| 2026-11-11 | En la ventana de seguimiento ignoraba correcciones («Pero hay muchos más»): el clasificador las cuenta como dirigidas a Nyx y, ante la duda, también. | «Tras probar la 6.01» |
+| 2026-11-11 | «Búscame la última factura que tengo» buscaba un archivo llamado así: ahora busca «factura», la más reciente, y si no hay dice «No he encontrado ninguna factura». | «Tras probar la 6.01» |
 | 2026-11-11 | Ajustes, abierta desde la cola de la partida, salía sin fondo de cristal: el motor la daba por tapada por un overlay «siempre encima» del juego. Ahora esas ventanas no cuentan (confirmado por el usuario). | `ede328a` |
 | 2026-11-11 | Tirones en Rocket League cuando Nyx pensaba con el 14B (no cabe junto al juego: −80 % de FPS). En partida, el 7B en la gráfica (−3,4 %, sin tirones) o sin cerebro si no cabe. | 0.5, bloque 4 (pendiente de probar) |
 | 2026-11-11 | «Pon música» le daba al play al vídeo de YouTube que estaba abierto. Ahora va a Spotify si está instalada; en la 0.6, a la app donde el usuario suela escuchar música. | 0.5 (pendiente de probar) |

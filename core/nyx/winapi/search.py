@@ -21,14 +21,14 @@ log = logging.getLogger(__name__)
 LIMIT = 20
 WALK_BUDGET_S = 2.0
 _STOP = "el la los las un una de del en y o con para por mi mis que al"
-_STOPWORDS = frozenset(_STOP.split(" "))
+STOPWORDS = frozenset(_STOP.split(" "))
 _SKIP_DIRS = frozenset({"appdata", "node_modules", ".git", "__pycache__", ".venv", "venv"})
 
 
 def terms(query: str) -> list[str]:
     """Palabras que deben aparecer en el nombre («la factura de la luz» → factura, luz)."""
     words = re.findall(r"[\w.-]+", query.lower())
-    return [w for w in words if w not in _STOPWORDS and len(w) >= 2] or words
+    return [w for w in words if w not in STOPWORDS and len(w) >= 2] or words
 
 
 def _like(term: str) -> str:

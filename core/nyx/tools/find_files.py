@@ -6,6 +6,7 @@ Motor: Everything si está instalado; si no, el índice de Windows (ver winapi/s
 from __future__ import annotations
 
 import asyncio
+import re
 from pathlib import Path
 
 from pydantic import Field, model_validator
@@ -22,6 +23,9 @@ class FindFilesParams(Params):
     extension: str | None = Field(default=None, max_length=10, description="p. ej. pdf")
     folder: str | None = Field(default=None, max_length=1000, description="Buscar solo aquí")
     limit: int = Field(default=10, ge=1, le=50)
+    newest: bool = Field(
+        default=False, description="Los más recientes primero («la última factura»)"
+    )
 
     @model_validator(mode="after")
     def needs_name_or_extension(self) -> FindFilesParams:
@@ -32,6 +36,51 @@ class FindFilesParams(Params):
     @property
     def suffix(self) -> str | None:
         return "." + self.extension.lower().lstrip(".") if self.extension else None
+
+
+# «la última factura que tengo» → buscar «factura», la más reciente primero (ERRORES.md,
+# 2026-11-11: se buscaba un archivo llamado «ultima factura que tengo»).
+_RECENT = re.compile(
+    r"\b(?:[uú]ltim[oa]s?|m[aá]s recientes?|m[aá]s nuev[oa]s?|recientes?|nuev[oa]s?)\b"
+)
+_ONE = re.compile(r"\b(?:el|la)\s+(?:[uú]ltim[oa]|m[aá]s reciente)\b")
+_FILLER = re.compile(
+    r"\b(?:que\s+(?:tengo|tenga|he\s+\w+|me\s+\w+|hay)|tengo|alg[uú]n[oa]?s?|tod[oa]s?|"
+    r"cualquier|alguna\s+vez)\b"
+)
+
+
+def clean_query(raw: str) -> tuple[str, bool, bool]:
+    """(lo que buscar en el nombre, ¿los más recientes primero?, ¿solo uno?)"""
+    text = raw.strip()
+    newest = bool(_RECENT.search(text.lower()))
+    only_one = bool(_ONE.search(text.lower()))
+    text = _FILLER.sub(" ", _RECENT.sub(" ", text.lower()))
+    words = [w for w in text.split() if w not in search.STOPWORDS]
+    # «facturas» → «factura»: el nombre se compara por partes y «factura» encaja con ambas.
+    words = [
+        w[:-1] if len(w) > 4 and w.endswith("s") and not w.endswith("ss") else w for w in words
+    ]
+    return " ".join(words), newest, only_one
+
+
+def none_found(query: str) -> str:
+    """«No he encontrado ninguna factura», «…ningún contrato»."""
+    last = query.split()[-1] if query.split() else query
+    feminine = last.endswith(("a", "ión", "ion", "dad", "tud"))
+    return f"No he encontrado {'ninguna' if feminine else 'ningún'} {query}"
+
+
+def by_date(paths: list[Path]) -> list[Path]:
+    """Del más reciente al más antiguo (los que ya no existen, al final)."""
+
+    def mtime(p: Path) -> float:
+        try:
+            return p.stat().st_mtime
+        except OSError:
+            return 0.0
+
+    return sorted(paths, key=mtime, reverse=True)
 
 
 def search_roots() -> list[Path]:
@@ -60,16 +109,23 @@ class FindFiles(Tool[FindFilesParams]):
             roots = [folder]
         else:
             roots = await asyncio.to_thread(search_roots)
+        asked, newest, only_one = clean_query(params.query)
+        newest = newest or params.newest
         # «los pdf» sin nombre: se busca por la extensión.
-        query = params.query.strip() or params.suffix or ""
+        query = asked or params.suffix or ""
+        if not query:
+            return ToolResult.fail("¿Qué archivo busco?", "dime parte de su nombre")
         found, engine = await asyncio.to_thread(search.search, query, roots, 50)
         if params.kind:
             found = [p for p in found if p.suffix.lower() in EXTENSIONS[params.kind]]
         if params.suffix:
             found = [p for p in found if p.suffix.lower() == params.suffix]
-        found = found[: params.limit]
+        if newest:
+            found = await asyncio.to_thread(by_date, found)
+        found = found[: 1 if only_one else params.limit]
         if not found:
-            return ToolResult.fail(f"No encuentro archivos con «{query}»")
+            what = asked or f"archivo {params.suffix}"
+            return ToolResult.fail(none_found(what), "prueba con otra palabra del nombre")
         display = found[0].name if len(found) == 1 else f"{len(found)} resultados"
         secondary = str(found[0].parent) if len(found) == 1 else preview(found)
         return ToolResult(

@@ -291,3 +291,59 @@ async def test_find_files_by_extension_without_name(
     assert seen == [".pdf"]
     # Sin nombre ni extensión el plan no es válido (el LLM lo corrige con el error).
     assert "query" in ex.check([ToolCall("find_files", {"kind": "documents"})])
+
+
+@pytest.mark.parametrize(
+    ("raw", "query", "newest", "one"),
+    [
+        # ERRORES.md, 2026-11-11: se buscaba un archivo llamado «ultima factura que tengo».
+        ("ultima factura que tengo", "factura", True, False),
+        ("la última factura que tengo", "factura", True, True),
+        ("las facturas de la luz", "factura luz", False, False),
+        ("el contrato que me mandaron", "contrato", False, False),
+        ("mi currículum", "currículum", False, False),
+    ],
+)
+def test_clean_query(raw: str, query: str, newest: bool, one: bool) -> None:
+    assert find_module.clean_query(raw) == (query, newest, one)
+
+
+def test_none_found_sounds_natural() -> None:
+    assert find_module.none_found("factura") == "No he encontrado ninguna factura"
+    assert find_module.none_found("contrato") == "No he encontrado ningún contrato"
+
+
+async def test_latest_invoice_is_the_newest_one(
+    ctx: ToolContext, monkeypatch: pytest.MonkeyPatch, downloads: Path
+) -> None:
+    touch(downloads / "factura agua.pdf", age_s=10)  # la más reciente
+    seen: list[str] = []
+
+    def fake_search(query: str, roots: list[Path], limit: int) -> tuple[list[Path], str]:
+        seen.append(query)
+        return [downloads / "factura luz.pdf", downloads / "factura agua.pdf"], "windows"
+
+    monkeypatch.setattr(find_module.search, "search", fake_search)
+    result = await executor(ctx).run(
+        ToolCall("find_files", {"query": "la última factura que tengo"})
+    )
+    assert seen == ["factura"]
+    assert result.ok and result.data["paths"] == [str(downloads / "factura agua.pdf")]
+
+
+async def test_nothing_found_says_what(
+    ctx: ToolContext, monkeypatch: pytest.MonkeyPatch, downloads: Path
+) -> None:
+    monkeypatch.setattr(find_module.search, "search", lambda q, r, n: ([], "windows"))
+    result = await executor(ctx).run(ToolCall("find_files", {"query": "ultima factura"}))
+    assert not result.ok and result.message == "No he encontrado ninguna factura"
+
+
+async def test_overview_counts_everything(ctx: ToolContext, downloads: Path) -> None:
+    # «¿Qué hay en Descargas?»: el total de verdad, no solo los 10 más recientes.
+    for i in range(12):
+        touch(downloads / f"extra{i}.txt", age_s=500 + i)
+    (downloads / "Proyectos").mkdir()
+    result = await executor(ctx).run(ToolCall("list_files", {"folder": "descargas"}))
+    assert result.message.startswith("En Descargas hay 20 archivos y 1 carpeta;")
+    assert result.display == "20 archivos" and len(result.data["paths"]) == 10

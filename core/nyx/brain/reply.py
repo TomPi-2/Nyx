@@ -52,7 +52,22 @@ ReplyEvent = BubbleReady | SpokenDelta | SpokenEnd
 def parse_header(header: str) -> BubbleReady:
     inner = header.strip().strip("[]").strip()
     display, _, secondary = inner.partition("|")
-    return BubbleReady(display.strip(), secondary.strip())
+    display, secondary = display.strip(), secondary.strip()
+    if secondary and _same(display, secondary):
+        # «[10 archivos en Descargas | hay 10 archivos en Descargas]»: una vez basta (en la
+        # burbuja y en la voz).
+        secondary = ""
+    return BubbleReady(display, secondary)
+
+
+def _same(a: str, b: str) -> bool:
+    """¿Dicen lo mismo? (una contiene a la otra o casi iguales, sin mayúsculas ni signos)"""
+    from rapidfuzz import fuzz
+
+    na, nb = (" ".join(re.sub(r"[^\w\s]", " ", s.lower()).split()) for s in (a, b))
+    if not na or not nb:
+        return False
+    return na in nb or nb in na or fuzz.token_set_ratio(na, nb) >= 85
 
 
 def clean(text: str) -> str:

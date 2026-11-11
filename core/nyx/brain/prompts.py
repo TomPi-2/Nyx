@@ -81,14 +81,19 @@ def system_message() -> ChatMessage:
 ADDRESSED = """\
 Clasificas frases oídas por un asistente de voz llamado Nyx justo después de que \
 respondiera, sin que el usuario dijera «Nyx».
-Decide si la frase va dirigida a Nyx (una pregunta, petición u orden para el asistente, o \
-que continúa lo anterior) o NO (el usuario habla con otra persona, comenta algo, se ríe, se \
-despide, ruido).
+Decide si la frase va dirigida a Nyx (una pregunta, petición u orden para el asistente, que \
+continúa lo anterior, o que contesta, corrige o pone en duda lo que Nyx acaba de decir) o NO \
+(el usuario habla con otra persona, comenta algo, se ríe, se despide, ruido). Ante la duda, \
+true.
 Ejemplos:
 - «¿Y en francés?» → true
 - «¿Y mañana qué tiempo hará?» → true
 - «Ahora ciérralo» → true
 - «Pon otra canción» → true
+- «Pero hay muchos más» → true
+- «No, eso no es así» → true
+- «¿Seguro?» → true
+- «¿Cuáles son?» → true
 - «Tío, pásame el mando» → false
 - «Mañana quedamos con Laura» → false
 - «Jajaja qué dices» → false

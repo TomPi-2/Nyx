@@ -91,3 +91,13 @@ def test_empty_header_is_ignored() -> None:
 def test_first_sentence() -> None:
     assert first_sentence("Hola. Adiós.") == "Hola."
     assert first_sentence("a" * 100).endswith("…")
+
+
+def test_repeated_header_is_said_once() -> None:
+    # ERRORES.md, 2026-11-11: «10 archivos en Descargas, hay 10 archivos en Descargas».
+    _, parser = run(["[10 archivos en Descargas | hay 10 archivos en Descargas]"])
+    _, reply = parser.finish()
+    assert reply.display == "10 archivos en Descargas" and reply.secondary == ""
+    assert reply.spoken == "10 archivos en Descargas"
+    _, other = run(["[Hallo | hola · alemán]"])[1].finish()
+    assert other.secondary == "hola · alemán"  # lo que no se repite, se queda
