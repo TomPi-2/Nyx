@@ -79,3 +79,13 @@ def test_default_registry_tools_are_complete() -> None:
     for tool in tools:
         assert tool.description and tool.risk and tool.game_policy and tool.category
         assert tool.schema()["function"]["name"] == tool.name
+
+
+def test_every_tool_has_a_spanish_verb() -> None:
+    # Sin verbo, la descripción de lo hecho llevaba el nombre interno y el modelo lo copiaba
+    # en la burbuja («[nyxinfo quien eres | …]», 6.03). Al añadir una herramienta, añade su
+    # verbo en _VERBS de nyx/executor.py.
+    from nyx.executor import _VERBS
+
+    missing = [t.name for t in default_registry().all() if t.name not in _VERBS]
+    assert missing == []

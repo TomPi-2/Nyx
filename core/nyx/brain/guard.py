@@ -8,6 +8,7 @@ filtro, Nyx las leería en voz alta (ERRORES.md, 2026-11-11).
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 
 GARBLED_REPLY = ("No he podido hacerlo", "¿me lo pides de otra forma?")
 
@@ -23,3 +24,14 @@ _CODE = re.compile(
 def looks_like_code(text: str) -> bool:
     """¿Parece código o una llamada a herramienta en vez de una frase para una persona?"""
     return bool(_CODE.search(text))
+
+
+def tool_keys(names: Iterable[str]) -> frozenset[str]:
+    """«list_alarms» → «listalarms»: así se reconoce con o sin guion bajo."""
+    return frozenset(n.replace("_", "").lower() for n in names)
+
+
+def mentions_tool(text: str, keys: frozenset[str]) -> bool:
+    """¿Lleva el nombre interno de una herramienta? («[set_alarm | …]», «listalarms, …»)."""
+    words = re.findall(r"[A-Za-z_]{4,}", text)
+    return any(w.replace("_", "").lower() in keys for w in words)

@@ -142,6 +142,19 @@ _VERBS = {
     "delete_files": "mandar a la papelera",
     "app_action": "hacer en",
     "send_hotkey": "pulsar",
+    "list_files": "mirar la carpeta",
+    "find_files": "buscar",
+    "list_alarms": "mirar las alarmas",
+    "cancel_alarm": "quitar la alarma",
+    "set_alarm": "poner una alarma a las",
+    "set_timer": "poner un temporizador",
+    "nyx_info": "consultar cómo funciono, sobre",
+    "pending": "mirar lo pendiente",
+    "media_control": "controlar la música",
+    "set_volume": "cambiar el volumen",
+    "screenshot": "hacer una captura",
+    "wait_for_window": "esperar a que se abra",
+    "undo": "deshacer",
 }
 
 
@@ -149,7 +162,9 @@ def describe_call(call: ToolCall) -> str:
     """«open_app Discord» → «abrir Discord»: legible para la burbuja y la voz de lo diferido."""
     values = [str(v) for v in call.arguments.values() if isinstance(v, str | int) and v != ""]
     values = [v for v in values if v not in ("True", "False")]
-    verb = _VERBS.get(call.name, call.name.replace("_", " "))
+    # Nunca el nombre interno: el modelo lo vería en los resultados y lo escribiría en la
+    # burbuja (pasó en la 6.03). Cada herramienta tiene su verbo (lo exige una prueba).
+    verb = _VERBS.get(call.name, "hacer lo pedido")
     return " ".join([verb, *values[:2]])
 
 

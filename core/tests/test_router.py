@@ -479,3 +479,12 @@ def test_questions_about_nyx_use_nyx_info(index: SystemIndex, text: str) -> None
 )
 def test_cancel_alarms_by_rule(index: SystemIndex, text: str, which: str) -> None:
     assert call(text, index) == ("cancel_alarm", {"which": which})
+
+
+def test_alarm_in_seconds_is_a_timer(index: SystemIndex) -> None:
+    # 6.03: el LLM puso «una alarma que suene en 10 segundos» a las 00:10.
+    assert call("pon una alarma que suene en 10 segundos", index) == (
+        "set_timer",
+        {"seconds": 10},
+    )
+    assert call("pon una alarma dentro de 5 minutos", index) == ("set_timer", {"minutes": 5})

@@ -147,3 +147,20 @@ def test_with_waits_only_when_next_step_needs_the_window() -> None:
         ToolCall("focus_window", {"name": "Discord"}),
     ]
     assert [c.name for c in with_waits(plan2)] == ["open_app", "wait_for_window", "focus_window"]
+
+
+async def test_tool_names_never_reach_the_bubble_or_the_voice() -> None:
+    # 6.03: «[set_alarm | establece una alarma]» en la burbuja y «listalarms, …» en voz.
+    h = Harness(speak_typed=True)
+    with_router(h, None, [ToolResult(ok=True, message="ok")])
+    h.llm.replies = ["[set_alarm | establece una alarma]\n¿A qué hora quieres la alarma?"]
+    await h.bus.publish(TextEntered("pon una alarma"))
+    await h.p.wait_idle()
+    assert h.bubbles[-1][0] == "¿A qué hora quieres la alarma?"
+    assert h.tts.said == ["¿A qué hora quieres la alarma?"]
+    h.llm.replies = ["[list_alarms | dices las alarmas]\nlistalarms, dices las alarmas"]
+    await h.bus.publish(TextEntered("qué alarmas hay"))
+    await h.p.wait_idle()
+    assert h.tts.said[-1] == "No he podido hacerlo."
+    assert all("list" not in b[0] and "set_alarm" not in b[0] for b in h.bubbles)
+    await h.p.close()

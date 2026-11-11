@@ -26,8 +26,8 @@ from nyx.audio.playback import Player
 from nyx.audio.vad import Endpointer, EndReason, VoiceDetector
 from nyx.brain.agent import MAX_SECONDS, MAX_STEPS, AgentRun, continuation_hint, memory_note
 from nyx.brain.base import LLMError, LLMErrorKind
-from nyx.brain.guard import GARBLED_REPLY, looks_like_code
-from nyx.brain.reply import BubbleReady, Reply, SpokenDelta, SpokenEnd
+from nyx.brain.guard import GARBLED_REPLY, looks_like_code, mentions_tool, tool_keys
+from nyx.brain.reply import BubbleReady, Reply, SpokenDelta, SpokenEnd, first_sentence
 from nyx.brain.router import IN_GAME_REFUSAL, Miss, Route
 from nyx.brain.service import Brain, ReplyDone, ToolPlan
 from nyx.brain.shortcuts import ShortcutStore
@@ -916,6 +916,11 @@ class Pipeline:
         tools = (self.executor.registry.get(c.name) for c in calls)
         return any(t is not None and t.observe for t in tools)
 
+    def _tool_keys(self) -> frozenset[str]:
+        if self.executor is None:
+            return frozenset()
+        return tool_keys(t.name for t in self.executor.registry.all())
+
     def _brain_off(self) -> bool:
         return self.game is not None and self.game.active and self.game.brain_off
 
@@ -998,12 +1003,18 @@ class Pipeline:
             else None
         )
         garbled = False
+        # Nombres internos de herramientas: nunca en la burbuja ni en la voz (6.03: «[set_alarm
+        # | …]», «listalarms, …»). Si la cabecera los trae, la burbuja sale de lo que se dice.
+        keys = self._tool_keys()
+        rebuild = False
 
         def say(sentence: str) -> None:
-            nonlocal garbled
-            if garbled or looks_like_code(sentence):
+            nonlocal garbled, bubble
+            if garbled or looks_like_code(sentence) or mentions_tool(sentence, keys):
                 garbled = True
                 return
+            if rebuild and bubble is None:
+                bubble = BubbleReady(first_sentence(sentence), "")
             if speech is not None:
                 marks.first_sentence = marks.first_sentence or self._clock()
                 speech.say(sentence)
@@ -1018,8 +1029,13 @@ class Pipeline:
                     if isinstance(event, ToolPlan):
                         plan = event
                     elif isinstance(event, BubbleReady):
-                        if looks_like_code(f"{event.display} {event.secondary}"):
+                        header = f"{event.display} {event.secondary}"
+                        if looks_like_code(header):
                             garbled = True
+                            continue
+                        if mentions_tool(header, keys):
+                            log.info("Cabecera con un nombre interno: %r", header)
+                            rebuild = True
                             continue
                         bubble = event
                         if bubble_shown:
@@ -1033,8 +1049,12 @@ class Pipeline:
                     elif isinstance(event, ReplyDone):
                         log.info("Respuesta: %s", event.reply.model_dump_json())
                         reply = event.reply
-                        if looks_like_code(f"{reply.display} {reply.secondary} {reply.spoken}"):
+                        if looks_like_code(
+                            f"{reply.display} {reply.secondary} {reply.spoken}"
+                        ) or mentions_tool(reply.spoken, keys):
                             garbled = True
+                        elif rebuild:
+                            bubble = BubbleReady(first_sentence(reply.spoken), "")
                         elif speech is None:
                             bubble = text_bubble(reply)
             if garbled and plan is None:

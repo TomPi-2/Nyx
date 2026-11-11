@@ -17,6 +17,7 @@ Fallos vistos al usar Nyx que quedan pendientes de corregir. Se apuntan aquí pa
 
 | Fecha | Error | Commit |
 | --- | --- | --- |
+| 2026-11-11 | Nombres de herramientas en la burbuja y en la voz («[set_alarm | establece una alarma]», «listalarms, dices las alarmas»), y «alarma que suene en 10 segundos» a las 00:10. | «Tras probar la 6.03» |
 | 2026-11-11 | «¿Cuánto le queda a la alarma?» → «no hay ninguna» (había una): `list_alarms` y regla de no decir cómo está el PC sin mirarlo. | 0.6 (6.03) |
 | 2026-11-11 | «Explícame tu configuración para el modo partida» abría Ajustes: ahora `nyx_info` lo explica desde `brain/knowledge/nyx.md`. | 0.6 (6.03) |
 | 2026-11-11 | «Ábrela» tras crear una carpeta no sabía qué abrir: ahora lo último hecho (con su ruta) va como contexto y el router deja las referencias al modelo. | 0.6 (6.02) |

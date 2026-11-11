@@ -558,7 +558,10 @@ def _seconds(m: re.Match[str]) -> int | None:
 @rule(
     "timer",
     rf"^(?:(?:(?:pon(?:me)?|crea|activa)\s+)?(?:un\s+)?temporizador\s+(?:de\s+)?"
-    rf"|(?:avisame|despiertame|llamame|cuenta)\s+(?:en\s+)?){_AMOUNT}$",
+    rf"|(?:avisame|despiertame|llamame|cuenta)\s+(?:en\s+)?"
+    # «pon una alarma que suene en 10 segundos» es un temporizador (el LLM la ponía a las 00:10)
+    rf"|(?:(?:pon(?:me)?|crea|activa)\s+)?(?:una\s+)?alarma\s+(?:que\s+suene\s+)?"
+    rf"(?:en|dentro\s+de)\s+){_AMOUNT}$",
 )
 def _timer(m: re.Match[str], _: SystemIndex) -> Route | None:
     total = _seconds(m)
