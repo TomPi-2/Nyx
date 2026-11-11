@@ -567,12 +567,12 @@ Nyx debe sentirse instantáneo y no fallar nunca en silencio: cada error se expl
 | Motor de cristal en reposo | 0 % de GPU (ninguna captura ni redibujado) |
 | Motor de cristal con paneles visibles | < 8 ms de GPU por fotograma; el borde se redibuja a 30 fps |
 
-**Requisitos del sistema (provisionales, hasta medir Whisper y la voz en el portátil):** detalle y mediciones en `docs/benchmarks/requisitos.md`.
+**Requisitos del sistema:** detalle y mediciones en `docs/benchmarks/requisitos.md`. Solo con gráfica integrada no sirve (Whisper en la Radeon 680M: texto basura y ~10 s por frase).
 
 | | Mínimos (probado: RTX 3070 Laptop) | Recomendados (probado: RX 7700 XT) |
 | --- | --- | --- |
 | Sistema | Windows 11 de 64 bits | Windows 11 de 64 bits |
-| Tarjeta gráfica | Vulkan y 8 GB de VRAM dedicada | 12 GB de VRAM (necesarios para el modelo de 14B) |
+| Tarjeta gráfica | Dedicada, Vulkan y 8 GB de VRAM | 12 GB de VRAM (necesarios para el modelo de 14B) |
 | Procesador | 8 núcleos (Ryzen 7 6800H o similar) | Ryzen 7 7700X o similar |
 | RAM | 16 GB | 32 GB |
 | Disco | ~8 GB libres | ~9 GB más para el modelo de 14B |
@@ -778,4 +778,4 @@ Reglas de trabajo:
 | 2026-11-10 | Paneles: la forma de Nyx y los paneles en ventanas distintas, para que Nyx salga siempre en capturas y directos; ajuste «Mostrar Nyx en capturas y directos» (los paneles pasan a Bajo). Hueco fijo de 14 px entre Nyx (en su extensión máxima) y cualquier panel; Ajustes se mueve libremente. El campo de texto también usa el motor. Ajustes solo muestra lo que ya existe; el resto se añade cuando exista. Lo que queda de 5b: paneles con un prototipo previo; 5c: Ajustes en dos entregas. | 11, 12, 13 |
 | 2026-11-10 | Apariencia personalizable con opciones fijas (entra en 5c‑2): color de Nyx (19, con un rojo intenso que combine con el tinte vino), tinte de los paneles (12) y fuente (Segoe UI Variable, Manrope o Nunito). Grises y blanco siguen siendo lo predeterminado. | 12, 13 |
 | 2026-11-10 | Icono de Nyx: la propuesta «Sólido» (la forma casi cuadrada con un lóbulo). Bandeja según el tema de Windows (blanco / gris oscuro). En la web irá con una animación de un solo disparo: se divide en cuatro, dan un cuarto de vuelta con dos empujones y vuelven al icono (`docs/prototipos/icono-nyx.html`). | 12 |
-| 2026-11-11 | Requisitos del sistema provisionales tras las pruebas del portátil (RTX 3070 Laptop, 8 GB): `qwen2.5:7b` al 100 % en GPU, 4,4 GB de VRAM, 83 tokens/s y 3/3 herramientas, igual que en la RX 7700 XT. Mínimos: Windows 11, Vulkan y 8 GB de VRAM, 8 núcleos, 16 GB de RAM y ~8 GB de disco; recomendados: 12 GB de VRAM y 32 GB de RAM. Falta Whisper en el portátil: el whisper-server compilado en el sobremesa usa instrucciones (AVX-512) que el Ryzen 7 6800H no tiene, así que hay que compilarlo sin `GGML_NATIVE`. | 14 |
+| 2026-11-11 | Requisitos del sistema tras las pruebas del portátil (RTX 3070 Laptop, 8 GB): `qwen2.5:7b` al 100 % en GPU, 4,4 GB de VRAM, 83 tokens/s y 3/3 herramientas, igual que en la RX 7700 XT. Mínimos: Windows 11, Vulkan y 8 GB de VRAM, 8 núcleos, 16 GB de RAM y ~8 GB de disco; recomendados: 12 GB de VRAM y 32 GB de RAM. Voz en el portátil: 0,4 s del fin de la frase a la voz (1,3 s con herramienta). whisper-server se compila sin `GGML_NATIVE` (el nativo del sobremesa usaba AVX-512 y se caía en el Ryzen 7 6800H); solo con gráfica integrada no sirve. Pendiente: arranque de 23 s con Whisper y ~800 MB de RAM del núcleo. | 14 |
