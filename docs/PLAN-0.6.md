@@ -117,6 +117,12 @@ Nunca `--no-verify`, nunca `push --force`, nunca reescribir commits ya hechos.
   responde vacío: conclusiones falsas (pasó en la 6.02).
 - **El 7B imita la conversación:** lo que deba usar como dato (lo último hecho, resultados)
   va como contexto en el mensaje del usuario, no como turnos del asistente (6.01 y 6.02).
+- **No nombres herramientas en el prompt de sistema:** el modelo las escribe en la
+  burbuja («[set_alarm | …]») y la batería baja (96 % con dos reglas que las nombraban,
+  6.03). Las reglas hablan de lo que hay que hacer, no de cómo se llama la herramienta.
+- **Cada regla nueva del prompt puede romper otras frases:** pasa la batería dos veces
+  antes y después. Si una regla no hace falta (porque ya lo resuelve el router o un
+  filtro), no la añadas.
 - **Los ejemplos de las descripciones pesan mucho:** el modelo copia el ejemplo de la
   herramienta (con solo `kind=images` en `copy_files`, «cópialo» copiaba todos los
   documentos). Cambiar una descripción puede mover otras frases de la batería: pásala.
@@ -507,3 +513,4 @@ Una fila por tarea terminada. «Revisado» lo rellena Claude al repasar.
 | 6.01 | Claude | `36daba5` | `Tool.observe`; el resultado vuelve al LLM en el mensaje del usuario (no como `role="tool"`: así no cambia el prefijo en caché ni hace falta guardar las llamadas del asistente). Límites: 6 vueltas, 20 s; si repite lo mismo, se enseña lo último consultado. Probado con el 7B real: ~1,5 s la segunda vuelta; los nombres de archivo se le pasan ya «para decir» (sin rutas ni guiones bajos) porque si no los leía con la ruta. | Sí (Claude) |
 | 6.02 | Claude | `6ccbdab` | Diseño cambiado tras probar con el 7B real (ver 6.02): lo último hecho va como contexto del mensaje, no como turno. Comprobado: «ábrela», «ábrelo», «cópialo» bien; «muévela» bien ~3 de 4 (a veces usa el mensaje como carpeta: falla al preparar y lo dice, sin hacer nada raro). Añadidos: ejemplos con `names` en `copy_files` y `move_files`, y negativa fija para comprar o pagar (el cambio de descripciones hacía que «compra unas zapatillas en Amazon» abriera Amazon). Batería 100/100. | Sí (Claude) |
 | 6.03 | Claude | `2bf4923` | `list_alarms`, `cancel_alarm`, `nyx_info` + `brain/knowledge/nyx.md`. Con 28 herramientas el 7B empieza a dudar: escribía «pon una alarma…» como texto o se negaba a contar un chiste según la redacción de las reglas. Lo frecuente y claro pasó al router (recordatorios, ver y quitar alarmas, preguntas sobre Nyx); un nombre de herramienta suelto («listalarms») cuenta como llamada. Batería 97–98 % y los fallos cambian de una pasada a otra: ver nota en 6.18. | Sí (Claude) |
+| 6.04 | Claude | (este commit) | `nyx_control` con lista cerrada de 10 ajustes (cristal, velocidad de voz, respuestas habladas, voz al escribir, modo partida, cerebro en partida, tamaño, sensibilidad, color, tono de los paneles); se aplica con `apply_patch` de `settings/live.py`, el mismo camino y las mismas validaciones que la ventana. No se puede desactivar la escucha por voz (no podrías volver a llamarla). Antes, tras la 6.03: fuera los nombres de herramientas del prompt (bajaban la batería al 96 %) y filtro de nombres internos en burbuja y voz; regla del prompt afinada para que las preguntas de cultura general no acaben en «Aún no sé hacer eso». Batería 113/113 dos veces. | Sí (Claude) |

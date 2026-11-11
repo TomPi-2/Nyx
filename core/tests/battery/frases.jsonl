@@ -106,3 +106,8 @@
 {"frase": "explícame tu configuración para el modo partida", "tool": "nyx_info", "args": {"topic": "partida"}}
 {"frase": "¿qué puedes hacer?", "tool": "nyx_info"}
 {"frase": "¿qué cosas no haces nunca?", "tool": "nyx_info"}
+{"frase": "bájate la calidad del cristal al mínimo", "tool": "nyx_control", "args": {"setting": "calidad del cristal"}}
+{"frase": "habla más despacio", "tool": "nyx_control", "args": {"setting": "velocidad de la voz"}}
+{"frase": "ponte de color turquesa", "tool": "nyx_control", "args": {"setting": "color", "value": "turquesa"}}
+{"frase": "cuando juegue, háblame solo por voz", "tool": "nyx_control", "args": {"setting": "modo partida"}}
+{"frase": "hazte un poco más grande", "tool": "nyx_control", "args": {"setting": "tamaño"}}

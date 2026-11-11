@@ -155,6 +155,7 @@ _VERBS = {
     "screenshot": "hacer una captura",
     "wait_for_window": "esperar a que se abra",
     "undo": "deshacer",
+    "nyx_control": "cambiar mi ajuste de",
 }
 
 

@@ -26,7 +26,13 @@ from nyx.brain.router import refusal, route
 from nyx.brain.service import Brain
 from nyx.brain.shortcuts import ShortcutStore
 from nyx.bus import EventBus
-from nyx.events import BubbleHidden, BubbleShown, OpenSettingsWindow, SettingsChanged
+from nyx.events import (
+    BubbleHidden,
+    BubbleShown,
+    OpenSettingsWindow,
+    SettingsChanged,
+    SettingsRequested,
+)
 from nyx.executor import Executor
 from nyx.game.brain import GameBrain
 from nyx.game.controller import GameController
@@ -43,6 +49,7 @@ from nyx.paths import local_dir
 from nyx.pipeline import Pipeline
 from nyx.safety.action_log import ActionLog
 from nyx.safety.paths import PathPolicy
+from nyx.settings.live import apply_patch
 from nyx.settings.model import Settings
 from nyx.stt.whisper_server import WhisperServer
 from nyx.tools.base import ToolContext
@@ -243,12 +250,19 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     async def open_nyx_settings(section: str | None) -> None:
         await bus.publish(OpenSettingsWindow(section))
 
+    async def apply_settings(patch: dict[str, Any]) -> list[str]:
+        restart = apply_patch(settings, patch)
+        # La ventana de Ajustes y las demás se enteran (como si se cambiara desde Ajustes).
+        await bus.publish(SettingsRequested())
+        return restart
+
     tools_ctx = ToolContext(
         index=index,
         settings=settings,
         paths=paths,
         alarms=alarms,
         open_nyx_settings=open_nyx_settings,
+        apply_settings=apply_settings,
     )
     ringer = AlarmRinger(bus, tts=tts, player=player)
     # Modo partida (SPEC sección 9): qué herramientas se permiten, se difieren o se bloquean.

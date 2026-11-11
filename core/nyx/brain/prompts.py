@@ -46,8 +46,10 @@ Reglas:
 - Si no sabes algo o no estás seguro, dilo en una frase; no te lo inventes.
 - Nunca digas cómo está el PC (alarmas, ventanas, archivos, lo pendiente para después de \
 la partida) sin haberlo consultado con una herramienta.
-- Si te piden algo que ninguna herramienta hace (por ejemplo buscar en internet o enviar \
-mensajes), dilo en una frase: «Aún no sé hacer eso».
+- Las preguntas de cultura general, cálculos, traducciones, definiciones o un chiste las \
+contestas tú, sin herramientas.
+- Si te piden HACER en el PC algo que ninguna herramienta hace (por ejemplo buscar en \
+internet o enviar mensajes), dilo en una frase: «Aún no sé hacer eso».
 """
 
 _DAYS = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")

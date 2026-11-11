@@ -86,6 +86,9 @@ class ToolContext:
     open_nyx_settings: Callable[[str | None], Awaitable[None]] | None = None
     # La cola de la partida (lo diferido); la pone services.py.
     game: GameGate | None = None
+    # Cambia ajustes de Nyx por el mismo camino que la ventana de Ajustes (nyx_control, 6.04).
+    # Devuelve lo que se aplica al reiniciar; la pone services.py.
+    apply_settings: Callable[[dict[str, Any]], Awaitable[list[str]]] | None = None
 
 
 @dataclass

@@ -83,27 +83,7 @@ class SettingsService:
 
     def apply(self, patch: Mapping[str, Any]) -> list[str]:
         """Aplica un cambio parcial. Devuelve lo que necesita reiniciar Nyx."""
-        before = self.snapshot()
-        try:
-            updated = Settings.model_validate(_merge(before, patch))
-        except ValidationError as err:
-            first = err.errors()[0]
-            where = ".".join(str(p) for p in first["loc"])
-            raise SettingsError(f"Valor no válido en {where}: {first['msg']}") from err
-        changed = _changed_paths(before, updated.model_dump(mode="json"))
-        blocked = [p for p in changed if not _editable(p)]
-        if blocked:
-            raise SettingsError(f"No se puede cambiar desde Ajustes: {', '.join(blocked)}")
-        word = updated.wake.custom_word.strip()
-        if "wake.custom_word" in changed and word:
-            check = validate_wake_phrase(word)
-            if not check.ok:
-                raise SettingsError(f"La palabra «{word}» {'; '.join(check.problems)}")
-        _copy_into(self.settings, updated)
-        if changed:
-            save_settings(self.settings, self.path)
-            log.info("Ajustes cambiados: %s", ", ".join(changed))
-        return [p for p in changed if p.startswith(NEEDS_RESTART)]
+        return apply_patch(self.settings, patch, self.path)
 
     def pending_restart(self) -> list[str]:
         """Lo que es distinto de cuando arrancó el núcleo y solo se aplica al reiniciar. Si se
@@ -133,6 +113,36 @@ class SettingsService:
                 outputs=tuple(outputs),
             )
         )
+
+
+def apply_patch(
+    settings: Settings, patch: Mapping[str, Any], path: Path | None = None
+) -> list[str]:
+    """Aplica un cambio parcial sobre `settings` (el mismo objeto que usa todo el núcleo) y lo
+    guarda. Lo usan la ventana de Ajustes y «Nyx, baja la calidad del cristal» (nyx_control):
+    las mismas validaciones y la misma lista de lo que se puede cambiar. Devuelve lo que
+    necesita reiniciar Nyx."""
+    before = settings.model_dump(mode="json")
+    try:
+        updated = Settings.model_validate(_merge(before, patch))
+    except ValidationError as err:
+        first = err.errors()[0]
+        where = ".".join(str(p) for p in first["loc"])
+        raise SettingsError(f"Valor no válido en {where}: {first['msg']}") from err
+    changed = _changed_paths(before, updated.model_dump(mode="json"))
+    blocked = [p for p in changed if not _editable(p)]
+    if blocked:
+        raise SettingsError(f"No se puede cambiar desde Ajustes: {', '.join(blocked)}")
+    word = updated.wake.custom_word.strip()
+    if "wake.custom_word" in changed and word:
+        check = validate_wake_phrase(word)
+        if not check.ok:
+            raise SettingsError(f"La palabra «{word}» {'; '.join(check.problems)}")
+    _copy_into(settings, updated)
+    if changed:
+        save_settings(settings, path)
+        log.info("Ajustes cambiados: %s", ", ".join(changed))
+    return [p for p in changed if p.startswith(NEEDS_RESTART)]
 
 
 def _editable(path: str) -> bool:

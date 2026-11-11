@@ -45,6 +45,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.list_files import ListFiles
     from nyx.tools.media_control import MediaControl
     from nyx.tools.move_files import MoveFiles
+    from nyx.tools.nyx_control import NyxControl
     from nyx.tools.nyx_info import NyxInfo
     from nyx.tools.open_app import OpenApp
     from nyx.tools.open_nyx_settings import OpenNyxSettings
@@ -88,6 +89,7 @@ def default_registry() -> ToolRegistry:
             ListAlarms(),
             CancelAlarm(),
             NyxInfo(),
+            NyxControl(),
             SendHotkey(),
             AppAction(),
             DeleteFiles(),
