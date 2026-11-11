@@ -4,6 +4,10 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
 
 ## [Sin publicar]
 
+## [0.5.0] - 2026-11-11
+
+Primera versión interna completa (fases 1 a 5 de la SPEC; versión 0.5 de `docs/HOJA-DE-RUTA.md`). Sin publicar: solo en los equipos de prueba.
+
 ### Añadido
 
 - Fase 1 (en curso):

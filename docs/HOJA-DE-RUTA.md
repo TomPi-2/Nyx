@@ -8,7 +8,7 @@ Este documento reúne en un solo plan lo que queda de las fases 5 a 7, los fallo
 
 | Versión | Nombre | Qué trae | Fase |
 | --- | --- | --- | --- |
-| **0.5** | Partida e interfaz | Cierre de la fase 5 + **correcciones urgentes del modo partida** (lag, comandos leídos en voz alta, cola diferida) | 5 |
+| **0.5** ✓ | Partida e interfaz (cerrada el 2026-11-11) | Cierre de la fase 5 + **correcciones urgentes del modo partida** (lag, comandos leídos en voz alta, cola diferida) | 5 |
 | **0.6** | Cerebro | Nyx entiende mucho mejor y hace mucho más: bucle de agente, búsqueda en internet, aprender procedimientos, resto de herramientas, batería de 300+ frases, modelo final | 6a |
 | **0.7** | Extensiones | **Plataforma de extensiones (API 1.0)**, SDK, documentación, firma y revisión. Formas de Nyx como extensión. Modos (base) | 6b |
 | **0.8** | Organización y seguridad | Notas, listas, tareas, dictado, resúmenes, calendario local, bloquear el PC, modo privacidad, quién usa micro y cámara | 6c |
