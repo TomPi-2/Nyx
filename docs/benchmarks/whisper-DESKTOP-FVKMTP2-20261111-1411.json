@@ -1,0 +1,45 @@
+{
+  "hardware": {
+    "machine": "DESKTOP-FVKMTP2",
+    "python": "3.12.12",
+    "cpu": "AMD Ryzen 7 6800H with Radeon Graphics",
+    "ram_gb": 15.2,
+    "gpus": [
+      "AMD Radeon(TM) Graphics (31.0.12024.2005)",
+      "NVIDIA GeForce RTX 3070 Laptop GPU (32.0.15.9579)"
+    ],
+    "os": "Microsoft Windows 11 Pro build 26300"
+  },
+  "model": "ggml-large-v3-turbo-q5_0.bin",
+  "load_s": 3.51,
+  "backend": [
+    "ggml_vulkan: Found 2 Vulkan devices:",
+    "ggml_vulkan: 0 = AMD Radeon(TM) Graphics (AMD proprietary driver) | uma: 1 | fp16: 1 | bf16: 0 | fp4: 0 | warp size: 32 | shared memory: 65536 | int dot: 1 | matrix cores: none",
+    "ggml_vulkan: 1 = NVIDIA GeForce RTX 3070 Laptop GPU (NVIDIA) | uma: 0 | fp16: 1 | bf16: 1 | fp4: 0 | warp size: 32 | shared memory: 49152 | int dot: 1 | matrix cores: NV_coopmat2",
+    "load_backend: loaded Vulkan backend from C:\\Users\\Filip\\AppData\\Local\\Nyx\\whisper\\ggml-vulkan.dll",
+    "load_backend: loaded CPU backend from C:\\Users\\Filip\\AppData\\Local\\Nyx\\whisper\\ggml-cpu-haswell.dll",
+    "whisper_init_with_params_no_state: use gpu    = 1",
+    "whisper_init_with_params_no_state: gpu_device = 0",
+    "whisper_init_with_params_no_state: devices    = 3",
+    "whisper_init_with_params_no_state: backends   = 2",
+    "whisper_model_load:      Vulkan0 total size =   573.40 MB"
+  ],
+  "results": [
+    {
+      "audio": "frase0.wav",
+      "latency_s": 10.463,
+      "text": "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    },
+    {
+      "audio": "frase1.wav",
+      "latency_s": 10.366,
+      "text": "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    },
+    {
+      "audio": "frase2.wav",
+      "latency_s": 10.01,
+      "text": "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    }
+  ],
+  "median_latency_s": 10.366
+}
