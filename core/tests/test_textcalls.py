@@ -134,3 +134,9 @@ def test_several_calls_in_one_line_after_header() -> None:
         LLMToolCall("app_action", {"app": "Rocket League", "action": "accelerate"}),
     ]
     assert parse_text_calls("hola; adiós", ["app_action"]) == []
+
+
+def test_bare_tool_name_is_a_call() -> None:
+    # 6.03: el modelo escribía solo «listalarms» (sin parámetros) y se habría leído.
+    assert parse_text_calls("listalarms", ["list_alarms"]) == [LLMToolCall("list_alarms", {})]
+    assert parse_text_calls("Hola", ["list_alarms"]) == []

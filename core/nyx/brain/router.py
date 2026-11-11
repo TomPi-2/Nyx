@@ -574,8 +574,9 @@ def _timer(m: re.Match[str], _: SystemIndex) -> Route | None:
 _CLOCK = rf"(?P<h>{_N})(?:\s+(?P<m>\d{{2}}))?(?:\s+y\s+(?P<frac>media|cuarto)|\s+(?P<minus>menos cuarto))?(?:\s+en punto)?(?:\s+(?:de la\s+|del\s+)?(?P<part>manana|tarde|noche|madrugada|mediodia))?"
 
 
-def _clock_time(m: re.Match[str]) -> str | None:
-    h = parse_number(m.group("h"))
+def _clock_time(m: re.Match[str] | _Renamed) -> str | None:
+    raw_h = m.group("h")
+    h = parse_number(raw_h) if raw_h else None
     if h is None or h > 23:
         return None
     minute = int(m.group("m") or 0)
@@ -604,6 +605,57 @@ def _alarm(m: re.Match[str], _: SystemIndex) -> Route | None:
         return None
     tomorrow = m.group("day") == "manana"
     return _call("alarm", "set_alarm", time=when, day="tomorrow" if tomorrow else None)
+
+
+_REMIND = r"(?:recuerdame|recordarme|avisame(?:\s+(?:para|de))?)"
+
+
+@rule(
+    "reminder",
+    rf"^{_REMIND}\s+(?:(?P<day>manana|hoy)\s+)?(?:a\s+)?las?\s+{_CLOCK}\s+(?:que\s+|de\s+|para\s+)?(?P<label>.+)$"
+    rf"|^{_REMIND}\s+(?:que\s+|de\s+)?(?P<label2>.+?)\s+(?:(?P<day2>manana|hoy)\s+)?a\s+las?\s+"
+    + _CLOCK.replace("(?P<", "(?P<r_")
+    + "$",
+)
+def _reminder(m: re.Match[str], _: SystemIndex) -> Route | None:
+    """«Recuérdame a las 6 de la tarde llamar a mamá» y «recuérdame llamar a mamá a las 6».
+
+    Con muchas herramientas, el 7B a veces escribía la orden como texto en vez de hacerla
+    (tarea 6.03): lo frecuente y claro va por reglas."""
+    first = m.group("label") is not None
+    when = _clock_time(m) if first else _clock_time(_Renamed(m))
+    if when is None:
+        return None
+    label = _original(m.group("label") if first else m.group("label2"))
+    day = m.group("day") if first else m.group("day2")
+    return _call(
+        "reminder",
+        "set_alarm",
+        time=when,
+        day="tomorrow" if day == "manana" else None,
+        label=label,
+    )
+
+
+class _Renamed:
+    """Los grupos del reloj de la segunda forma (r_h, r_m…) con los nombres de _clock_time."""
+
+    def __init__(self, m: re.Match[str]) -> None:
+        self._m = m
+
+    def group(self, name: str) -> str | None:
+        return self._m.group(f"r_{name}")
+
+
+def _original(fragment: str) -> str:
+    """El trozo tal como lo dijo el usuario (con tildes y mayúsculas): «mama» → «mamá»."""
+    words = _RAW.get().split()
+    want = fragment.split()
+    clean = [_clean(w) for w in words]
+    for i in range(len(words) - len(want) + 1):
+        if clean[i : i + len(want)] == want:
+            return " ".join(words[i : i + len(want)]).strip(".,;:!?¡¿")
+    return fragment
 
 
 def _selection(m: re.Match[str]) -> dict[str, object] | None:
@@ -793,6 +845,50 @@ def _window_monitor(m: re.Match[str], _: SystemIndex) -> Route:
     return _call(
         "window_monitor", "window_layout", action="next_monitor", name=_window_name(m.group("x"))
     )
+
+
+# --- alarmas: ver cuáles hay (6.03; antes el LLM decía «no tienes» sin mirar) ---
+
+
+@rule(
+    "alarms_list",
+    r"^(?:que|cuales|cuantas) (?:alarmas|temporizadores|recordatorios) (?:tengo|hay)(?: puest[oa]s)?$"
+    r"|^tengo (?:alguna |algun )?(?:alarmas?|temporizador(?:es)?|recordatorios?)(?: puest[oa]s?)?"
+    r"(?: (?:para )?(?:hoy|manana|esta (?:tarde|noche)))?$"
+    r"|^cuanto (?:le )?queda (?:al|a la|para la|para el) (?:temporizador|alarma|recordatorio)$",
+)
+def _alarms_list(_: re.Match[str], __: SystemIndex) -> Route:
+    return _call("alarms_list", "list_alarms")
+
+
+@rule(
+    "alarms_cancel",
+    r"^(?:cancela|quita|quitame|borra|elimina|anula)\s+(?:el|la|los|las|mi|mis)\s+"
+    r"(?P<what>(?:temporizador|alarma|recordatorio)(?:es|s)?(?:\s+.+)?)$",
+)
+def _alarms_cancel(m: re.Match[str], __: SystemIndex) -> Route:
+    """«Cancela el temporizador», «quita la alarma de las 7», «borra todas las alarmas»."""
+    what = m.group("what")
+    plural = re.match(r"(?:temporizador|alarma|recordatorio)(?:es|s)\b", what)
+    which = "todas" if plural and not re.search(r"\bde\b", what) else what
+    which = re.sub(r"^(?:alarma|recordatorio)\s+(?:de\s+)?(?:las\s+)?", "", which)
+    return _call("alarms_cancel", "cancel_alarm", which=which)
+
+
+# --- Nyx sobre sí misma (6.03; el 7B se lo inventaba: «puedo navegar por internet») ---
+
+
+@rule(
+    "self",
+    r"^(?:(?:dime|explicame|cuentame)\s+)?(?:"
+    r"que (?:cosas )?(?:puedes|sabes) hacer|que (?:cosas )?no (?:haces|puedes hacer|harias)"
+    r"(?: nunca)?|quien eres|que eres|como funcionas"
+    r"|(?:como (?:funciona|es) |que hace )?(?:tu|el) (?:modo partida|configuracion del modo "
+    r"partida|configuracion para el modo partida|modo juego)"
+    r")$",
+)
+def _self(m: re.Match[str], __: SystemIndex) -> Route:
+    return _call("self", "nyx_info", topic=m.group(0))
 
 
 # --- lo pendiente para después de la partida ---

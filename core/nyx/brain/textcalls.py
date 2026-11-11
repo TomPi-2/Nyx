@@ -115,6 +115,9 @@ def parse_text_calls(text: str, tool_names: Iterable[str]) -> list[LLMToolCall]:
                 found = _from_json(json.loads(line), names)
             except ValueError:
                 found = None
+        elif re.fullmatch(r"[A-Za-z_]+", line) and _key(line) in names:
+            # Solo el nombre, sin paréntesis: «listalarms» (herramientas sin parámetros).
+            found = LLMToolCall(names[_key(line)], {})
         elif spaced and _key(spaced.group(1)) in names:  # «mediacontrol {"action": …}»
             try:
                 args = json.loads(spaced.group(2))

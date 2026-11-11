@@ -94,7 +94,7 @@ Los atajos siguen el idioma de Windows (en español, «nuevo» es Ctrl+U y «gua
 | Alarma a una hora | «pon una alarma a las 7 y media», «despiértame mañana a las 8» | Hecho | Verde |
 | Temporizador | «temporizador de 5 minutos», «avísame en media hora» | Hecho | Verde |
 | Recordatorio con texto | «recuérdame a las 6 llamar a mamá» | Hecho | Verde |
-| Ver y cancelar alarmas | «¿qué alarmas tengo?», «quita la alarma de las 7» | F6 | Verde |
+| Ver y cancelar alarmas | «¿qué alarmas tengo?», «quita la alarma de las 7» | Hecho | Verde |
 | Alarmas que se repiten | «todos los días laborables a las 7» | F6 | Verde |
 | Cronómetro | «empieza un cronómetro», «¿cuánto lleva?» | F6 | Verde |
 | Notas rápidas y listas | «apunta comprar leche», «¿qué hay en la lista de la compra?» | F6 | Verde |

@@ -87,7 +87,6 @@ async def test_open_folder_uses_its_path(index: SystemIndex) -> None:
     [
         "¿Qué hora es?",
         "¿Cómo se dice hola en alemán?",
-        "Recuérdame a las 10:50 llamar a mamá",
         "Abre el bloc de notas y abre una nueva pestaña",  # varios pasos: LLM (3c)
         "pon el volumen al 300",
     ],
@@ -421,3 +420,62 @@ def test_money_is_always_refused(index: SystemIndex, text: str, refused: bool) -
     from nyx.brain.router import refusal
 
     assert (refusal(text, index) is not None) is refused
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["¿qué alarmas tengo?", "¿tengo alguna alarma puesta?", "¿cuánto le queda al temporizador?"],
+)
+def test_alarm_questions_use_the_tool(index: SystemIndex, text: str) -> None:
+    assert call(text, index) == ("list_alarms", {})
+
+
+@pytest.mark.parametrize(
+    ("text", "args"),
+    [
+        (
+            "recuérdame a las 6 de la tarde llamar a mamá",
+            {"time": "18:00", "label": "llamar a mamá"},
+        ),
+        (
+            "Recuérdame llamar a mamá a las 6 de la tarde",
+            {"time": "18:00", "label": "llamar a mamá"},
+        ),
+        (
+            "recuérdame mañana a las 8 que tengo dentista",
+            {"time": "08:00", "day": "tomorrow", "label": "tengo dentista"},
+        ),
+        ("avísame a las 10 y media de sacar la ropa", {"time": "10:30", "label": "sacar la ropa"}),
+    ],
+)
+def test_reminders_by_rule(index: SystemIndex, text: str, args: dict[str, object]) -> None:
+    # 6.03: con más herramientas, el 7B escribía «pon una alarma…» como texto.
+    assert call(text, index) == ("set_alarm", args)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "¿qué puedes hacer?",
+        "¿qué cosas no haces nunca?",
+        "¿quién eres?",
+        "explícame tu configuración para el modo partida",
+        "¿cómo funciona tu modo partida?",
+    ],
+)
+def test_questions_about_nyx_use_nyx_info(index: SystemIndex, text: str) -> None:
+    name, args = call(text, index)
+    assert name == "nyx_info" and args["topic"]
+
+
+@pytest.mark.parametrize(
+    ("text", "which"),
+    [
+        ("cancela el temporizador", "temporizador"),
+        ("quita la alarma de las 7", "7"),
+        ("borra las alarmas", "todas"),
+        ("elimina el recordatorio de llamar a mamá", "llamar a mama"),
+    ],
+)
+def test_cancel_alarms_by_rule(index: SystemIndex, text: str, which: str) -> None:
+    assert call(text, index) == ("cancel_alarm", {"which": which})

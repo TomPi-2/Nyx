@@ -9,16 +9,16 @@ Fallos vistos al usar Nyx que quedan pendientes de corregir. Se apuntan aquí pa
 | 2026-11-10 | «Explícame qué es un agujero negro» (escrito, portátil) | Responde que aún no puede buscar en internet. | Explicarlo con el LLM local, sin internet: es conocimiento general. | Probablemente «explícame» o «qué es» acaba en la negativa de búsqueda web en vez de en una pregunta al LLM. Revisar el router y las negativas fijas (`refusal`). |
 | 2026-11-10 | «Elimina la carpeta llamada "carpeta nueva" del escritorio» | Dice que no hay ningún archivo así. | Encontrar la carpeta (en Windows suele llamarse «Nueva carpeta») y pedir confirmación para moverla a la papelera. | Revisar cómo se extrae el nombre con «llamada» y comillas, y si la búsqueda difusa tolera el orden de las palabras. Si no existe, sugerir la más parecida (SPEC sección 14). |
 | 2026-11-11 | «Bájate la calidad del cristal al mínimo» (en partida) | `app_action zoom_out` ×3 sobre Rocket League (bloqueado por la partida). | Cambiar `appearance.glass.quality` a «bajo». | Falta `nyx_control` (fase 6). |
-| 2026-11-11 | «¿Cuánto le queda a la alarma?» | «No hay ninguna alarma programada actualmente» (había una). | Decir cuánto le queda. | Falta `list_alarms` y la regla de no afirmar nada del PC sin una herramienta. |
 | 2026-11-11 | «Cierra la carpeta que tengo abierta» / «Cierra la carpeta llamada nueva carpeta» | «No veo la carpeta … abierto». | Cerrar esa ventana del Explorador. | `close_app` no conoce las ventanas del Explorador por carpeta. |
 | 2026-11-11 | «Busca qué aplicaciones ha creado Tepnyx» | Busca archivos en el disco. | Buscar en internet. | Falta `web_search` (fase 6); el router no debe mandar preguntas a `find_files`. |
-| 2026-11-11 | «Explícame tu configuración para el modo partida» | Abre Ajustes. | Explicarla con voz y burbuja. | Nyx no se conoce a sí misma (HOJA-DE-RUTA §3.7). |
 | 2026-11-11 | Arrancar Nyx en el portátil (Radeon integrada + RTX 3070 Laptop) | «Servicios listos» a los 23,3 s (sin Whisper, 6,5–7,9 s). whisper-server arranca primero en la integrada (dispositivo Vulkan 0, 4,2 s), se relanza en la RTX (1,6 s) y la transcripción de calentamiento tarda ~17 s. Además, `scripts/check_whisper.py` no elige tarjeta: en la integrada devuelve «!!!!…» y tarda ~10 s por frase. | Arranque en < 10 s (SPEC 14) y el script midiendo en la dedicada. | Elegir el dispositivo antes del primer arranque (p. ej. con `GGML_VK_VISIBLE_DEVICES` o leyendo la lista de `--list-devices` si existe) en `WhisperServer.start` y en `check_whisper.py`. Medir un segundo arranque: los ~17 s pueden ser la compilación de shaders de Vulkan de la primera vez (el controlador la guarda). |
 
 ## Corregidos
 
 | Fecha | Error | Commit |
 | --- | --- | --- |
+| 2026-11-11 | «¿Cuánto le queda a la alarma?» → «no hay ninguna» (había una): `list_alarms` y regla de no decir cómo está el PC sin mirarlo. | 0.6 (6.03) |
+| 2026-11-11 | «Explícame tu configuración para el modo partida» abría Ajustes: ahora `nyx_info` lo explica desde `brain/knowledge/nyx.md`. | 0.6 (6.03) |
 | 2026-11-11 | «Ábrela» tras crear una carpeta no sabía qué abrir: ahora lo último hecho (con su ruta) va como contexto y el router deja las referencias al modelo. | 0.6 (6.02) |
 | 2026-11-11 | La burbuja y la voz repetían lo mismo («10 archivos en Descargas, hay 10 archivos en Descargas»): si la línea secundaria dice lo mismo que el dato, se quita. | «Tras probar la 6.01» |
 | 2026-11-11 | «¿Qué hay en Descargas?» decía «10 archivos» con cientos dentro: ahora dice el total de archivos y carpetas y los 10 más recientes. | «Tras probar la 6.01» |

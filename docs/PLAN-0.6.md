@@ -451,7 +451,7 @@ Los de `docs/ERRORES.md` que no hayan caído ya con otras tareas: «elimina la c
 Cada uno, a «Corregidos» con su frase en la batería.
 
 **Falsas activaciones descartadas (añadido el 2026-11-11):** el detector de «Nyx» salta con
-ruidos del ambiente (~1 por minuto en una sesión; puntuaciones vistas: 0,72) y Whisper, que
+ruidos del ambiente y, sobre todo, con conversación de fondo (35 descartes en una tarde, puntuaciones de 0,50 a 0,89; la única verdadera medida, 0,86: el umbral no las separa) y Whisper, que
 recibe un trozo sin voz, «oye» «Gracias.» (alucinación típica de Whisper en español), así que
 la activación se descarta sin verse. Antes de tocar nada, pide al usuario las puntuaciones que
 haya apuntado (`Activación (0.xx)` en el registro y `%LOCALAPPDATA%\Nyx\activaciones\*.jsonl`).
@@ -472,6 +472,8 @@ del router ya se comprueba en `pytest`; la del LLM se pasa con `scripts/battery.
 informe se guarda en `docs/benchmarks/bateria-0.6.md`.
 
 ### 6.18 Medir el coste de tantas herramientas · Claude
+
+**Adelantar (nota del 2026-11-11, tras la 6.03):** con 28 herramientas el 7B ya duda en frases que antes acertaba siempre, y la batería varía entre pasadas (97–98 %). Con cada herramienta nueva irá a peor. Conviene hacer esta tarea **antes del bloque C**, y que `scripts/battery.py` pase cada frase del LLM 3 veces y cuente la mayoría (si no, una pasada buena o mala engaña). Mientras, lo frecuente y sin ambigüedad va al router.
 
 Con todas las herramientas de la 0.6, mide en el PC de referencia el tiempo hasta el primer
 token y la memoria del contexto (las herramientas van en cada petición; con 23 eran ~3.400
@@ -504,3 +506,4 @@ Una fila por tarea terminada. «Revisado» lo rellena Claude al repasar.
 | --- | --- | --- | --- | --- |
 | 6.01 | Claude | `36daba5` | `Tool.observe`; el resultado vuelve al LLM en el mensaje del usuario (no como `role="tool"`: así no cambia el prefijo en caché ni hace falta guardar las llamadas del asistente). Límites: 6 vueltas, 20 s; si repite lo mismo, se enseña lo último consultado. Probado con el 7B real: ~1,5 s la segunda vuelta; los nombres de archivo se le pasan ya «para decir» (sin rutas ni guiones bajos) porque si no los leía con la ruta. | Sí (Claude) |
 | 6.02 | Claude | `6ccbdab` | Diseño cambiado tras probar con el 7B real (ver 6.02): lo último hecho va como contexto del mensaje, no como turno. Comprobado: «ábrela», «ábrelo», «cópialo» bien; «muévela» bien ~3 de 4 (a veces usa el mensaje como carpeta: falla al preparar y lo dice, sin hacer nada raro). Añadidos: ejemplos con `names` en `copy_files` y `move_files`, y negativa fija para comprar o pagar (el cambio de descripciones hacía que «compra unas zapatillas en Amazon» abriera Amazon). Batería 100/100. | Sí (Claude) |
+| 6.03 | Claude | (este commit) | `list_alarms`, `cancel_alarm`, `nyx_info` + `brain/knowledge/nyx.md`. Con 28 herramientas el 7B empieza a dudar: escribía «pon una alarma…» como texto o se negaba a contar un chiste según la redacción de las reglas. Lo frecuente y claro pasó al router (recordatorios, ver y quitar alarmas, preguntas sobre Nyx); un nombre de herramienta suelto («listalarms») cuenta como llamada. Batería 97–98 % y los fallos cambian de una pasada a otra: ver nota en 6.18. | Sí (Claude) |
