@@ -102,4 +102,5 @@ Errores vistos al usar Nyx: se apuntan en [docs/ERRORES.md](docs/ERRORES.md) y s
 - Modelo de LLM final tras la batería de pruebas (provisional: `qwen2.5:7b`).
 - Requisitos mínimos: faltan las pruebas del portátil (RTX 3070 Laptop).
 - Ubicación fija para el tiempo (ciudad).
+- Hoja de ruta de la 0.5 a la 2.0 (cerebro, extensiones, modos, Vision, Overlay, cómo ganar dinero): propuesta del 2026-11-11 en [docs/HOJA-DE-RUTA.md](docs/HOJA-DE-RUTA.md). Pendiente de aprobación.
 - Instalador propio y onda de «Nyx listo»: propuesta del 2026-11-10 en [docs/INSTALADOR-Y-MOTOR-GRAFICO.md](docs/INSTALADOR-Y-MOTOR-GRAFICO.md) (el motor ya está en la SPEC). Pendiente de plan y aprobación.
