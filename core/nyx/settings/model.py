@@ -69,7 +69,8 @@ class LLMSettings(_Section):
     model: str = "qwen2.5:7b"
     # -1 = siempre cargado mientras Nyx esté abierto (SPEC sección 6); se libera al salir.
     keep_alive: int | str = -1
-    num_ctx: int = Field(default=8192, ge=1024, le=32768)
+    # 12.288 desde la 6.18: el prefijo (sistema + herramientas) ya ocupaba 5.467 de 8.192.
+    num_ctx: int = Field(default=12288, ge=1024, le=32768)
     timeout_s: float = Field(default=8.0, ge=2.0, le=60.0)
 
 
@@ -198,6 +199,8 @@ def migrate(data: dict[str, Any]) -> dict[str, Any]:
         tts["voice"] = "lola"  # voces retiradas (Kokoro; sharvard F) → la predeterminada
         tts.pop("lang", None)
     llm = data.get("llm")
+    if isinstance(llm, dict) and llm.get("num_ctx") == 8192:
+        llm["num_ctx"] = 12288  # tarea 6.18: con 8.192 no caben las herramientas de la 0.6
     if isinstance(llm, dict) and llm.get("model") == "qwen2.5:14b":
         # Decisión 2026-11-11: un solo modelo en la primera versión (el 14B era 8 veces más
         # lento sin acertar más, no cabe en 8 GB y junto a un juego da tirones).

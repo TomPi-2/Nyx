@@ -27,6 +27,8 @@ class WaitForWindow(Tool[WaitForWindowParams]):
     game_policy = GamePolicy.ALLOWED
     category = Category.WINDOWS
     params_model = WaitForWindowParams
+    # Las esperas las pone el ejecutor solo (with_waits): el modelo no la necesita (6.18).
+    llm_visible = False
     timeout_s = 31.0
 
     async def run(self, params: WaitForWindowParams, ctx: ToolContext) -> ToolResult:

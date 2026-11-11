@@ -29,7 +29,7 @@ class ToolRegistry:
         return [
             t.schema()
             for t in self._tools.values()
-            if categories is None or t.category in categories
+            if t.llm_visible and (categories is None or t.category in categories)
         ]
 
 

@@ -487,6 +487,27 @@ tokens). Si se pasa del objetivo (1,5 s hasta la voz) o del contexto (`num_ctx` 
 al usuario cómo reducirlo **sin romper la caché del prefijo** (descripciones más cortas,
 herramientas agrupadas…). No lo implementes sin aprobación.
 
+### 6.18b Acortar las descripciones de las herramientas · cualquiera (aprobado 2026-11-11)
+
+Ya hecho en la 6.18: `wait_for_window` no se enseña al modelo (`Tool.llm_visible`) y el
+contexto pasa a 12.288 (`llm.num_ctx`, con migración). Queda **acortar las descripciones**
+para bajar los tokens de herramientas un **30 %** (hoy 4.697; objetivo ≤ 3.300):
+
+1. Mide antes: `uv run python scripts/prompt_cost.py` y `uv run python scripts/battery.py`
+   (pasa cada frase del LLM 3 veces). Apunta las dos cifras en el Registro.
+2. Empieza por las más largas (ver `docs/benchmarks/prefijo-0.6-TomPi.md`): `move_files`,
+   `copy_files`, `delete_files`, `app_action`, `list_files`, `find_files`.
+   - `description` de la herramienta: una frase + **un** ejemplo («…» con sus parámetros).
+     En `copy_files` y `move_files` deja el ejemplo con `names=[…]` (si no, «cópialo» copia
+     todos los documentos: 6.02).
+   - `Field(description=...)` de cada parámetro: 3–6 palabras.
+   - Los campos comunes de archivos están en `FileSelection` (`nyx/tools/files.py`).
+3. **De una en una o de dos en dos**, pasando la batería tras cada cambio. Si una frase que
+   antes acertaba falla por mayoría, deshaz ese cambio: el modelo copia los ejemplos (0.5).
+4. Al final: `prompt_cost.py` (≤ 3.300 tokens de herramientas) y batería ≥ la de antes.
+5. Pide al usuario que repita `scripts/game_bench.py` (el contexto mayor usa ~235 MB más de
+   memoria de la gráfica) y apunta el resultado.
+
 ### 6.19 Cierre de la 0.6 · Claude
 
 Revisión de todo lo hecho (sobre todo lo que no hizo Claude: ver Registro), batería completa,
@@ -515,3 +536,4 @@ Una fila por tarea terminada. «Revisado» lo rellena Claude al repasar.
 | 6.03 | Claude | `2bf4923` | `list_alarms`, `cancel_alarm`, `nyx_info` + `brain/knowledge/nyx.md`. Con 28 herramientas el 7B empieza a dudar: escribía «pon una alarma…» como texto o se negaba a contar un chiste según la redacción de las reglas. Lo frecuente y claro pasó al router (recordatorios, ver y quitar alarmas, preguntas sobre Nyx); un nombre de herramienta suelto («listalarms») cuenta como llamada. Batería 97–98 % y los fallos cambian de una pasada a otra: ver nota en 6.18. | Sí (Claude) |
 | 6.04 | Claude | `72a9ef4` | `nyx_control` con lista cerrada de 10 ajustes (cristal, velocidad de voz, respuestas habladas, voz al escribir, modo partida, cerebro en partida, tamaño, sensibilidad, color, tono de los paneles); se aplica con `apply_patch` de `settings/live.py`, el mismo camino y las mismas validaciones que la ventana. No se puede desactivar la escucha por voz (no podrías volver a llamarla). Antes, tras la 6.03: fuera los nombres de herramientas del prompt (bajaban la batería al 96 %) y filtro de nombres internos en burbuja y voz; regla del prompt afinada para que las preguntas de cultura general no acaben en «Aún no sé hacer eso». Batería 113/113 dos veces. | Sí (Claude) |
 | 6.18 (medida) | Claude | `acd7086` | Medido: prefijo de 5.467/8.192 tokens con 29 herramientas; 0,07 s caliente, 5,3 s fría (elegir herramientas por petición queda descartado). Batería por mayoría de 3 (`--veces`). Propuesta de reducción en `docs/benchmarks/prefijo-0.6-TomPi.md`, **pendiente de aprobación** del usuario. | Sí (Claude) |
+| 6.18 (2 y 3) | Claude | (este commit) | `wait_for_window` fuera de la lista del modelo (`Tool.llm_visible`) y `num_ctx` 12.288 con migración. Prefijo: 5.401/12.288 tokens (43 %); caliente 0,08 s, fría 3,0 s. Batería 113/113 con 3 pasadas por frase. El punto 1 (acortar descripciones) queda en la tarea 6.18b. | Sí (Claude) |

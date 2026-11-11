@@ -117,6 +117,8 @@ class Tool[P: Params](ABC):
     # Consulta algo que hay que contar (listar, buscar, ver alarmas…): su resultado vuelve al
     # LLM para que lo diga en una frase (bucle de agente, brain/agent.py).
     observe: ClassVar[bool] = False
+    # False: existe para los planes pero el modelo no la ve (ahorra contexto, tarea 6.18).
+    llm_visible: ClassVar[bool] = True
 
     # Cada herramienta redefine `run` (sencillas) o `prepare` + `execute` (las que tocan
     # archivos o ventanas: SafetyGuard revisa lo preparado antes de ejecutarlo).

@@ -17,7 +17,7 @@ Eres el desarrollador principal de Nyx. La especificación completa está en [do
 
 ## Estado
 
-Fase actual: **versión 0.6 — Cerebro** (fase 6a): plan en [docs/PLAN-0.6.md](docs/PLAN-0.6.md), aprobado el 2026-11-11. Se trabaja tarea a tarea según ese plan (una por sesión, con su commit y su fila en el Registro); también lo sigue Gemini (`GEMINI.md`) cuando no hay Claude, y Claude revisa después lo que haya hecho. Al empezarla, proponer el plan corto con los archivos y esperar el visto bueno. Las versiones de la hoja de ruta sustituyen a las fases 6 y 7 de la SPEC. Fase 5 (versión 0.5) cerrada el 2026-11-11. Pendiente de la 0.5, sin parar el plan: medir el coste en partida en el portátil (`scripts/game_bench.py`) y probar el modo partida con más juegos (Valorant). Fases 1 y 2 cerradas el 2026-11-09; fases 3 y 4 el 2026-11-10.
+Fase actual: **versión 0.6 — Cerebro** (fase 6a): plan en [docs/PLAN-0.6.md](docs/PLAN-0.6.md), aprobado el 2026-11-11. Se trabaja tarea a tarea según ese plan (una por sesión, con su commit y su fila en el Registro); también lo sigue Gemini (`GEMINI.md`) cuando no hay Claude, y Claude revisa después lo que haya hecho. Hechas por Claude: 6.01, 6.02, 6.03, 6.04 y 6.18 (salvo 6.18b). Siguiente: 6.18b (acortar descripciones) y después el bloque C. Al empezarla, proponer el plan corto con los archivos y esperar el visto bueno. Las versiones de la hoja de ruta sustituyen a las fases 6 y 7 de la SPEC. Fase 5 (versión 0.5) cerrada el 2026-11-11. Pendiente de la 0.5, sin parar el plan: medir el coste en partida en el portátil (`scripts/game_bench.py`) y probar el modo partida con más juegos (Valorant). Fases 1 y 2 cerradas el 2026-11-09; fases 3 y 4 el 2026-11-10.
 
 ## Decisiones tomadas
 
