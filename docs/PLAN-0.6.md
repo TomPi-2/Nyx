@@ -477,4 +477,4 @@ Una fila por tarea terminada. «Revisado» lo rellena Claude al repasar.
 
 | Tarea | Agente | Commit | Notas para la revisión | Revisado |
 | --- | --- | --- | --- | --- |
-| 6.01 | Claude | (este commit) | `Tool.observe`; el resultado vuelve al LLM en el mensaje del usuario (no como `role="tool"`: así no cambia el prefijo en caché ni hace falta guardar las llamadas del asistente). Límites: 6 vueltas, 20 s; si repite lo mismo, se enseña lo último consultado. Probado con el 7B real: ~1,5 s la segunda vuelta; los nombres de archivo se le pasan ya «para decir» (sin rutas ni guiones bajos) porque si no los leía con la ruta. | Sí (Claude) |
+| 6.01 | Claude | `36daba5` | `Tool.observe`; el resultado vuelve al LLM en el mensaje del usuario (no como `role="tool"`: así no cambia el prefijo en caché ni hace falta guardar las llamadas del asistente). Límites: 6 vueltas, 20 s; si repite lo mismo, se enseña lo último consultado. Probado con el 7B real: ~1,5 s la segunda vuelta; los nombres de archivo se le pasan ya «para decir» (sin rutas ni guiones bajos) porque si no los leía con la ruta. | Sí (Claude) |
