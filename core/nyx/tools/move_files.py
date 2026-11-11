@@ -14,7 +14,9 @@ class MoveFiles(Tool[TransferParams]):
     name = "move_files"
     description = (
         "Mueve archivos a otra carpeta. Ej.: «mueve los últimos 5 archivos de Descargas a "
-        "Documentos» (folder=Descargas, newest=5, destination=Documentos)."
+        "Documentos» (folder=Descargas, newest=5, destination=Documentos); «muévelo a "
+        "Imágenes» justo después de encontrar foto.png en Descargas (folder=Descargas, "
+        "names=[foto.png], destination=Imágenes)."
     )
     risk = Risk.YELLOW
     game_policy = GamePolicy.DEFERRED

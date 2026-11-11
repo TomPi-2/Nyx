@@ -450,6 +450,13 @@ _EMPTY_BIN = re.compile(r"\b(?:vacia|vaciar|limpia|limpiar|borra|borrar)\w*\s+(?
 _FOREVER = re.compile(
     r"\b(?:borra|elimina|borrar|eliminar)\w*\b.*\b(?:para siempre|permanentemente|definitivamente)\b"
 )
+# Nada de dinero (ACCIONES.md, reglas que no cambian): no puede depender del modelo, que a
+# veces abría la tienda para «comprar unas zapatillas en Amazon».
+_MONEY = re.compile(
+    r"^(?:(?:puedes|podrias)\s+)?(?:compra\w*|paga|pagame|pagar|pagarme|"
+    r"haz(?:me)? (?:un|el) pedido|pide(?:me)? (?:un|una|unos|unas)\b.*\b(?:en|a)\s+\w+|"
+    r"transfiere|transferir|envia(?:le)? dinero|manda(?:le)? dinero)\b"
+)
 _IN_GAME = re.compile(
     r"\b(?:escribe|pulsa|teclea|dispara|apunta|juega|mueve|compra|vende|chat|chatea|"
     r"manda un mensaje)\b"
@@ -477,6 +484,8 @@ def refusal(text: str, index: SystemIndex, *, playing: bool = False) -> tuple[st
     clean = _clean(text)
     if _EMPTY_BIN.search(clean) or _FOREVER.search(clean):
         return "Eso no lo hago", "borraría para siempre: lo que borro va a la papelera"
+    if _MONEY.search(clean):
+        return "Eso no lo hago", "no compro ni pago nada: puedo abrirte la web"
     if playing and _PLAYING.search(clean):
         return IN_GAME_REFUSAL
     if _IN_GAME.search(clean):
@@ -828,6 +837,12 @@ _SETTINGS_PREFIX = re.compile(
 )
 _FOLDER_PREFIX = re.compile(r"^(?:la\s+)?carpeta(?:\s+(?:del|de))?\s+")
 _INDEFINITE = ("un ", "una ", "otro ", "otra ", "nuevo ", "nueva ", "algo ", "alguna ")
+# Lo que señala a algo anterior y no es un nombre (Whisper oye «ábrela» como «abre la»).
+_REFERENCE = re.compile(
+    r"^(?:la|lo|las|los|eso|esto|esa|ese|esas|esos|ella|ello|aquello)$"
+    r"|\bque (?:has|acabas de|me has) (?:creado|abierto|descargado|movido|copiado|encontrado)\b"
+    r"|\bde antes\b|\b(?:la|lo) (?:anterior|ultim[oa])\b"
+)
 _TOOL_FOR_KIND = {
     Kind.APP: ("open_app", "name"),
     Kind.GAME: ("open_app", "name"),
@@ -845,6 +860,8 @@ def _open(m: re.Match[str], index: SystemIndex) -> Route | Miss | None:
     target = m.group("x")
     if target.startswith(_INDEFINITE):
         return None  # «abre una pestaña nueva» no es un nombre: lo decide el LLM
+    if _REFERENCE.search(target):
+        return None  # «ábrela», «abre la que has creado»: el LLM, con la memoria corta
     kinds: set[Kind] | None = None
     if _IN_BROWSER.search(target):
         target, kinds = _IN_BROWSER.sub("", target), {Kind.WEB}

@@ -24,7 +24,7 @@ from nyx.alarms.ringer import AlarmRinger
 from nyx.audio.capture import AudioCapture, Frame, rms_level
 from nyx.audio.playback import Player
 from nyx.audio.vad import Endpointer, EndReason, VoiceDetector
-from nyx.brain.agent import MAX_SECONDS, MAX_STEPS, AgentRun, continuation_hint
+from nyx.brain.agent import MAX_SECONDS, MAX_STEPS, AgentRun, continuation_hint, memory_note
 from nyx.brain.base import LLMError, LLMErrorKind
 from nyx.brain.guard import GARBLED_REPLY, looks_like_code
 from nyx.brain.reply import BubbleReady, Reply, SpokenDelta, SpokenEnd
@@ -772,6 +772,8 @@ class Pipeline:
         speak = from_voice or self.speak_typed
         failed = next((r for r in results if not r.ok), None)
         self._agent.done += list(zip(routed.calls, results, strict=False))
+        # Lo último que se hizo, con su ruta (6.02): «ábrela», «muévela», «ciérralo»…
+        self.brain.remember_action(memory_note(self._agent.done))
         if failed is None and self._should_continue(routed.calls, marks):
             # Consultó algo (archivos, alarmas…): el resultado vuelve al LLM para contarlo o
             # para dar el siguiente paso (HOJA-DE-RUTA §3.1).

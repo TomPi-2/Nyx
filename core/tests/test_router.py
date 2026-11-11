@@ -393,3 +393,31 @@ def test_resume_is_not_music(index: SystemIndex) -> None:
         "media_control",
         {"action": "play", "source": "youtube"},
     )
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["abre la", "ábrela", "abre eso", "abre la que has creado", "abre la carpeta de antes"],
+)
+def test_references_go_to_the_llm(index: SystemIndex, text: str) -> None:
+    # Whisper oye «ábrela» como «abre la»: no es una app llamada «la» (ERRORES.md, 2026-11-11).
+    assert route(text, index) is None
+
+
+@pytest.mark.parametrize(
+    ("text", "refused"),
+    [
+        ("compra unas zapatillas en Amazon", True),
+        ("¿puedes comprarme el juego en Steam?", True),
+        ("paga la factura de la luz", True),
+        ("hazme un pedido en Glovo", True),
+        ("transfiere 20 euros a Laura", True),
+        ("busca la factura de la luz", False),
+        ("abre Amazon", False),
+        ("¿cuánto cuesta un iPhone?", False),
+    ],
+)
+def test_money_is_always_refused(index: SystemIndex, text: str, refused: bool) -> None:
+    from nyx.brain.router import refusal
+
+    assert (refusal(text, index) is not None) is refused

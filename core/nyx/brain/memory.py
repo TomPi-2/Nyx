@@ -25,10 +25,24 @@ class ShortMemory:
         self._expire_s = expire_s
         self._clock = clock
         self._last = clock()
+        # Lo último que hizo Nyx (brain/agent.py, memory_note): va como contexto del mensaje,
+        # no como un turno (el modelo imitaría el turno en vez de usarlo).
+        self._action = ""
 
     def _expire(self) -> None:
         if self._clock() - self._last > self._expire_s:
             self._turns.clear()
+            self._action = ""
+
+    def set_action(self, note: str) -> None:
+        if note:
+            self._expire()
+            self._action = note
+            self._last = self._clock()
+
+    def action(self) -> str:
+        self._expire()
+        return self._action
 
     def add(self, user: str, assistant: str, *, replace: bool = False) -> None:
         """`replace`: sustituye el último turno si es de la misma petición (bucle de agente)."""

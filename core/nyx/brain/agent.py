@@ -62,6 +62,35 @@ def observation(call: ToolCall, result: ToolResult) -> str:
     return f"- {describe_call(call)}{status}: " + " · ".join(parts)
 
 
+def memory_note(done: Sequence[tuple[ToolCall, ToolResult]]) -> str:
+    """Lo último que hizo Nyx, para entender «ábrela», «muévela», «bórralo» (tarea 6.02).
+
+    No va a la memoria como un turno de la conversación: el modelo imita lo que ve ahí, y con
+    el formato antiguo («[acciones] app_action({…})») escribía código, y con una frase («He
+    creado…») decía «Borro la carpeta» sin hacerlo. Va como contexto del mensaje (como la hora),
+    en español, con la ruta de lo creado, movido, abierto o encontrado. Solo lo que salió bien.
+    """
+    notes: list[str] = []
+    for call, result in done:
+        if call.name == "wait_for_window" or not result.ok:
+            continue
+        what = result.message or describe_call(call)
+        path = result.data.get("path")
+        paths = result.data.get("paths")
+        if not path and isinstance(paths, list) and len(paths) == 1:
+            path = paths[0]
+        # Nombre y carpeta por separado: con solo la ruta, «cópialo» acababa copiando todos los
+        # documentos de la carpeta en vez de ese archivo.
+        if path:
+            p = Path(str(path))
+            what += (
+                f" (ruta: {p}; si te pide hacer algo con él, es «{p.name}» en la carpeta "
+                f"{p.parent})"
+            )
+        notes.append(what)
+    return "; ".join(notes)
+
+
 def continuation_hint(run: AgentRun) -> str:
     """Contexto para la siguiente vuelta: lo hecho y sus resultados, como información."""
     lines = [observation(c, r) for c, r in run.done]

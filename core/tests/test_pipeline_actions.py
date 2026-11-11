@@ -121,7 +121,7 @@ async def test_llm_plan_runs_through_executor_with_waits() -> None:
     assert [c.name for c in executor.calls] == ["open_app", "wait_for_window", "window_layout"]
     assert h.tts.said == []  # acción: sin voz
     # La memoria corta sabe qué se hizo («y ahora ciérralo»).
-    assert "[acciones] open_app" in h.p.brain.memory.messages()[-1].content
+    assert h.p.brain.memory.action() == "ok"  # lo último hecho, como contexto (6.02)
     await h.p.close()
 
 

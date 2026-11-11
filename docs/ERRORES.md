@@ -19,6 +19,7 @@ Fallos vistos al usar Nyx que quedan pendientes de corregir. Se apuntan aquí pa
 
 | Fecha | Error | Commit |
 | --- | --- | --- |
+| 2026-11-11 | «Ábrela» tras crear una carpeta no sabía qué abrir: ahora lo último hecho (con su ruta) va como contexto y el router deja las referencias al modelo. | 0.6 (6.02) |
 | 2026-11-11 | La burbuja y la voz repetían lo mismo («10 archivos en Descargas, hay 10 archivos en Descargas»): si la línea secundaria dice lo mismo que el dato, se quita. | «Tras probar la 6.01» |
 | 2026-11-11 | «¿Qué hay en Descargas?» decía «10 archivos» con cientos dentro: ahora dice el total de archivos y carpetas y los 10 más recientes. | «Tras probar la 6.01» |
 | 2026-11-11 | En la ventana de seguimiento ignoraba correcciones («Pero hay muchos más»): el clasificador las cuenta como dirigidas a Nyx y, ante la duda, también. | «Tras probar la 6.01» |

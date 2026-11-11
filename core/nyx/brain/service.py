@@ -63,12 +63,6 @@ def worth_remembering(reply: Reply) -> bool:
     return len(spoken.split()) >= 4 or reply.spoken.rstrip().endswith((".", "?", "!"))
 
 
-def describe_plan(calls: Sequence[LLMToolCall]) -> str:
-    """Lo que se guarda en la memoria corta: «y ahora ciérralo» necesita saber qué se abrió."""
-    parts = [f"{c.name}({json.dumps(c.arguments, ensure_ascii=False)})" for c in calls]
-    return "[acciones] " + "; ".join(parts)
-
-
 class Brain:
     def __init__(
         self,
@@ -86,6 +80,14 @@ class Brain:
         await self.llm.warmup([system_message()], tools=self.tools)
 
     def build_messages(self, text: str, extra: str = "") -> list[ChatMessage]:
+        if action := self.memory.action():
+            # Probado con el 7B: así entiende «ábrela», «muévela», «bórrala» (10/10), y como
+            # turno de la conversación no (tarea 6.02).
+            last = (
+                "Lo último que has hecho, por si el usuario se refiere a ello con «la», «lo», "
+                f"«eso»…: {action}."
+            )
+            extra = f"{last} {extra}" if extra else last
         return [
             system_message(),
             *self.memory.messages(),
@@ -132,7 +134,7 @@ class Brain:
                 for event in parser.feed(held):
                     yield event
         if calls:
-            self.memory.add(text, describe_plan(calls), replace=continuing)
+            # La memoria se escribe tras ejecutar, con lo que pasó (Pipeline → remember).
             yield ToolPlan(calls)
             return
         tail, reply = parser.finish()
@@ -147,6 +149,11 @@ class Brain:
         else:
             log.info("Respuesta que no se guarda en la memoria: %r", reply.spoken)
         yield ReplyDone(reply)
+
+    def remember_action(self, note: str) -> None:
+        """Lo último que hizo Nyx (lo escribe el Pipeline tras ejecutar, con lo que pasó de
+        verdad; ver brain/agent.py, memory_note)."""
+        self.memory.set_action(note)
 
     async def addressed(self, text: str) -> bool:
         """¿Va dirigida a Nyx una frase oída en la ventana de seguimiento (sin decir «Nyx»)?

@@ -111,6 +111,15 @@ Nunca `--no-verify`, nunca `push --force`, nunca reescribir commits ya hechos.
 - **qwen2.5 a veces escribe las llamadas como texto:** lo arregla `brain/textcalls.py`, y
   `brain/guard.py` impide decirlo. No los quites.
 - **Nombres de contadores de Windows en español:** usa `win32pdh.AddEnglishCounter`.
+- **Scripts de prueba con el LLM real:** crea el motor con `num_ctx=8192`, como Nyx
+  (`OllamaEngine(host, modelo, num_ctx=8192)`). Con el valor por defecto (4.096) las
+  herramientas no caben, Ollama recorta el principio y el modelo «ignora» la memoria o
+  responde vacío: conclusiones falsas (pasó en la 6.02).
+- **El 7B imita la conversación:** lo que deba usar como dato (lo último hecho, resultados)
+  va como contexto en el mensaje del usuario, no como turnos del asistente (6.01 y 6.02).
+- **Los ejemplos de las descripciones pesan mucho:** el modelo copia el ejemplo de la
+  herramienta (con solo `kind=images` en `copy_files`, «cópialo» copiaba todos los
+  documentos). Cambiar una descripción puede mover otras frases de la batería: pásala.
 - **Pruebas sin red ni Windows real:** las pruebas no pueden llamar a internet, a Ollama ni
   abrir ventanas. Usa los falsos de `core/tests/tools/fakes.py` y `monkeypatch`.
 
@@ -226,15 +235,17 @@ batería sigue en 100 %.
 `[acciones] app_action({...}); …`, y el modelo lo imita (así nació el error de leer código
 en voz alta). Además «ábrela» no sabe qué se acaba de crear (ERRORES.md, 2026-11-11).
 
-**Diseño:** `describe_plan` pasa a escribir en español natural lo que se hizo y su resultado:
-«(Hecho: he creado la carpeta «Nueva carpeta» en el Escritorio)». Para eso, la memoria se
-escribe **después** de ejecutar (con los `ToolResult`), no al recibir el plan. Incluye el
-nombre y la ruta de lo creado, abierto o movido (los `ToolResult.data` que ya lo tengan;
-añade `data["path"]` en `create_folder`, `move_files`, `copy_files`, `rename_file` si falta).
-
-**Pruebas:** la memoria tras una acción no contiene paréntesis de llamada ni llaves; «ábrela»
-tras crear una carpeta llega al LLM con la ruta en la memoria (prueba con `FakeLLM`
-comprobando el mensaje).
+**Hecho (diseño final, probado con el 7B real):** las acciones **no** se guardan como turnos
+de la conversación: el 7B imita lo que ve ahí (con el formato antiguo escribía código; con una
+frase como «He creado…» decía «Borro la carpeta» sin hacerlo). En su lugar, tras ejecutar, el
+Pipeline guarda lo último hecho con `brain.remember_action(memory_note(...))`
+(`brain/agent.py`, `brain/memory.py`), y `Brain.build_messages` lo añade al **contexto del
+mensaje del usuario** (como la hora): «Lo último que has hecho, por si el usuario se refiere a
+ello con «la», «lo», «eso»…: … (ruta: …; si te pide hacer algo con él, es «X» en la carpeta
+Y)». Caduca con la memoria (3 min). Solo lo que salió bien. Con eso, «ábrela», «muévela»,
+«bórrala», «ábrelo» y «cópialo» aciertan casi siempre. El router deja pasar al LLM las
+referencias («abre la», «abre la que has creado»). Las preguntas y respuestas sí siguen como
+turnos de la memoria.
 
 ### 6.03 Nyx no inventa y se conoce a sí misma · Claude o cualquiera
 
@@ -439,6 +450,20 @@ Los de `docs/ERRORES.md` que no hayan caído ya con otras tareas: «elimina la c
 "carpeta nueva"…», «cierra la carpeta que tengo abierta» (ventanas del Explorador por carpeta).
 Cada uno, a «Corregidos» con su frase en la batería.
 
+**Falsas activaciones descartadas (añadido el 2026-11-11):** el detector de «Nyx» salta con
+ruidos del ambiente (~1 por minuto en una sesión; puntuaciones vistas: 0,72) y Whisper, que
+recibe un trozo sin voz, «oye» «Gracias.» (alucinación típica de Whisper en español), así que
+la activación se descarta sin verse. Antes de tocar nada, pide al usuario las puntuaciones que
+haya apuntado (`Activación (0.xx)` en el registro y `%LOCALAPPDATA%\Nyx\activaciones\*.jsonl`).
+Después:
+
+1. Subida automática del umbral cuando Whisper descarta varias activaciones seguidas (p. ej.
+   +0,02 tras 5 descartes en 10 min), con tope (nunca más de +0,15 sobre el de la sensibilidad
+   elegida) y bajando poco a poco si pasa una hora sin descartes. Reutiliza el mecanismo de
+   «Nyx, eso no era para ti» (`ActivationLog.offset`, `pipeline._false_activation`).
+2. Si las puntuaciones son altas (≥ 0,7), propón al usuario reentrenar el modelo de «Nyx» con
+   ese ruido como negativo (`core/training/`); no lo hagas sin su permiso.
+
 ### 6.17 Batería de 300+ frases · cualquiera
 
 Hasta llegar a 300+ en `tests/battery/frases.jsonl`, repartidas por herramienta y con frases
@@ -478,3 +503,4 @@ Una fila por tarea terminada. «Revisado» lo rellena Claude al repasar.
 | Tarea | Agente | Commit | Notas para la revisión | Revisado |
 | --- | --- | --- | --- | --- |
 | 6.01 | Claude | `36daba5` | `Tool.observe`; el resultado vuelve al LLM en el mensaje del usuario (no como `role="tool"`: así no cambia el prefijo en caché ni hace falta guardar las llamadas del asistente). Límites: 6 vueltas, 20 s; si repite lo mismo, se enseña lo último consultado. Probado con el 7B real: ~1,5 s la segunda vuelta; los nombres de archivo se le pasan ya «para decir» (sin rutas ni guiones bajos) porque si no los leía con la ruta. | Sí (Claude) |
+| 6.02 | Claude | (este commit) | Diseño cambiado tras probar con el 7B real (ver 6.02): lo último hecho va como contexto del mensaje, no como turno. Comprobado: «ábrela», «ábrelo», «cópialo» bien; «muévela» bien ~3 de 4 (a veces usa el mensaje como carpeta: falla al preparar y lo dice, sin hacer nada raro). Añadidos: ejemplos con `names` en `copy_files` y `move_files`, y negativa fija para comprar o pagar (el cambio de descripciones hacía que «compra unas zapatillas en Amazon» abriera Amazon). Batería 100/100. | Sí (Claude) |

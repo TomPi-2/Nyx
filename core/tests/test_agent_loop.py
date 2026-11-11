@@ -121,3 +121,63 @@ def test_repeats() -> None:
     assert run.repeats([ToolCall("list_files", {"folder": "A"})])
     assert not run.repeats([ToolCall("list_files", {"folder": "B"})])
     assert not run.repeats([])
+
+
+# --- 6.02: memoria corta sin código y con lo que se hizo ---
+
+CREATED = ToolResult(
+    ok=True,
+    message="Carpeta Nueva carpeta creada en Desktop",
+    data={"path": r"C:\Users\x\Desktop\Nueva carpeta"},
+)
+
+
+def test_memory_note_is_plain_spanish_with_the_path() -> None:
+    from nyx.brain.agent import memory_note
+
+    note = memory_note(
+        [
+            (ToolCall("create_folder", {"name": "Nueva carpeta"}), CREATED),
+            (ToolCall("wait_for_window", {"name": "x"}), ToolResult(ok=True)),
+            (ToolCall("open_app", {"name": "Spotify"}), ToolResult.fail("No encuentro Spotify")),
+        ]
+    )
+    # Solo lo que salió bien, en español y con la ruta.
+    assert note == (
+        r"Carpeta Nueva carpeta creada en Desktop (ruta: C:\Users\x\Desktop\Nueva carpeta; si "
+        r"te pide hacer algo con él, es «Nueva carpeta» en la carpeta C:\Users\x\Desktop)"
+    )
+    assert "{" not in note and "create_folder" not in note
+
+
+async def test_open_it_after_creating_reaches_the_llm_with_the_path() -> None:
+    # ERRORES.md, 2026-11-11: «ábrela» tras crear una carpeta abría Aimlabs.
+    h = Harness()
+    route = Route([ToolCall("create_folder", {"name": "Nueva carpeta"})], "create")
+    executor = with_router(h, route, [CREATED])
+    await h.bus.publish(TextEntered("crea una carpeta en el escritorio"))
+    await h.p.wait_idle()
+    h.p.router = lambda text: None  # «ábrela» no lo resuelven las reglas
+    executor.results = [ToolResult(ok=True, message="Abriendo Nueva carpeta")]
+    h.llm.plans = [[LLMToolCall("open_path", {"target": r"C:\Users\x\Desktop\Nueva carpeta"})]]
+    await h.bus.publish(TextEntered("ábrela"))
+    await h.p.wait_idle()
+    sent = h.llm.requests[0]
+    # Va como contexto del mensaje del usuario, no como un turno de la conversación (el 7B
+    # imitaba el turno: escribía código o decía «Borro la carpeta» sin hacerlo).
+    assert [m.role for m in sent] == ["system", "user"]
+    assert "Lo último que has hecho" in sent[-1].content
+    assert r"ruta: C:\Users\x\Desktop\Nueva carpeta" in sent[-1].content
+    assert "[acciones]" not in sent[-1].content and "({" not in sent[-1].content
+    await h.p.close()
+
+
+def test_last_action_expires_with_the_memory() -> None:
+    from nyx.brain.memory import ShortMemory
+
+    now = [0.0]
+    memory = ShortMemory(expire_s=60, clock=lambda: now[0])
+    memory.set_action("Abriendo Spotify")
+    assert memory.action() == "Abriendo Spotify"
+    now[0] = 61
+    assert memory.action() == ""
