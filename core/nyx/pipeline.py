@@ -328,6 +328,7 @@ class Pipeline:
         self._answer: asyncio.Future[bool] | None = None  # confirmación pendiente
         self._from_voice = False  # la petición en curso se hizo hablando
         self._agent = AgentRun()  # lo hecho en la petición en curso (bucle de agente, 6.01)
+        self._wake_score: float | None = None  # del detector, al saltar (registro de activaciones)
         self._side_tasks: set[asyncio.Task[None]] = set()
         self._barge: asyncio.Task[None] | None = None
         if executor is not None and executor.confirm is None:
@@ -384,7 +385,14 @@ class Pipeline:
             and not self._wake_off_in_game()
             and self.wake.process(frame)
         ):
-            log.info("Activación")
+            # La puntuación se guarda ya: tras la activación el detector se reinicia a 0 y el
+            # registro apuntaba siempre 0,0.
+            score = getattr(self.wake, "last_score", None)
+            self._wake_score = score if isinstance(score, float) else None
+            log.info(
+                "Activación (%s)",
+                f"{self._wake_score:.2f}" if self._wake_score is not None else "?",
+            )
             clip = self.capture.prebuffer(VERIFY_CLIP_S) if self.capture is not None else []
             verifies = bool(clip) and self.stt is not None
             if self.mode is Mode.BUSY and verifies:
@@ -811,11 +819,8 @@ class Pipeline:
     def _record_activation(self, verified: bool | None, heard: str) -> None:
         if self.activations is None:
             return
-        score = getattr(self.wake, "last_score", None)
         engine = type(self.wake).__name__ if self.wake is not None else "atajo"
-        self.activations.record(
-            engine, score if isinstance(score, float) else None, verified, heard
-        )
+        self.activations.record(engine, self._wake_score, verified, heard)
 
     async def _false_activation(self, *, from_voice: bool) -> None:
         """«Nyx, eso no era para ti»: la activación anterior fue un error (SPEC 4.7)."""
