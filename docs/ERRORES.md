@@ -17,11 +17,13 @@ Fallos vistos al usar Nyx que quedan pendientes de corregir. Se apuntan aquí pa
 | 2026-11-11 | «Cierra la carpeta que tengo abierta» / «Cierra la carpeta llamada nueva carpeta» | «No veo la carpeta … abierto». | Cerrar esa ventana del Explorador. | `close_app` no conoce las ventanas del Explorador por carpeta. |
 | 2026-11-11 | «Busca qué aplicaciones ha creado Tepnyx» | Busca archivos en el disco. | Buscar en internet. | Falta `web_search` (fase 6); el router no debe mandar preguntas a `find_files`. |
 | 2026-11-11 | «Explícame tu configuración para el modo partida» | Abre Ajustes. | Explicarla con voz y burbuja. | Nyx no se conoce a sí misma (HOJA-DE-RUTA §3.7). |
+| 2026-11-11 | Arrancar Nyx en el portátil (Radeon integrada + RTX 3070 Laptop) | «Servicios listos» a los 23,3 s (sin Whisper, 6,5–7,9 s). whisper-server arranca primero en la integrada (dispositivo Vulkan 0, 4,2 s), se relanza en la RTX (1,6 s) y la transcripción de calentamiento tarda ~17 s. Además, `scripts/check_whisper.py` no elige tarjeta: en la integrada devuelve «!!!!…» y tarda ~10 s por frase. | Arranque en < 10 s (SPEC 14) y el script midiendo en la dedicada. | Elegir el dispositivo antes del primer arranque (p. ej. con `GGML_VK_VISIBLE_DEVICES` o leyendo la lista de `--list-devices` si existe) en `WhisperServer.start` y en `check_whisper.py`. Medir un segundo arranque: los ~17 s pueden ser la compilación de shaders de Vulkan de la primera vez (el controlador la guarda). |
 
 ## Corregidos
 
 | Fecha | Error | Commit |
 | --- | --- | --- |
+| 2026-11-11 | El whisper-server.exe compilado en el sobremesa se caía en el portátil (0xC000001D en `ggml-cpu.dll`: AVX-512 que el Ryzen 7 6800H no tiene). Recompilado sin `GGML_NATIVE`, con `GGML_BACKEND_DL` y `GGML_CPU_ALL_VARIANTS` (`docs/benchmarks/README.md`). | Sin cambios de código |
 | 2026-11-10 | El campo de texto aparecía encima de Nyx (y podía tapar un panel). | «5d: correcciones tras probar el asistente» |
 | 2026-11-10 | Con dos monitores, el campo de texto salía en el último monitor donde se vio Nyx aunque el ratón estuviera en otro. | «5d: correcciones tras probar el asistente» |
 | 2026-11-10 | El panel de respuesta subía encima de Nyx antes de que la forma terminara de irse (respuestas rápidas como «te quier» → «aún no sé hacer eso»). | `9dc7ed1` |

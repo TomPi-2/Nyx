@@ -55,11 +55,13 @@ Las releases de whisper.cpp para Windows no traen versión Vulkan, así que se c
 ```powershell
 git clone https://github.com/ggml-org/whisper.cpp C:\dev\tools\whisper.cpp
 cd C:\dev\tools\whisper.cpp
-cmake -B build -DGGML_VULKAN=1
+cmake -B build -DGGML_VULKAN=1 -DGGML_NATIVE=OFF -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON
 cmake --build build --config Release -j
 ```
 
 El servidor queda en `C:\dev\tools\whisper.cpp\build\bin\Release\whisper-server.exe`.
+
+Sin `GGML_NATIVE=OFF`, el ejecutable usa las instrucciones del procesador donde se compila y se cae en otros (0xC000001D en `ggml-cpu.dll`). Con estas opciones la carpeta `Release` entera (con sus DLL) sirve para cualquier equipo y se puede copiar a otro.
 
 Descarga el modelo (unos 550 MB):
 
