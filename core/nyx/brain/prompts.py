@@ -159,3 +159,14 @@ def user_message(text: str, now: datetime, extra: str = "") -> ChatMessage:
     if extra:
         context += " " + extra.replace("\n", " ")
     return ChatMessage("user", f"({context})\n{text}")
+
+
+# Aviso en el mensaje del usuario cuando la frase toca un tema que solo saben o hacen las
+# herramientas (6.21). En el mensaje y no en el sistema: no rompe la caché del prefijo. Sin
+# nombres de herramientas (6.03: el modelo los copia en la burbuja).
+TOOLS_HINT = (
+    "Esta petición se resuelve con tus herramientas: si pide hacer algo, llama a la "
+    "herramienta en vez de escribir la orden; si pregunta por el tiempo, las alarmas, el "
+    "cronómetro, el equipo, la música que suena o tus archivos, consúltalo con la "
+    "herramienta antes de contestar y nunca te inventes el dato."
+)

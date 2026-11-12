@@ -18,6 +18,7 @@ from nyx.brain.base import ChatMessage, LLMEngine, LLMError, LLMToolCall
 from nyx.brain.memory import ShortMemory
 from nyx.brain.prompts import (
     ADDRESSED_SCHEMA,
+    TOOLS_HINT,
     addressed_messages,
     system_message,
     user_message,
@@ -31,6 +32,24 @@ log = logging.getLogger(__name__)
 
 # Principio de una respuesta aún sin decidir: nombre (posible herramienta) sin terminar.
 _UNDECIDED = re.compile(r"^\s*`*\s*[A-Za-z_]*\s*$")
+
+# Orden escrita como texto (6.21): sin cabecera «[…]», corta y en una línea. El 7B a veces
+# contesta «pon el volumen al 100» en vez de llamar a la herramienta; si el router la entiende,
+# se ejecuta. Más larga o con más de una frase, es una respuesta normal.
+MAX_COMMAND_WORDS = 8
+_MORE_THAN_ONE_LINE = re.compile(r"[.!?]\s+\S|\n\s*\S")
+
+# Grupos sin aviso: hablar de Nyx o pedirle cosas suyas no es consultar el estado del PC, y
+# «¿qué puedes hacer?» se contestaba bien sin él.
+HINTLESS_GROUPS = frozenset({"nyx"})
+
+#: De una orden escrita a las llamadas que haría el router (None si no la entiende).
+Reroute = Callable[[str], list[LLMToolCall] | None]
+
+
+def _still_a_command(text: str) -> bool:
+    """¿Puede seguir siendo una orden escrita? (falso en cuanto es claramente una respuesta)"""
+    return len(text.split()) <= MAX_COMMAND_WORDS and not _MORE_THAN_ONE_LINE.search(text)
 
 
 def _after_header(text: str) -> str | None:
@@ -75,6 +94,8 @@ class Brain:
         *,
         tone: ResponseTone = "cercano",
         selector: ToolSelector | None = None,
+        reroute: Reroute | None = None,
+        tools_hint: bool = False,
     ) -> None:
         self.llm = llm
         self.memory = memory or ShortMemory()
@@ -83,6 +104,10 @@ class Brain:
         # Con selector (6.20b), cada petición ve las fijas y los grupos de su tema; sin él,
         # siempre `tools` (pruebas y comparaciones: `battery.py --sin-grupos`).
         self.selector = selector
+        self.reroute = reroute
+        # Avisar al modelo de que la petición se resuelve con herramientas (6.21). Medido con
+        # qwen2.5:7b: no le hace consultar más (259 frente a 262/337); queda para otros modelos.
+        self.tools_hint = tools_hint
         # Se elige al arrancar para no romper la caché del prefijo de Ollama (6.15).
         self._system = system_message(tone)
 
@@ -90,6 +115,12 @@ class Brain:
         if self.selector is None:
             return self.tools
         return self.selector.select(text, keep=keep)
+
+    def _needs_tools(self, text: str) -> bool:
+        """¿La frase toca un tema que solo saben o hacen las herramientas?"""
+        if self.selector is None:
+            return False
+        return bool(set(self.selector.groups_for(text)) - HINTLESS_GROUPS)
 
     async def warmup(self) -> None:
         # Con selector, el prefijo de arranque son las fijas (y los grupos vigentes, si hay).
@@ -120,6 +151,8 @@ class Brain:
         parser = TextReplyParser()
         calls: list[LLMToolCall] = []
         tools = self.tools_for(text, keep=continuing)
+        if not continuing and self.tools_hint and self._needs_tools(text):
+            extra = f"{extra}\n{TOOLS_HINT}" if extra else TOOLS_HINT
         # Una llamada escrita como texto a una herramienta que no estaba en la lista también
         # cuenta: existe y se ejecuta (el selector puede haberse quedado corto).
         names = (
@@ -129,6 +162,9 @@ class Brain:
         )
         held = ""  # principio retenido: ¿texto o una llamada escrita como texto?
         mode = "?" if tools else "text"
+        # Nunca en otra vuelta del bucle de agente: ahí el modelo acaba de leer contenido de
+        # fuera (portapapeles, webs), que no puede convertirse en órdenes.
+        reroute = self.reroute if not continuing else None
         async for piece in self.llm.chat(self.build_messages(text, extra), tools=tools):
             if isinstance(piece, list):
                 calls += piece
@@ -142,17 +178,33 @@ class Brain:
                 body = _after_header(held)
                 if body is None or _UNDECIDED.match(body):
                     continue
-                mode = "call" if could_be_call(body, names) else "text"
-                piece, held = (held, "") if mode == "text" else ("", held)
+                if could_be_call(body, names):
+                    mode, piece = "call", ""
+                elif reroute is not None and not held.lstrip().startswith("["):
+                    mode, piece = "command?", ""  # sin cabecera: ¿una orden escrita?
+                else:
+                    mode, piece, held = "text", held, ""
             if mode == "call":
                 held += piece
                 continue
+            if mode == "command?":
+                held += piece
+                if _still_a_command(held):
+                    continue
+                mode, piece, held = "text", held, ""
             for event in parser.feed(piece):
                 yield event
         if not calls and held:
             calls = parse_text_calls(_after_header(held) or held, names)
             if calls:
                 log.info("Llamadas escritas como texto: %r", held[:200])
+            elif (
+                reroute is not None
+                and not held.lstrip().startswith("[")
+                and _still_a_command(held)
+                and (calls := reroute(held.strip().rstrip(".!")) or [])
+            ):
+                log.info("Orden escrita como texto, al router: %r → %s", held, calls)
             else:  # no lo era: se trata como respuesta normal
                 for event in parser.feed(held):
                     yield event

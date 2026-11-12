@@ -13,6 +13,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from nyx.brain.base import LLMToolCall
 from nyx.executor import ToolCall
 from nyx.index.aliases import normalize, strip_articles
 from nyx.index.model import Kind
@@ -1413,3 +1414,17 @@ def _open(m: re.Match[str], index: SystemIndex) -> Route | Miss | None:
     tool, arg = _TOOL_FOR_KIND[best.entry.kind]
     value = best.entry.name if best.entry.kind is not Kind.FOLDER else best.entry.launch.value
     return _call("open", tool, **{arg: value})
+
+
+def written_command(
+    text: str, index: SystemIndex, *, playing: bool = False
+) -> list[LLMToolCall] | None:
+    """Una orden que el LLM escribió como texto en vez de llamar a la herramienta («pon el
+    volumen al 100», tarea 6.21): las llamadas que haría el router, o None si no la entiende.
+    Lo que Nyx no hace nunca (negativas fijas) no se convierte en llamada."""
+    if refusal(text, index, playing=playing) is not None:
+        return None
+    routed = route(text, index)
+    if not isinstance(routed, Route):
+        return None
+    return [LLMToolCall(c.name, c.arguments) for c in routed.calls]

@@ -23,7 +23,7 @@ from nyx.audio.vad import SileroVAD
 from nyx.brain.base import LLMError
 from nyx.brain.ollama import OllamaEngine, launch_ollama
 from nyx.brain.phrases import PhraseBook
-from nyx.brain.router import refusal, route
+from nyx.brain.router import refusal, route, written_command
 from nyx.brain.select import ToolSelector, tools_budget
 from nyx.brain.service import Brain
 from nyx.brain.shortcuts import ShortcutStore
@@ -283,6 +283,8 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         wake.threshold = min(0.95, wake.threshold + activations.offset)
     # «Sí» / «no» por voz con el mismo modelo de Vosk que la activación.
     yesno = VoskYesNo(vosk_model) if vosk_model is not None else None
+    # Órdenes que el LLM escribe como texto («pon el volumen al 100»): al router (6.21).
+    brain.reroute = lambda text: written_command(text, index, playing=game.active)
     pipeline = Pipeline(
         bus,
         brain,

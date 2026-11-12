@@ -34,7 +34,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from nyx.brain.ollama import OllamaEngine
-from nyx.brain.router import Miss, Route, refusal, route
+from nyx.brain.router import Miss, Route, refusal, route, written_command
 from nyx.brain.select import ToolSelector, tools_budget
 from nyx.brain.service import Brain, ReplyDone, ToolPlan
 from nyx.executor import ToolCall, with_waits
@@ -229,6 +229,17 @@ async def main() -> int:
         metavar="SEMILLA",
         help="frases en orden al azar (más cambios de grupo y de caché, como en el uso real)",
     )
+    parser.add_argument("--modelo", default=None, help="otro modelo de Ollama (6.21)")
+    parser.add_argument(
+        "--con-aviso",
+        action="store_true",
+        help="con el aviso de «esto se resuelve con herramientas» (6.21; desactivado en Nyx)",
+    )
+    parser.add_argument(
+        "--sin-reencaminar",
+        action="store_true",
+        help="las órdenes que el LLM escribe como texto no pasan por el router (antes de 6.21)",
+    )
     parser.add_argument(
         "--contexto",
         type=int,
@@ -249,9 +260,8 @@ async def main() -> int:
     if args.mezclar is not None:
         random.Random(args.mezclar).shuffle(cases)
     settings = load_settings()
-    llm = OllamaEngine(
-        settings.llm.host, settings.llm.model, num_ctx=settings.llm.num_ctx, timeout_s=30
-    )
+    model = args.modelo or settings.llm.model
+    llm = OllamaEngine(settings.llm.host, model, num_ctx=settings.llm.num_ctx, timeout_s=60)
     if args.sin_grupos:
         brain = Brain(llm, tools=REGISTRY.schemas())
         how = "Herramientas: todas en cada petición (sin grupos)."
@@ -267,6 +277,9 @@ async def main() -> int:
     if args.mezclar is not None:
         how += f" Orden al azar (semilla {args.mezclar})."
     index = SystemIndex.open()
+    brain.tools_hint = args.con_aviso
+    if not args.sin_reencaminar:
+        brain.reroute = lambda text: written_command(text, index)  # como en Nyx (6.21)
     await brain.warmup()
     outcomes: list[Outcome] = []
     for case in cases:
@@ -289,7 +302,7 @@ async def main() -> int:
         )
     await llm.aclose()
     index.close()
-    text = report(outcomes, settings.llm.model, how)
+    text = report(outcomes, model, how)
     print()
     print(text.split("## Fallos")[0])
     if args.informe:

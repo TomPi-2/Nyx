@@ -140,3 +140,43 @@ def test_bare_tool_name_is_a_call() -> None:
     # 6.03: el modelo escribía solo «listalarms» (sin parámetros) y se habría leído.
     assert parse_text_calls("listalarms", ["list_alarms"]) == [LLMToolCall("list_alarms", {})]
     assert parse_text_calls("Hola", ["list_alarms"]) == []
+
+
+# --- 6.21: orden escrita como texto («pon el volumen al 100») → el router ---
+
+
+def fake_router(text: str) -> list[LLMToolCall] | None:
+    if text.lower() == "pon el volumen al 100":
+        return [LLMToolCall("set_volume", {"level": 100})]
+    return None
+
+
+async def reroute_events(chunks: list[str], *, continuing: bool = False) -> list[object]:
+    brain = Brain(ScriptedLLM(chunks), tools=TOOLS, reroute=fake_router)
+    return [e async for e in brain.respond("no oigo nada, sube eso", continuing=continuing)]
+
+
+async def test_written_command_goes_to_the_router_and_is_not_spoken() -> None:
+    events = await reroute_events(["pon el ", "volumen al 100"])
+    assert not [e for e in events if isinstance(e, SpokenDelta)]
+    assert events[-1] == ToolPlan([LLMToolCall("set_volume", {"level": 100})])
+
+
+@pytest.mark.parametrize(
+    "chunks",
+    [
+        ["[100 % | volumen]\n", "pon el volumen al 100"],  # con cabecera: es una respuesta
+        ["Pon el volumen al 100. Así lo ", "oirás mejor."],  # más de una frase
+        ["No sé qué volumen quieres."],  # el router no lo entiende
+    ],
+)
+async def test_answers_are_not_rerouted(chunks: list[str]) -> None:
+    events = await reroute_events(chunks)
+    assert isinstance(events[-1], ReplyDone)
+    assert [e for e in events if isinstance(e, SpokenDelta)]
+
+
+async def test_never_rerouted_in_another_turn_of_the_agent_loop() -> None:
+    """Tras leer el portapapeles o una web, lo que escriba el modelo no se ejecuta."""
+    events = await reroute_events(["pon el volumen al 100"], continuing=True)
+    assert isinstance(events[-1], ReplyDone)
