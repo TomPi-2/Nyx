@@ -65,7 +65,10 @@ class ListAlarms(Tool[ListAlarmsParams]):
         pending = ctx.alarms.pending()
         if not pending:
             return ToolResult(
-                ok=True, message="No tienes alarmas ni temporizadores", display="Nada pendiente"
+                ok=True,
+                message="No tienes alarmas ni temporizadores.",
+                display="Nada pendiente",
+                speak=True,
             )
         now = datetime.fromtimestamp(ctx.alarms.clock())
         lines = [describe_alarm(a, now) for a in pending[:MAX_LISTED]]

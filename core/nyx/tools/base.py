@@ -65,7 +65,11 @@ class ToolResult(BaseModel):
     # Burbuja opcional (resultado útil: «Captura guardada»). Sin ella, el éxito es silencioso.
     display: str | None = None
     secondary: str | None = None
-    speak: bool = False  # decir `message` en voz alta aunque haya ido bien
+    # `message` ya es la respuesta entera, en una frase para decir (6.20a): si la petición la
+    # resolvió el router (una pregunta concreta: «¿cuánta batería me queda?»), se dice tal cual,
+    # sin otra vuelta al LLM (la mitad del trabajo de la gráfica). Si la pidió el LLM (una
+    # pregunta más libre), el resultado vuelve a él como siempre.
+    speak: bool = False
     # False: este resultado no vuelve al LLM aunque la herramienta sea de consulta (`observe`):
     # no hay nada que contar («Copiado», «Cronómetro en marcha») y se ahorra una vuelta.
     observe: bool = True

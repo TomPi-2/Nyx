@@ -60,6 +60,7 @@ class Stopwatch(Tool[StopwatchParams]):
                     message=f"El cronómetro lleva {_format_spoken(elapsed)}.",
                     display=short_duration(elapsed),
                     secondary="en marcha",
+                    speak=True,
                     data={"running": True, "elapsed_s": elapsed},
                 )
             if self._last_elapsed is not None:
@@ -68,12 +69,14 @@ class Stopwatch(Tool[StopwatchParams]):
                     message=f"El cronómetro está parado en {_format_spoken(self._last_elapsed)}.",
                     display=short_duration(self._last_elapsed),
                     secondary="parado",
+                    speak=True,
                     data={"running": False, "elapsed_s": self._last_elapsed},
                 )
             return ToolResult(
                 ok=True,
                 message="No hay ningún cronómetro en marcha.",
                 display="Sin iniciar",
+                speak=True,
                 data={"running": False, "elapsed_s": 0},
             )
 
@@ -88,5 +91,6 @@ class Stopwatch(Tool[StopwatchParams]):
             message=f"Cronómetro parado en {_format_spoken(elapsed)}.",
             display=short_duration(elapsed),
             secondary="parado",
+            speak=True,
             data={"running": False, "elapsed_s": elapsed},
         )

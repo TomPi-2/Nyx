@@ -28,7 +28,7 @@ async def test_playing_paused_and_nothing(ctx: ToolContext) -> None:
     )
     res = await playing.run(NowPlayingParams(), ctx)
     assert res.ok
-    assert res.message == "Suena «Bohemian Rhapsody» de Queen en Spotify"
+    assert res.message == "Suena «Bohemian Rhapsody» de Queen en Spotify."
     assert res.display == "Bohemian Rhapsody"
     assert res.secondary == "Queen · Spotify"
     assert res.data == {"playing": True}
@@ -36,14 +36,15 @@ async def test_playing_paused_and_nothing(ctx: ToolContext) -> None:
     paused = NowPlayingTool(reader=lambda: NowPlaying("Lo-fi Beats", "", "Chrome", False))
     res_paused = await paused.run(NowPlayingParams(), ctx)
     assert res_paused.ok
-    assert res_paused.message == "En pausa: «Lo-fi Beats» en Chrome"
+    assert res_paused.message == "En pausa: «Lo-fi Beats» en Chrome."
+    assert res_paused.speak  # frase hecha (6.20a)
     assert res_paused.secondary == "Chrome"
     assert res_paused.data == {"playing": False}
 
     empty = NowPlayingTool(reader=lambda: None)
     res_empty = await empty.run(NowPlayingParams(), ctx)
     assert res_empty.ok
-    assert res_empty.message == "No suena nada ahora"
+    assert res_empty.message == "No suena nada ahora."
     assert res_empty.display == "No suena nada"
 
 

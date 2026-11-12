@@ -111,12 +111,15 @@ class NowPlayingTool(Tool[NowPlayingParams]):
             log.warning("No se pudo leer la sesión multimedia de Windows", exc_info=True)
             return ToolResult.fail("No he podido ver qué suena")
         if now is None or not now.title:
-            return ToolResult(ok=True, message="No suena nada ahora", display="No suena nada")
+            return ToolResult(
+                ok=True, message="No suena nada ahora.", display="No suena nada", speak=True
+            )
         by = f" de {now.artist}" if now.artist else ""
         state = "Suena" if now.playing else "En pausa:"
         return ToolResult(
             ok=True,
-            message=f"{state} «{now.title}»{by} en {now.app}",
+            message=f"{state} «{now.title}»{by} en {now.app}.",
+            speak=True,
             display=now.title,
             secondary=" · ".join(p for p in (now.artist, now.app) if p),
             data={"playing": now.playing},

@@ -763,7 +763,10 @@ class Pipeline:
         self._agent.done += list(zip(routed.calls, results, strict=False))
         # Lo último que se hizo, con su ruta (6.02): «ábrela», «muévela», «ciérralo»…
         self.brain.remember_action(memory_note(self._agent.done))
-        if failed is None and self._should_continue(routed.calls, marks, results):
+        # Solo las reglas del router son preguntas concretas; un atajo aprendido o un plan del
+        # LLM pueden venir de una pregunta más libre que la frase hecha no contesta.
+        direct = routed.rule not in ("llm", "aprendido")
+        if failed is None and self._should_continue(routed.calls, marks, results, direct=direct):
             # Consultó algo (archivos, alarmas…): el resultado vuelve al LLM para contarlo o
             # para dar el siguiente paso (HOJA-DE-RUTA §3.1).
             self._agent.steps += 1
@@ -788,6 +791,10 @@ class Pipeline:
         elif shown is not None and shown.display:
             await self._show_bubble(shown.display, shown.secondary or "")
             self._schedule_bubble_hide(bubble_duration(shown.display, shown.secondary or ""))
+        answer = " ".join(r.message.strip() for r in results if r.speak and r.message.strip())
+        if direct and answer and speak:
+            # La respuesta ya está hecha (6.20a): se dice sin pasar por el LLM.
+            await self._say(answer, marks)
         if from_voice and self.listen.followup_s > 0 and self.capture is not None:
             await self.start_listening(followup=True)
         else:
@@ -896,9 +903,17 @@ class Pipeline:
             self._learn(text, ToolCall(plan.calls[0].name, plan.calls[0].arguments))
 
     def _should_continue(
-        self, calls: list[ToolCall], marks: _Marks, results: Sequence[ToolResult] = ()
+        self,
+        calls: list[ToolCall],
+        marks: _Marks,
+        results: Sequence[ToolResult] = (),
+        *,
+        direct: bool = False,
     ) -> bool:
-        """¿Hay que volver al LLM con lo consultado? Con límites de vueltas y de tiempo."""
+        """¿Hay que volver al LLM con lo consultado? Con límites de vueltas y de tiempo.
+
+        `direct`: la petición la resolvió una regla del router; lo que ya trae su frase hecha
+        (`ToolResult.speak`) se dice tal cual y no vuelve al LLM (6.20a)."""
         if self.executor is None or self._brain_off():
             return False
         if self._agent.steps >= MAX_STEPS or self._clock() - marks.end > MAX_SECONDS:
@@ -907,7 +922,7 @@ class Pipeline:
         tools = [self.executor.registry.get(c.name) for c in calls]
         if len(results) == len(tools):
             return any(
-                t is not None and t.observe and r.observe
+                t is not None and t.observe and r.observe and not (direct and r.speak)
                 for t, r in zip(tools, results, strict=True)
             )
         return any(t is not None and t.observe for t in tools)
@@ -1119,6 +1134,25 @@ class Pipeline:
         while True:
             await self.bus.publish(AudioLevel(self.player.level))
             await asyncio.sleep(1 / LEVEL_HZ)
+
+    async def _say(self, text: str, marks: _Marks) -> None:
+        """Dice una frase ya hecha (la de una herramienta), con el orbe hablando."""
+        if self.tts is None or self.player is None:
+            return
+        try:
+            audio = await self.tts.synthesize(text)
+        except TTSError:
+            log.exception("No se pudo decir la respuesta")
+            return
+        marks.first_audio = self._clock()
+        log.info("Latencia (respuesta directa): %s", _latency(marks))
+        await self._set_state(NyxState.SPEAKING)
+        levels = asyncio.create_task(self._speaking_levels())
+        try:
+            self.player.enqueue(audio)
+            await self.player.drain()
+        finally:
+            levels.cancel()
 
     async def _fail(self, display: str, secondary: str, spoken: str | None) -> None:
         await self._set_state(NyxState.ERROR)

@@ -166,7 +166,8 @@ def test_invalid_alarm_params_are_reported(ctx: ToolContext, sched: AlarmSchedul
 async def test_list_alarms_says_what_is_pending(ctx: ToolContext, sched: AlarmScheduler) -> None:
     ex = executor(ctx, sched)
     empty = await ex.run(ToolCall("list_alarms"))
-    assert empty.ok and empty.message == "No tienes alarmas ni temporizadores"
+    assert empty.ok and empty.message == "No tienes alarmas ni temporizadores."
+    assert empty.speak  # frase hecha: se dice sin el LLM (6.20a)
     await ex.run(ToolCall("set_timer", {"minutes": 5}))
     await ex.run(ToolCall("set_alarm", {"time": "23:30", "label": "llamar a mamá"}))
     listed = await ex.run(ToolCall("list_alarms"))

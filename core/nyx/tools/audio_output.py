@@ -47,5 +47,6 @@ class AudioOutput(Tool[AudioOutputParams]):
             ),
             display="Ajustes de sonido",
             secondary="Elige el dispositivo ahí (Windows no deja hacerlo solo)",
+            speak=True,
             data={"opened": "ms-settings:sound", "device": params.device},
         )

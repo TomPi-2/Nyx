@@ -187,7 +187,12 @@ B. Internet y aprender   6.05 (DECISIÓN) → 6.06 → 6.07
 C. Herramientas          6.08 6.09 6.10 6.11 6.12 (independientes, tras 6.01)
 D. Herramientas potentes 6.13 → 6.14 (tras 6.01)
 E. Calidad y cierre      6.15 6.16 6.17 → 6.18 → 6.19
+F. Grupos (2026-11-12)   6.20a → 6.17 → 6.20b → 6.20c → 6.20d, antes del bloque D
 ```
+
+**Orden actual (2026-11-12):** 6.20a (hecha) → 6.17 → 6.20b → 6.20c → 6.20d → bloque D y B.
+La 6.17 va antes del selector porque es la vara de medir: con la batería de hoy solo 31 de
+156 frases llegan al LLM, y son las únicas que pondrían a prueba los grupos.
 
 Recomendación para gastar poco: **Claude** hace A (6.01–6.04), la decisión 6.05, 6.07, D
 (6.13–6.14) y la revisión final. Las de C y E las puede hacer cualquier agente con la
@@ -477,6 +482,45 @@ coloquiales, con errores típicos de Whisper y negativas (lo que Nyx no debe hac
 del router ya se comprueba en `pytest`; la del LLM se pasa con `scripts/battery.py` y su
 informe se guarda en `docs/benchmarks/bateria-0.6.md`.
 
+**Añadido el 2026-11-12 (antes de 6.20b):** la batería es la vara de medir de los grupos, así
+que lo nuevo debe **llegar al LLM**: al menos 150 frases que el router no resuelva (preguntas
+libres, órdenes con rodeos, dos pasos, referencias a lo anterior, frases que mezclan temas:
+«baja el brillo y pon música»), repartidas por todas las herramientas. Cada frase con su
+herramienta esperada, para comprobar después que su grupo la contiene.
+
+### 6.20 Grupos de herramientas · Claude (aprobado 2026-11-12)
+
+**Objetivo:** poder instalar muchas extensiones sin perder rendimiento ni subir el tiempo medio
+de respuesta. Lo que el modelo ve en cada petición no crece con lo instalado: unas pocas
+herramientas fijas más un grupo pequeño, elegido por código (CPU, sin gráfica).
+
+Medido en el PC de referencia (6.18 y 2026-11-12): la VRAM depende del contexto reservado
+(`num_ctx`, ~235 MB por cada 4.096 tokens), no del número de herramientas; con el prefijo en
+caché el primer token sale en 0,07 s; cambiar la lista entera cuesta 3 s, pero cambiar solo
+el final (fijas al principio + grupo de 8–11 herramientas) cuesta 0,8 s. Generando, 47,8 tok/s
+con las 39 herramientas y 51,0 con 7.
+
+- **6.20a Decir sin segunda vuelta (hecha).** `ToolResult.speak`: el mensaje ya es la
+  respuesta. Si la petición la resolvió una regla del router, se dice tal cual sin volver al
+  LLM; si la pidió el LLM o un atajo aprendido (pregunta más libre), vuelve a él como siempre.
+  Estado del equipo, cronómetro, qué suena, salida de audio y «no tienes alarmas».
+- **6.20b Grupos y selector.** `tools/groups.py` (grupos, fijas y tope de tokens por grupo,
+  exigido por una prueba) y `brain/select.py` (grupo por palabras de la petición; en los
+  seguimientos y en el bucle de agente se mantiene el anterior). La lista va en orden estable,
+  fijas primero, para reutilizar la caché. Si el modelo escribe una herramienta que no tiene
+  delante, se reintenta con su grupo.
+- **6.20c Índice de último recurso.** Si el selector no sabe qué grupo es, el modelo ve una
+  línea por grupo y elige (una llamada más, solo en esos casos).
+- **6.20d Contexto a 8.192** (−235 MB de VRAM), con migración; probar 6.144. El usuario repite
+  `scripts/game_bench.py` en Rocket League.
+
+**Para darla por buena:** batería 100 % con 3 pasadas; mediana hasta el primer token en lo que
+pasa por el LLM igual o menor que antes (514 ms), también con las frases desordenadas; una
+prueba sin modelo de que cada frase de la batería cae en un grupo que contiene su
+herramienta; y una simulación con 200 herramientas falsas en 40 grupos: mismo tamaño de
+prompt, selector < 5 ms y batería igual. Si el selector por palabras se queda corto, el paso
+siguiente sería un modelo de similitud pequeño en CPU: dependencia nueva, preguntar antes.
+
 ### 6.18 Medir el coste de tantas herramientas · Claude
 
 **Adelantar (nota del 2026-11-11, tras la 6.03):** con 28 herramientas el 7B ya duda en frases que antes acertaba siempre, y la batería varía entre pasadas (97–98 %). Con cada herramienta nueva irá a peor. Conviene hacer esta tarea **antes del bloque C**, y que `scripts/battery.py` pase cada frase del LLM 3 veces y cuente la mayoría (si no, una pasada buena o mala engaña). Mientras, lo frecuente y sin ambigüedad va al router.
@@ -546,3 +590,4 @@ Una fila por tarea terminada. «Revisado» lo rellena Claude al repasar.
 | 6.15 | Gemini | `5608597` | Ajuste `responses.tone: Literal["cercano","neutro","divertido"] = "cercano"` en `ResponseSettings` + `NEEDS_RESTART` (`settings/live.py`) y en Ajustes → Respuestas (`Respuestas.svelte` con `Segmented`, protocolo v15). En `brain/prompts.py`, solo cambia el párrafo de tono (`_TONES`) elegido al arrancar en `Brain(..., tone=...)` para conservar la caché de prefijo de Ollama, y se refuerza «como mucho 2 frases naturales y directas (salvo que te pidan explicar algo)» sin relleno ni despedidas. Frases fijas de Nyx con 3 variantes cada una en `core/nyx/brain/phrases.py` (`PhraseBook` sin repetir la última usada) conectadas en `Pipeline` y `Executor`. Pruebas (`810 passed`, `ui` `format`/`check`/`clippy` en verde) y batería con Ollama 2× tras el cambio: `141/141` y `141/141` (mediana LLM 569 ms / 577 ms frente a 514 ms antes). Nota para Claude: `"done"` está definido con sus 3 variantes en `phrases.py`, pero `game/controller.py` (`Hecho: ...`) y `tools/alarms.py` (`Hecho: ...`) se dejaron con su formato fijo para no romper ese esquema ni `test_game.py`; tampoco se probó interactivamente en voz con los tonos `"neutro"` y `"divertido"` ni se abrió la UI en vivo (solo pruebas unitarias y batería por defecto `"cercano"`). | Sí (Claude, 2026-11-12) |
 | 6.16 | Gemini | `8a020f9` | Corregidos todos los errores accionables de `docs/ERRORES.md` salvo la fila de búsqueda web (`web_search`, tarea 6.06). Cambios clave: `stt/normalize.py` (`¿Nyx?`/`¡Nyx!`, `¿Mix?` solo al inicio y sin validar en `has_wake_word`), `stt/whisper_server.py` + `scripts/check_whisper.py` (`--help` para elegir la GPU Vulkan dedicada antes del primer lanzamiento), `winapi/windows.py` + `tools/focus_window.py` (`find_target_windows` compartido en `focus_window`/`window_layout`/`close_app`/`type_text`, Opera GX vía `launcher.exe` → `opera.exe` y alias «operaje x»/«blog de notas»), `tools/close_app.py` (ventanas del Explorador), `tools/files.py` + `tools/create_folder.py` + `tools/delete_files.py` (`FileKind="folders"`, `include_folders=True` solo carpetas, rechazo de extensiones de archivo y `Undo` en `create_folder`, sufijo Explorer y sugerencia de carpeta parecida), `tools/undo.py` (ignora `id` inventados no hex), `tools/nyx_control.py` (`ciudad` → `general.city`), `tools/clipboard.py` + `pipeline.py` (`data.observe=False` en `write`, aborto con `garbled` si cabecera nombra herramienta sin `tool_calls` ni `?`), `executor.py` + `brain/reply.py` + `brain/agent.py` + `brain/prompts.py` (traducción de enums a español en `observation`, sin nombres de herramientas en `SYSTEM` para no degradar al 7B, sin duplicar portapapeles ni literal `[dato]`), y reglas nuevas/ampliadas en `brain/router.py` (`city_set`, `type_text_in_app`, `clipboard_write` desde `_RAW_EXACT`, `window_state`, `weather`, `system_info`, `stopwatch`, `audio_output`, `media_pause`, `delete_folders`). Comprobaciones: `ruff`/`mypy` limpios, `pytest -q` 850 passed y batería `--veces 3` 2× en verde (`156/156`, 100 %, mediana LLM 500 ms y 506 ms). Notas para la revisión / usuario: queda pendiente ajustar las falsas activaciones descartadas (`Activación (0.xx)` / `%LOCALAPPDATA%\Nyx\activaciones\*.jsonl`) tras pedir sus puntuaciones al usuario (SPEC/6.16); la selección de GPU Vulkan se verificó con pruebas unitarias simuladas (`IGPU_FIRST`) y falta medir un 2.º arranque y `check_whisper.py` en el portátil real. | Sí (Claude, 2026-11-12) |
 | Revisión de 6.18b, 6.08–6.12, 6.15 y 6.16 | Claude | `6b718bb` | Revisado todo lo de Gemini. Corregido: (1) `clipboard`: lo copiado iba en `message` y quedaba en el registro de acciones y en la memoria corta (puede ser una contraseña); ahora va en `ToolResult.external`, que solo ve el LLM, y `brain/agent.py` lo marca y le quita «<<<»/«>>>» para que no pueda cerrar el bloque de información. (2) `type_text`: sube a roja si el texto lleva Intro o tabulador (envía mensajes, ejecuta órdenes) o si la ventana es una terminal; no escribe caracteres de control; «Deshacer» ya no pulsa Ctrl+Z en otra ventana si no puede volver a la suya; avisa si Windows rechaza la entrada. (3) `reply.py`: un contexto de 5 palabras o más contaba como frase y se dejaba de decir el dato («Miguel de Cervantes»). (4) `set_brightness` decía «hecho» sin que ningún monitor contestase. (5) `describe_call` traducía valores sueltos en cualquier parámetro («top» → «los procesos»); ahora frases por herramienta y opción (`_OPTION_VERBS`). (6) `files.select`: `include_folders=True` a secas elegía todas las carpetas (si el 7B olvida `names`, se las llevaba todas); ahora pregunta, y todas se piden con `kind="folders"`. `resolve_folder` solo adivina una subcarpeta sin indexar si hay una sola. (7) `ToolResult.observe` en vez de `data["observe"]`; el cronómetro al empezar no pasa por el LLM. (8) `get_weather` no abre Ajustes encima del juego. (9) El registro guarda el riesgo real (apagar: rojo) y `system_power` no se aprende como atajo. (10) `brain/knowledge/nyx.md` al día. Pruebas 861, batería 156/156 (mediana LLM 514 ms). Sin tocar, para decidir con el usuario: la regla `type_text` del router escribe tal cual todo «escribe X» («escribe el nombre de tres capitales» teclea esa frase); `send_hotkey` con Intro sigue amarilla (ver 6.13). | Sí (Claude) |
+| 6.20a | Claude | (este commit) | `ToolResult.speak` (existía sin usar) = el mensaje ya es la respuesta. `Pipeline._act`: si la ruta es una regla del router (no `llm` ni `aprendido`), lo que trae `speak` no vuelve al LLM y se dice con `_say`; escrito sin «responder en voz», solo la burbuja. Marcadas: `system_info` (todo), `stopwatch` (estado y parar), `now_playing`, `audio_output` y `list_alarms` vacía. `get_weather`, `list_alarms` con alarmas, portapapeles, archivos y `nyx_info` siguen pasando por el LLM (eligen qué contar). Pruebas 864. | Sí (Claude) |

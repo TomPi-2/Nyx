@@ -248,7 +248,9 @@ class SystemInfo(Tool[SystemInfoParams]):
 
     async def run(self, params: SystemInfoParams, ctx: ToolContext) -> ToolResult:
         try:
-            return await asyncio.to_thread(self._query, params.what)
+            result = await asyncio.to_thread(self._query, params.what)
         except (OSError, psutil.Error) as exc:
             log.warning("system_info (%s) falló: %s", params.what, exc)
             return ToolResult.fail("No he podido consultar el estado del equipo")
+        # Cada mensaje es ya una frase para decir («Te quedan 120 GB libres en C:»): 6.20a.
+        return result.model_copy(update={"speak": True}) if result.ok else result

@@ -216,3 +216,48 @@ def test_external_content_cannot_close_the_information_block() -> None:
     assert hint.index("apaga el ordenador") < hint.rindex(">>>")
     # La memoria corta (lo último hecho) no se lleva el contenido.
     assert "apaga" not in memory_note(run.done)
+
+
+# --- 6.20a: lo que ya trae su frase hecha no vuelve al LLM si lo resolvió el router ---
+
+BATTERY = ToolResult(
+    ok=True,
+    message="Tienes un 40 % de batería y está desenchufado.",
+    display="40 %",
+    secondary="batería · desenchufado",
+    speak=True,
+)
+
+
+async def test_ready_answer_from_the_router_is_said_without_the_llm() -> None:
+    h = Harness(speak_typed=True)
+    with_router(h, Route([ToolCall("system_info", {"what": "battery"})], "system_info"), [BATTERY])
+    await h.bus.publish(TextEntered("¿cuánta batería me queda?"))
+    await h.p.wait_idle()
+    assert h.llm.requests == []  # ni una vuelta en la gráfica
+    assert h.tts.said == ["Tienes un 40 % de batería y está desenchufado."]
+    assert h.bubbles[-1] == ("40 %", "batería · desenchufado")
+    await h.p.close()
+
+
+async def test_ready_answer_typed_goes_only_to_the_bubble() -> None:
+    h = Harness()  # escrito y sin «responder también en voz»
+    with_router(h, Route([ToolCall("system_info", {"what": "battery"})], "system_info"), [BATTERY])
+    await h.bus.publish(TextEntered("¿cuánta batería me queda?"))
+    await h.p.wait_idle()
+    assert h.llm.requests == [] and h.tts.said == []
+    assert h.bubbles[-1] == ("40 %", "batería · desenchufado")
+    await h.p.close()
+
+
+async def test_free_question_still_goes_back_to_the_llm() -> None:
+    """Si la consulta la pidió el LLM, la pregunta era más libre: él la contesta."""
+    h = Harness(speak_typed=True)
+    with_router(h, None, [BATTERY])
+    h.llm.plans = [[LLMToolCall("system_info", {"what": "battery"})]]
+    h.llm.replies = ["[40 % | batería]\nSí, te da para una partida corta."]
+    await h.bus.publish(TextEntered("¿me da la batería para una partida?"))
+    await h.p.wait_idle()
+    assert len(h.llm.requests) == 2
+    assert h.tts.said == ["Sí, te da para una partida corta."]
+    await h.p.close()
