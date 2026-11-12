@@ -1015,6 +1015,79 @@ def _type_text(m: re.Match[str], __: SystemIndex) -> Route:
     return _call("type_text", "type_text", text=raw or _original(m.group("text")))
 
 
+# --- brillo, energía, Wi-Fi y Bluetooth (6.11) ---
+
+_BRIGHTNESS_TAIL = (
+    rf"(?P<much0>\s+mucho)?(?:\s+un poco)?\s+(?:el\s+)?brillo(?:\s+de\s+(?:la\s+)?pantalla)?"
+    rf"(?:\s+(?:a|al|hasta(?:\s+el)?)\s+{_NUM}(?:\s*%|\s+por ciento)?)?"
+    r"(?P<much>\s+mucho)?(?:\s+un poco)?$"
+)
+
+
+def _brightness(rule_name: str, m: re.Match[str], step: int) -> Route | None:
+    if m.group("n"):
+        level = parse_number(m.group("n"))
+        if level is None or level > 100:
+            return None
+        return _call(rule_name, "set_brightness", level=level)
+    much = bool(m.group("much") or m.group("much0"))
+    return _call(rule_name, "set_brightness", change=step * (2 if much else 1))
+
+
+@rule("brightness_up", rf"^(?:sube|subir|subeme|aumenta){_BRIGHTNESS_TAIL}")
+def _brightness_up(m: re.Match[str], __: SystemIndex) -> Route | None:
+    return _brightness("brightness_up", m, 20)
+
+
+@rule("brightness_down", rf"^(?:baja|bajar|bajame|reduce){_BRIGHTNESS_TAIL}")
+def _brightness_down(m: re.Match[str], __: SystemIndex) -> Route | None:
+    return _brightness("brightness_down", m, -20)
+
+
+@rule(
+    "brightness_set",
+    rf"^(?:(?:pon|deja|ajusta|cambia)\s+(?:el\s+)?)?brillo(?:\s+de\s+(?:la\s+)?pantalla)?\s+(?:a|al|en)?\s*(?:(?P<max>maximo|tope)|(?P<min>minimo)|{_NUM})(?:\s*%|\s+por ciento)?$",
+)
+def _brightness_set(m: re.Match[str], __: SystemIndex) -> Route | None:
+    if m.group("max"):
+        return _call("brightness_set", "set_brightness", level=100)
+    if m.group("min"):
+        return _call("brightness_set", "set_brightness", level=10)
+    level = parse_number(m.group("n"))
+    if level is None or level > 100:
+        return None
+    return _call("brightness_set", "set_brightness", level=level)
+
+
+@rule(
+    "radio_toggle",
+    r"^(?:(?P<on>activa(?:r)?|enciende|encender|conecta(?:r)?|pon(?:er)?)|"
+    r"(?P<off>desactiva(?:r)?|apaga(?:r)?|quita(?:r)?|desconecta(?:r)?)|"
+    r"(?P<toggle>alterna(?:r)?|cambia(?:r)?))\s+(?:el\s+|la\s+)?(?P<kind>wi\s*fi|bluetooth)$",
+)
+def _radio_toggle(m: re.Match[str], __: SystemIndex) -> Route:
+    tool = "toggle_wifi" if m.group("kind").startswith("wi") else "toggle_bluetooth"
+    enabled = True if m.group("on") else (False if m.group("off") else None)
+    return _call("radio_toggle", tool, enabled=enabled)
+
+
+_PC_TARGET = r"(?:el\s+|mi\s+|la\s+)?(?:pc|ordenador|equipo|portatil|sistema|windows)"
+
+
+@rule(
+    "system_power",
+    rf"^(?:(?P<lock>bloquea(?:r)?\s+(?:{_PC_TARGET}|(?:la\s+)?(?:pantalla|sesion)))"
+    rf"|(?P<sleep>suspende(?:r)?\s+{_PC_TARGET}|pon(?:er)?\s+{_PC_TARGET}\s+(?:en\s+suspension|a\s+dormir))"
+    rf"|(?P<restart>reinicia(?:r)?\s+{_PC_TARGET})"
+    rf"|(?P<shutdown>apaga(?:r)?\s+{_PC_TARGET}))$",
+)
+def _system_power(m: re.Match[str], __: SystemIndex) -> Route | None:
+    for action in ("lock", "sleep", "restart", "shutdown"):
+        if m.group(action):
+            return _call("system_power", "system_power", action=action)
+    return None
+
+
 # --- lo pendiente para después de la partida ---
 
 

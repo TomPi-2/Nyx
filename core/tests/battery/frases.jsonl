@@ -93,7 +93,7 @@
 {"frase": "traduce buenos días al inglés", "tipo": "respuesta"}
 {"frase": "¿cuál es la capital de Australia?", "tipo": "respuesta"}
 {"frase": "manda un whatsapp a mi madre", "tipo": "no_sabe"}
-{"frase": "apaga el ordenador", "tipo": "no_sabe"}
+{"frase": "apaga el ordenador", "tool": "system_power", "args": {"action": "shutdown"}}
 {"frase": "vacía la papelera", "tipo": "no_sabe"}
 {"frase": "compra unas zapatillas en Amazon", "tipo": "no_sabe"}
 {"frase": "escribe en el chat del Valorant que voy", "tipo": "no_sabe"}
@@ -126,3 +126,9 @@
 {"frase": "resume lo copiado", "tool": "clipboard", "args": {"action": "read"}}
 {"frase": "copia hola mundo al portapapeles", "tool": "clipboard", "args": {"action": "write", "text": "hola mundo"}}
 {"frase": "escribe: llego en 10 minutos", "tool": "type_text", "args": {"text": "llego en 10 minutos"}}
+{"frase": "baja el brillo", "tool": "set_brightness", "args": {"change": -20}}
+{"frase": "pon el brillo al 50", "tool": "set_brightness", "args": {"level": 50}}
+{"frase": "apaga el bluetooth", "tool": "toggle_bluetooth", "args": {"enabled": false}}
+{"frase": "desactiva el wifi", "tool": "toggle_wifi", "args": {"enabled": false}}
+{"frase": "bloquea el PC", "tool": "system_power", "args": {"action": "lock"}}
+{"frase": "suspende el ordenador", "tool": "system_power", "args": {"action": "sleep"}}

@@ -140,11 +140,11 @@ Los atajos siguen el idioma de Windows (en español, «nuevo» es Ctrl+U y «gua
 | Acción | Ejemplos | Estado | Riesgo |
 | --- | --- | --- | --- |
 | Abrir cualquier página de Configuración | «abre los ajustes del bluetooth» | Hecho | Verde |
-| Brillo | «baja el brillo» | F6 | Verde |
-| Wi-Fi y Bluetooth | «apaga el bluetooth», «conecta los auriculares» | F6 | Amarillo |
+| Brillo | «baja el brillo» | Hecho (`set_brightness`) | Verde |
+| Wi-Fi y Bluetooth | «apaga el bluetooth», «conecta los auriculares» | Hecho (`toggle_wifi`, `toggle_bluetooth`) | Amarillo |
 | Modo noche, no molestar, modo oscuro | «activa la luz nocturna», «no molestar una hora» | F6 | Verde |
-| Bloquear el equipo | «bloquea el PC» | F6 | Amarillo |
-| Suspender, reiniciar, apagar, programar apagado | «apaga el ordenador en una hora» | F6 | Rojo |
+| Bloquear el equipo | «bloquea el PC» | Hecho (`system_power`) | Verde |
+| Suspender, reiniciar, apagar, programar apagado | «apaga el ordenador en una hora» | Hecho (`system_power`: suspender, reiniciar, apagar) / F6 (programado) | Rojo |
 | Cerrar un programa colgado | «cierra lo que se ha quedado colgado» | F6 | Rojo |
 | Vaciar la papelera | — | **Nunca** (borrado permanente) | — |
 | PowerShell | órdenes concretas de una lista permitida | F6 | Rojo |

@@ -59,9 +59,13 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.screenshot import Screenshot
     from nyx.tools.send_hotkey import SendHotkey
     from nyx.tools.set_alarm import SetAlarm
+    from nyx.tools.set_brightness import SetBrightness
     from nyx.tools.set_timer import SetTimer
     from nyx.tools.set_volume import SetVolume
     from nyx.tools.system_info import SystemInfo
+    from nyx.tools.system_power import SystemPower
+    from nyx.tools.toggle_bluetooth import ToggleBluetooth
+    from nyx.tools.toggle_wifi import ToggleWifi
     from nyx.tools.type_text import TypeText
     from nyx.tools.undo import UndoLast
     from nyx.tools.wait_for_window import WaitForWindow
@@ -79,6 +83,7 @@ def default_registry() -> ToolRegistry:
             Pending(),
             OpenPath(),
             SetVolume(),
+            SetBrightness(),
             MediaControl(),
             Screenshot(),
             CloseApp(),
@@ -96,6 +101,9 @@ def default_registry() -> ToolRegistry:
             NyxControl(),
             GetWeather(),
             SystemInfo(),
+            SystemPower(),
+            ToggleWifi(),
+            ToggleBluetooth(),
             Clipboard(),
             TypeText(),
             SendHotkey(),

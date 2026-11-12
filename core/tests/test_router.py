@@ -547,3 +547,26 @@ def test_clipboard_and_type_text_by_rule(
     index: SystemIndex, text: str, tool: str, args: dict[str, object]
 ) -> None:
     assert call(text, index) == (tool, args)
+
+
+@pytest.mark.parametrize(
+    ("text", "tool", "args"),
+    [
+        ("baja el brillo", "set_brightness", {"change": -20}),
+        ("sube mucho el brillo", "set_brightness", {"change": 40}),
+        ("pon el brillo al 50", "set_brightness", {"level": 50}),
+        ("pon el brillo al máximo", "set_brightness", {"level": 100}),
+        ("apaga el bluetooth", "toggle_bluetooth", {"enabled": False}),
+        ("activa el bluetooth", "toggle_bluetooth", {"enabled": True}),
+        ("desactiva el wifi", "toggle_wifi", {"enabled": False}),
+        ("enciende el wifi", "toggle_wifi", {"enabled": True}),
+        ("bloquea el PC", "system_power", {"action": "lock"}),
+        ("suspende el ordenador", "system_power", {"action": "sleep"}),
+        ("reinicia el equipo", "system_power", {"action": "restart"}),
+        ("apaga el ordenador", "system_power", {"action": "shutdown"}),
+    ],
+)
+def test_brightness_power_and_radios_by_rule(
+    index: SystemIndex, text: str, tool: str, args: dict[str, object]
+) -> None:
+    assert call(text, index) == (tool, args)
