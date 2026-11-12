@@ -192,7 +192,7 @@ E. Calidad y cierre      6.15 6.16 6.17 → 6.18 → 6.19
 F. Grupos (2026-11-12)   6.20a → 6.17 → 6.20b → 6.20c → 6.20d, antes del bloque D
 ```
 
-**Orden actual (2026-11-12):** 6.20a (hecha) → 6.17 → 6.20b → 6.20c → 6.20d → bloque D y B.
+**Orden actual (2026-11-12, tarde):** 6.20a, 6.17 y 6.20b hechas (6.20c pasa a la 0.7 y 6.20d se descarta mientras haya otra forma de evitar la pérdida de FPS) → 6.21 → 6.22 → 6.23 → 6.24 → bloque D y B → 6.19.
 La 6.17 va antes del selector porque es la vara de medir: con la batería de hoy solo 31 de
 156 frases llegan al LLM, y son las únicas que pondrían a prueba los grupos.
 
@@ -559,6 +559,60 @@ para bajar los tokens de herramientas un **30 %** (hoy 4.697; objetivo ≤ 3.300
 4. Al final: `prompt_cost.py` (≤ 3.300 tokens de herramientas) y batería ≥ la de antes.
 5. Pide al usuario que repita `scripts/game_bench.py` (el contexto mayor usa ~235 MB más de
    memoria de la gráfica) y apunta el resultado.
+
+### 6.21 Que el modelo actúe en vez de contestar en texto · Claude (aprobada 2026-11-12)
+
+El fallo principal de la batería (6.17): 53 de los 75 fallos del LLM son respuestas en texto
+cuando tocaba una herramienta, a veces inventándose el estado del PC. En pasos, midiendo cada
+uno contra la línea base (256/337) y sin fallos nuevos:
+
+1. Si el modelo contesta con una orden escrita («activa el wifi», «abre Paint») y el router la
+   entiende, se ejecuta esa orden (sin otra llamada al LLM).
+2. Si la frase es una pregunta sobre el estado del PC o algo que solo sabe una herramienta
+   (tiempo, alarmas, cronómetro, equipo, qué suena, archivos), se avisa al modelo en el
+   mensaje del usuario de que se contesta consultando. No toca el prompt de sistema (caché).
+3. Si no basta, revisar la regla del prompt de sistema que manda contestar las preguntas en
+   texto.
+4. **Si con el modelo actual no se arregla, probar otro modelo** del mismo tamaño con
+   llamadas a herramientas (aprobado por el usuario el 2026-11-12): misma batería, mismo
+   `game_bench.py`, licencia comprobada antes.
+
+### 6.22 Falsas activaciones y tanda de `ERRORES.md` · Claude
+
+- Falsas activaciones (lo pendiente de la 6.16): pedir al usuario sus puntuaciones y
+  `%LOCALAPPDATA%\Nyx\activaciones\*.jsonl`, y después subida automática del umbral tras
+  varios descartes (diseño en 6.16).
+- Los 6 fallos del router de la 6.17 y lo que haya en `ERRORES.md`, cada uno con su frase en
+  la batería.
+
+### 6.23 Interfaz: color de Nyx y paneles de respuesta · Claude
+
+Los dos errores de interfaz del 2026-11-12 en `ERRORES.md`:
+
+- **Color de Nyx:** todo el cuadrado del mismo color, sin triángulos más claros ni borde
+  más oscuro, con cualquier color. **El movimiento no se toca.**
+- **Paneles:** la línea pequeña solo si aporta; la grande con el detalle justo (no una sola
+  palabra); **todo bien escrito en las dos** (mayúscula inicial, punto final, tildes). Un
+  criterio común para el modelo, las herramientas y `phrases.py`, con una prueba que lo
+  compruebe en todos los textos fijos.
+
+### 6.24 Ajustes pequeños · cualquiera
+
+- **Olvidar todos los atajos aprendidos de golpe:** botón en Ajustes → Cerebro (con
+  confirmación), además de borrarlos uno a uno.
+- **Ciudad automática:** si `general.city` está vacío, sacarla de la ubicación de Windows
+  (WinRT `Geolocator`, solo si el usuario tiene la ubicación activada; si no, se queda
+  vacía) y geocodificación inversa. Se confirmará con el usuario en el primer arranque
+  interactivo (0.9).
+
+### Rendimiento en partida (seguimiento)
+
+La 6.20d (contexto menor) se descarta **mientras haya otra forma de evitar la pérdida de FPS**
+(condición del usuario, 2026-11-12). Pendiente: que el usuario repita `scripts/game_bench.py`
+en Rocket League tras la 6.20a (menos trabajo de la gráfica en lo que resuelve el router). Si
+sigue por encima del objetivo (< 5 % de FPS y peor fotograma ≤ 1,5×), siguientes palancas:
+respuestas más cortas en partida, más frases al router, «Cerebro en partida: Solo órdenes» y,
+como último recurso, la 6.20d.
 
 ### 6.19 Cierre de la 0.6 · Claude
 
