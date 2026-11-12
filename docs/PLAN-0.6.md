@@ -647,9 +647,11 @@ cabecera de los paneles bien (6.23). Misma memoria y velocidad que ahora.
 ### Rendimiento en partida (seguimiento)
 
 La 6.20d (contexto menor) se descarta **mientras haya otra forma de evitar la pérdida de FPS**
-(condición del usuario, 2026-11-12). Pendiente: que el usuario repita `scripts/game_bench.py`
-en Rocket League tras la 6.20a (menos trabajo de la gráfica en lo que resuelve el router). Si
-sigue por encima del objetivo (< 5 % de FPS y peor fotograma ≤ 1,5×), siguientes palancas:
+(condición del usuario, 2026-11-12). **Medido el 2026-11-13** tras la 6.20a, con el contexto
+de 12.288 (`docs/benchmarks/partida-TomPi-20261113-0028.md`): −3,1 % de FPS medios y el 1 % más
+lento −4,8 %, **dentro del objetivo**. Mientras piensa, la bajada ronda el 15 % (se ve en un
+contador de FPS); la reduce sobre todo que más frases vayan al router (6.25). Si alguna vez
+sale por encima del objetivo (< 5 % de FPS y peor fotograma ≤ 1,5×), siguientes palancas:
 respuestas más cortas en partida, más frases al router, «Cerebro en partida: Solo órdenes» y,
 como último recurso, la 6.20d.
 
