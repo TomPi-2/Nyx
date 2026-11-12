@@ -221,7 +221,7 @@ async def test_restore_means_undo(index: SystemIndex, text: str) -> None:
 def test_new_tab_in_app(
     index: SystemIndex, monkeypatch: pytest.MonkeyPatch, open_now: bool
 ) -> None:
-    from nyx.brain import router as router_module
+    from nyx.brain.router import comun as router_module
 
     monkeypatch.setattr(
         router_module, "_find_windows", lambda name, process: [1] if open_now else []
@@ -345,7 +345,7 @@ def test_refusals_while_playing(index: SystemIndex, text: str, refused: bool) ->
 def test_focus_only_for_real_windows_or_apps(
     index: SystemIndex, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from nyx.brain import router as router_module
+    from nyx.brain.router import comun as router_module
 
     monkeypatch.setattr(router_module, "_find_windows", lambda name, process: [])
     result = route("muéstrame los FPS en el Rocket League", index)
@@ -370,7 +370,7 @@ def test_pending_rules(index: SystemIndex, text: str) -> None:
 
 def test_several_orders_in_one_request(index: SystemIndex, monkeypatch: pytest.MonkeyPatch) -> None:
     # ERRORES.md, 2026-11-11: «abre Discord, abre tus ajustes y…» era una sola app.
-    from nyx.brain import router as router_module
+    from nyx.brain.router import comun as router_module
 
     monkeypatch.setattr(router_module, "_find_windows", lambda name, process: [])
     result = route("Abre Discord, abre tus ajustes y pon música", index)
@@ -691,3 +691,13 @@ def test_open_folder_delete_goes_to_llm(index: SystemIndex) -> None:
         route("elimino las carpetas que hay dentro de la nueva carpeta que tengo abierta", index)
         is None
     )
+
+
+def test_every_rule_has_its_place_in_the_order() -> None:
+    """Cada regla del router está en ORDER (6.25): gana la primera que encaja, así que una
+    regla nueva no puede quedarse al final sin que nadie lo decida."""
+    from nyx.brain.router import ORDER
+    from nyx.brain.router.comun import RULES_BY_NAME
+
+    assert len(ORDER) == len(set(ORDER))
+    assert set(ORDER) == set(RULES_BY_NAME)
