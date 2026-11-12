@@ -121,6 +121,16 @@ Lo que hay que **dejar preparado en esta versión** para que, desde la 1.0, se i
 - **Modos (base):** el sistema de modos y Partida (el modo partida actual), Trabajo, Noche y Privacidad. Diseño en la sección 5.
 - Extensiones oficiales de prueba, gratuitas: OBS básico (grabar, directo, cambiar de escena) y Spotify (poner algo concreto).
 
+- **Prioridad (2026-11-12): la gestión de extensiones y su documentación tienen que quedar
+  muy bien hechas**, porque gran parte de las funciones nuevas llegarán como extensiones.
+  Documentación para desarrolladores completa: cómo empezar, referencia de la API y del
+  manifiesto, permisos, buenas prácticas (descripciones cortas para el modelo, grupos de
+  herramientas y sus palabras clave: `tools/groups.py` y `docs/benchmarks/grupos-6.20b.md`),
+  pruebas y publicación.
+- **Índice de grupos de último recurso** (antes tarea 6.20c): con muchas extensiones no caben
+  todas las herramientas y los grupos rotan; si el selector no sabe qué grupo es, el modelo
+  elige en un índice de una línea por grupo.
+
 **Para cerrar:** las tres extensiones de ejemplo se instalan, actualizan y desinstalan sin reiniciar Nyx; una extensión que se cuelga o intenta algo sin permiso no afecta a Nyx (pruebas automáticas); alguien que no sea yo (Claude) ni tú puede hacer una con la documentación (lo ideal: un amigo).
 
 ### 0.8 — Organización y seguridad (fase 6c)
@@ -135,9 +145,11 @@ Lo que hay que **dejar preparado en esta versión** para que, desde la 1.0, se i
 Lo que la SPEC ya tenía en la fase 6 de distribución, más lo que pide abrir el código:
 
 - Instalador propio con la onda de «Nyx listo» ([INSTALADOR-Y-MOTOR-GRAFICO.md](INSTALADOR-Y-MOTOR-GRAFICO.md)) que **instala y deja preparados el cerebro, Whisper y la voz**, arranque con Windows y actualizaciones con Velopack.
-- **Primer arranque interactivo:** el asistente actual pasa a ser una conversación con Nyx (sección 11).
+- **Primer arranque interactivo:** el asistente actual pasa a ser una conversación con Nyx (sección 11). Incluye **confirmar con el usuario la ciudad** detectada con la ubicación de Windows (2026-11-12).
 - Pruebas de cortes de luz simulados.
-- Datos de uso anónimos (servicio a elegir, por ejemplo Aptabase).
+- Datos de uso anónimos (servicio a elegir, por ejemplo Aptabase): **que el envío funcione de verdad** (hoy solo existe el permiso en Ajustes → Privacidad; recordado el 2026-11-12).
+- **Contactar con soporte desde Ajustes → Ayuda** (2026-11-12): un botón para cualquier problema o duda. Falta decidir el canal (correo, formulario web, Discord de Tepnyx) y qué se adjunta (siempre con permiso: versión, registros recientes sin datos personales).
+- **Voz propia de Nyx** (2026-11-12): entrenar un modelo de voz con la voz de una persona que ya ha aceptado. Antes de usarla, su consentimiento por escrito (uso, distribución en una app de código abierto y posibilidad de retirarlo) y comprobar la licencia del motor y del entrenamiento.
 - La lista de `CLAUDE.md` antes de hacer público el repositorio: licencia y CLA, `SECURITY.md`, `CONTRIBUTING.md`, revisión de secretos, auditoría de licencias, SignPath.
 - Beta abierta con un grupo pequeño (Discord de Tepnyx).
 
@@ -240,6 +252,19 @@ Las recetas que funcionen pueden mandarse (con permiso) a Tepnyx, revisarse y co
 - Tono en Ajustes → Respuestas: cercano (predeterminado), neutro o divertido. Siempre breve.
 - Frases propias para los momentos repetidos (activarse, hecho, error), variadas para no sonar a máquina.
 - Las extensiones pueden añadir personalidades (sección 4.3).
+- **Personalidad automática (pedido el 2026-11-12, para más adelante; difícil):** que el tono
+  cambie solo según la conversación y el tono del usuario (más serio si está con prisa o
+  enfadado, más bromista si él bromea…). Los ajustes manuales siguen existiendo: fijan el
+  tono o dejan que se adapte. Ojo con la caché del prefijo: el tono no puede ir en el prompt
+  de sistema si cambia a mitad de uso (iría en el mensaje del usuario).
+
+### 3.9 Aprender cómo habla el usuario (pedido el 2026-11-12)
+
+- Con cada uso, Nyx entiende mejor la forma de hablar del usuario (sus palabras, sus
+  apodos para las apps, sus errores típicos de pronunciación que Whisper transcribe mal) y
+  ajusta su forma de expresarse para acertar más. Base: los atajos aprendidos (SPEC 6),
+  las correcciones («no, eso no») y el registro de acciones; todo local y visible en
+  Ajustes → Cerebro, con opción de borrarlo.
 
 ## 4. Plataforma de extensiones (0.7)
 
