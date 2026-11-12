@@ -23,6 +23,7 @@ from nyx.brain.prompts import (
     user_message,
 )
 from nyx.brain.reply import MAX_HEADER, Reply, ReplyEvent, TextReplyParser
+from nyx.brain.select import ToolSelector
 from nyx.brain.textcalls import could_be_call, parse_text_calls
 from nyx.settings.model import ResponseTone
 
@@ -73,16 +74,26 @@ class Brain:
         tools: Sequence[dict[str, Any]] = (),
         *,
         tone: ResponseTone = "cercano",
+        selector: ToolSelector | None = None,
     ) -> None:
         self.llm = llm
         self.memory = memory or ShortMemory()
         self._clock = clock
         self.tools = list(tools)
+        # Con selector (6.20b), cada petición ve las fijas y los grupos de su tema; sin él,
+        # siempre `tools` (pruebas y comparaciones: `battery.py --sin-grupos`).
+        self.selector = selector
         # Se elige al arrancar para no romper la caché del prefijo de Ollama (6.15).
         self._system = system_message(tone)
 
+    def tools_for(self, text: str, *, keep: bool = False) -> list[dict[str, Any]]:
+        if self.selector is None:
+            return self.tools
+        return self.selector.select(text, keep=keep)
+
     async def warmup(self) -> None:
-        await self.llm.warmup([self._system], tools=self.tools)
+        # Con selector, el prefijo de arranque son las fijas (y los grupos vigentes, si hay).
+        await self.llm.warmup([self._system], tools=self.tools_for(""))
 
     def build_messages(self, text: str, extra: str = "") -> list[ChatMessage]:
         if action := self.memory.action():
@@ -108,10 +119,17 @@ class Brain:
         memoria corta se sustituye en vez de añadir otro."""
         parser = TextReplyParser()
         calls: list[LLMToolCall] = []
-        names = [t["function"]["name"] for t in self.tools]
+        tools = self.tools_for(text, keep=continuing)
+        # Una llamada escrita como texto a una herramienta que no estaba en la lista también
+        # cuenta: existe y se ejecuta (el selector puede haberse quedado corto).
+        names = (
+            sorted(self.selector.names)
+            if self.selector is not None
+            else [t["function"]["name"] for t in tools]
+        )
         held = ""  # principio retenido: ¿texto o una llamada escrita como texto?
-        mode = "?" if names else "text"
-        async for piece in self.llm.chat(self.build_messages(text, extra), tools=self.tools):
+        mode = "?" if tools else "text"
+        async for piece in self.llm.chat(self.build_messages(text, extra), tools=tools):
             if isinstance(piece, list):
                 calls += piece
                 continue

@@ -24,6 +24,7 @@ from nyx.brain.base import LLMError
 from nyx.brain.ollama import OllamaEngine, launch_ollama
 from nyx.brain.phrases import PhraseBook
 from nyx.brain.router import refusal, route
+from nyx.brain.select import ToolSelector, tools_budget
 from nyx.brain.service import Brain
 from nyx.brain.shortcuts import ShortcutStore
 from nyx.bus import EventBus
@@ -151,7 +152,9 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     )
 
     registry = default_registry()
-    brain = Brain(llm, tools=registry.schemas(), tone=settings.responses.tone)
+    # Si las herramientas no caben en su parte del contexto, se rotan por grupos (6.20b).
+    selector = ToolSelector(registry, budget_chars=tools_budget(settings.llm.num_ctx))
+    brain = Brain(llm, tone=settings.responses.tone, selector=selector)
 
     async def load_llm() -> None:
         try:

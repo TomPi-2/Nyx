@@ -6,6 +6,9 @@ compara lo que se haría con lo esperado en tests/battery/frases.jsonl.
     uv run python scripts/battery.py                  # todas
     uv run python scripts/battery.py --solo spotify   # las que contienen «spotify»
     uv run python scripts/battery.py --informe ../docs/benchmarks/bateria.md
+    uv run python scripts/battery.py --sin-grupos     # todas las herramientas (antes de 6.20b)
+    uv run python scripts/battery.py --mezclar        # orden al azar: más cambios de grupo
+    uv run python scripts/battery.py --contexto 8192  # como si no cupieran todas (grupos)
 
 Formato de cada línea: {"frase": …, y una de:
     "tool": "open_app" (o "a|b"), "args": {…parciales…}   una acción
@@ -19,6 +22,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import random
 import statistics
 import sys
 import time
@@ -31,6 +35,7 @@ from pydantic import ValidationError
 
 from nyx.brain.ollama import OllamaEngine
 from nyx.brain.router import Miss, Route, refusal, route
+from nyx.brain.select import ToolSelector, tools_budget
 from nyx.brain.service import Brain, ReplyDone, ToolPlan
 from nyx.executor import ToolCall, with_waits
 from nyx.index.aliases import normalize
@@ -143,7 +148,7 @@ async def run_case(case: dict[str, Any], index: SystemIndex, brain: Brain) -> Ou
     return Outcome(text, "llm", ok, got, why, ms, {"first_ms": first or ms})
 
 
-def report(outcomes: list[Outcome], model: str) -> str:
+def report(outcomes: list[Outcome], model: str, how: str = "") -> str:
     total = len(outcomes)
     good = sum(o.ok for o in outcomes)
     lines = [
@@ -152,6 +157,20 @@ def report(outcomes: list[Outcome], model: str) -> str:
         f"Modelo: `{model}`. Frases: {total}. "
         f"**Acierto: {good}/{total} ({100 * good / total:.0f} %)**.",
         "",
+    ]
+    if how:
+        lines += [how, ""]
+    # Primer token en la primera pasada de cada frase del LLM: las repeticiones (--veces)
+    # encuentran la caché ya caliente y engañarían.
+    firsts = [o.extra["first_try_ms"] for o in outcomes if "first_try_ms" in o.extra]
+    if firsts:
+        lines += [
+            f"Primer token en lo que pasa por el LLM (primera pasada): mediana "
+            f"**{statistics.median(firsts):.0f} ms**, media **{statistics.mean(firsts):.0f} ms**, "
+            f"peor {max(firsts):.0f} ms.",
+            "",
+        ]
+    lines += [
         "| Camino | Frases | Acierto | Latencia mediana | Peor |",
         "| --- | --- | --- | --- | --- |",
     ]
@@ -196,6 +215,28 @@ async def main() -> int:
         help="cuántas veces se pasa cada frase del LLM; cuenta la mayoría (tarea 6.18: con "
         "una sola pasada, la suerte engaña)",
     )
+    parser.add_argument(
+        "--sin-grupos",
+        action="store_true",
+        help="el modelo ve todas las herramientas siempre (como antes de la 6.20b)",
+    )
+    parser.add_argument(
+        "--mezclar",
+        type=int,
+        nargs="?",
+        const=1,
+        default=None,
+        metavar="SEMILLA",
+        help="frases en orden al azar (más cambios de grupo y de caché, como en el uso real)",
+    )
+    parser.add_argument(
+        "--contexto",
+        type=int,
+        default=None,
+        metavar="TOKENS",
+        help="presupuesto de herramientas como si `llm.num_ctx` fuera este (p. ej. 8192: no "
+        "caben todas y se rotan por grupos); Ollama sigue con el contexto de los ajustes",
+    )
     args = parser.parse_args()
 
     cases = [
@@ -205,16 +246,32 @@ async def main() -> int:
     ]
     if args.solo:
         cases = [c for c in cases if args.solo.lower() in c["frase"].lower()]
+    if args.mezclar is not None:
+        random.Random(args.mezclar).shuffle(cases)
     settings = load_settings()
     llm = OllamaEngine(
         settings.llm.host, settings.llm.model, num_ctx=settings.llm.num_ctx, timeout_s=30
     )
-    brain = Brain(llm, tools=REGISTRY.schemas())
+    if args.sin_grupos:
+        brain = Brain(llm, tools=REGISTRY.schemas())
+        how = "Herramientas: todas en cada petición (sin grupos)."
+    else:
+        ctx = args.contexto or settings.llm.num_ctx
+        selector = ToolSelector(REGISTRY, budget_chars=tools_budget(ctx))
+        brain = Brain(llm, selector=selector)
+        how = (
+            "Herramientas: todas (caben en su parte del contexto)."
+            if selector.all_fit
+            else f"Herramientas: fijas + grupos usados hace poco (no caben con {ctx} de contexto)."
+        )
+    if args.mezclar is not None:
+        how += f" Orden al azar (semilla {args.mezclar})."
     index = SystemIndex.open()
     await brain.warmup()
     outcomes: list[Outcome] = []
     for case in cases:
         outcome = await run_case(case, index, brain)
+        first_try = outcome.extra.get("first_ms")
         if outcome.path == "llm" and args.veces > 1:
             # El modelo no responde siempre igual: se repite y cuenta la mayoría.
             tries = [outcome] + [await run_case(case, index, brain) for _ in range(args.veces - 1)]
@@ -222,6 +279,8 @@ async def main() -> int:
             outcome = next(t for t in tries if t.ok == (good * 2 > len(tries)))
             if 0 < good < len(tries):
                 outcome.why = (outcome.why + " " if outcome.why else "") + f"({good}/{len(tries)})"
+        if first_try is not None:
+            outcome.extra["first_try_ms"] = first_try
         outcomes.append(outcome)
         mark = "✓" if outcome.ok else "✗"
         print(
@@ -230,7 +289,7 @@ async def main() -> int:
         )
     await llm.aclose()
     index.close()
-    text = report(outcomes, settings.llm.model)
+    text = report(outcomes, settings.llm.model, how)
     print()
     print(text.split("## Fallos")[0])
     if args.informe:
