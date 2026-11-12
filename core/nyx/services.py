@@ -22,6 +22,7 @@ from nyx.audio.playback import Player
 from nyx.audio.vad import SileroVAD
 from nyx.brain.base import LLMError
 from nyx.brain.ollama import OllamaEngine, launch_ollama
+from nyx.brain.phrases import PhraseBook
 from nyx.brain.router import refusal, route
 from nyx.brain.service import Brain
 from nyx.brain.shortcuts import ShortcutStore
@@ -150,7 +151,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     )
 
     registry = default_registry()
-    brain = Brain(llm, tools=registry.schemas())
+    brain = Brain(llm, tools=registry.schemas(), tone=settings.responses.tone)
 
     async def load_llm() -> None:
         try:
@@ -269,7 +270,10 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     game = GameGate(settings.game, path=local_dir() / "game-queue.json")
     game.load()
     tools_ctx.game = game
-    executor = Executor(registry, tools_ctx, action_log=ActionLog.default(), game=game)
+    phrases = PhraseBook()
+    executor = Executor(
+        registry, tools_ctx, action_log=ActionLog.default(), game=game, phrases=phrases
+    )
     # Registro de activaciones; los errores apuntados suben el umbral del detector propio.
     activations = ActivationLog.default()
     if isinstance(wake, OwnWakeWord):
@@ -297,6 +301,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         activations=activations,
         wake_phrase=wake_phrase,
         game=game,
+        phrases=phrases,
     )
     log.info(
         "Servicios listos en %.1f s (voz: %s, activación: %s, respuesta hablada: %s)",

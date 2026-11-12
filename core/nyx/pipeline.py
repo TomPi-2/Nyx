@@ -25,8 +25,9 @@ from nyx.audio.capture import AudioCapture, Frame, rms_level
 from nyx.audio.playback import Player
 from nyx.audio.vad import Endpointer, EndReason, VoiceDetector
 from nyx.brain.agent import MAX_SECONDS, MAX_STEPS, AgentRun, continuation_hint, memory_note
-from nyx.brain.base import LLMError, LLMErrorKind
-from nyx.brain.guard import GARBLED_REPLY, looks_like_code, mentions_tool, tool_keys
+from nyx.brain.base import LLMError
+from nyx.brain.guard import looks_like_code, mentions_tool, tool_keys
+from nyx.brain.phrases import PhraseBook
 from nyx.brain.reply import BubbleReady, Reply, SpokenDelta, SpokenEnd, first_sentence
 from nyx.brain.router import IN_GAME_REFUSAL, Miss, Route
 from nyx.brain.service import Brain, ReplyDone, ToolPlan
@@ -184,22 +185,6 @@ class _Marks:
     phrase: str = ""  # lo que pidió el usuario (para el registro de acciones)
 
 
-ERRORS: dict[LLMErrorKind, tuple[str, str, str]] = {
-    LLMErrorKind.UNAVAILABLE: (
-        "Sin conexión con Ollama",
-        "no he podido abrirlo",
-        "No puedo conectar con el modelo de lenguaje.",
-    ),
-    LLMErrorKind.MODEL_MISSING: (
-        "Falta el modelo",
-        "descárgalo con ollama pull",
-        "Falta el modelo de lenguaje.",
-    ),
-    LLMErrorKind.TIMEOUT: ("Me he atascado", "¿lo repites?", "Me he atascado, ¿lo repites?"),
-    LLMErrorKind.OTHER: ("Algo ha fallado", "inténtalo otra vez", "Algo ha fallado."),
-}
-
-
 def text_bubble(reply: Reply) -> BubbleReady:
     """Burbuja de una respuesta sin voz: el dato destacado y, debajo, la respuesta entera."""
     spoken = reply.spoken.strip()
@@ -290,6 +275,7 @@ class Pipeline:
         activations: ActivationLog | None = None,
         wake_phrase: WakePhrase | None = None,
         game: GameGate | None = None,
+        phrases: PhraseBook | None = None,
         clock: Callable[[], float] = time.perf_counter,
     ) -> None:
         self.bus = bus
@@ -311,6 +297,7 @@ class Pipeline:
         self.activations = activations
         self.wake_phrase = wake_phrase or WakePhrase()  # «Nyx» o la palabra personalizada
         self.game = game
+        self.phrases = phrases or PhraseBook()
         # Umbral del detector sin el ajuste por errores (para recalcularlo al apuntar uno).
         threshold = getattr(wake, "threshold", None)
         offset = activations.offset if activations is not None else 0.0
@@ -630,7 +617,8 @@ class Pipeline:
             raise
         except Exception:
             log.exception("Fallo inesperado en la petición")
-            await self._fail("Algo ha fallado", "inténtalo otra vez", None)
+            p = self.phrases.pick("error_other")
+            await self._fail(p.display, p.secondary, None)
 
     async def _cancel_request(self) -> None:
         task = self._request
@@ -666,7 +654,8 @@ class Pipeline:
             verified = verify is None or await verify or self.wake_phrase.heard(raw, first_words=3)
         except STTError:
             log.exception("Fallo al transcribir")
-            await self._fail("No he podido oírte bien", "fallo al transcribir", None)
+            p = self.phrases.pick("error_stt")
+            await self._fail(p.display, p.secondary, None)
             return
         finally:
             thinking.cancel()
@@ -1062,8 +1051,8 @@ class Pipeline:
                 log.warning("Respuesta con código o llamadas escritas: no se dice")
                 if speech is not None:
                     await speech.abort()
-                display, secondary = GARBLED_REPLY
-                await self._fail(display, secondary, f"{display}." if speak else None)
+                p = self.phrases.pick("garbled")
+                await self._fail(p.display, p.secondary, p.spoken if speak else None)
                 return
             if plan is not None:
                 if speech is not None:
@@ -1082,8 +1071,8 @@ class Pipeline:
             log.error("Fallo del LLM: %s", e)
             if speech is not None:
                 await speech.abort()
-            display, secondary, spoken = ERRORS[e.kind]
-            await self._fail(display, secondary, spoken if speak else None)
+            p = self.phrases.llm_error(e.kind)
+            await self._fail(p.display, p.secondary, p.spoken if speak else None)
             return
         except asyncio.CancelledError:
             if speech is not None:

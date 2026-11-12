@@ -10,6 +10,7 @@ import pytest
 
 from nyx.audio.capture import FRAME_S, FRAME_SAMPLES
 from nyx.brain.base import ChatMessage, LLMError, LLMErrorKind, LLMToolCall
+from nyx.brain.phrases import LLM_ERROR_KEY, PHRASES
 from nyx.brain.service import Brain
 from nyx.bus import EventBus
 from nyx.events import (
@@ -435,21 +436,16 @@ async def test_talk_key_tap_lets_vad_decide() -> None:
     await h.p.close()
 
 
-@pytest.mark.parametrize(
-    ("kind", "display"),
-    [
-        (LLMErrorKind.UNAVAILABLE, "Sin conexión con Ollama"),
-        (LLMErrorKind.TIMEOUT, "Me he atascado"),
-    ],
-)
-async def test_llm_errors_are_explained(kind: LLMErrorKind, display: str) -> None:
+@pytest.mark.parametrize("kind", [LLMErrorKind.UNAVAILABLE, LLMErrorKind.TIMEOUT])
+async def test_llm_errors_are_explained(kind: LLMErrorKind) -> None:
     h = Harness(llm=FakeLLM(error=LLMError(kind)))
     await h.say()
     await h.p.wait_idle()
     assert NyxState.ERROR in h.states
     assert h.states[-1] is NyxState.IDLE
-    assert h.bubbles[-1][0] == display
-    assert h.tts.said  # por voz, el error también se dice en voz alta
+    expected = PHRASES[LLM_ERROR_KEY[kind]]
+    assert h.bubbles[-1] in {(p.display, p.secondary) for p in expected}
+    assert h.tts.said and h.tts.said[-1] in {p.spoken for p in expected}
     await h.p.close()
 
 
@@ -457,7 +453,7 @@ async def test_llm_error_on_text_request_is_silent() -> None:
     h = Harness(llm=FakeLLM(error=LLMError(LLMErrorKind.UNAVAILABLE)))
     await h.bus.publish(TextEntered("hola"))
     await h.p.wait_idle()
-    assert h.bubbles[-1][0] == "Sin conexión con Ollama"
+    assert h.bubbles[-1][0] in {p.display for p in PHRASES["error_unavailable"]}
     assert h.tts.said == []
     await h.p.close()
 
@@ -520,6 +516,6 @@ async def test_code_in_reply_is_never_spoken(raw: str) -> None:
     await h.bus.publish(TextEntered("salta"))
     await h.p.wait_idle()
     assert all("(" not in s and "{" not in s for s in h.tts.said)
-    assert h.tts.said[-1] == "No he podido hacerlo."
-    assert h.bubbles[-1] == ("No he podido hacerlo", "¿me lo pides de otra forma?")
+    assert h.tts.said[-1] in {p.spoken for p in PHRASES["garbled"]}
+    assert h.bubbles[-1] in {(p.display, p.secondary) for p in PHRASES["garbled"]}
     await h.p.close()

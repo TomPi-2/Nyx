@@ -166,3 +166,15 @@ def test_monitor_settings_are_live(tmp_path: Path) -> None:
     assert settings.game.alt_monitor == r"\.\DISPLAY3"
     with pytest.raises(SettingsError, match="follow"):
         service.apply({"appearance": {"monitor": {"follow": "ventana"}}})
+
+
+def test_response_tone_requires_restart_and_validates(tmp_path: Path) -> None:
+    service, settings, _ = _service(tmp_path)
+    assert settings.responses.tone == "cercano"
+    assert service.apply({"responses": {"tone": "divertido"}}) == ["responses.tone"]
+    assert settings.responses.tone == "divertido"
+    assert service.pending_restart() == ["responses.tone"]
+    service.apply({"responses": {"tone": "cercano"}})
+    assert service.pending_restart() == []
+    with pytest.raises(SettingsError, match="tone"):
+        service.apply({"responses": {"tone": "borde"}})

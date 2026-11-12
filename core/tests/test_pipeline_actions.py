@@ -1,6 +1,7 @@
 """Bucle de voz con el router rápido y el ejecutor (bloque 3a)."""
 
 from nyx.brain.base import LLMToolCall
+from nyx.brain.phrases import PHRASES
 from nyx.brain.router import Miss, Route
 from nyx.events import NyxState, TextEntered
 from nyx.executor import ToolCall, with_waits
@@ -161,6 +162,6 @@ async def test_tool_names_never_reach_the_bubble_or_the_voice() -> None:
     h.llm.replies = ["[list_alarms | dices las alarmas]\nlistalarms, dices las alarmas"]
     await h.bus.publish(TextEntered("qué alarmas hay"))
     await h.p.wait_idle()
-    assert h.tts.said[-1] == "No he podido hacerlo."
+    assert h.tts.said[-1] in {p.spoken for p in PHRASES["garbled"]}
     assert all("list" not in b[0] and "set_alarm" not in b[0] for b in h.bubbles)
     await h.p.close()

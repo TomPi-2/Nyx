@@ -52,7 +52,15 @@ EDITABLE: tuple[str, ...] = (
     "privacy.",
 )
 #: Lo que solo se lee al arrancar: cambiarlo pide reiniciar Nyx.
-NEEDS_RESTART: tuple[str, ...] = ("audio.", "wake.", "listen.", "stt.", "llm.", "tts.")
+NEEDS_RESTART: tuple[str, ...] = (
+    "audio.",
+    "wake.",
+    "listen.",
+    "stt.",
+    "llm.",
+    "tts.",
+    "responses.tone",
+)
 
 
 class SettingsError(ValueError):

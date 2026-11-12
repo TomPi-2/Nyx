@@ -2,7 +2,7 @@
 
 import type { FontId, NyxColorId, PanelTintId } from "$theme/palette";
 
-export const PROTOCOL_VERSION = 14;
+export const PROTOCOL_VERSION = 15;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -42,6 +42,8 @@ export interface ToolInfo {
 
 export type GamePolicy = "allowed" | "deferred" | "blocked";
 
+export type ResponseTone = "cercano" | "neutro" | "divertido";
+
 /**
  * v8: ajustes de settings.json (core/nyx/settings/model.py). Solo se tipan las secciones que
  * cambia la ventana de Ajustes; el resto llega igual pero no se toca.
@@ -58,7 +60,7 @@ export interface NyxSettings {
     /** v11: en qué monitor aparece Nyx. */
     monitor: MonitorSettings;
   };
-  responses: { speak_typed: boolean };
+  responses: { speak_typed: boolean; tone: ResponseTone };
   wake: {
     enabled: boolean;
     engine: "propio" | "vosk";

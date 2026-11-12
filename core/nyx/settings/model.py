@@ -82,9 +82,14 @@ class TTSSettings(_Section):
     speed: float = Field(default=1.0, ge=0.5, le=2.0)
 
 
+ResponseTone = Literal["cercano", "neutro", "divertido"]
+
+
 class ResponseSettings(_Section):
     # Peticiones escritas (Win+Alt+N): False = solo burbuja; True = también en voz alta.
     speak_typed: bool = False
+    # Personalidad al responder (6.15): cambia un párrafo del prompt de sistema al arrancar.
+    tone: ResponseTone = "cercano"
 
 
 class GlassSettings(_Section):

@@ -19,6 +19,7 @@ def test_settings_created_with_defaults(tmp_path: Path) -> None:
     assert path.exists()
     assert s.llm.model == "qwen2.5:7b"
     assert s.listen.silence_ms == 700
+    assert s.responses.tone == "cercano"
 
 
 def test_settings_roundtrip_and_unknown_keys(tmp_path: Path) -> None:

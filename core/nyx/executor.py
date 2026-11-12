@@ -23,6 +23,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from nyx.brain.phrases import PhraseBook
 from nyx.game.policy import GameGate
 from nyx.safety.action_log import ActionLog, Decision
 from nyx.safety.guard import SafetyGuard, Verdict
@@ -190,6 +191,7 @@ class Executor:
         action_log: ActionLog | None = None,
         confirm: ConfirmFn | None = None,
         game: GameGate | None = None,
+        phrases: PhraseBook | None = None,
     ) -> None:
         self.registry = registry
         self.ctx = ctx
@@ -197,6 +199,7 @@ class Executor:
         self.log = action_log
         self.confirm = confirm
         self.game = game  # modo partida: permitida, diferida o bloqueada (SPEC sección 9)
+        self.phrases = phrases or PhraseBook()
 
     def _record(
         self,
@@ -244,7 +247,8 @@ class Executor:
             params = tool.params_model.model_validate(call.arguments)
         except ValidationError as e:
             log.warning("Parámetros no válidos para %s: %s", call.name, e)
-            result = ToolResult.fail("No he entendido bien qué hacer", "¿lo repites?")
+            p = self.phrases.pick("not_understood")
+            result = ToolResult.fail(p.display, p.secondary)
             self._record(tool, call.name, call.arguments, Decision.INVALID, result, phrase)
             return result
         args = params.model_dump(exclude_none=True)
@@ -295,10 +299,12 @@ class Executor:
         try:
             prepared = await asyncio.wait_for(tool.prepare(params, self.ctx), tool.timeout_s)
         except TimeoutError:
-            prepared = Prepared("", error=ToolResult.fail("Ha tardado demasiado"))
+            p = self.phrases.pick("error_timeout")
+            prepared = Prepared("", error=ToolResult.fail(p.display, p.secondary))
         except Exception:
             log.exception("Fallo preparando %s", call.name)
-            prepared = Prepared("", error=ToolResult.fail("Algo ha fallado al prepararlo"))
+            p = self.phrases.pick("error_other")
+            prepared = Prepared("", error=ToolResult.fail(p.display, p.secondary))
         if prepared.error is not None:
             self._record(tool, call.name, args, Decision.EXECUTED, prepared.error, phrase)
             return prepared.error
@@ -329,10 +335,12 @@ class Executor:
                 tool.execute(params, self.ctx, prepared), tool.timeout_s
             )
         except TimeoutError:
-            result = ToolResult.fail("Ha tardado demasiado")
+            p = self.phrases.pick("error_timeout")
+            result = ToolResult.fail(p.display, p.secondary)
         except Exception:
             log.exception("Fallo en la herramienta %s", call.name)
-            result = ToolResult.fail("Algo ha fallado al hacerlo")
+            p = self.phrases.pick("error_other")
+            result = ToolResult.fail(p.display, p.secondary)
         if result.ok and result.undo is not None:
             entry = self.ctx.undo.push(result.undo)
             result.data["undo_id"] = entry.id

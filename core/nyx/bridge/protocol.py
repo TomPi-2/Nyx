@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 14
+PROTOCOL_VERSION = 15
 
 
 class _Msg(BaseModel):

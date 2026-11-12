@@ -24,6 +24,7 @@ from nyx.brain.prompts import (
 )
 from nyx.brain.reply import MAX_HEADER, Reply, ReplyEvent, TextReplyParser
 from nyx.brain.textcalls import could_be_call, parse_text_calls
+from nyx.settings.model import ResponseTone
 
 log = logging.getLogger(__name__)
 
@@ -70,14 +71,18 @@ class Brain:
         memory: ShortMemory | None = None,
         clock: Callable[[], datetime] = datetime.now,
         tools: Sequence[dict[str, Any]] = (),
+        *,
+        tone: ResponseTone = "cercano",
     ) -> None:
         self.llm = llm
         self.memory = memory or ShortMemory()
         self._clock = clock
         self.tools = list(tools)
+        # Se elige al arrancar para no romper la caché del prefijo de Ollama (6.15).
+        self._system = system_message(tone)
 
     async def warmup(self) -> None:
-        await self.llm.warmup([system_message()], tools=self.tools)
+        await self.llm.warmup([self._system], tools=self.tools)
 
     def build_messages(self, text: str, extra: str = "") -> list[ChatMessage]:
         if action := self.memory.action():
@@ -89,7 +94,7 @@ class Brain:
             )
             extra = f"{last} {extra}" if extra else last
         return [
-            system_message(),
+            self._system,
             *self.memory.messages(),
             user_message(text, self._clock(), extra),
         ]
