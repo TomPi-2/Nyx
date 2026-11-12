@@ -63,9 +63,9 @@ Los atajos siguen el idioma de Windows (en español, «nuevo» es Ctrl+U y «gua
 | Volumen general | «sube el volumen», «volumen al 30», «silencia» | Hecho | Verde |
 | Volumen de una app (mezclador) | «baja Discord al 20», «silencia Chrome» | Hecho | Verde |
 | Volumen propio de Spotify | «sube el volumen de Spotify» | Hecho | Verde |
-| Qué está sonando | «¿qué canción es esta?» (SMTC de Windows) | F6 | Verde |
+| Qué está sonando | «¿qué canción es esta?» (SMTC de Windows) | Hecho (`now_playing`) | Verde |
 | Poner algo concreto | «pon Bad Bunny en Spotify», «pon lo-fi en YouTube» | F6 | Verde |
-| Cambiar la salida de audio | «pon el sonido en los auriculares» | F6 | Verde |
+| Cambiar la salida de audio | «pon el sonido en los auriculares» | Hecho (`audio_output`: abre Sonido de Windows) | Verde |
 | Cambiar el micrófono por defecto | «usa el micro Ozone» | F6 | Verde |
 | Atenuar la música mientras habla Nyx | automático | F5 | — |
 
@@ -95,8 +95,8 @@ Los atajos siguen el idioma de Windows (en español, «nuevo» es Ctrl+U y «gua
 | Temporizador | «temporizador de 5 minutos», «avísame en media hora» | Hecho | Verde |
 | Recordatorio con texto | «recuérdame a las 6 llamar a mamá» | Hecho | Verde |
 | Ver y cancelar alarmas | «¿qué alarmas tengo?», «quita la alarma de las 7» | Hecho | Verde |
-| Alarmas que se repiten | «todos los días laborables a las 7» | F6 | Verde |
-| Cronómetro | «empieza un cronómetro», «¿cuánto lleva?» | F6 | Verde |
+| Alarmas que se repiten | «todos los días laborables a las 7» | Hecho | Verde |
+| Cronómetro | «empieza un cronómetro», «¿cuánto lleva?» | Hecho (`stopwatch`) | Verde |
 | Notas rápidas y listas | «apunta comprar leche», «¿qué hay en la lista de la compra?» | F6 | Verde |
 | Calendario | «¿qué tengo mañana?», «añade dentista el jueves a las 5» (Outlook/Google, con permiso) | Idea | Amarillo |
 | Recordatorios por contexto | «cuando abra Discord, recuérdame contestar a Pablo» | Idea | Verde |

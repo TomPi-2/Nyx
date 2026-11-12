@@ -570,3 +570,50 @@ def test_brightness_power_and_radios_by_rule(
     index: SystemIndex, text: str, tool: str, args: dict[str, object]
 ) -> None:
     assert call(text, index) == (tool, args)
+
+
+@pytest.mark.parametrize(
+    ("text", "tool", "args"),
+    [
+        ("¿qué suena?", "now_playing", {}),
+        ("¿qué está sonando ahora en Spotify?", "now_playing", {}),
+        ("¿qué canción es esta?", "now_playing", {}),
+        ("¿quién canta esto?", "now_playing", {}),
+        ("empieza un cronómetro", "stopwatch", {"action": "start"}),
+        ("inicia el cronómetro", "stopwatch", {"action": "start"}),
+        ("¿cuánto lleva?", "stopwatch", {"action": "status"}),
+        ("¿cuánto lleva el cronómetro?", "stopwatch", {"action": "status"}),
+        ("para el cronómetro", "stopwatch", {"action": "stop"}),
+        ("cambia la salida de audio", "audio_output", {}),
+        ("pon el sonido en los auriculares", "audio_output", {"device": "auriculares"}),
+        (
+            "pon una alarma todos los días a las 7",
+            "set_alarm",
+            {"time": "07:00", "repeat": "daily"},
+        ),
+        (
+            "pon una alarma todos los días laborables a las 7",
+            "set_alarm",
+            {"time": "07:00", "repeat": "weekdays"},
+        ),
+        (
+            "despiértame de lunes a viernes a las 7 y media",
+            "set_alarm",
+            {"time": "07:30", "repeat": "weekdays"},
+        ),
+        (
+            "alarma a las 9 los fines de semana",
+            "set_alarm",
+            {"time": "09:00", "repeat": "weekends"},
+        ),
+        (
+            "recuérdame todos los días a las 21:00 tomar la pastilla",
+            "set_alarm",
+            {"time": "21:00", "label": "tomar la pastilla", "repeat": "daily"},
+        ),
+    ],
+)
+def test_music_and_time_by_rule(
+    index: SystemIndex, text: str, tool: str, args: dict[str, object]
+) -> None:
+    assert call(text, index) == (tool, args)

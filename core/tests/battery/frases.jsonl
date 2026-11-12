@@ -132,3 +132,10 @@
 {"frase": "desactiva el wifi", "tool": "toggle_wifi", "args": {"enabled": false}}
 {"frase": "bloquea el PC", "tool": "system_power", "args": {"action": "lock"}}
 {"frase": "suspende el ordenador", "tool": "system_power", "args": {"action": "sleep"}}
+{"frase": "¿qué está sonando?", "tool": "now_playing"}
+{"frase": "¿qué canción es esta?", "tool": "now_playing"}
+{"frase": "empieza un cronómetro", "tool": "stopwatch", "args": {"action": "start"}}
+{"frase": "¿cuánto lleva el cronómetro?", "tool": "stopwatch", "args": {"action": "status"}}
+{"frase": "para el cronómetro", "tool": "stopwatch", "args": {"action": "stop"}}
+{"frase": "pon una alarma todos los días laborables a las 7", "tool": "set_alarm", "args": {"time": "07:00", "repeat": "weekdays"}}
+{"frase": "pon el sonido en los auriculares", "tool": "audio_output"}

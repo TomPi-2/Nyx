@@ -599,17 +599,45 @@ def _clock_time(m: re.Match[str] | _Renamed) -> str | None:
     return f"{h:02d}:{minute:02d}"
 
 
+_REPEAT_BODY = (
+    r"(?:todos\s+los\s+)?(?:dias\s+)?laborables|"
+    r"(?:de\s+)?lunes\s+a\s+viernes|"
+    r"entre\s+semana|"
+    r"(?:todos\s+)?los\s+fines\s+de\s+semana|"
+    r"fines\s+de\s+semana|"
+    r"todos\s+los\s+dias|"
+    r"cada\s+dia|"
+    r"a\s+diario|"
+    r"diariamente"
+)
+
+
+def _parse_repeat(raw: str | None) -> str | None:
+    if not raw:
+        return None
+    if "laborable" in raw or "lunes" in raw or "entre semana" in raw:
+        return "weekdays"
+    if "fin" in raw:
+        return "weekends"
+    return "daily"
+
+
 @rule(
     "alarm",
-    r"^(?:(?:(?:pon(?:me)?|crea|activa)\s+)?(?:una\s+)?alarma\s+(?:para\s+)?|despiertame\s+)"
-    rf"(?:(?P<day>manana|hoy)\s+)?(?:a\s+)?las?\s+{_CLOCK}$",
+    rf"^(?:(?:(?:pon(?:me)?|crea|activa)\s+)?(?:una\s+)?alarma\s+(?:para\s+)?|despiertame\s+)"
+    rf"(?:(?P<rep1>{_REPEAT_BODY})\s+)?(?:(?P<day>manana|hoy)\s+)?(?:a\s+)?las?\s+{_CLOCK}"
+    rf"(?:\s+(?P<rep2>{_REPEAT_BODY}))?$"
+    rf"|^(?P<rep3>{_REPEAT_BODY})\s+(?:a\s+)?las?\s+{_CLOCK.replace('(?P<', '(?P<a_')}$",
 )
 def _alarm(m: re.Match[str], _: SystemIndex) -> Route | None:
-    when = _clock_time(m)
+    when = _clock_time(m) if m.group("h") is not None else _clock_time(_Renamed(m, "a_"))
     if when is None:
         return None
     tomorrow = m.group("day") == "manana"
-    return _call("alarm", "set_alarm", time=when, day="tomorrow" if tomorrow else None)
+    repeat = _parse_repeat(m.group("rep1") or m.group("rep2") or m.group("rep3"))
+    return _call(
+        "alarm", "set_alarm", time=when, day="tomorrow" if tomorrow else None, repeat=repeat
+    )
 
 
 _REMIND = r"(?:recuerdame|recordarme|avisame(?:\s+(?:para|de))?)"
@@ -617,10 +645,12 @@ _REMIND = r"(?:recuerdame|recordarme|avisame(?:\s+(?:para|de))?)"
 
 @rule(
     "reminder",
-    rf"^{_REMIND}\s+(?:(?P<day>manana|hoy)\s+)?(?:a\s+)?las?\s+{_CLOCK}\s+(?:que\s+|de\s+|para\s+)?(?P<label>.+)$"
-    rf"|^{_REMIND}\s+(?:que\s+|de\s+)?(?P<label2>.+?)\s+(?:(?P<day2>manana|hoy)\s+)?a\s+las?\s+"
+    rf"^{_REMIND}\s+(?:(?P<rep1>{_REPEAT_BODY})\s+)?(?:(?P<day>manana|hoy)\s+)?(?:a\s+)?las?\s+{_CLOCK}\s+"
+    rf"(?:(?P<rep2>{_REPEAT_BODY})\s+)?(?:que\s+|de\s+|para\s+)?(?P<label>.+)$"
+    rf"|^{_REMIND}\s+(?:que\s+|de\s+)?(?P<label2>.+?)(?:\s+(?P<rep3>{_REPEAT_BODY}))?\s+"
+    rf"(?:(?P<day2>manana|hoy)\s+)?a\s+las?\s+"
     + _CLOCK.replace("(?P<", "(?P<r_")
-    + "$",
+    + rf"(?:\s+(?P<rep4>{_REPEAT_BODY}))?$",
 )
 def _reminder(m: re.Match[str], _: SystemIndex) -> Route | None:
     """«Recuérdame a las 6 de la tarde llamar a mamá» y «recuérdame llamar a mamá a las 6».
@@ -633,23 +663,28 @@ def _reminder(m: re.Match[str], _: SystemIndex) -> Route | None:
         return None
     label = _original(m.group("label") if first else m.group("label2"))
     day = m.group("day") if first else m.group("day2")
+    repeat = _parse_repeat(
+        (m.group("rep1") or m.group("rep2")) if first else (m.group("rep3") or m.group("rep4"))
+    )
     return _call(
         "reminder",
         "set_alarm",
         time=when,
         day="tomorrow" if day == "manana" else None,
         label=label,
+        repeat=repeat,
     )
 
 
 class _Renamed:
-    """Los grupos del reloj de la segunda forma (r_h, r_m…) con los nombres de _clock_time."""
+    """Los grupos del reloj con prefijo (`r_h`, `a_h`…) con los nombres de `_clock_time`."""
 
-    def __init__(self, m: re.Match[str]) -> None:
+    def __init__(self, m: re.Match[str], prefix: str = "r_") -> None:
         self._m = m
+        self._prefix = prefix
 
     def group(self, name: str) -> str | None:
-        return self._m.group(f"r_{name}")
+        return self._m.group(f"{self._prefix}{name}")
 
 
 def _original(fragment: str) -> str:
@@ -1086,6 +1121,60 @@ def _system_power(m: re.Match[str], __: SystemIndex) -> Route | None:
         if m.group(action):
             return _call("system_power", "system_power", action=action)
     return None
+
+
+# --- música actual, cronómetro y salida de audio (6.12) ---
+
+
+@rule(
+    "now_playing",
+    r"^(?:(?:dime|sabes)\s+)?"
+    r"(?:"
+    r"que\s+(?:(?:cancion|tema|musica|pista|video)\s+)?(?:esta\s+sonando|suena)"
+    r"(?:\s+ahora(?:\s+mismo)?)?(?:\s+en\s+[a-z0-9 ]+)?"
+    r"|que\s+(?:cancion|tema|musica|pista)\s+es(?:\s+(?:esta|este))?"
+    r"|como\s+se\s+llama\s+(?:esta\s+)?(?:cancion|tema|pista)(?:\s+que\s+(?:suena|esta\s+sonando))?"
+    r"|(?:quien|de\s+quien)\s+(?:canta|es)\s+(?:esto|esta\s+(?:cancion|tema)|la\s+cancion(?:\s+que\s+suena)?)"
+    r"|quien\s+canta"
+    r")$",
+)
+def _now_playing(_: re.Match[str], __: SystemIndex) -> Route:
+    return _call("now_playing", "now_playing")
+
+
+_CRONO = r"(?:el\s+|un\s+|mi\s+)?(?:cronometro|crono)"
+
+
+@rule(
+    "stopwatch",
+    rf"^(?P<start>(?:pon(?:me)?|empieza|inicia|arranca|activa|abre(?:me)?|dale\s+al?)\s+{_CRONO}|cronometro)$"
+    rf"|^(?P<stop>(?:para|parame|deten|pausa|termina|corta)\s+{_CRONO})$"
+    rf"|^(?P<status>(?:dime\s+)?(?:cuanto\s+(?:tiempo\s+)?lleva(?:\s+{_CRONO})?"
+    rf"|(?:como\s+va|que\s+(?:tiempo\s+)?marca|estado\s+de(?:l)?)\s+(?:el\s+|mi\s+)?(?:cronometro|crono)))$",
+)
+def _stopwatch(m: re.Match[str], __: SystemIndex) -> Route | None:
+    for action in ("start", "stop", "status"):
+        if m.group(action):
+            return _call("stopwatch", "stopwatch", action=action)
+    return None
+
+
+@rule(
+    "audio_output",
+    r"^(?:(?:cambia|cambiame|selecciona|elige|pon|ponme|saca|pasa|manda)\s+)?"
+    r"(?:"
+    r"(?:la\s+)?salida\s+(?:de\s+|del\s+)?(?:audio|sonido)"
+    r"(?:\s+(?:a|al|en|por)\s+(?:los\s+|las\s+|el\s+|la\s+)?(?P<d1>.+))?"
+    r"|(?:el\s+)?dispositivo\s+(?:de\s+)?(?:salida|reproduccion|audio)"
+    r"(?:\s+(?:a|al|en|por)\s+(?:los\s+|las\s+|el\s+|la\s+)?(?P<d2>.+))?"
+    r"|(?:el\s+)?(?:audio|sonido)\s+(?:a|en|por)\s+(?:los\s+|las\s+|el\s+|la\s+)?"
+    r"(?P<d3>(?:auriculares|cascos|altavoces|bluetooth|hdmi|barra\s+de\s+sonido|monitor|tele(?:vision)?|tv|usb).*)"
+    r")$",
+)
+def _audio_output(m: re.Match[str], __: SystemIndex) -> Route:
+    raw = m.group("d1") or m.group("d2") or m.group("d3")
+    device = _original(raw) if raw else None
+    return _call("audio_output", "audio_output", device=device)
 
 
 # --- lo pendiente para después de la partida ---

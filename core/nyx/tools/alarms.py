@@ -24,6 +24,7 @@ from nyx.tools.base import (
     ToolContext,
     ToolResult,
 )
+from nyx.tools.set_alarm import REPEAT_LABELS
 
 MAX_LISTED = 8
 
@@ -39,6 +40,8 @@ def describe_alarm(alarm: Alarm, now: datetime) -> str:
     else:
         what = f"{'recordatorio' if alarm.label else 'alarma'} a las {due:%H:%M}"
         what += f" ({day_label(due, now)})"
+        if repeat := REPEAT_LABELS[alarm.repeat]:
+            what += f", {repeat}"
     label = f" «{alarm.label}»" if alarm.label else ""
     return f"{what}{label}: quedan {spoken_duration(left)}"
 

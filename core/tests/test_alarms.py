@@ -1,10 +1,17 @@
 import asyncio
+import sqlite3
 from datetime import datetime
 from pathlib import Path
 
 import pytest
 
-from nyx.alarms.scheduler import AlarmFired, AlarmScheduler, AlarmsMissed
+from nyx.alarms.scheduler import (
+    AlarmFired,
+    AlarmScheduler,
+    AlarmsMissed,
+    first_matching_day,
+    next_repeat,
+)
 from nyx.alarms.spoken import (
     fired_text,
     missed_text,
@@ -189,3 +196,77 @@ async def test_cancel_all(ctx: ToolContext, sched: AlarmScheduler) -> None:
     await ex.run(ToolCall("set_alarm", {"time": "08:00"}))
     result = await ex.run(ToolCall("cancel_alarm", {"which": "todas"}))
     assert result.ok and result.display == "2 quitadas" and sched.pending() == []
+
+
+# --- 6.12: alarmas que se repiten y migración sin perder las guardadas ---
+
+
+def test_store_migrates_old_db_without_repeat(tmp_path: Path) -> None:
+    db_path = tmp_path / "legacy.db"
+    conn = sqlite3.connect(db_path)
+    conn.executescript(
+        """
+        CREATE TABLE alarms (
+            id TEXT PRIMARY KEY,
+            kind TEXT NOT NULL,
+            due REAL NOT NULL,
+            label TEXT NOT NULL DEFAULT '',
+            duration_s INTEGER,
+            created REAL NOT NULL,
+            state TEXT NOT NULL DEFAULT 'pending'
+        );
+        INSERT INTO alarms (id, kind, due, label, created)
+        VALUES ('old1', 'alarm', 1794247200.0, 'pastilla', 1794240000.0);
+        """
+    )
+    conn.close()
+
+    store = AlarmStore(db_path)
+    pending = store.pending()
+    assert len(pending) == 1
+    assert pending[0].id == "old1" and pending[0].repeat == "none"
+    store.close()
+
+
+async def test_repeating_alarm_reschedules_on_fire_and_skips_non_matching_days(
+    tmp_path: Path, ctx: ToolContext
+) -> None:
+    # Viernes 13 de noviembre de 2026, 06:50 → «de lunes a viernes» suena hoy; al sonar
+    # el viernes pasa al lunes 16 (saltándose sábado y domingo).
+    friday = datetime(2026, 11, 13, 6, 50)
+    bus, clock = EventBus(), Clock(friday.timestamp())
+    seen = collect(bus)
+    sched = AlarmScheduler(AlarmStore(tmp_path / "r.db"), bus, clock)
+    ex = executor(ctx, sched)
+
+    res = await ex.run(ToolCall("set_alarm", {"time": "07:00", "repeat": "weekdays"}))
+    assert res.ok and res.secondary == "de lunes a viernes, desde hoy"
+    [alarm] = sched.pending()
+    assert datetime.fromtimestamp(alarm.due) == datetime(2026, 11, 13, 7, 0)
+
+    listed = await ex.run(ToolCall("list_alarms"))
+    assert "de lunes a viernes" in listed.message
+
+    clock.t = datetime(2026, 11, 13, 7, 0).timestamp()
+    upcoming = await sched.fire_due()
+    assert seen == [AlarmFired(alarm)]
+    monday = datetime(2026, 11, 16, 7, 0).timestamp()
+    assert upcoming == monday
+    assert [(a.id, a.due, a.repeat) for a in sched.pending()] == [(alarm.id, monday, "weekdays")]
+
+    assert (await ex.run(ToolCall("cancel_alarm", {"which": "7"}))).ok
+    assert sched.pending() == []
+
+
+def test_first_matching_day_and_next_repeat_helpers() -> None:
+    saturday = datetime(2026, 11, 14, 9, 0)
+    assert first_matching_day(saturday, "weekdays") == datetime(2026, 11, 16, 9, 0)
+    assert first_matching_day(saturday, "weekends") == saturday
+    daily = Alarm("d1", "alarm", saturday.timestamp(), repeat="daily")
+    assert next_repeat(daily, saturday.timestamp()) == datetime(2026, 11, 15, 9, 0).timestamp()
+    weekend = Alarm("w1", "alarm", datetime(2026, 11, 15, 9, 0).timestamp(), repeat="weekends")
+    # Domingo tras sonar pasa al sábado siguiente.
+    assert (
+        next_repeat(weekend, datetime(2026, 11, 15, 9, 0).timestamp())
+        == datetime(2026, 11, 21, 9, 0).timestamp()
+    )

@@ -36,6 +36,7 @@ class ToolRegistry:
 def default_registry() -> ToolRegistry:
     from nyx.tools.alarms import CancelAlarm, ListAlarms
     from nyx.tools.app_action import AppAction
+    from nyx.tools.audio_output import AudioOutput
     from nyx.tools.clipboard import Clipboard
     from nyx.tools.close_app import CloseApp
     from nyx.tools.copy_files import CopyFiles
@@ -47,6 +48,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.list_files import ListFiles
     from nyx.tools.media_control import MediaControl
     from nyx.tools.move_files import MoveFiles
+    from nyx.tools.now_playing import NowPlayingTool
     from nyx.tools.nyx_control import NyxControl
     from nyx.tools.nyx_info import NyxInfo
     from nyx.tools.open_app import OpenApp
@@ -62,6 +64,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.set_brightness import SetBrightness
     from nyx.tools.set_timer import SetTimer
     from nyx.tools.set_volume import SetVolume
+    from nyx.tools.stopwatch import Stopwatch
     from nyx.tools.system_info import SystemInfo
     from nyx.tools.system_power import SystemPower
     from nyx.tools.toggle_bluetooth import ToggleBluetooth
@@ -85,6 +88,8 @@ def default_registry() -> ToolRegistry:
             SetVolume(),
             SetBrightness(),
             MediaControl(),
+            NowPlayingTool(),
+            AudioOutput(),
             Screenshot(),
             CloseApp(),
             CreateFolder(),
@@ -97,6 +102,7 @@ def default_registry() -> ToolRegistry:
             SetTimer(),
             ListAlarms(),
             CancelAlarm(),
+            Stopwatch(),
             NyxInfo(),
             NyxControl(),
             GetWeather(),
