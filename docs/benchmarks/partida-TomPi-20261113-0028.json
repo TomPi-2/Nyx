@@ -1,0 +1,48 @@
+{
+  "hardware": {
+    "machine": "TomPi",
+    "python": "3.12.16",
+    "cpu": "AMD Ryzen 7 7700X 8-Core Processor",
+    "ram_gb": 31.1,
+    "gpus": [
+      "AMD Radeon RX 7700 XT (32.0.32015.7029)",
+      "AMD Radeon(TM) Graphics (32.0.21045.16010)"
+    ],
+    "os": "Microsoft Windows 11 Pro build 26300"
+  },
+  "process": "RocketLeague.exe",
+  "results": [
+    {
+      "config": "sin",
+      "frames": 21461,
+      "avg_fps": 357.9,
+      "low1_fps": 186.6,
+      "median_ms": 2.77,
+      "worst_ms": 78.6,
+      "spikes": 20,
+      "thinks": 0,
+      "think_s": [],
+      "note": ""
+    },
+    {
+      "config": "qwen2.5:7b@gpu",
+      "frames": 20805,
+      "avg_fps": 346.9,
+      "low1_fps": 177.6,
+      "median_ms": 2.79,
+      "worst_ms": 13.5,
+      "spikes": 40,
+      "thinks": 7,
+      "think_s": [
+        1.43,
+        1.85,
+        1.41,
+        1.55,
+        1.54,
+        1.75,
+        2.18
+      ],
+      "note": ""
+    }
+  ]
+}
