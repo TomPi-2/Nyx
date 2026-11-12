@@ -154,3 +154,184 @@
 {"frase": "¿Cuántos segundos lleva el cronómetro?", "tool": "stopwatch", "args": {"action": "status"}}
 {"frase": "El sonido sigue saliendo por los cascos en vez de por el monitor", "tool": "audio_output", "args": {"device": "monitor"}}
 {"frase": "Quiero que pares la música", "tool": "media_control", "args": {"action": "pause"}}
+{"frase": "me apetece jugar al Rocket League", "tool": "open_app", "args": {"name": "Rocket League"}}
+{"frase": "quiero escuchar música en Spotify", "tool": "open_app|media_control"}
+{"frase": "necesito la calculadora", "tool": "open_app", "args": {"name": "Calculadora"}}
+{"frase": "arranca el Discord que voy a hablar con los colegas", "tool": "open_app", "args": {"name": "Discord"}}
+{"frase": "vamos a echar una partida al Fortnite", "tool": "open_app", "args": {"name": "Fortnite"}}
+{"frase": "tengo que hacer una hoja de cálculo", "tool": "open_app", "args": {"name": "Excel"}}
+{"frase": "me hace falta el Paint para recortar una imagen", "tool": "open_app", "args": {"name": "Paint"}}
+{"frase": "quiero grabar la pantalla con el OBS", "tool": "open_app", "args": {"name": "OBS"}}
+{"frase": "lanzamé el Valorant porfa", "tool": "open_app", "args": {"name": "VALORANT"}}
+{"frase": "abre el espotifai", "tool": "open_app", "args": {"name": "Spotify"}}
+{"frase": "ponme el Steam que quiero mirar ofertas", "tool": "open_app", "args": {"name": "Steam"}}
+{"frase": "ya no necesito el Discord, ciérralo", "tool": "close_app", "args": {"name": "Discord"}}
+{"frase": "cierra el dis cord", "tool": "close_app", "args": {"name": "Discord"}}
+{"frase": "he terminado con el Excel, quítalo", "tool": "close_app", "args": {"name": "Excel"}}
+{"frase": "llévame a la ventana del Discord", "tool": "focus_window", "args": {"name": "Discord"}}
+{"frase": "enséñame el Spotify que lo tengo abierto", "tool": "focus_window|open_app", "args": {"name": "Spotify"}}
+{"frase": "vuelve al Visual Studio Code", "tool": "focus_window", "args": {"name": "Code"}}
+{"frase": "pon el Chrome en grande", "tool": "window_layout", "args": {"action": "maximize", "name": "Chrome"}}
+{"frase": "quiero el Discord en la mitad izquierda de la pantalla", "tool": "window_layout", "args": {"action": "left", "name": "Discord"}}
+{"frase": "manda el Spotify a la otra pantalla", "tool": "window_layout", "args": {"action": "next_monitor", "name": "Spotify"}}
+{"frase": "quita de en medio esta ventana", "tool": "window_layout", "args": {"action": "minimize"}}
+{"frase": "minimisa el crome", "tool": "window_layout", "args": {"action": "minimize", "name": "Chrome"}}
+{"frase": "pon el bloc de notas a la derecha y el Chrome a la izquierda", "plan": ["window_layout", "window_layout"]}
+{"frase": "llévame a la web de Marca", "tool": "open_url", "args": {"target": "Marca"}}
+{"frase": "quiero ver vídeos en YouTube", "tool": "open_url", "args": {"target": "YouTube"}}
+{"frase": "entra en mi correo de Gmail", "tool": "open_url", "args": {"target": "Gmail"}}
+{"frase": "necesito mirar una cosa en Amazon", "tool": "open_url", "args": {"target": "Amazon"}}
+{"frase": "quiero cambiar el fondo de pantalla", "tool": "open_settings"}
+{"frase": "no me va el micrófono, llévame a donde se configura", "tool": "open_settings"}
+{"frase": "llévame a las actualizaciones de Windows", "tool": "open_settings"}
+{"frase": "abre lo del bluetooth para emparejar unos cascos", "tool": "open_settings"}
+{"frase": "quiero cambiarte la voz", "tool": "open_nyx_settings", "args": {"section": "voz"}}
+{"frase": "enséñame tus opciones de privacidad", "tool": "open_nyx_settings", "args": {"section": "privacidad"}}
+{"frase": "¿dónde veo los atajos que has aprendido?", "tool": "open_nyx_settings|nyx_info"}
+{"frase": "¿qué te había pedido para cuando acabe de jugar?", "tool": "pending", "args": {"action": "list"}}
+{"frase": "olvida lo que te dije para después de la partida", "tool": "pending", "args": {"action": "cancel"}}
+{"frase": "enséñame la carpeta de las descargas", "tool": "open_path", "args": {"target": "Descargas"}}
+{"frase": "llévame a mis documentos", "tool": "open_path", "args": {"target": "Documentos"}}
+{"frase": "abre la carpeta donde guardo los proyectos de la uni", "tool": "open_path"}
+{"frase": "ábreme lo de Pruebas Nyx", "tool": "open_path", "args": {"target": "Pruebas Nyx"}}
+{"frase": "no oigo nada, sube eso", "tool": "set_volume"}
+{"frase": "está muy alto el sonido", "tool": "set_volume"}
+{"frase": "pon el volumen a la mitad", "tool": "set_volume", "args": {"level": 50}}
+{"frase": "el Discord se oye demasiado fuerte", "tool": "set_volume", "args": {"app": "Discord"}}
+{"frase": "quítale el sonido al Chrome", "tool": "set_volume", "args": {"mute": true, "app": "Chrome"}}
+{"frase": "sube el bolumen", "tool": "set_volume"}
+{"frase": "me deslumbra la pantalla", "tool": "set_brightness"}
+{"frase": "no veo nada, la pantalla está muy oscura", "tool": "set_brightness"}
+{"frase": "pon la pantalla lo más brillante posible", "tool": "set_brightness", "args": {"level": 100}}
+{"frase": "esta canción no me gusta, pásala", "tool": "media_control", "args": {"action": "next"}}
+{"frase": "vuelve a poner la canción de antes", "tool": "media_control", "args": {"action": "previous"}}
+{"frase": "quita la música un momento", "tool": "media_control", "args": {"action": "pause"}}
+{"frase": "sigue con la música", "tool": "media_control", "args": {"action": "play"}}
+{"frase": "pon algo para relajarme", "tool": "media_control|open_app"}
+{"frase": "salta este vídeo de YouTube", "tool": "media_control", "args": {"action": "next"}}
+{"frase": "¿cómo se llama lo que estoy escuchando?", "tool": "now_playing"}
+{"frase": "¿de quién es este tema?", "tool": "now_playing"}
+{"frase": "¿qué grupo es este?", "tool": "now_playing"}
+{"frase": "quiero que el sonido salga por los altavoces", "tool": "audio_output"}
+{"frase": "cambia el sonido a los cascos", "tool": "audio_output"}
+{"frase": "sácale una foto a la pantalla", "tool": "screenshot"}
+{"frase": "guárdame lo que se ve ahora mismo en la pantalla", "tool": "screenshot"}
+{"frase": "haz un pantallazo solo de esta ventana", "tool": "screenshot", "args": {"target": "window"}}
+{"frase": "hazme una carpeta en el escritorio que se llame Facturas", "tool": "create_folder", "args": {"name": "Facturas", "parent": "Escritorio"}}
+{"frase": "necesito una carpeta nueva en Imágenes para las fotos del viaje", "tool": "create_folder", "args": {"parent": "Imágenes"}}
+{"frase": "¿tengo algo en el escritorio?", "tool": "list_files", "args": {"folder": "Escritorio"}}
+{"frase": "¿qué fotos hay en Imágenes?", "tool": "list_files|find_files"}
+{"frase": "¿cuántos vídeos tengo en la carpeta de vídeos?", "tool": "list_files|find_files"}
+{"frase": "dime qué he descargado últimamente", "tool": "list_files|find_files"}
+{"frase": "¿tengo algún PDF en el escritorio?", "tool": "list_files|find_files", "args": {"extension": "pdf"}}
+{"frase": "¿dónde está el PDF de la matrícula?", "tool": "find_files", "args": {"query": "matrícula"}}
+{"frase": "búscame la foto del DNI", "tool": "find_files", "args": {"query": "DNI"}}
+{"frase": "no encuentro el Excel del presupuesto", "tool": "find_files", "args": {"query": "presupuesto"}}
+{"frase": "¿tengo algún archivo que se llame curriculum?", "tool": "find_files", "args": {"query": "curriculum"}}
+{"frase": "encuentra el último vídeo que grabé", "tool": "find_files|list_files"}
+{"frase": "ábreme el último documento que descargué", "tool": "find_files|list_files|open_path"}
+{"frase": "lleva los PDF de Descargas a Documentos", "tool": "move_files", "args": {"folder": "Descargas", "destination": "Documentos", "extension": "pdf"}}
+{"frase": "pasa las capturas del escritorio a Imágenes", "tool": "move_files", "args": {"folder": "Escritorio", "destination": "Imágenes"}}
+{"frase": "quita los instaladores de Descargas y ponlos en la carpeta Instaladores", "tool": "move_files", "args": {"kind": "installers", "destination": "Instaladores"}}
+{"frase": "haz una copia de las fotos de Descargas en Imágenes", "tool": "copy_files", "args": {"folder": "Descargas", "destination": "Imágenes"}}
+{"frase": "duplica en el escritorio el documento más reciente de Descargas", "tool": "copy_files", "args": {"folder": "Descargas", "destination": "Escritorio"}}
+{"frase": "el archivo notas.txt del escritorio llámalo apuntes.txt", "tool": "rename_file", "args": {"new_name": "apuntes"}}
+{"frase": "cámbiale el nombre a la carpeta Nueva carpeta del escritorio por Trabajo", "tool": "rename_file", "args": {"new_name": "Trabajo"}}
+{"frase": "tira a la papelera los instaladores de Descargas", "tool": "delete_files", "args": {"folder": "Descargas", "kind": "installers"}}
+{"frase": "ya no quiero las capturas del escritorio, quítalas", "tool": "delete_files", "args": {"folder": "Escritorio"}}
+{"frase": "limpia Descargas de archivos comprimidos", "tool": "delete_files", "args": {"folder": "Descargas", "kind": "archives"}}
+{"frase": "mañana tengo que levantarme a las seis y media", "tool": "set_alarm", "args": {"time": "06:30"}}
+{"frase": "quiero que me despiertes a las 9 los fines de semana", "tool": "set_alarm", "args": {"time": "09:00", "repeat": "weekends"}}
+{"frase": "a las 5 de la tarde tengo médico, avísame", "tool": "set_alarm", "args": {"time": "17:00"}}
+{"frase": "la pasta tarda 12 minutos, avísame cuando esté", "tool": "set_timer", "args": {"minutes": 12}}
+{"frase": "en un cuarto de hora tengo que salir, avísame", "tool": "set_timer", "args": {"minutes": 15}}
+{"frase": "cuenta tres minutos para el té", "tool": "set_timer", "args": {"minutes": 3}}
+{"frase": "dentro de 45 minutos recuérdame que mire la lavadora", "tool": "set_timer", "args": {"minutes": 45}}
+{"frase": "¿a qué hora sonaba la alarma de mañana?", "tool": "list_alarms"}
+{"frase": "¿cuánto falta para que suene el temporizador?", "tool": "list_alarms"}
+{"frase": "¿tengo algo programado?", "tool": "list_alarms"}
+{"frase": "¿me puedes decir cuánto falta para mi alarma?", "tool": "list_alarms"}
+{"frase": "ya no hace falta que me despiertes mañana", "tool": "cancel_alarm"}
+{"frase": "olvida el recordatorio de llamar a mamá", "tool": "cancel_alarm", "args": {"which": "mamá"}}
+{"frase": "quita todas las alarmas", "tool": "cancel_alarm"}
+{"frase": "cronometra cuánto tardo en hacer esto", "tool": "stopwatch", "args": {"action": "start"}}
+{"frase": "ya he terminado, para de contar el tiempo", "tool": "stopwatch", "args": {"action": "stop"}}
+{"frase": "¿cuánto marca el crono?", "tool": "stopwatch", "args": {"action": "status"}}
+{"frase": "¿cómo te llamo sin decir tu nombre?", "tool": "nyx_info"}
+{"frase": "¿guardas lo que te digo?", "tool": "nyx_info"}
+{"frase": "¿qué haces cuando estoy jugando?", "tool": "nyx_info"}
+{"frase": "¿puedes borrar cosas para siempre?", "tipo": "respuesta"}
+{"frase": "habla un poco más rápido", "tool": "nyx_control", "args": {"setting": "velocidad de la voz"}}
+{"frase": "te oigo demasiado lenta, acelera", "tool": "nyx_control", "args": {"setting": "velocidad de la voz"}}
+{"frase": "cuando te escriba no me contestes hablando", "tool": "nyx_control", "args": {"setting": "voz al escribir"}}
+{"frase": "ponte de color rosa", "tool": "nyx_control", "args": {"setting": "color", "value": "rosa"}}
+{"frase": "no te actives tan fácilmente", "tool": "nyx_control", "args": {"setting": "sensibilidad"}}
+{"frase": "hazte más pequeña", "tool": "nyx_control", "args": {"setting": "tamaño"}}
+{"frase": "vivo en Sevilla", "tool": "nyx_control", "args": {"setting": "ciudad", "value": "Sevilla"}}
+{"frase": "mientras juego no pienses, solo obedece órdenes", "tool": "nyx_control", "args": {"setting": "cerebro en partida"}}
+{"frase": "¿tengo que coger chaqueta para salir?", "tool": "get_weather"}
+{"frase": "¿qué tal día va a hacer mañana?", "tool": "get_weather"}
+{"frase": "¿hará bueno este finde en Valencia?", "tool": "get_weather", "args": {"city": "Valencia"}}
+{"frase": "¿está nublado ahora?", "tool": "get_weather"}
+{"frase": "¿cuántos grados va a hacer mañana en Barcelona?", "tool": "get_weather", "args": {"city": "Barcelona"}}
+{"frase": "tengo frío, ¿qué temperatura hace fuera?", "tool": "get_weather"}
+{"frase": "¿el ordenador va muy cargado?", "tool": "system_info"}
+{"frase": "¿me queda sitio para instalar un juego de 100 gigas?", "tool": "system_info", "args": {"what": "disk"}}
+{"frase": "¿por qué va tan lento el PC?", "tool": "system_info"}
+{"frase": "¿tengo el portátil enchufado?", "tool": "system_info", "args": {"what": "battery"}}
+{"frase": "¿cuánta memoria me queda libre?", "tool": "system_info", "args": {"what": "ram"}}
+{"frase": "¿cuál de mis programas está gastando más memoria?", "tool": "system_info", "args": {"what": "top"}}
+{"frase": "me voy a dormir, apaga el ordenador", "tool": "system_power", "args": {"action": "shutdown"}}
+{"frase": "reinicia, que se ha quedado colgado", "tool": "system_power", "args": {"action": "restart"}}
+{"frase": "me voy un momento, bloquea el ordenador", "tool": "system_power", "args": {"action": "lock"}}
+{"frase": "pon el ordenador a dormir", "tool": "system_power", "args": {"action": "sleep"}}
+{"frase": "quítame internet un rato", "tool": "toggle_wifi", "args": {"enabled": false}}
+{"frase": "vuelve a encender el wifi", "tool": "toggle_wifi", "args": {"enabled": true}}
+{"frase": "enciende lo del bluetooth que voy a usar los cascos", "tool": "toggle_bluetooth", "args": {"enabled": true}}
+{"frase": "léeme lo que copié antes", "tool": "clipboard", "args": {"action": "read"}}
+{"frase": "pásame al inglés el texto que he copiado", "tool": "clipboard", "args": {"action": "read"}}
+{"frase": "¿qué pone en lo que tengo copiado?", "tool": "clipboard", "args": {"action": "read"}}
+{"frase": "guárdame en el portapapeles la dirección calle Mayor 5", "tool": "clipboard", "args": {"action": "write", "text": "calle Mayor 5"}}
+{"frase": "pon en el bloc de notas: comprar leche", "tool": "type_text", "args": {"app": "Bloc de notas", "text": "comprar leche"}}
+{"frase": "redáctame en Word: Querido Juan", "tool": "type_text", "args": {"app": "Word", "text": "Querido Juan"}}
+{"frase": "guarda el documento", "tool": "app_action|send_hotkey"}
+{"frase": "ábreme una pestaña de incógnito en Chrome", "tool": "app_action", "args": {"action": "incognito", "app": "Chrome"}}
+{"frase": "silencia mi micro en Discord", "tool": "app_action", "args": {"action": "toggle_mute", "app": "Discord"}}
+{"frase": "pon la música en aleatorio", "tool": "app_action", "args": {"action": "shuffle"}}
+{"frase": "busca en esta página la palabra precio", "tool": "app_action|send_hotkey"}
+{"frase": "vuelve a la página anterior", "tool": "app_action|send_hotkey"}
+{"frase": "acerca la página, que no veo la letra", "tool": "app_action|send_hotkey"}
+{"frase": "pulsa control z", "tool": "send_hotkey|undo"}
+{"frase": "uy, no, deshaz eso", "tool": "undo"}
+{"frase": "me he equivocado, déjalo como estaba", "tool": "undo"}
+{"frase": "abre Spotify y pon el volumen al 30", "plan": ["open_app", "set_volume"]}
+{"frase": "baja el brillo y pon música", "plan": ["set_brightness", "media_control"]}
+{"frase": "cierra el Chrome y abre el Discord", "plan": ["close_app", "open_app"]}
+{"frase": "pon una alarma a las 7 y otra a las 8", "plan": ["set_alarm", "set_alarm"]}
+{"frase": "abre el Excel y ponlo a la derecha", "plan": ["open_app", "wait_for_window", "window_layout"]}
+{"frase": "silencia el Discord y sube la música", "plan": ["set_volume", "set_volume|app_action|media_control"]}
+{"frase": "crea una carpeta Recibos en Documentos y mueve ahí los PDF de Descargas", "plan": ["create_folder", "move_files"]}
+{"frase": "haz una captura y abre la carpeta de capturas", "plan": ["screenshot", "open_path"]}
+{"frase": "apaga el wifi y bloquea el ordenador", "plan": ["toggle_wifi", "system_power"]}
+{"frase": "¿cuánto es el 15 % de 80?", "tipo": "respuesta"}
+{"frase": "¿qué significa la palabra efímero?", "tipo": "respuesta"}
+{"frase": "¿en qué año llegó el hombre a la luna?", "tipo": "respuesta"}
+{"frase": "dame una idea para cenar", "tipo": "respuesta"}
+{"frase": "¿cuántos minutos son tres horas y media?", "tipo": "respuesta"}
+{"frase": "¿cómo se dice ordenador en francés?", "tipo": "respuesta"}
+{"frase": "hola, ¿qué tal estás?", "tipo": "respuesta"}
+{"frase": "¿quién pintó las Meninas?", "tipo": "respuesta"}
+{"frase": "explícame qué es la fotosíntesis en pocas palabras", "tipo": "respuesta"}
+{"frase": "¿qué pesa más, un kilo o una libra?", "tipo": "respuesta"}
+{"frase": "recomiéndame un juego cooperativo para jugar con amigos", "tipo": "respuesta"}
+{"frase": "¿qué hora será ahora en Nueva York?", "tipo": "respuesta"}
+{"frase": "¿cuál es el río más largo de España?", "tipo": "respuesta"}
+{"frase": "dime una frase motivadora", "tipo": "respuesta"}
+{"frase": "manda un correo a mi jefe diciendo que llego tarde", "tipo": "no_sabe"}
+{"frase": "pídeme una pizza", "tipo": "no_sabe"}
+{"frase": "publica en Instagram la última foto", "tipo": "no_sabe"}
+{"frase": "llama a mi hermano", "tipo": "no_sabe"}
+{"frase": "escribe en el chat del Fortnite gg", "tipo": "no_sabe"}
+{"frase": "pulsa la tecla W en el Valorant", "tipo": "no_sabe"}
+{"frase": "instálame el Minecraft", "tipo": "no_sabe"}
+{"frase": "paga la factura de la luz", "tipo": "no_sabe"}

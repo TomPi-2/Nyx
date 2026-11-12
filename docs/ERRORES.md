@@ -7,6 +7,12 @@ Fallos vistos al usar Nyx que quedan pendientes de corregir. Se apuntan aquí pa
 | Fecha | Frase o situación | Qué pasa | Qué debería pasar | Pista |
 | --- | --- | --- | --- | --- |
 | 2026-11-11 | «Busca qué aplicaciones ha creado Tepnyx» | Busca archivos en el disco. | Buscar en internet. | Falta `web_search` (fase 6); el router no debe mandar preguntas a `find_files`. |
+| 2026-11-12 | «Arranca el Discord que voy a hablar con los colegas» | «No encuentro el discord que voy a hablar con los colegas». | Abrir Discord. | Router `open`: lo que va detrás del nombre («que…», «para…») entra en el nombre y el `Miss` no pasa al LLM. Batería 6.17. |
+| 2026-11-12 | «Abre lo del bluetooth para emparejar unos cascos» | «No encuentro…». | Abrir Configuración → Bluetooth. | Mismo caso que el anterior. Batería 6.17. |
+| 2026-11-12 | «Ábreme el último documento que descargué» | «No encuentro…». | Buscar el documento más reciente de Descargas y abrirlo (dos pasos, LLM). | Mismo caso: un `Miss` con frase larga debería ir al LLM. Batería 6.17. |
+| 2026-11-12 | «Cierra el dis cord» (Whisper parte la palabra) | Intenta cerrar «dis cord»: no lo encuentra. | Cerrar Discord. | La regla `close` no resuelve el nombre en el índice como `open`. Batería 6.17. |
+| 2026-11-12 | «Pon la música en aleatorio» | Reproduce con `source="aleatorio"`. | Aleatorio en Spotify (`app_action shuffle`). | Regla de reproducir: «en X» no siempre es la app. Batería 6.17. |
+| 2026-11-12 | «Busca en esta página la palabra precio» | Busca archivos llamados «en esta pagina la palabra precio». | Ctrl+F en la app activa (`app_action find`). | Regla `find`: excluir «en esta página/ventana». Batería 6.17. |
 
 ## Corregidos
 

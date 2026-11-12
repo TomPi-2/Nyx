@@ -174,9 +174,14 @@ def report(outcomes: list[Outcome], model: str) -> str:
             "| Frase | Camino | Qué hizo | Por qué |",
             "| --- | --- | --- | --- |",
         ]
+
+        def cell(text: str, limit: int = 0) -> str:
+            # Ni saltos de línea ni «|»: romperían la tabla.
+            flat = " ".join(text.split()).replace("|", "/")
+            return flat[:limit] if limit else flat
+
         for o in failures:
-            got = o.got.replace("|", "/")[:120]
-            lines.append(f"| {o.frase} | {o.path} | {got} | {o.why} |")
+            lines.append(f"| {cell(o.frase)} | {o.path} | {cell(o.got, 120)} | {cell(o.why)} |")
     return "\n".join(lines) + "\n"
 
 
