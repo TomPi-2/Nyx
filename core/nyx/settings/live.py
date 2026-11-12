@@ -39,6 +39,7 @@ EDITABLE: tuple[str, ...] = (
     "wake.engine",
     "wake.sensitivity",
     "wake.custom_word",
+    "wake.save_false_clips",
     "listen.followup_s",
     "listen.silence_ms",
     "tts.enabled",

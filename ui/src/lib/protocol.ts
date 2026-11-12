@@ -66,6 +66,7 @@ export interface NyxSettings {
     engine: "propio" | "vosk";
     sensitivity: number;
     custom_word: string;
+    save_false_clips: boolean;
   };
   listen: { followup_s: number; silence_ms: number };
   tts: { enabled: boolean; voice: string; speed: number };

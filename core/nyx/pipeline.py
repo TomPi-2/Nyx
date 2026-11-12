@@ -72,6 +72,7 @@ THINKING_AFTER_S = 0.3
 HOLD_S = 0.4  # mantener el atajo más que esto = hablar mientras se mantiene
 TALK_PREBUFFER_S = 0.3
 VERIFY_CLIP_S = 2.0  # audio que whisper revisa para confirmar «Nyx»
+THRESHOLD_CHECK_S = 60.0  # cada cuánto se mira si la subida automática del umbral ha bajado
 CONFIRM_TIMEOUT_S = 15.0  # SPEC sección 8: sin respuesta, se cancela
 CANCELLED_BUBBLE_S = 2.5
 UNDONE_BUBBLE_S = 4.0
@@ -316,6 +317,7 @@ class Pipeline:
         self._from_voice = False  # la petición en curso se hizo hablando
         self._agent = AgentRun()  # lo hecho en la petición en curso (bucle de agente, 6.01)
         self._wake_score: float | None = None  # del detector, al saltar (registro de activaciones)
+        self._threshold_checked = time.time()
         self._side_tasks: set[asyncio.Task[None]] = set()
         self._barge: asyncio.Task[None] | None = None
         if executor is not None and executor.confirm is None:
@@ -364,6 +366,8 @@ class Pipeline:
                 log.info("Confirmación por voz: %s", "sí" if said else "no")
                 self._resolve(said)
             return
+        if time.time() - self._threshold_checked >= THRESHOLD_CHECK_S:
+            self._apply_threshold()  # la subida automática baja sola si no hay descartes
         if self.mode is Mode.LISTENING:
             await self._listen_frame(frame)
         elif (
@@ -407,7 +411,7 @@ class Pipeline:
             return
         ok = self.wake_phrase.heard(text)
         log.info("Activación con Nyx ocupado: %r → %s", text, "interrumpe" if ok else "se ignora")
-        self._record_activation(ok, text)
+        self._record_activation(ok, text, clip)
         if ok and self.mode is Mode.BUSY:
             await self.start_listening(self.wake_prebuffer_s + VERIFY_CLIP_S / 2)
 
@@ -429,7 +433,7 @@ class Pipeline:
             return True
         ok = self.wake_phrase.heard(text)
         log.info("Verificación de «Nyx» (%d ms): %r → %s", _ms(self._clock() - t0), text, ok)
-        self._record_activation(ok, text)
+        self._record_activation(ok, text, clip)
         listening = self._listening
         if ok and listening is not None and self.mode is Mode.LISTENING:
             await self._set_state(NyxState.LISTENING)  # ahora sí: se enciende el indicador
@@ -814,11 +818,28 @@ class Pipeline:
         """«Nyx en partida: desactivado»: solo el atajo de teclado (SPEC sección 9)."""
         return self.game is not None and self.game.active and self.game.mode == "off"
 
-    def _record_activation(self, verified: bool | None, heard: str) -> None:
+    def _record_activation(self, verified: bool | None, heard: str, clip: Any = None) -> None:
         if self.activations is None:
             return
         engine = type(self.wake).__name__ if self.wake is not None else "atajo"
-        self.activations.record(engine, self._wake_score, verified, heard)
+        self.activations.record(engine, self._wake_score, verified, heard, clip)
+        if verified is False:
+            self._apply_threshold()
+
+    def _apply_threshold(self) -> None:
+        """Umbral del detector = el de la sensibilidad + errores apuntados + subida automática
+        por descartes (6.22), que baja sola con el tiempo."""
+        if self.activations is None or self.wake is None or self._wake_threshold0 is None:
+            return
+        self._threshold_checked = time.time()
+        wanted = min(
+            0.95,
+            self._wake_threshold0 + self.activations.offset + self.activations.auto_offset(),
+        )
+        current = getattr(self.wake, "threshold", None)
+        if isinstance(current, float) and abs(current - wanted) > 1e-6:
+            log.info("Umbral de activación: %.2f → %.2f", current, wanted)
+            self.wake.threshold = wanted  # type: ignore[attr-defined]
 
     async def _false_activation(self, *, from_voice: bool) -> None:
         """«Nyx, eso no era para ti»: la activación anterior fue un error (SPEC 4.7)."""
@@ -827,8 +848,7 @@ class Pipeline:
         if offset is None:
             secondary = "no encuentro ninguna activación reciente"
         else:
-            if self._wake_threshold0 is not None and self.wake is not None:
-                self.wake.threshold = self._wake_threshold0 + offset  # type: ignore[attr-defined]
+            self._apply_threshold()
             secondary = "me costará un poco más activarme"
             log.info("Activación marcada como error: ajuste del umbral +%.2f", offset)
         await self._show_bubble("Vale, lo apunto", secondary)

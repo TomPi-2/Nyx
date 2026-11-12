@@ -90,6 +90,16 @@
         onchange={(custom_word) => settings.set({ wake: { custom_word } })}
       />
     </Row>
+    <Row
+      label="Guardar los sonidos que me activan por error"
+      hint="Guarda 2 segundos de audio de cada activación que descarto, solo en este equipo, para entrenarme a no saltar con ellos. Puede incluir conversaciones de fondo. Se guardan los últimos 500."
+    >
+      <Toggle
+        label="Guardar los sonidos que me activan por error"
+        checked={data.wake.save_false_clips}
+        onchange={(save_false_clips) => settings.set({ wake: { save_false_clips } })}
+      />
+    </Row>
   </Card>
 
   <Card title="Escucha" note="Estos cambios se aplican al reiniciar Nyx.">

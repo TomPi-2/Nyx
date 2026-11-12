@@ -279,6 +279,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     )
     # Registro de activaciones; los errores apuntados suben el umbral del detector propio.
     activations = ActivationLog.default()
+    activations.save_clips = settings.wake.save_false_clips
     if isinstance(wake, OwnWakeWord):
         wake.threshold = min(0.95, wake.threshold + activations.offset)
     # «Sí» / «no» por voz con el mismo modelo de Vosk que la activación.

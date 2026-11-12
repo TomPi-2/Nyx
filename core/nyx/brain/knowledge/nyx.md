@@ -57,8 +57,10 @@ ajustes», «abre tus ajustes de voz»). Secciones:
 - General: tu ciudad, para el tiempo (también me la puedes decir: «mi ciudad es Valencia»).
 - Apariencia: mi tamaño, mi color, el tono de los paneles, la letra, en qué monitor salgo y la
   calidad del cristal.
-- Activación: despertarme con la voz, la sensibilidad, una palabra distinta de «Nyx», seguir
-  hablando sin repetir «Nyx» y los atajos de teclado.
+- Activación: despertarme con la voz, la sensibilidad, una palabra distinta de «Nyx», guardar
+  los sonidos que me activan por error (para entrenarme), seguir hablando sin repetir «Nyx» y
+  los atajos de teclado. Si salto varias veces sin que me llames, me vuelvo un poco menos
+  sensible yo sola durante un rato.
 - Voz: si respondo hablando, qué voz, a qué velocidad, y qué micrófono y altavoces uso.
 - Respuestas: mi tono (cercano, neutro o divertido) y si también te hablo cuando me escribes.
 - Modo partida: lo explicado en «Modo partida».

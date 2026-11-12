@@ -5,24 +5,48 @@ r"""Registro de activaciones y ajuste automático del umbral (SPEC sección 4.7,
 - «Nyx, eso no era para ti» marca la activación anterior como error y sube el umbral un
   poco (ERROR_STEP, como mucho MAX_OFFSET). El ajuste se guarda en activacion.json y vale
   también tras reiniciar. En la fase 5, el botón «esto fue un error» hará lo mismo.
+- Si whisper descarta varias seguidas, el umbral sube solo un poco y vuelve a bajar cuando
+  pasa una hora tranquila (6.22). Con `wake.save_false_clips`, se guarda su audio.
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import re
 import time
 import uuid
+import wave
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Any
+
+import numpy as np
 
 from nyx.index.aliases import normalize
 from nyx.paths import local_dir
 
+log = logging.getLogger(__name__)
+
 ERROR_STEP = 0.03
 MAX_OFFSET = 0.2
 ERROR_WINDOW_S = 120.0  # «eso no era para ti» se refiere a una activación reciente
+
+# Subida automática (6.22): si whisper descarta AUTO_COUNT activaciones en AUTO_WINDOW_S, el
+# umbral sube AUTO_STEP (como mucho AUTO_MAX); tras AUTO_DECAY_S sin descartes baja AUTO_STEP.
+# Simulado con 568 activaciones reales del 10 al 12-11: quita la mitad de las falsas (485 →
+# 247) y pierde 3 de 83 buenas. Solo en memoria: al reiniciar, vuelve a empezar.
+AUTO_STEP = 0.03
+AUTO_COUNT = 3
+AUTO_WINDOW_S = 600.0
+AUTO_MAX = 0.15
+AUTO_DECAY_S = 3600.0
+
+# Audio de las falsas activaciones (opcional, `wake.save_false_clips`): para reentrenar el
+# detector con el ruido real de casa. Solo en este equipo; se quedan los últimos MAX_CLIPS.
+MAX_CLIPS = 500
+CLIP_RATE = 16_000
 
 NOT_FOR_YOU = re.compile(
     r"^(?:eso\s+|esto\s+)?no\s+(?:era|iba|es)\s+(?:para\s+ti|contigo)$"
@@ -44,11 +68,36 @@ class Activation:
 
 
 class ActivationLog:
-    def __init__(self, folder: Path, state: Path) -> None:
+    def __init__(self, folder: Path, state: Path, *, save_clips: bool = False) -> None:
         self.folder = folder
         self.state = state
         self.offset = self._load_offset()
         self.recent: list[Activation] = []
+        self.save_clips = save_clips
+        self._auto = 0.0  # subida automática vigente
+        self._auto_since = 0.0  # desde cuándo cuenta la bajada (último descarte o escalón)
+        self._discards: list[float] = []
+
+    @property
+    def clips(self) -> Path:
+        return self.folder / "audio"
+
+    def auto_offset(self, now: float | None = None) -> float:
+        """La subida automática ahora: baja AUTO_STEP por cada AUTO_DECAY_S sin descartes."""
+        now = time.time() if now is None else now
+        steps = int((now - self._auto_since) // AUTO_DECAY_S)
+        if self._auto > 0 and steps > 0:
+            self._auto = max(0.0, round(self._auto - steps * AUTO_STEP, 3))
+            self._auto_since += steps * AUTO_DECAY_S
+        return self._auto
+
+    def _discarded(self, now: float) -> None:
+        self.auto_offset(now)  # aplica antes la bajada pendiente
+        self._auto_since = now
+        self._discards = [t for t in self._discards if now - t <= AUTO_WINDOW_S] + [now]
+        if len(self._discards) >= AUTO_COUNT:
+            self._discards = []
+            self._auto = min(AUTO_MAX, round(self._auto + AUTO_STEP, 3))
 
     @classmethod
     def default(cls) -> ActivationLog:
@@ -68,9 +117,22 @@ class ActivationLog:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
     def record(
-        self, engine: str, score: float | None, verified: bool | None, heard: str = ""
+        self,
+        engine: str,
+        score: float | None,
+        verified: bool | None,
+        heard: str = "",
+        clip: np.ndarray[Any, Any] | None = None,
+        *,
+        now: float | None = None,
     ) -> Activation:
-        activation = Activation(uuid.uuid4().hex[:10], time.time(), score)
+        """Apunta una activación. `verified=False` (whisper no oyó «Nyx») cuenta para la
+        subida automática y, con `save_clips`, guarda su audio (`clip`, int16 a 16 kHz)."""
+        activation = Activation(uuid.uuid4().hex[:10], time.time() if now is None else now, score)
+        if verified is False:
+            self._discarded(activation.at)
+            if self.save_clips and clip is not None and len(clip):
+                self._save_clip(activation.id, clip)
         self._write(
             {
                 "id": activation.id,
@@ -84,6 +146,22 @@ class ActivationLog:
         if verified is not False:
             self.recent = [*self.recent[-4:], activation]
         return activation
+
+    def _save_clip(self, activation_id: str, clip: np.ndarray[Any, Any]) -> None:
+        """Guarda el audio y deja solo los últimos MAX_CLIPS (son archivos de Nyx, no del
+        usuario: se quitan los más viejos para que la carpeta no crezca sin fin)."""
+        try:
+            self.clips.mkdir(parents=True, exist_ok=True)
+            with wave.open(str(self.clips / f"{activation_id}.wav"), "wb") as w:
+                w.setnchannels(1)
+                w.setsampwidth(2)
+                w.setframerate(CLIP_RATE)
+                w.writeframes(np.asarray(clip, dtype=np.int16).tobytes())
+            saved = sorted(self.clips.glob("*.wav"), key=lambda p: p.stat().st_mtime)
+            for old in saved[:-MAX_CLIPS]:
+                old.unlink(missing_ok=True)
+        except OSError:
+            log.warning("No se pudo guardar el audio de la activación", exc_info=True)
 
     def mark_previous_error(self, now: float | None = None) -> float | None:
         """La activación anterior a la actual fue un error: se anota y se sube el umbral.

@@ -44,6 +44,9 @@ class WakeSettings(_Section):
     custom_word: str = ""
     # Audio anterior a la detección que se incluye en la frase («Nyx abre…» de una tirada).
     prebuffer_s: float = Field(default=1.5, ge=0.0, le=2.0)
+    # Guardar el audio de las activaciones que whisper descarta (6.22), solo en este equipo,
+    # para reentrenar el detector con el ruido real. Apagado por defecto.
+    save_false_clips: bool = False
 
 
 class ListenSettings(_Section):
