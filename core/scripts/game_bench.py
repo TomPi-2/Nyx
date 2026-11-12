@@ -53,7 +53,9 @@ from nyx.tools.registry import default_registry
 
 OLLAMA = "http://127.0.0.1:11434"
 # «modelo@gpu» o «modelo@cpu»; «sin» = el juego solo (la referencia).
-DEFAULT_CONFIGS = ["sin", "qwen2.5:7b@gpu", "qwen2.5:14b@gpu", "qwen3:4b@gpu", "qwen2.5:7b@cpu"]
+# Un solo cerebro desde el 2026-11-11 (el 14B, qwen3:4b y el procesador ya se midieron y se
+# descartaron): por defecto, el juego solo y el 7B en la gráfica. Se pueden pasar con --configs.
+DEFAULT_CONFIGS = ["sin", "qwen2.5:7b@gpu"]
 QUESTION = "Explícame en dos frases qué es un agujero negro."
 PHRASE = "Nyx, ¿qué tiempo hace mañana en Valencia?"
 SPIKE = 2.0  # un fotograma que tarda más del doble que la mediana es un tirón
@@ -137,8 +139,9 @@ async def installed(client: httpx.AsyncClient) -> set[str]:
     return {m["name"] for m in data.get("models", [])}
 
 
-def body(model: str, on_cpu: bool, tools: list[dict[str, Any]]) -> dict[str, Any]:
-    options: dict[str, Any] = {"num_ctx": 8192}
+def body(model: str, on_cpu: bool, tools: list[dict[str, Any]], num_ctx: int) -> dict[str, Any]:
+    # El mismo contexto que Nyx (llm.num_ctx): la memoria de la gráfica depende de él.
+    options: dict[str, Any] = {"num_ctx": num_ctx}
     if on_cpu:
         options["num_gpu"] = 0
     data: dict[str, Any] = {
@@ -188,7 +191,7 @@ async def run_config(
             result.note = f"no instalado (ollama pull {model})"
             print(f"  · {config}: {result.note}, se salta")
             return result
-        request = body(model, where == "cpu", tools)
+        request = body(model, where == "cpu", tools, args.contexto)
         print(f"  · {config}: cargando el modelo…")
         await unload_all(client)
         await think(client, None, pcm, request)  # carga y calienta antes de medir
@@ -234,12 +237,14 @@ def markdown(results: list[Result], hw: dict[str, Any], args: argparse.Namespace
         f"# Nyx en partida · {platform.node()} · {datetime.now():%Y-%m-%d %H:%M}",
         "",
         f"Juego: `{args.process}`. {args.seconds} s por configuración; Nyx «piensa» cada "
-        f"{args.every} s (Whisper + una respuesta con el prompt y las herramientas reales).",
+        f"{args.every} s (Whisper + una respuesta con el prompt y las herramientas reales). "
+        f"Contexto: {args.contexto} tokens.",
         f"Equipo: {hw.get('cpu', '?')}, {hw.get('ram_gb', '?')} GB, "
         f"{', '.join(hw.get('gpus', []))}.",
         "",
-        "Objetivo (HOJA-DE-RUTA §1.1): **menos de un 2 % de FPS medios y ningún tirón** "
-        f"(fotograma de más de {SPIKE:g}× la mediana) mientras Nyx piensa.",
+        "Objetivo (decisión del 2026-11-11): **menos de un 5 % de FPS medios y el peor "
+        "fotograma como mucho 1,5× el del juego solo** mientras Nyx piensa. Tirones: "
+        f"fotogramas de más de {SPIKE:g}× la mediana.",
         "",
         "| Configuración | FPS medios | Cambio | 1 % más lento | Tirones | Peor fotograma | "
         "Respuesta (mediana) |",
@@ -260,6 +265,8 @@ def markdown(results: list[Result], hw: dict[str, Any], args: argparse.Namespace
 
 async def main_async(args: argparse.Namespace) -> int:
     settings = load_settings()
+    if args.contexto is None:
+        args.contexto = settings.llm.num_ctx
     tools = default_registry().schemas()
     tmp = Path(tempfile.mkdtemp(prefix="nyx-bench-"))
     wav = tmp / "frase.wav"
@@ -308,6 +315,9 @@ def main() -> int:
     parser.add_argument("--every", type=float, default=8.0, help="cada cuánto «piensa» Nyx")
     parser.add_argument("--wait", type=int, default=20, help="tiempo para entrar en el juego")
     parser.add_argument("--no-whisper", dest="whisper", action="store_false")
+    parser.add_argument(
+        "--contexto", type=int, default=None, help="num_ctx (por defecto, el de los ajustes)"
+    )
     args = parser.parse_args()
     if not args.presentmon.exists():
         print(f"No encuentro PresentMon en {args.presentmon}", file=sys.stderr)
