@@ -67,7 +67,7 @@
   <Row
     label="Registro de activaciones"
     hint={status?.activations
-      ? `Cuándo se ha activado Nyx (${status.activations} días), sin audio. Sirve para que se active menos por error.`
+      ? `Cuándo se ha activado Nyx (${status.activations} días), sin audio salvo que guardes los sonidos en Activación. Sirve para que se active menos por error.`
       : "No hay registro de activaciones."}
   >
     <Button

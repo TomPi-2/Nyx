@@ -149,6 +149,12 @@ class ShortcutStore:
             cur = self._db.execute("DELETE FROM shortcuts WHERE phrase = ?", (phrase,))
         return cur.rowcount > 0
 
+    def forget_all(self) -> int:
+        """Olvida todos los atajos aprendidos (Ajustes → Cerebro, 6.24). Devuelve cuántos."""
+        with self._lock:
+            cur = self._db.execute("DELETE FROM shortcuts")
+        return cur.rowcount
+
     def all(self) -> list[Learned]:
         with self._lock:
             rows = self._db.execute(

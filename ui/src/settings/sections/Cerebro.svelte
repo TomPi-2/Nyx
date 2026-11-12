@@ -85,6 +85,17 @@
       title="Atajos aprendidos"
       note="Frases que Nyx ya sabe resolver sin pensar. Olvidar una hace que la vuelva a pensar la próxima vez."
     >
+      <Row
+        label="Todos los atajos"
+        hint={shortcuts.length === 1
+          ? "1 atajo aprendido."
+          : `${shortcuts.length} atajos aprendidos.`}
+      >
+        <Button
+          confirm="¿Seguro? Vuelve a pulsar"
+          onclick={() => settings.setup("forget_all_shortcuts")}>Olvidar todos</Button
+        >
+      </Row>
       {#each shortcuts as shortcut (shortcut.phrase)}
         <Row
           label="«{shortcut.phrase}»"

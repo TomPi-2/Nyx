@@ -69,6 +69,19 @@ async def test_forget_shortcut(tmp_path: Path) -> None:
     assert got.status[-1]["shortcuts"] == []
 
 
+async def test_forget_all_shortcuts(tmp_path: Path) -> None:
+    bus = EventBus()
+    store = ShortcutStore(tmp_path / "s.db")
+    store.learn("abre riot client", ToolCall("open_app", {"name": "Riot Client"}), "green")
+    store.learn("abre discord", ToolCall("open_app", {"name": "Discord"}), "green")
+    SetupService(bus, _settings(), shortcuts=lambda: store, root=tmp_path)
+    got = Collect(bus)
+    await bus.publish(SetupRequested("forget_all_shortcuts"))
+    assert got.results[-1].ok and got.results[-1].action == "forget_all_shortcuts"
+    assert got.status[-1]["shortcuts"] == []
+    assert store.lookup("abre discord") is None
+
+
 async def test_clear_goes_to_the_recycle_bin(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 15
+PROTOCOL_VERSION = 16
 
 
 class _Msg(BaseModel):
@@ -73,6 +73,7 @@ class SetupMsg(_Msg):
         "download",
         "scan",
         "forget_shortcut",
+        "forget_all_shortcuts",  # v16
         "mic_test_start",
         "mic_test_stop",
         "clear_samples",

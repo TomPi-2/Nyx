@@ -2,7 +2,7 @@
 
 import type { FontId, NyxColorId, PanelTintId } from "$theme/palette";
 
-export const PROTOCOL_VERSION = 15;
+export const PROTOCOL_VERSION = 16;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -106,6 +106,7 @@ export type SetupAction =
   | "download"
   | "scan"
   | "forget_shortcut"
+  | "forget_all_shortcuts" // v16
   | "mic_test_start"
   | "mic_test_stop"
   | "clear_samples"

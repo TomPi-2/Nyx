@@ -7,6 +7,7 @@ Lo que la interfaz puede pedir (SetupRequested) y lo que contesta:
   configurado, con progreso real (SetupProgress).
 - «scan»: vuelve a escanear aplicaciones y carpetas.
 - «forget_shortcut»: olvida un atajo aprendido (arg = la frase).
+- «forget_all_shortcuts»: olvida todos los atajos aprendidos.
 - «mic_test_start» / «mic_test_stop»: nivel del micrófono en directo (MicLevelChanged).
 - «clear_samples» / «clear_activations»: manda a la papelera las grabaciones de calibración o
   el registro de activaciones. Nunca borrado permanente (SPEC sección 8).
@@ -152,6 +153,7 @@ class SetupService:
             "download": self._download,
             "scan": self._scan,
             "forget_shortcut": lambda: self._forget(event.arg),
+            "forget_all_shortcuts": self._forget_all,
             "mic_test_start": self._start_mic,
             "mic_test_stop": self._stop_mic,
             "clear_samples": lambda: self._clear("clear_samples", self.root.joinpath(*SAMPLES_DIR)),
@@ -269,6 +271,13 @@ class SetupService:
             await index.refresh()
         finally:
             self._scanning = False
+        await self._publish_status()
+
+    async def _forget_all(self) -> None:
+        shortcuts = self.shortcuts()
+        forgotten = 0 if shortcuts is None else await asyncio.to_thread(shortcuts.forget_all)
+        log.info("Atajos olvidados: %d", forgotten)
+        await self.bus.publish(SetupResult("forget_all_shortcuts", shortcuts is not None))
         await self._publish_status()
 
     async def _forget(self, phrase: str) -> None:

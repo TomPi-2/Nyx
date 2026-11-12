@@ -127,6 +127,7 @@ SetupAction = Literal[
     "download",
     "scan",
     "forget_shortcut",
+    "forget_all_shortcuts",
     "mic_test_start",
     "mic_test_stop",
     "clear_samples",
