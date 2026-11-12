@@ -2,8 +2,9 @@
 
 Geocodificación (`https://geocoding-api.open-meteo.com/v1/search`) y previsión actual + diaria
 (`https://api.open-meteo.com/v1/forecast` con `current`, `daily` y `timezone=auto`). Si no se
-indica ciudad en la petición, usa `settings.general.city`; si tampoco está configurada, abre
-Ajustes → General y pide al usuario que la escriba. Caché en memoria de 15 min (SPEC §14).
+indica ciudad en la petición, usa `settings.general.city`; si tampoco está configurada, la
+ubicación de Windows (6.24, `winapi/location.py`), y si no hay, abre Ajustes → General y pide
+al usuario que la escriba. Caché en memoria de 15 min (SPEC §14).
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ from pydantic import Field
 
 from nyx.index.aliases import normalize
 from nyx.tools.base import Category, GamePolicy, Params, Risk, Tool, ToolContext, ToolResult
+from nyx.winapi.location import Locator
 
 log = logging.getLogger(__name__)
 
@@ -115,16 +117,17 @@ def format_weather(place: str, data: dict[str, Any]) -> ToolResult:
             sentences.append(day)
     message = ". ".join(sentences) + "."
 
-    display = f"{now_temp} · {sky.capitalize()}" if now_temp else f"{place} · {sky.capitalize()}"
+    shown = place[:1].upper() + place[1:]  # «tu ubicación» → «Tu ubicación» en el panel
+    display = f"{now_temp} · {sky.capitalize()}" if now_temp else f"{shown} · {sky.capitalize()}"
     highs = daily.get("temperature_2m_max") or []
     lows = daily.get("temperature_2m_min") or []
     if highs and lows and highs[0] is not None and lows[0] is not None:
         secondary = (
-            f"{place} · máx. {round(float(highs[0]))}° mín. {round(float(lows[0]))}°"
+            f"{shown} · máx. {round(float(highs[0]))}° mín. {round(float(lows[0]))}°"
             " · open-meteo.com"
         )
     else:
-        secondary = f"{place} · open-meteo.com"
+        secondary = f"{shown} · open-meteo.com"
 
     return ToolResult(
         ok=True,
@@ -157,9 +160,11 @@ class GetWeather(Tool[GetWeatherParams]):
         *,
         transport: httpx.AsyncBaseTransport | None = None,
         clock: Callable[[], float] = time.monotonic,
+        locator: Locator | None = None,
     ) -> None:
         self._transport = transport
         self._clock = clock
+        self._locator = locator  # ubicación de Windows si no hay ciudad (None en pruebas)
         self._cache: dict[str, tuple[float, ToolResult]] = {}
         self._coords: dict[str, tuple[float, float, str]] = {}
 
@@ -169,14 +174,24 @@ class GetWeather(Tool[GetWeatherParams]):
 
     async def run(self, params: GetWeatherParams, ctx: ToolContext) -> ToolResult:
         city = (params.city or ctx.settings.general.city).strip()
-        if not city:
+        here = None
+        if not city and self._locator is not None:
+            here = await self._locator.place()
+        if not city and here is None:
             # En partida no se abre ninguna ventana encima del juego: solo se dice.
             playing = ctx.game is not None and ctx.game.active
             if ctx.open_nyx_settings is not None and not playing:
                 await ctx.open_nyx_settings("general")
-            return ToolResult.fail("Dime tu ciudad en Ajustes → General")
+            return ToolResult.fail(
+                "Dime tu ciudad en Ajustes → General",
+                "o activa la ubicación de Windows",
+            )
 
-        key = normalize(city)
+        if here is not None:  # sin ciudad: la ubicación de Windows, ya con su nombre
+            key = f"@{here.latitude:.4f},{here.longitude:.4f}"
+            self._coords[key] = (here.latitude, here.longitude, here.name)
+        else:
+            key = normalize(city)
         now = self._clock()
         cached = self._cache.get(key)
         if cached is not None and now - cached[0] < CACHE_TTL_S:

@@ -7,6 +7,7 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
 ### Añadido
 
 - 0.6, cerebro (`docs/PLAN-0.6.md`):
+  - 6.24: botón «Olvidar todos» en Ajustes → Cerebro para borrar de golpe los atajos aprendidos. Si no has puesto ciudad, el tiempo usa la ubicación de Windows (si la tienes activada) y dice el nombre de la ciudad gracias a OpenStreetMap.
   - 6.22, menos falsas activaciones: si Nyx descarta varias activaciones seguidas (vídeos, conversación de fondo), se vuelve un poco menos sensible durante un rato y recupera la sensibilidad sola tras una hora tranquila; con tu historial real, la mitad de saltos en falso. Opción nueva en Ajustes → Activación para guardar, solo en este equipo, el audio de esos saltos y entrenar con él el detector de «Nyx».
   - 6.25 (paso 1), reglas por temas: el router pasa de un archivo de 1.430 líneas a uno por tema (sonido, ventanas, archivos, alarmas…), listo para crecer mucho y para que las extensiones traigan sus reglas en la 0.7. No cambia nada de lo que hace: el orden de las reglas queda fijo y 1.632 frases dan el mismo resultado que antes.
   - 6.21 (primera parte): cuando el modelo escribe una orden en vez de hacerla («pon el volumen al 100», «activa el wifi»), Nyx la entiende con sus reglas y la hace (con las mismas comprobaciones de seguridad). Batería: 262/337. Probado y descartado: avisar al modelo de que consulte (no cambia nada) y qwen3:4b-instruct (acierta menos y va 5 veces más lento en esta gráfica). Análisis en `docs/benchmarks/no-actua-6.21.md`.

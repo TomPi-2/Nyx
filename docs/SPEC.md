@@ -42,6 +42,7 @@ Nyx se divide en dos procesos: un núcleo en Python que escucha, piensa y actúa
 | Búsqueda de archivos | Everything (es.exe; licencia MIT), opcional | Índice de Windows | Gratis e instantáneo en todo el disco. El asistente lo instala con winget solo si el usuario lo marca; Nyx necesita que esté abierto en segundo plano |
 | Caché | SQLite + rapidfuzz + watchdog | — | Índice de apps, carpetas y alias; la búsqueda difusa en memoria (< 5 ms con miles de alias) sustituye a FTS5 |
 | Tiempo | Open-Meteo | — | Gratis, sin clave |
+| Nombre de la ciudad desde la ubicación | Nominatim (OpenStreetMap) | Datos ODbL | Gratis, sin clave; 1 petición por sitio, identificando la app |
 | Empaquetado | Nuitka o PyInstaller + Velopack (instalación y actualizaciones desde GitHub) | — | Un solo instalador |
 
 **Requisitos de diseño del stack:**
@@ -219,7 +220,7 @@ Unas 35 herramientas genéricas cubren miles de peticiones al combinarse. Cada u
 | `set_alarm` | Alarma a una hora | Verde | Planificador propio persistente + notificación y sonido |
 | `set_timer` | Temporizador | Verde | Igual que alarma |
 | `set_reminder` | Recordatorio con texto | Verde | Dentro de `set_alarm` y `set_timer` (campo `label`) |
-| `get_weather` | Tiempo actual y previsión | Verde | Open-Meteo; ubicación fijada en ajustes |
+| `get_weather` | Tiempo actual y previsión | Verde | Open-Meteo; ciudad de Ajustes o, si no hay, la ubicación de Windows |
 | `get_time_date` | Hora, fecha, cálculos de fechas | Verde | Local |
 | `answer` | Respuesta de conocimiento, traducción, cálculo | Verde | LLM |
 | `clipboard` | Leer, escribir o resumir el portapapeles | Verde | pywin32 |
@@ -790,3 +791,4 @@ Reglas de trabajo:
 | 2026-11-11 | Un solo cerebro en la primera versión, `qwen2.5:7b`: el 14B se descarta porque en la batería de frases acertaba lo mismo (100 %) pero tardaba 8 veces más (4,4 s de mediana frente a 0,55 s), no cabe en tarjetas de 8 GB y junto a un juego da tirones; además, cambiarlo al entrar y salir de las partidas era frágil. Sale del asistente y de Ajustes (quien lo tuviera pasa al 7B al arrancar). En partida, el 7B se queda en la gráfica; «Cerebro en partida»: «Sí» o «Solo órdenes». Lo más elaborado, con la nube opcional (2.0). | 2, 6, 9, 13, 14 |
 | 2026-11-11 | Requisitos del sistema tras las pruebas del portátil (RTX 3070 Laptop, 8 GB): `qwen2.5:7b` al 100 % en GPU, 4,4 GB de VRAM, 83 tokens/s y 3/3 herramientas, igual que en la RX 7700 XT. Mínimos: Windows 11, Vulkan y 8 GB de VRAM, 8 núcleos, 16 GB de RAM y ~8 GB de disco; recomendados: 12 GB de VRAM y 32 GB de RAM. Voz en el portátil: 0,4 s del fin de la frase a la voz (1,3 s con herramienta). whisper-server se compila sin `GGML_NATIVE` (el nativo del sobremesa usaba AVX-512 y se caía en el Ryzen 7 6800H); solo con gráfica integrada no sirve. Pendiente: arranque de 23 s con Whisper y ~800 MB de RAM del núcleo. | 14 |
 | 2026-11-13 | Tras probar qwen3:4b, granite3.3:8b y mistral:7b (todos peores), `qwen2.5:7b` se queda. Reparto nuevo: **el router resuelve todo lo seguro** (reglas a lo grande, con respuestas fijas de varias variantes por tono) y el LLM solo lo ambiguo, la conversación y las preguntas. Ajuste fino (LoRA) del 7B: se entrena en el portátil con CUDA **solo como herramienta de desarrollo**; Nyx sigue sin CUDA y carga el resultado en Ollama con Vulkan. Tareas 6.25–6.27 de `docs/PLAN-0.6.md`. | 6, 14 |
+| 2026-11-13 | Ciudad automática (6.24): sin ciudad en Ajustes, el tiempo usa la ubicación de Windows (`Windows.Devices.Geolocation`, solo si está activada y permitida), con la máxima precisión que dé Windows (decisión del usuario). Las coordenadas van a Open-Meteo (previsión) y a Nominatim de OpenStreetMap (nombre de la ciudad, una vez por sitio). Se confirmará con el usuario en el primer arranque (0.9). | 2, 8 |

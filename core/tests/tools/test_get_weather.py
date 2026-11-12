@@ -148,3 +148,75 @@ def test_general_city_is_editable_without_restart(ctx: ToolContext, tmp_path: Pa
     )
     assert restart == []
     assert ctx.settings.general.city == "Valencia"
+
+
+# --- ciudad automática con la ubicación de Windows (6.24) ---
+
+
+async def test_without_city_uses_windows_location(ctx: ToolContext) -> None:
+    from nyx.winapi.location import Locator
+
+    async def position() -> tuple[float, float]:
+        return (39.4699, -0.3763)
+
+    async def name(lat: float, lon: float) -> str:
+        return "Valencia"
+
+    calls: list[httpx.Request] = []
+    ctx.settings.general.city = ""
+    tool = GetWeather(transport=_transport(calls), locator=Locator(position, name))
+    result = await tool.run(GetWeatherParams(), ctx)
+    assert result.ok and "Tiempo en Valencia" in result.message
+    assert result.secondary is not None and result.secondary.startswith("Valencia ·")
+    # Sin geocodificar: las coordenadas van directas a la previsión.
+    assert len(calls) == 1 and "api.open-meteo.com/v1/forecast" in str(calls[0].url)
+    assert "latitude=39.4699" in str(calls[0].url)
+
+
+async def test_location_without_a_name_still_gives_the_weather(ctx: ToolContext) -> None:
+    from nyx.winapi.location import Locator
+
+    async def position() -> tuple[float, float]:
+        return (39.4699, -0.3763)
+
+    async def no_name(lat: float, lon: float) -> None:
+        return None
+
+    ctx.settings.general.city = ""
+    tool = GetWeather(transport=_transport([]), locator=Locator(position, no_name))
+    result = await tool.run(GetWeatherParams(), ctx)
+    assert result.ok and "Tiempo en tu ubicación" in result.message
+    assert result.secondary is not None and result.secondary.startswith("Tu ubicación ·")
+
+
+async def test_location_off_asks_for_the_city(ctx: ToolContext) -> None:
+    from nyx.winapi.location import Locator
+
+    async def off() -> None:
+        return None
+
+    opened: list[str] = []
+
+    async def open_settings(section: str) -> None:
+        opened.append(section)
+
+    ctx.settings.general.city = ""
+    ctx = replace(ctx, open_nyx_settings=open_settings)
+    result = await GetWeather(locator=Locator(off)).run(GetWeatherParams(), ctx)
+    assert not result.ok and result.message == "Dime tu ciudad en Ajustes → General"
+    assert opened == ["general"]
+
+
+async def test_city_in_settings_wins_over_location(ctx: ToolContext) -> None:
+    from nyx.winapi.location import Locator
+
+    asked: list[int] = []
+
+    async def position() -> tuple[float, float]:
+        asked.append(1)
+        return (0.0, 0.0)
+
+    ctx.settings.general.city = "Madrid"
+    tool = GetWeather(transport=_transport([]), locator=Locator(position))
+    assert (await tool.run(GetWeatherParams(), ctx)).ok
+    assert asked == []

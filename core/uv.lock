@@ -775,6 +775,7 @@ dependencies = [
     { name = "vosk" },
     { name = "watchdog" },
     { name = "websockets" },
+    { name = "winrt-windows-devices-geolocation" },
     { name = "winrt-windows-devices-radios" },
     { name = "winrt-windows-foundation" },
     { name = "winrt-windows-media-control" },
@@ -813,6 +814,7 @@ requires-dist = [
     { name = "vosk", specifier = ">=0.3.45" },
     { name = "watchdog", specifier = ">=7.1.0" },
     { name = "websockets", specifier = ">=14" },
+    { name = "winrt-windows-devices-geolocation", specifier = ">=4!10.0.28000.2957" },
     { name = "winrt-windows-devices-radios", specifier = ">=4!10.0.28000.2957" },
     { name = "winrt-windows-foundation", specifier = ">=4!10.0.28000.2957" },
     { name = "winrt-windows-media-control", specifier = ">=4!10.0.28000.2957" },
@@ -1656,6 +1658,20 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/6e/76/63b651b91e36edd661748c5676d15315a69cd0cc7c8b50a74995abc7954a/winrt_runtime-4.1.0-cp312-cp312-win32.whl", hash = "sha256:708e176f518d6a1beb81640e6038abf0068b25e624dd11fced10c488934769c8", size = 204956, upload-time = "2026-10-31T22:16:51.864Z" },
     { url = "https://files.pythonhosted.org/packages/e4/98/a738b5b1ed09dc4a692f183bd330a9dc115ded1d7b9c3e31b5ec02aa08bc/winrt_runtime-4.1.0-cp312-cp312-win_amd64.whl", hash = "sha256:01571f68755750d17518009c00ba21c799b4eddac805bf38cb869da08d38a73f", size = 252243, upload-time = "2026-10-31T22:16:52.903Z" },
     { url = "https://files.pythonhosted.org/packages/ed/84/fb7affb2c61912144588b21bb02900057e23974e153b3b97234c6c01dba8/winrt_runtime-4.1.0-cp312-cp312-win_arm64.whl", hash = "sha256:41ff9980d992e9d54124b8f346891974c3b61d7dad1ce921bfe22e2e6046026f", size = 233336, upload-time = "2026-10-31T22:16:53.913Z" },
+]
+
+[[package]]
+name = "winrt-windows-devices-geolocation"
+version = "4!10.0.28000.2957"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "winrt-runtime" },
+    { name = "winrt-windows-foundation" },
+    { name = "winrt-windows-foundation-collections" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/12/1f/4576bcace399b88bc7e4ca4c7232df2826c703d5b6613b52f464556b4c0a/winrt_windows_devices_geolocation-4!10.0.28000.2957.tar.gz", hash = "sha256:1f0b2f43b829a2cd31b5ca50e4c2911a78f895dd6ee9431e97613ea0018e9e77", size = 15361, upload-time = "2026-10-31T23:43:59.321Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/45/93/e1817e0fcd2646a38fd92983663d490905a55e5dfd3794ef6d08b48d8b67/winrt_windows_devices_geolocation-4!10.0.28000.2957-py3-none-any.whl", hash = "sha256:47fb317a73d000cfe209f543d2594799dd6f71eeea5a6957039e797efe6bd2c2", size = 18858, upload-time = "2026-10-31T23:39:00.053Z" },
 ]
 
 [[package]]

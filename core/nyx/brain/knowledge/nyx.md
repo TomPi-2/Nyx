@@ -23,8 +23,9 @@ contesto con voz y en una burbuja.
 - Decirte qué canción o vídeo suena.
 - Alarmas (también las que se repiten cada día, entre semana o los fines de semana),
   temporizadores, recordatorios y un cronómetro: ponerlos, decirte cuáles tienes y quitarlos.
-- El tiempo que hace y la previsión de hoy y mañana, en tu ciudad (Ajustes → General) o en la
-  que me digas.
+- El tiempo que hace y la previsión de hoy y mañana, en tu ciudad (Ajustes → General), en la
+  que me digas o, si no has puesto ninguna, donde estés según la ubicación de Windows (solo si
+  la tienes activada).
 - El estado del equipo: batería, uso del procesador y de la memoria, espacio en disco y qué
   programa consume más.
 - Brillo de la pantalla, Wi-Fi y Bluetooth. Bloquear el equipo; suspenderlo, reiniciarlo o
@@ -65,7 +66,7 @@ ajustes», «abre tus ajustes de voz»). Secciones:
 - Respuestas: mi tono (cercano, neutro o divertido) y si también te hablo cuando me escribes.
 - Modo partida: lo explicado en «Modo partida».
 - Cerebro: el modelo que uso (Qwen 2.5 de 7B, en tu tarjeta gráfica), el tiempo máximo para
-  responder y los atajos que he aprendido.
+  responder y los atajos que he aprendido (puedes olvidarlos uno a uno o todos a la vez).
 - Caché: los programas, juegos y carpetas que conozco, y si está Everything para buscar
   archivos al instante.
 - Privacidad: qué sale de tu PC y borrar mis grabaciones de calibración y el registro.
@@ -90,5 +91,6 @@ para mis ajustes.
 
 El audio no se guarda. Lo que me pides se queda en tu PC, en un registro que puedes ver y
 borrar. Lo que tienes copiado solo lo miro cuando me lo pides, y no lo guardo en ese registro.
-Para el tiempo solo sale de tu PC el nombre de la ciudad, a Open-Meteo. Los datos de uso
+Para el tiempo solo sale de tu PC el nombre de la ciudad, a Open-Meteo; si uso tu ubicación,
+las coordenadas van a Open-Meteo y a OpenStreetMap (para saber el nombre de la ciudad). Los datos de uso
 anónimos están desactivados salvo que tú los actives en Privacidad.

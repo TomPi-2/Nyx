@@ -73,6 +73,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.undo import UndoLast
     from nyx.tools.wait_for_window import WaitForWindow
     from nyx.tools.window_layout import WindowLayout
+    from nyx.winapi.location import Locator
 
     return ToolRegistry(
         [
@@ -105,7 +106,7 @@ def default_registry() -> ToolRegistry:
             Stopwatch(),
             NyxInfo(),
             NyxControl(),
-            GetWeather(),
+            GetWeather(locator=Locator()),
             SystemInfo(),
             SystemPower(),
             ToggleWifi(),

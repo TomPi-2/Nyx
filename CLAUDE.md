@@ -40,6 +40,7 @@ Fase actual: **versión 0.6 — Cerebro** (fase 6a): plan en [docs/PLAN-0.6.md](
 | 2026-11-11 | Hoja de ruta aprobada (`docs/HOJA-DE-RUTA.md`): 0.5 partida → 0.6 cerebro → 0.7 extensiones → 0.8 organización → 0.9 beta (instalador y primer arranque como conversación con Nyx) → 1.0. Overlay solo como ventana aparte, sin inyectarse; si un servicio no permite algo, Nyx lo dice y ofrece guiar; kit de extensiones con licencia MIT; buscador a valorar en la 0.6. |
 | 2026-11-12 | Grupos de herramientas (6.20b): solo se recortan cuando no caben (40 % del contexto); medido que recortar no ayuda al 7B. 6.20c pasa a la 0.7. La 6.20d (contexto 8.192) se descarta mientras haya otra forma de evitar la pérdida de FPS. |
 | 2026-11-12 | Si el «no actúa» no se arregla con qwen2.5:7b, se prueba otro modelo del mismo tamaño (6.21). |
+| 2026-11-13 | Ciudad automática (6.24): sin ciudad en Ajustes, el tiempo usa la ubicación de Windows (si está activada) con la máxima precisión; las coordenadas van a Open-Meteo y a Nominatim (OpenStreetMap) para el nombre de la ciudad. Se confirmará en el primer arranque (0.9). |
 | 2026-11-13 | qwen2.5:7b se queda (otros modelos peores). El router resuelve todo lo seguro, con respuestas fijas de varias variantes; el LLM, lo ambiguo y la conversación. LoRA del 7B entrenado en el portátil: **CUDA permitido solo para entrenar**, nunca en Nyx. |
 | 2026-11-12 | Más adelante: personalidad que se adapta sola a la conversación (con ajustes manuales), Nyx aprende cómo habla el usuario, voz propia entrenada con una persona que ya ha aceptado, soporte en Ayuda y envío real de datos anónimos (HOJA-DE-RUTA). La gestión y documentación de extensiones, prioridad de la 0.7. |
 
@@ -108,6 +109,5 @@ Errores vistos al usar Nyx: se apuntan en [docs/ERRORES.md](docs/ERRORES.md) y s
 ## Preguntas abiertas
 
 - Ajuste fino de la paleta de grises sobre fondos reales.
-- Ubicación fija para el tiempo (ciudad).
 - Hoja de ruta de la 0.5 a la 2.0: **aprobada el 2026-11-11** en [docs/HOJA-DE-RUTA.md](docs/HOJA-DE-RUTA.md). Siguiente: plan de la 0.6 (cerebro). Cada versión pasa a la SPEC al empezarla.
 - Instalador propio y onda de «Nyx listo»: propuesta del 2026-11-10 en [docs/INSTALADOR-Y-MOTOR-GRAFICO.md](docs/INSTALADOR-Y-MOTOR-GRAFICO.md) (el motor ya está en la SPEC). Pendiente de plan y aprobación.
