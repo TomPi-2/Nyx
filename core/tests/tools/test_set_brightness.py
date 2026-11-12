@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import sys
+from types import SimpleNamespace
+
+import pytest
+
 from nyx.executor import Executor, ToolCall
 from nyx.tools.base import Category, GamePolicy, Risk, ToolContext
 from nyx.tools.registry import ToolRegistry
-from nyx.tools.set_brightness import SetBrightness
+from nyx.tools.set_brightness import SetBrightness, set_screen_brightness
 
 
 def test_set_brightness_metadata() -> None:
@@ -62,3 +67,14 @@ async def test_set_brightness_external_monitor_without_ddc(ctx: ToolContext) -> 
     res_set = await ex_err.run(ToolCall("set_brightness", {"level": 40}))
     assert not res_set.ok
     assert "DDC/CI" in (res_set.secondary or "")
+
+
+def test_no_monitor_answering_is_not_a_success(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Si ningún monitor contesta, no se da el brillo por cambiado."""
+    fake = SimpleNamespace(
+        get_brightness=lambda: [None], set_brightness=lambda level, no_return=False: [None]
+    )
+    monkeypatch.setitem(sys.modules, "screen_brightness_control", fake)
+    assert set_screen_brightness(40) is None
+    fake.set_brightness = lambda level, no_return=False: [None, 40]
+    assert set_screen_brightness(40) == 40

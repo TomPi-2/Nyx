@@ -907,7 +907,7 @@ class Pipeline:
         tools = [self.executor.registry.get(c.name) for c in calls]
         if len(results) == len(tools):
             return any(
-                t is not None and t.observe and r.data.get("observe", True)
+                t is not None and t.observe and r.observe
                 for t, r in zip(tools, results, strict=True)
             )
         return any(t is not None and t.observe for t in tools)

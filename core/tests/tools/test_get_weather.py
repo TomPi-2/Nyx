@@ -8,7 +8,9 @@ from typing import Any
 
 import httpx
 
+from nyx.game.policy import GameGate
 from nyx.settings.live import apply_patch
+from nyx.settings.model import GameSettings
 from nyx.tools.base import GamePolicy, Risk, ToolContext
 from nyx.tools.get_weather import CACHE_TTL_S, GetWeather, GetWeatherParams
 
@@ -72,6 +74,11 @@ async def test_without_city_opens_general_settings(ctx: ToolContext) -> None:
     assert not result.ok
     assert result.message == "Dime tu ciudad en Ajustes → General"
     assert opened == ["general"]
+
+    # En partida se dice, pero no se abre ninguna ventana encima del juego.
+    playing = replace(ctx, game=GameGate(GameSettings(), active=True))
+    result = await GetWeather().run(GetWeatherParams(), playing)
+    assert not result.ok and opened == ["general"]
 
 
 async def test_fetches_geocoding_and_forecast_with_15_min_cache(ctx: ToolContext) -> None:

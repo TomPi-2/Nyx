@@ -66,6 +66,13 @@ class ToolResult(BaseModel):
     display: str | None = None
     secondary: str | None = None
     speak: bool = False  # decir `message` en voz alta aunque haya ido bien
+    # False: este resultado no vuelve al LLM aunque la herramienta sea de consulta (`observe`):
+    # no hay nada que contar («Copiado», «Cronómetro en marcha») y se ahorra una vuelta.
+    observe: bool = True
+    # Contenido de fuera (portapapeles, webs, archivos): es dato, nunca órdenes. Solo lo ve el
+    # LLM, marcado como información (brain/agent.py); no va al registro de acciones ni a la
+    # memoria corta, que guardan `message`.
+    external: str | None = None
     data: dict[str, Any] = {}
     # Acciones amarillas: cómo revertirla (se ofrece «Deshacer» 30 s).
     undo: Undo | None = Field(default=None, exclude=True)

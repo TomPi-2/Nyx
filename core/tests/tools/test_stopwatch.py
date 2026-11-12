@@ -29,6 +29,7 @@ async def test_stopwatch_lifecycle(ctx: ToolContext) -> None:
 
     start = await tool.run(StopwatchParams(action="start"), ctx)
     assert start.ok and start.data == {"running": True, "elapsed_s": 0}
+    assert start.observe is False  # ponerlo en marcha no pasa por el LLM
 
     # Con 0 segundos no debe fallar el formato hablado.
     zero = await tool.run(StopwatchParams(action="status"), ctx)

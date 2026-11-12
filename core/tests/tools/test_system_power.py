@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import subprocess
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from nyx.executor import Confirmation, Executor, ToolCall
+from nyx.safety.action_log import ActionLog
 from nyx.tools.base import Category, GamePolicy, Risk, ToolContext
 from nyx.tools.registry import ToolRegistry
 from nyx.tools.system_power import PowerAction, SystemPower, run_power_action
@@ -73,6 +75,24 @@ async def test_sleep_restart_shutdown_are_red_and_require_confirmation(
     res = await ex_accept.run(ToolCall("system_power", {"action": action}))
     assert res.ok
     assert called == [action]
+
+
+async def test_action_log_keeps_the_real_risk(ctx: ToolContext, tmp_path: Path) -> None:
+    """Apagar queda como rojo en el registro, no como el verde de la herramienta."""
+
+    async def accept(c: Confirmation) -> bool:
+        return True
+
+    action_log = ActionLog(tmp_path / "log")
+    ex = Executor(
+        ToolRegistry([SystemPower(runner=lambda a: True)]),
+        ctx,
+        confirm=accept,
+        action_log=action_log,
+    )
+    await ex.run(ToolCall("system_power", {"action": "lock"}))
+    await ex.run(ToolCall("system_power", {"action": "shutdown"}))
+    assert [r["risk"] for r in action_log.read()] == ["green", "red"]
 
 
 async def test_system_power_handles_runner_failure_and_exception(ctx: ToolContext) -> None:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+import unicodedata
 from dataclasses import dataclass
 
 MODIFIERS = {
@@ -138,6 +139,12 @@ VK_RETURN = 0x0D
 VK_TAB = 0x09
 
 
+def presses_keys(text: str) -> bool:
+    """¿Escribir `text` pulsa Intro o Tab? (Intro envía mensajes y ejecuta órdenes; Tab cambia
+    de campo y lo siguiente puede caer en un botón.) Quien escribe debe tratarlo con más riesgo."""
+    return any(ch in "\n\r\t" for ch in text)
+
+
 def encode_unicode_events(text: str) -> list[tuple[int, int, int]]:
     """Convierte texto Unicode en eventos (wVk, wScan, dwFlags) para SendInput."""
     events: list[tuple[int, int, int]] = []
@@ -148,6 +155,10 @@ def encode_unicode_events(text: str) -> list[tuple[int, int, int]]:
         elif ch == "\t":
             events.append((VK_TAB, 0, 0))
             events.append((VK_TAB, 0, KEYEVENTF_KEYUP))
+        elif unicodedata.category(ch) == "Cc":
+            # Otros caracteres de control (retroceso, escape, Ctrl+C, Ctrl+V…) llegarían a la
+            # app como teclas: no son texto y no se escriben.
+            continue
         else:
             raw = ch.encode("utf-16-le")
             for i in range(0, len(raw), 2):
@@ -157,13 +168,16 @@ def encode_unicode_events(text: str) -> list[tuple[int, int, int]]:
     return events
 
 
-def write(text: str) -> None:
-    """Escribe texto Unicode en la ventana activa con SendInput (KEYEVENTF_UNICODE)."""
+def write(text: str) -> bool:
+    """Escribe texto Unicode en la ventana activa con SendInput (KEYEVENTF_UNICODE).
+
+    False si Windows no deja (p. ej. la ventana activa es de administrador y Nyx no).
+    """
     import ctypes
 
     events = encode_unicode_events(text)
     if not events:
-        return
+        return True
 
     class _MOUSEINPUT(ctypes.Structure):
         _fields_ = [
@@ -197,4 +211,5 @@ def write(text: str) -> None:
         inputs[i].u.ki.wScan = scan
         inputs[i].u.ki.dwFlags = flags
 
-    ctypes.windll.user32.SendInput(len(events), ctypes.byref(inputs), ctypes.sizeof(_INPUT))
+    sent = ctypes.windll.user32.SendInput(len(events), ctypes.byref(inputs), ctypes.sizeof(_INPUT))
+    return int(sent) == len(events)

@@ -27,7 +27,7 @@ from nyx.brain.phrases import PhraseBook
 from nyx.game.policy import GameGate
 from nyx.safety.action_log import ActionLog, Decision
 from nyx.safety.guard import SafetyGuard, Verdict
-from nyx.tools.base import GamePolicy, Prepared, Tool, ToolContext, ToolResult
+from nyx.tools.base import GamePolicy, Prepared, Risk, Tool, ToolContext, ToolResult
 from nyx.tools.registry import ToolRegistry
 
 log = logging.getLogger(__name__)
@@ -171,59 +171,51 @@ _VERBS = {
 }
 
 
-_NO_TRANSLATE_ARGS = frozenset(
-    {
-        "text",
-        "name",
-        "folder",
-        "destination",
-        "target",
-        "query",
-        "label",
-        "city",
-        "device",
-        "value",
-        "setting",
-        "app",
-    }
-)
-_VALUE_ES = {
-    "battery": "la batería",
-    "cpu": "la CPU",
-    "ram": "la RAM",
-    "disk": "el disco",
-    "top": "los procesos",
-    "read": "leer",
-    "write": "copiar",
-    "start": "iniciar",
-    "stop": "parar",
-    "status": "consultar",
-    "list": "ver",
-    "cancel": "cancelar",
-    "lock": "bloquear",
-    "sleep": "suspender",
-    "restart": "reiniciar",
-    "shutdown": "apagar",
-    "play": "reproducir",
-    "pause": "pausar",
-    "next": "siguiente",
-    "previous": "anterior",
+# Herramientas con una opción cerrada (`action`, `what`): la frase entera según la opción.
+# Por herramienta y opción, nunca por el valor suelto: «top» o «stop» pueden ser también el
+# nombre de una ventana, una carpeta o lo que el usuario ha dictado.
+_OPTION_VERBS: dict[tuple[str, str], str] = {
+    ("system_info", "battery"): "mirar la batería",
+    ("system_info", "cpu"): "mirar el uso del procesador",
+    ("system_info", "ram"): "mirar la memoria RAM",
+    ("system_info", "disk"): "mirar el espacio en disco",
+    ("system_info", "top"): "mirar qué programa consume más",
+    ("clipboard", "read"): "leer el portapapeles",
+    ("clipboard", "write"): "copiar al portapapeles",
+    ("stopwatch", "start"): "poner el cronómetro",
+    ("stopwatch", "stop"): "parar el cronómetro",
+    ("stopwatch", "status"): "mirar el cronómetro",
+    ("system_power", "lock"): "bloquear el equipo",
+    ("system_power", "sleep"): "suspender el equipo",
+    ("system_power", "restart"): "reiniciar el equipo",
+    ("system_power", "shutdown"): "apagar el equipo",
+    ("media_control", "pause"): "pausar la música",
+    ("media_control", "play"): "reanudar la música",
+    ("media_control", "play_pause"): "pausar o reanudar la música",
+    ("media_control", "next"): "pasar a la siguiente canción",
+    ("media_control", "previous"): "volver a la canción anterior",
+    ("media_control", "stop"): "parar la música",
+    ("pending", "list"): "mirar lo pendiente",
+    ("pending", "cancel"): "olvidar lo pendiente",
 }
+_OPTION_ARGS = ("action", "what")
 
 
 def describe_call(call: ToolCall) -> str:
     """«open_app Discord» → «abrir Discord»: legible para la burbuja y la voz de lo diferido."""
-    values: list[str] = []
-    for k, v in call.arguments.items():
-        if not isinstance(v, str | int) or v == "":
-            continue
-        raw = str(v)
-        if raw in ("True", "False"):
-            continue
-        values.append(raw if k in _NO_TRANSLATE_ARGS else _VALUE_ES.get(raw, raw))
     # Nunca el nombre interno: el modelo lo vería en los resultados y lo escribiría en la
     # burbuja (pasó en la 6.03). Cada herramienta tiene su verbo (lo exige una prueba).
     verb = _VERBS.get(call.name, "hacer lo pedido")
+    option = next((k for k in _OPTION_ARGS if k in call.arguments), None)
+    if option and (phrase := _OPTION_VERBS.get((call.name, str(call.arguments[option])))):
+        verb = phrase
+    else:
+        option = None
+    values = [
+        str(v)
+        for k, v in call.arguments.items()
+        if k != option and isinstance(v, str | int) and not isinstance(v, bool) and v != ""
+    ]
     return " ".join([verb, *values[:2]])
 
 
@@ -255,9 +247,14 @@ class Executor:
         decision: Decision,
         result: ToolResult | None,
         phrase: str,
+        risk: Risk | None = None,
     ) -> None:
+        # `risk`: el que decidió SafetyGuard con lo preparado (apagar es rojo aunque la
+        # herramienta sea verde por «bloquear»); sin él, el de la herramienta.
         if self.log is None:
             return
+        if risk is None and tool is not None:
+            risk = tool.risk
         self.log.write(
             tool=name,
             params=params,
@@ -265,7 +262,7 @@ class Executor:
             ok=None if result is None else result.ok,
             message="" if result is None else result.message,
             phrase=phrase,
-            risk=str(tool.risk) if tool is not None else "",
+            risk=str(risk) if risk is not None else "",
         )
 
     def check(self, calls: list[ToolCall]) -> str:
@@ -360,19 +357,21 @@ class Executor:
         if decision.verdict is Verdict.BLOCK:
             log.warning("SafetyGuard bloquea %s: %s", call.name, decision.reason)
             result = ToolResult.fail(decision.reason, "por seguridad")
-            self._record(tool, call.name, args, Decision.BLOCKED, result, phrase)
+            self._record(tool, call.name, args, Decision.BLOCKED, result, phrase, decision.risk)
             return result
         if decision.verdict is Verdict.CONFIRM:
             if self.confirm is None:
                 result = ToolResult.fail("Necesito que lo confirmes y ahora no puedo preguntarte")
-                self._record(tool, call.name, args, Decision.BLOCKED, result, phrase)
+                self._record(tool, call.name, args, Decision.BLOCKED, result, phrase, decision.risk)
                 return result
             ok = await self.confirm(
                 Confirmation(prepared.summary, prepared.detail, decision.click_only)
             )
             if not ok:
                 result = cancelled_result(prepared.summary)
-                self._record(tool, call.name, args, Decision.CANCELLED, result, phrase)
+                self._record(
+                    tool, call.name, args, Decision.CANCELLED, result, phrase, decision.risk
+                )
                 return result
             logged = Decision.CONFIRMED
 
@@ -398,7 +397,7 @@ class Executor:
             round((time.perf_counter() - t0) * 1000),
             result.message,
         )
-        self._record(tool, call.name, args, logged, result, phrase)
+        self._record(tool, call.name, args, logged, result, phrase, decision.risk)
         return result
 
     async def run_plan(

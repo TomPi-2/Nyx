@@ -223,7 +223,7 @@ Unas 35 herramientas genéricas cubren miles de peticiones al combinarse. Cada u
 | `get_time_date` | Hora, fecha, cálculos de fechas | Verde | Local |
 | `answer` | Respuesta de conocimiento, traducción, cálculo | Verde | LLM |
 | `clipboard` | Leer, escribir o resumir el portapapeles | Verde | pywin32 |
-| `type_text` | Escribe texto en la app activa | Amarillo | SendInput |
+| `type_text` | Escribe texto en la app activa | Amarillo; rojo si lleva Intro o tabulador, o si la ventana es una terminal | SendInput |
 | `send_hotkey` | Envía un atajo de teclado | Amarillo | SendInput; lista de atajos peligrosos bloqueada |
 | `wait_for_window` | Espera a que aparezca una ventana | Verde | Interno del ejecutor |
 | `system_power` | Bloquear, suspender, reiniciar, apagar | Rojo (bloquear: verde) | APIs de Windows |

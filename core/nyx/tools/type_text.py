@@ -3,6 +3,12 @@
 Reutiliza `nyx/winapi/keys.py` (`keys.write`) y comprueba que la ventana de destino no sea ni Nyx
 ni un juego (`winapi/games.py`), igual que `send_hotkey`. Máximo 2.000 caracteres. Ofrece deshacer
 durante 30 s (envía Ctrl+Z a la misma ventana).
+
+Sube a **roja** (confirmación con el texto a la vista) en dos casos, porque ahí escribir ya no es
+solo escribir (SPEC sección 8):
+- el texto lleva saltos de línea o tabuladores: Intro envía mensajes y ejecuta órdenes, y Tab
+  cambia de campo;
+- la ventana es una terminal: lo escrito es una orden, y `run_powershell` es siempre roja.
 """
 
 from __future__ import annotations
@@ -28,10 +34,30 @@ from nyx.winapi import games, keys, windows
 FOCUS_SETTLE_S = 0.15
 MAX_TEXT_LEN = 2000
 _NOT_TARGETS = {"nyx-ui.exe", "nyx.exe"}
+# Terminales y consolas (las integradas en un editor no se pueden distinguir por el proceso).
+_TERMINALS = frozenset(
+    {
+        "windowsterminal.exe",
+        "wt.exe",
+        "cmd.exe",
+        "powershell.exe",
+        "pwsh.exe",
+        "conhost.exe",
+        "openconsole.exe",
+        "bash.exe",
+        "wsl.exe",
+        "mintty.exe",
+        "git-bash.exe",
+        "alacritty.exe",
+        "wezterm-gui.exe",
+        "hyper.exe",
+        "tabby.exe",
+    }
+)
 
 
 def _preview(text: str, limit: int = 50) -> str:
-    flat = " ".join(text.split())
+    flat = " ".join(text.replace("\n", " ⏎ ").split())
     return flat if len(flat) <= limit else flat[: limit - 1].rstrip() + "…"
 
 
@@ -85,10 +111,23 @@ class TypeText(Tool[TypeTextParams]):
                 summary=short, error=ToolResult.fail("Dentro de los juegos no toco nada")
             )
 
+        text = params.text.replace("\r\n", "\n").replace("\r", "\n")
+        presses = keys.presses_keys(text)
+        terminal = target.process.lower() in _TERMINALS
+        if presses or terminal:
+            # Se confirma viendo el texto entero (o casi): es lo que se va a enviar o ejecutar.
+            how = "y pulsar Intro" if "\n" in text else ""
+            where = f"la terminal ({target.title})" if terminal else target.title
+            return Prepared(
+                summary=" ".join(f"Escribir en {where} {how}".split()),
+                detail=_preview(text, 200),
+                risk=Risk.RED,
+                payload=(target.hwnd, text, target.title),
+            )
         return Prepared(
             summary=f"Escribir en {target.title}",
             detail=short,
-            payload=(target.hwnd, params.text, target.title),
+            payload=(target.hwnd, text, target.title),
         )
 
     async def execute(
@@ -101,12 +140,18 @@ class TypeText(Tool[TypeTextParams]):
                 return ToolResult.fail(f"Windows no me deja traer {title} al frente")
             await asyncio.sleep(FOCUS_SETTLE_S)
 
-        await asyncio.to_thread(keys.write, text)
+        if not await asyncio.to_thread(keys.write, text):
+            return ToolResult.fail(
+                f"Windows no me deja escribir en {title}", "¿es una ventana de administrador?"
+            )
 
         async def revert() -> str:
+            # Ctrl+Z solo a la ventana donde se escribió: si no se puede volver a ella, no se
+            # pulsa (iría a otra app, o a un juego).
             cur = await asyncio.to_thread(windows.foreground)
             if cur is None or cur.hwnd != hwnd:
-                await asyncio.to_thread(windows.activate, hwnd)
+                if not await asyncio.to_thread(windows.activate, hwnd):
+                    raise OSError(f"no puedo volver a {title}")
                 await asyncio.sleep(FOCUS_SETTLE_S)
             await asyncio.to_thread(keys.press, keys.parse("ctrl+z"))
             return f"Deshecho lo escrito en {title}"

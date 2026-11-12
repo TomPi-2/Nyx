@@ -108,3 +108,12 @@ def test_sentence_in_secondary_header_speaks_without_display_prefix() -> None:
     _, parser = run(["[uso del procesador | El uso de CPU está al 30 %.]"])
     _, reply = parser.finish()
     assert reply.spoken == "El uso de CPU está al 30 %."
+
+
+def test_key_fact_is_never_dropped_from_the_voice() -> None:
+    # Un contexto largo no es una frase: el dato (lo que se preguntó) se dice siempre.
+    _, reply = run(["[Miguel de Cervantes | escritor español del siglo de oro]"])[1].finish()
+    assert reply.spoken == "Miguel de Cervantes, escritor español del siglo de oro"
+    # Y si el contexto es una frase que no nombra el dato, van los dos.
+    _, reply = run(["[Madrid | Es la capital de España.]"])[1].finish()
+    assert reply.spoken == "Madrid. Es la capital de España."

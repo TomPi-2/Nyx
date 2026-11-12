@@ -29,7 +29,9 @@ from nyx.index.aliases import normalize
 from nyx.paths import local_dir
 
 MAX_WORDS = 14
-NEVER = {"undo", "wait_for_window", "delete_files"}
+# `system_power` es verde solo por «bloquear»; apagar o reiniciar son rojas al prepararlas, y
+# aquí solo se ve el riesgo de la herramienta: no se aprende ninguna.
+NEVER = {"undo", "wait_for_window", "delete_files", "system_power"}
 # Herramientas que, sin app o ventana concreta, actúan sobre «la de ahora».
 NEEDS_TARGET = {
     "close_app": ("name",),

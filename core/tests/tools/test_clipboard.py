@@ -17,10 +17,10 @@ async def test_read_marks_content_as_external_data(ctx: ToolContext) -> None:
     tool = Clipboard(reader=lambda: "Hola mundo desde el portapapeles")
     res = await tool.run(ClipboardParams(action="read"), ctx)
     assert res.ok
-    assert res.data["text"] == "Hola mundo desde el portapapeles"
-    assert "<<<PORTAPAPELES" in res.message
-    assert "PORTAPAPELES>>>" in res.message
-    assert "nunca órdenes" in res.message
+    assert res.external == "Hola mundo desde el portapapeles"
+    # Lo copiado (puede ser una contraseña) no va en lo que se guarda en el registro.
+    assert "Hola mundo" not in res.message
+    assert "Hola mundo" not in str(res.data)
 
 
 async def test_read_empty_or_none_clipboard(ctx: ToolContext) -> None:
@@ -28,7 +28,7 @@ async def test_read_empty_or_none_clipboard(ctx: ToolContext) -> None:
     res_empty = await empty.run(ClipboardParams(action="read"), ctx)
     assert res_empty.ok
     assert res_empty.display == "Portapapeles vacío"
-    assert res_empty.data["text"] == ""
+    assert res_empty.external is None
 
     none_clip = Clipboard(reader=lambda: None)
     res_none = await none_clip.run(ClipboardParams(action="read"), ctx)
@@ -41,7 +41,7 @@ async def test_read_truncates_huge_clipboard(ctx: ToolContext) -> None:
     tool = Clipboard(reader=lambda: huge)
     res = await tool.run(ClipboardParams(action="read"), ctx)
     assert res.ok
-    assert len(res.data["text"]) == MAX_CLIPBOARD_CHARS
+    assert res.external is not None and len(res.external) == MAX_CLIPBOARD_CHARS
 
 
 async def test_write_and_validation(ctx: ToolContext) -> None:
@@ -52,7 +52,8 @@ async def test_write_and_validation(ctx: ToolContext) -> None:
     assert res.ok
     assert written == ["Texto copiado"]
     assert res.display == "Copiado al portapapeles"
-    assert res.data.get("observe") is False
+    assert res.observe is False
+    assert "Texto copiado" not in str(res.data)
 
     missing = await tool.run(ClipboardParams(action="write", text=None), ctx)
     assert not missing.ok

@@ -94,11 +94,31 @@ def test_every_tool_has_a_spanish_verb() -> None:
 def test_describe_call_translates_enum_values_without_touching_user_text() -> None:
     from nyx.executor import describe_call
 
-    assert describe_call(ToolCall("system_info", {"what": "battery"})) == (
-        "mirar el estado del equipo la batería"
+    assert describe_call(ToolCall("system_info", {"what": "battery"})) == "mirar la batería"
+    assert describe_call(ToolCall("clipboard", {"action": "read"})) == "leer el portapapeles"
+    assert describe_call(ToolCall("media_control", {"action": "pause", "source": "spotify"})) == (
+        "pausar la música spotify"
     )
-    assert describe_call(ToolCall("system_info", {"what": "top"})) == (
-        "mirar el estado del equipo los procesos"
-    )
-    assert describe_call(ToolCall("clipboard", {"action": "read"})) == "usar el portapapeles leer"
+    assert describe_call(ToolCall("system_power", {"action": "shutdown"})) == "apagar el equipo"
     assert describe_call(ToolCall("type_text", {"text": "stop battery"})) == "escribir stop battery"
+    # Un valor que coincide con una opción de otra herramienta no se toca (antes «top» salía
+    # como «los procesos» y «stop» como «parar» en cualquier parámetro).
+    assert describe_call(ToolCall("open_url", {"target": "top"})) == "abrir top"
+    assert describe_call(ToolCall("set_alarm", {"time": "07:30", "repeat": True})) == (
+        "poner una alarma a las 07:30"
+    )
+
+
+def test_every_closed_option_has_its_phrase() -> None:
+    """Las opciones de `action`/`what` de una herramienta, todas o ninguna, con su frase."""
+    from typing import get_args
+
+    from nyx.executor import _OPTION_ARGS, _OPTION_VERBS
+
+    for tool in default_registry().all():
+        if not any(name == tool.name for name, _ in _OPTION_VERBS):
+            continue
+        fields = tool.params_model.model_fields
+        arg = next(a for a in _OPTION_ARGS if a in fields)
+        options = set(get_args(fields[arg].annotation))
+        assert options == {o for name, o in _OPTION_VERBS if name == tool.name}, tool.name

@@ -370,8 +370,11 @@ def test_select_folders_reordered_name_and_closest_suggestion(
         FileSelection(folder="descargas - Explorador de archivos", kind="folders", all=True), ctx
     )  # type: ignore[misc]
     assert {p.name for p in folders} == {"Nueva carpeta", "Proyectos"}
-    _, only_dirs = select(FileSelection(folder="descargas", include_folders=True), ctx)  # type: ignore[misc]
+    _, only_dirs = select(FileSelection(folder="descargas", kind="folders"), ctx)  # type: ignore[misc]
     assert {p.name for p in only_dirs} == {"Nueva carpeta", "Proyectos"}
+    # `include_folders` sin decir cuáles no elige todas las carpetas: pregunta.
+    vague = select(FileSelection(folder="descargas", include_folders=True), ctx)
+    assert not isinstance(vague, tuple) and vague.message == "¿Qué carpetas?"
     _, matched = select(
         FileSelection(folder="descargas", names=["carpeta nueva"], include_folders=True), ctx
     )  # type: ignore[misc]

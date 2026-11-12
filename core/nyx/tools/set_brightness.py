@@ -42,8 +42,9 @@ def set_screen_brightness(level: int) -> int | None:
         for val in values:
             if isinstance(val, int):
                 return max(0, min(100, val))
-    current = get_screen_brightness()
-    return current if current is not None else clamped
+    # Ningún monitor ha contestado: no se da por hecho (antes devolvía el nivel pedido y Nyx
+    # decía «Brillo 50» sin haberlo cambiado, p. ej. con un monitor externo sin DDC/CI).
+    return get_screen_brightness()
 
 
 class SetBrightnessParams(Params):

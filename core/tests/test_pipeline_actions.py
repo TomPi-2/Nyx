@@ -181,7 +181,8 @@ async def test_clipboard_write_skips_second_llm_turn() -> None:
         ok=True,
         message="Copiado: correo@ejemplo.com",
         display="Copiado al portapapeles",
-        data={"action": "write", "text": "correo@ejemplo.com", "observe": False},
+        observe=False,
+        data={"action": "write"},
     )
     with_router(
         h,

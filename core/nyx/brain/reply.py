@@ -76,7 +76,14 @@ def clean(text: str) -> str:
 
 
 def _looks_like_sentence(text: str) -> bool:
-    return text.endswith((".", "!", "?")) or len(text.split()) >= 5
+    """Una frase entera («El uso de CPU está al 30 %.»), no un contexto («escritor español del
+    siglo de oro»): acaba en punto y tiene varias palabras."""
+    return text.endswith((".", "!", "?")) and len(text.split()) >= 4
+
+
+def _words(text: str) -> set[str]:
+    """Palabras con contenido (3 letras o más, o cifras), para ver si dos textos se repiten."""
+    return {w for w in re.findall(r"\w+", text.casefold()) if len(w) >= 3 or w.isdigit()}
 
 
 class TextReplyParser:
@@ -138,7 +145,12 @@ class TextReplyParser:
             said = self.bubble.display
             if self.bubble.secondary:
                 sec = self.bubble.secondary.strip()
-                said = sec if _looks_like_sentence(sec) else f"{said}, {sec.replace(' · ', ', ')}"
+                if not _looks_like_sentence(sec):
+                    said = f"{said}, {sec.replace(' · ', ', ')}"
+                elif _words(said) & _words(sec):
+                    said = sec  # la frase ya dice el dato: sin la etiqueta de delante
+                else:
+                    said = f"{said}. {sec}"  # «Madrid. Es la capital de España.»
             self._speak(said, events)
         events.append(SpokenEnd())
         spoken = "".join(self.spoken).strip()

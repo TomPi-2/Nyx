@@ -48,6 +48,7 @@ class Stopwatch(Tool[StopwatchParams]):
                 message="Cronómetro en marcha.",
                 display="Cronómetro en marcha",
                 secondary="0 s",
+                observe=False,  # no hay nada que contar: sin vuelta al LLM, como un temporizador
                 data={"running": True, "elapsed_s": 0},
             )
 

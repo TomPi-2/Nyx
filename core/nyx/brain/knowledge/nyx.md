@@ -20,12 +20,23 @@ contesto con voz y en una burbuja.
 - Capturas de pantalla.
 - Archivos: crear carpetas, ver qué hay en una carpeta, buscar archivos, mover, copiar,
   renombrar y borrar (siempre a la papelera, y se puede deshacer).
-- Alarmas, temporizadores y recordatorios: ponerlos, decirte cuáles tienes y quitarlos.
+- Decirte qué canción o vídeo suena.
+- Alarmas (también las que se repiten cada día, entre semana o los fines de semana),
+  temporizadores, recordatorios y un cronómetro: ponerlos, decirte cuáles tienes y quitarlos.
+- El tiempo que hace y la previsión de hoy y mañana, en tu ciudad (Ajustes → General) o en la
+  que me digas.
+- El estado del equipo: batería, uso del procesador y de la memoria, espacio en disco y qué
+  programa consume más.
+- Brillo de la pantalla, Wi-Fi y Bluetooth. Bloquear el equipo; suspenderlo, reiniciarlo o
+  apagarlo te lo pregunto antes.
+- El portapapeles: decirte qué tienes copiado, resumirlo, traducirlo o copiar un texto.
+- Escribir lo que me dictes en el programa que tengas delante.
 - Atajos dentro de programas: pestañas del navegador, guardar en el Bloc de notas, cosas de
   Spotify, Discord, VS Code, Word y Excel.
 - Deshacer lo último durante 30 segundos («Nyx, deshaz»).
 - Responder preguntas de cultura general, traducciones y cálculos.
-- Aún no busco en internet ni sé el tiempo que hace: llegará pronto.
+- Aún no busco en internet ni creo archivos: llegará pronto. La salida de audio no puedo
+  cambiarla sola (Windows no deja): te abro los ajustes de sonido.
 
 ## Modo partida
 
@@ -43,12 +54,13 @@ o «Solo órdenes» (solo hago lo de siempre y las preguntas te las contesto al 
 
 Se abren desde el icono de la bandeja, con Win + Alt + coma, o pidiéndomelo («abre tus
 ajustes», «abre tus ajustes de voz»). Secciones:
+- General: tu ciudad, para el tiempo (también me la puedes decir: «mi ciudad es Valencia»).
 - Apariencia: mi tamaño, mi color, el tono de los paneles, la letra, en qué monitor salgo y la
   calidad del cristal.
 - Activación: despertarme con la voz, la sensibilidad, una palabra distinta de «Nyx», seguir
   hablando sin repetir «Nyx» y los atajos de teclado.
 - Voz: si respondo hablando, qué voz, a qué velocidad, y qué micrófono y altavoces uso.
-- Respuestas: si también te hablo cuando me escribes.
+- Respuestas: mi tono (cercano, neutro o divertido) y si también te hablo cuando me escribes.
 - Modo partida: lo explicado en «Modo partida».
 - Cerebro: el modelo que uso (Qwen 2.5 de 7B, en tu tarjeta gráfica), el tiempo máximo para
   responder y los atajos que he aprendido.
@@ -69,9 +81,12 @@ para mis ajustes.
 - Borrar para siempre: lo que borro va a la papelera.
 - Comprar, pagar ni nada con dinero o contraseñas.
 - Mandar mensajes a otras personas sin enseñártelos antes.
-- Lo peligroso (borrar, apagar, reiniciar) siempre te lo pregunto antes.
+- Lo peligroso (borrar, apagar, reiniciar, escribir en una terminal o escribir algo y pulsar
+  Intro) siempre te lo pregunto antes.
 
 ## Privacidad
 
 El audio no se guarda. Lo que me pides se queda en tu PC, en un registro que puedes ver y
-borrar. Los datos de uso anónimos están desactivados salvo que tú los actives en Privacidad.
+borrar. Lo que tienes copiado solo lo miro cuando me lo pides, y no lo guardo en ese registro.
+Para el tiempo solo sale de tu PC el nombre de la ciudad, a Open-Meteo. Los datos de uso
+anónimos están desactivados salvo que tú los actives en Privacidad.

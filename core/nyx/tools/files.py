@@ -84,13 +84,16 @@ def resolve_folder(ctx: ToolContext, target: str) -> Path | ToolResult:
     found = pick(ctx.index, head, {Kind.FOLDER}, "la carpeta")
     if isinstance(found, ToolResult):
         # Subcarpeta recién creada bajo una carpeta conocida (p. ej. Escritorio\Nueva carpeta)
-        # antes de que vuelva a pasar el escáner.
+        # antes de que vuelva a pasar el escáner. Solo si hay una: con dos con el mismo nombre
+        # no se adivina (podría acabar moviendo o borrando en la que no es).
         if head and head not in (".", ".."):
-            for entry in ctx.index.entries({Kind.FOLDER}):
-                root = Path(entry.launch.value)
-                candidate = root / head / Path(*rest)
-                if candidate.is_dir():
-                    return candidate
+            candidates = {
+                candidate
+                for entry in ctx.index.entries({Kind.FOLDER})
+                if (candidate := Path(entry.launch.value) / head / Path(*rest)).is_dir()
+            }
+            if len(candidates) == 1:
+                return candidates.pop()
         return found
     path = Path(found.entry.launch.value, *rest)
     if path.is_dir():
@@ -128,12 +131,14 @@ def select(sel: FileSelection, ctx: ToolContext) -> tuple[Path, list[Path]] | To
     folder = resolve_folder(ctx, sel.folder)
     if isinstance(folder, ToolResult):
         return folder
-    only_folders = sel.include_folders and not (
-        sel.names or sel.newest or sel.kind or sel.extension or sel.all
-    )
-    if not (sel.names or sel.newest or sel.kind or sel.extension or sel.all or sel.include_folders):
+    # `include_folders` solo dice que las carpetas también cuentan, no cuáles: sin nombres, tipo
+    # o «todo» no se elige nada (si el modelo olvida `names` en «borra la carpeta Fondos», no
+    # se llevan todas las carpetas). Todas las carpetas se piden con `kind="folders"`.
+    if not (sel.names or sel.newest or sel.kind or sel.extension or sel.all):
+        if sel.include_folders:
+            return ToolResult.fail("¿Qué carpetas?", "dime cuáles, o di «todas las carpetas»")
         return ToolResult.fail("¿Qué archivos?", "dime cuáles, cuántos o de qué tipo")
-    want_folders = sel.kind == "folders" or only_folders
+    want_folders = sel.kind == "folders"
     try:
         items = [
             p

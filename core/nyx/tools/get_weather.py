@@ -150,6 +150,7 @@ class GetWeather(Tool[GetWeatherParams]):
     category = Category.WEB
     params_model = GetWeatherParams
     observe = True
+    timeout_s = 12.0  # dos peticiones (ciudad y previsión) de hasta 5 s cada una
 
     def __init__(
         self,
@@ -169,7 +170,9 @@ class GetWeather(Tool[GetWeatherParams]):
     async def run(self, params: GetWeatherParams, ctx: ToolContext) -> ToolResult:
         city = (params.city or ctx.settings.general.city).strip()
         if not city:
-            if ctx.open_nyx_settings is not None:
+            # En partida no se abre ninguna ventana encima del juego: solo se dice.
+            playing = ctx.game is not None and ctx.game.active
+            if ctx.open_nyx_settings is not None and not playing:
                 await ctx.open_nyx_settings("general")
             return ToolResult.fail("Dime tu ciudad en Ajustes → General")
 

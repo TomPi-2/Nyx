@@ -34,6 +34,8 @@ def test_learnable() -> None:
     assert learnable(RIOT, "green")
     assert not learnable(ToolCall("delete_files", {"folder": "x"}), "red")
     assert not learnable(ToolCall("undo"), "green")
+    # Verde solo por «bloquear»: apagar es rojo al prepararlo y aquí no se ve.
+    assert not learnable(ToolCall("system_power", {"action": "shutdown"}), "green")
     assert not learnable(ToolCall("app_action", {"action": "close_tab"}), "yellow")  # sin app
     assert learnable(ToolCall("app_action", {"action": "like", "app": "Spotify"}), "yellow")
 

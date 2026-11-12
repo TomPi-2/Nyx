@@ -121,7 +121,7 @@ Los atajos siguen el idioma de Windows (en español, «nuevo» es Ctrl+U y «gua
 | Acción | Ejemplos | Estado | Riesgo |
 | --- | --- | --- | --- |
 | Pulsar un atajo | «pulsa control s» | Hecho (`send_hotkey`) | Amarillo |
-| Dictar texto en la app activa | «escribe: llego en 10 minutos» | Hecho (`type_text`) | Amarillo |
+| Dictar texto en la app activa | «escribe: llego en 10 minutos» | Hecho (`type_text`) | Amarillo (rojo si lleva Intro o tabulador, o si es una terminal) |
 | Trabajar con lo copiado | «traduce lo que he copiado», «resume lo copiado», «corrige la ortografía» | Hecho (`clipboard`) | Verde |
 | Historial del portapapeles | «pega lo que copié antes» | Idea | Amarillo |
 | Redactar | «escríbeme un correo para pedir el día libre» (en la burbuja, para copiar) | F6 | Verde |
