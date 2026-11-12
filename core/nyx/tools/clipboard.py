@@ -128,7 +128,7 @@ class Clipboard(Tool[ClipboardParams]):
                 message="Copiado al portapapeles.",
                 display="Copiado al portapapeles",
                 secondary=_preview(params.text),
-                data={"action": "write", "text": params.text},
+                data={"action": "write", "text": params.text, "observe": False},
             )
 
         try:

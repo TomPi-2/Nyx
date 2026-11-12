@@ -1,9 +1,17 @@
 import io
 import wave
+from pathlib import Path
 
 import numpy as np
+import pytest
 
-from nyx.stt.whisper_server import VulkanDevice, parse_devices, pick_device, to_wav
+from nyx.stt.whisper_server import (
+    VulkanDevice,
+    WhisperServer,
+    parse_devices,
+    pick_device,
+    to_wav,
+)
 
 # Registro real de whisper-server en el PC de referencia (docs/benchmarks).
 LOG = [
@@ -52,3 +60,28 @@ def test_to_wav_roundtrip() -> None:
     with wave.open(io.BytesIO(to_wav(pcm))) as w:
         assert (w.getframerate(), w.getnchannels(), w.getsampwidth()) == (16000, 1, 2)
         assert np.array_equal(np.frombuffer(w.readframes(1600), dtype=np.int16), pcm)
+
+
+async def test_whisper_server_selects_dedicated_gpu_before_first_launch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    launches: list[int | None] = []
+    server = WhisperServer(Path("whisper-server.exe"), Path("ggml.bin"))
+
+    async def fake_probe() -> list[VulkanDevice]:
+        return parse_devices(IGPU_FIRST)
+
+    async def fake_launch() -> None:
+        launches.append(server._device)
+        server._log.extend(IGPU_FIRST)
+
+    async def fake_transcribe(pcm: np.ndarray) -> str:
+        return ""
+
+    monkeypatch.setattr(server, "_probe_devices", fake_probe)
+    monkeypatch.setattr(server, "_launch", fake_launch)
+    monkeypatch.setattr(server, "transcribe", fake_transcribe)
+
+    await server.start()
+    assert launches == [1]  # arranca directamente en la dedicada sin relanzar
+    assert server.device_name is not None and "RTX" in server.device_name

@@ -171,10 +171,56 @@ _VERBS = {
 }
 
 
+_NO_TRANSLATE_ARGS = frozenset(
+    {
+        "text",
+        "name",
+        "folder",
+        "destination",
+        "target",
+        "query",
+        "label",
+        "city",
+        "device",
+        "value",
+        "setting",
+        "app",
+    }
+)
+_VALUE_ES = {
+    "battery": "la batería",
+    "cpu": "la CPU",
+    "ram": "la RAM",
+    "disk": "el disco",
+    "top": "los procesos",
+    "read": "leer",
+    "write": "copiar",
+    "start": "iniciar",
+    "stop": "parar",
+    "status": "consultar",
+    "list": "ver",
+    "cancel": "cancelar",
+    "lock": "bloquear",
+    "sleep": "suspender",
+    "restart": "reiniciar",
+    "shutdown": "apagar",
+    "play": "reproducir",
+    "pause": "pausar",
+    "next": "siguiente",
+    "previous": "anterior",
+}
+
+
 def describe_call(call: ToolCall) -> str:
     """«open_app Discord» → «abrir Discord»: legible para la burbuja y la voz de lo diferido."""
-    values = [str(v) for v in call.arguments.values() if isinstance(v, str | int) and v != ""]
-    values = [v for v in values if v not in ("True", "False")]
+    values: list[str] = []
+    for k, v in call.arguments.items():
+        if not isinstance(v, str | int) or v == "":
+            continue
+        raw = str(v)
+        if raw in ("True", "False"):
+            continue
+        values.append(raw if k in _NO_TRANSLATE_ARGS else _VALUE_ES.get(raw, raw))
     # Nunca el nombre interno: el modelo lo vería en los resultados y lo escribiría en la
     # burbuja (pasó en la 6.03). Cada herramienta tiene su verbo (lo exige una prueba).
     verb = _VERBS.get(call.name, "hacer lo pedido")

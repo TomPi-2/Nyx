@@ -101,3 +101,10 @@ def test_repeated_header_is_said_once() -> None:
     assert reply.spoken == "10 archivos en Descargas"
     _, other = run(["[Hallo | hola · alemán]"])[1].finish()
     assert other.secondary == "hola · alemán"  # lo que no se repite, se queda
+
+
+def test_sentence_in_secondary_header_speaks_without_display_prefix() -> None:
+    # ERRORES.md, 2026-11-11: «uso del procesador, El uso de CPU está al 30 %.»
+    _, parser = run(["[uso del procesador | El uso de CPU está al 30 %.]"])
+    _, reply = parser.finish()
+    assert reply.spoken == "El uso de CPU está al 30 %."

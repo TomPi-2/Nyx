@@ -347,3 +347,37 @@ async def test_overview_counts_everything(ctx: ToolContext, downloads: Path) -> 
     result = await executor(ctx).run(ToolCall("list_files", {"folder": "descargas"}))
     assert result.message.startswith("En Descargas hay 20 archivos y 1 carpeta;")
     assert result.display == "20 archivos" and len(result.data["paths"]) == 10
+
+
+async def test_create_folder_rejects_file_extensions_and_supports_undo(
+    ctx: ToolContext, downloads: Path, trash: list[str]
+) -> None:
+    ex = executor(ctx)
+    bad = await ex.run(ToolCall("create_folder", {"name": "documento.txt", "parent": "descargas"}))
+    assert not bad.ok and "No puedo crear archivos" in bad.message
+    ok = await ex.run(ToolCall("create_folder", {"name": "Temporal", "parent": "descargas"}))
+    assert ok.ok and ok.data["undo_id"] and (downloads / "Temporal").is_dir()
+    undone = await ex.run(ToolCall("undo", {"id": "la"}))
+    assert undone.ok and trash == [str(downloads / "Temporal")]
+
+
+def test_select_folders_reordered_name_and_closest_suggestion(
+    ctx: ToolContext, downloads: Path
+) -> None:
+    (downloads / "Nueva carpeta").mkdir()
+    (downloads / "Proyectos").mkdir()
+    _, folders = select(
+        FileSelection(folder="descargas - Explorador de archivos", kind="folders", all=True), ctx
+    )  # type: ignore[misc]
+    assert {p.name for p in folders} == {"Nueva carpeta", "Proyectos"}
+    _, only_dirs = select(FileSelection(folder="descargas", include_folders=True), ctx)  # type: ignore[misc]
+    assert {p.name for p in only_dirs} == {"Nueva carpeta", "Proyectos"}
+    _, matched = select(
+        FileSelection(folder="descargas", names=["carpeta nueva"], include_folders=True), ctx
+    )  # type: ignore[misc]
+    assert [p.name for p in matched] == ["Nueva carpeta"]
+    missing = select(
+        FileSelection(folder="descargas", names=["Mis Proyec"], include_folders=True), ctx
+    )
+    assert not isinstance(missing, tuple) and not missing.ok
+    assert missing.secondary and "Proyectos" in missing.secondary

@@ -107,11 +107,18 @@ class WhisperServer:
 
     async def start(self) -> None:
         async with self._lock:
+            if self._device is None:
+                devices = await self._probe_devices()
+                chosen = pick_device(devices, self._gpu)
+                if chosen is not None:
+                    self._device = chosen.index
+                    self.device_name = chosen.name
             await self._launch()
             devices = parse_devices(list(self._log))
             chosen = pick_device(devices, self._gpu)
             if chosen is None:
-                log.warning("whisper.cpp no ve ninguna GPU Vulkan: transcribirá con la CPU")
+                if self.device_name is None:
+                    log.warning("whisper.cpp no ve ninguna GPU Vulkan: transcribirá con la CPU")
                 return
             if chosen.index != (self._device or 0):
                 log.info("Relanzo whisper-server en la GPU %d (%s)", chosen.index, chosen.name)
@@ -122,6 +129,25 @@ class WhisperServer:
             log.info("whisper.cpp en %s", chosen.name)
         # La primera transcripción prepara la GPU (~250 ms extra): mejor ahora que con el usuario.
         await self.transcribe(np.zeros(SAMPLE_RATE // 2, dtype=np.int16))
+
+    async def _probe_devices(self) -> list[VulkanDevice]:
+        """Lista las GPUs Vulkan con `--help` (<0,2 s, sin cargar el modelo en la integrada)."""
+        if not self._server.exists():
+            return []
+        flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                str(self._server),
+                "--help",
+                stdin=asyncio.subprocess.DEVNULL,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+                creationflags=flags,
+            )
+            out, _ = await asyncio.wait_for(proc.communicate(), timeout=10.0)
+        except (OSError, TimeoutError):
+            return []
+        return parse_devices(out.decode("utf-8", errors="replace").splitlines())
 
     async def stop(self) -> None:
         async with self._lock:

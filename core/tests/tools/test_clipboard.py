@@ -52,6 +52,7 @@ async def test_write_and_validation(ctx: ToolContext) -> None:
     assert res.ok
     assert written == ["Texto copiado"]
     assert res.display == "Copiado al portapapeles"
+    assert res.data.get("observe") is False
 
     missing = await tool.run(ClipboardParams(action="write", text=None), ctx)
     assert not missing.ok

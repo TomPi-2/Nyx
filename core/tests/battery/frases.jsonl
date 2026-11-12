@@ -139,3 +139,18 @@
 {"frase": "para el cronómetro", "tool": "stopwatch", "args": {"action": "stop"}}
 {"frase": "pon una alarma todos los días laborables a las 7", "tool": "set_alarm", "args": {"time": "07:00", "repeat": "weekdays"}}
 {"frase": "pon el sonido en los auriculares", "tool": "audio_output"}
+{"frase": "Explícame qué es un agujero negro", "tipo": "respuesta"}
+{"frase": "Cierra la carpeta que tengo abierta", "tool": "close_app"}
+{"frase": "Minimiza el navegador", "tool": "window_layout", "args": {"action": "minimize", "name": "navegador"}}
+{"frase": "Crea tres archivos de texto", "tipo": "no_sabe"}
+{"frase": "Borra las carpetas de Descargas", "tool": "delete_files", "args": {"kind": "folders", "all": true}}
+{"frase": "Mi ciudad es Valencia", "tool": "nyx_control", "args": {"setting": "ciudad", "value": "Valencia"}}
+{"frase": "¿Qué tiempo ha hecho?", "tool": "get_weather"}
+{"frase": "¿Qué programa está consumiendo más?", "tool": "system_info", "args": {"what": "top"}}
+{"frase": "Copia mi correo filip@ejemplo.com al portapapeles", "tool": "clipboard", "args": {"action": "write", "text": "filip@ejemplo.com"}}
+{"frase": "Escribe en el bloc de notas. Hola, ¿qué tal?", "tool": "type_text", "args": {"app": "Bloc de notas", "text": "Hola, ¿qué tal?"}}
+{"frase": "Oculta Spotify", "tool": "window_layout", "args": {"action": "minimize", "name": "spotify"}}
+{"frase": "Empecemos el cronómetro", "tool": "stopwatch", "args": {"action": "start"}}
+{"frase": "¿Cuántos segundos lleva el cronómetro?", "tool": "stopwatch", "args": {"action": "status"}}
+{"frase": "El sonido sigue saliendo por los cascos en vez de por el monitor", "tool": "audio_output", "args": {"device": "monitor"}}
+{"frase": "Quiero que pares la música", "tool": "media_control", "args": {"action": "pause"}}

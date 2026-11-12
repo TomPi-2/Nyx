@@ -44,6 +44,8 @@ async def run(ctx: ToolContext, setting: str, value: str) -> Any:
         ("sensibilidad", "baja", ("wake", "sensitivity"), 5),
         ("color", "azul cielo", ("appearance", "nyx_color"), "azul_cielo"),
         ("tono de los paneles", "océano", ("appearance", "panel_tint"), "oceano"),
+        ("ciudad", "Valencia", ("general", "city"), "Valencia"),
+        ("ciudad", "A Coruña", ("general", "city"), "A Coruña"),
     ],
 )
 async def test_changes_settings(

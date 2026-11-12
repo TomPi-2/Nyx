@@ -8,6 +8,7 @@ from pathlib import Path
 
 from pydantic import Field
 
+from nyx.safety.undo import Undo
 from nyx.tools.base import (
     Category,
     GamePolicy,
@@ -18,10 +19,59 @@ from nyx.tools.base import (
     ToolContext,
     ToolResult,
 )
+from nyx.tools.delete_files import trash_all
 from nyx.tools.files import resolve_folder
 
 _INVALID = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 _RESERVED = {"con", "prn", "aux", "nul"} | {f"{d}{i}" for d in ("com", "lpt") for i in range(1, 10)}
+_FILE_SUFFIXES = frozenset(
+    {
+        ".txt",
+        ".md",
+        ".doc",
+        ".docx",
+        ".odt",
+        ".rtf",
+        ".pdf",
+        ".csv",
+        ".xls",
+        ".xlsx",
+        ".ppt",
+        ".pptx",
+        ".json",
+        ".xml",
+        ".yaml",
+        ".yml",
+        ".ini",
+        ".cfg",
+        ".log",
+        ".html",
+        ".htm",
+        ".css",
+        ".js",
+        ".ts",
+        ".py",
+        ".sh",
+        ".bat",
+        ".ps1",
+        ".exe",
+        ".msi",
+        ".zip",
+        ".rar",
+        ".7z",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".webp",
+        ".svg",
+        ".mp3",
+        ".wav",
+        ".mp4",
+        ".mkv",
+        ".avi",
+    }
+)
 
 
 class CreateFolderParams(Params):
@@ -39,7 +89,10 @@ def valid_name(name: str) -> str | None:
 
 class CreateFolder(Tool[CreateFolderParams]):
     name = "create_folder"
-    description = "Crea una carpeta. Ej.: «crea Fondos en Imágenes» (name=Fondos, parent=Imágenes)."
+    description = (
+        "Crea una carpeta (nunca sirve para crear archivos). "
+        "Ej.: «crea Fondos en Imágenes» (name=Fondos, parent=Imágenes)."
+    )
     risk = Risk.GREEN
     game_policy = GamePolicy.ALLOWED
     category = Category.FILES
@@ -49,6 +102,14 @@ class CreateFolder(Tool[CreateFolderParams]):
         name = valid_name(params.name)
         if name is None:
             return Prepared("", error=ToolResult.fail(f"«{params.name}» no vale como nombre"))
+        if Path(name).stem and Path(name).suffix.lower() in _FILE_SUFFIXES:
+            return Prepared(
+                "",
+                error=ToolResult.fail(
+                    "No puedo crear archivos, solo carpetas",
+                    "puedo abrir el Bloc de notas para escribir",
+                ),
+            )
         parent = await asyncio.to_thread(resolve_folder, ctx, params.parent)
         if isinstance(parent, ToolResult):
             return Prepared("", error=parent)
@@ -69,10 +130,16 @@ class CreateFolder(Tool[CreateFolderParams]):
             await asyncio.to_thread(target.mkdir, parents=False, exist_ok=False)
         except OSError as e:
             return ToolResult.fail(f"No he podido crear {target.name}", str(e))
+
+        async def undo() -> str:
+            await asyncio.to_thread(trash_all, [target])
+            return f"Carpeta {target.name} a la papelera"
+
         return ToolResult(
             ok=True,
             message=f"Carpeta {target.name} creada en {target.parent.name}",
             display=f"Carpeta {target.name}",
             secondary=f"creada en {target.parent.name}",
             data={"path": str(target)},
+            undo=Undo(prepared.summary, undo),
         )

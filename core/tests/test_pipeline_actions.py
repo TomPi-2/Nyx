@@ -164,4 +164,31 @@ async def test_tool_names_never_reach_the_bubble_or_the_voice() -> None:
     await h.p.wait_idle()
     assert h.tts.said[-1] in {p.spoken for p in PHRASES["garbled"]}
     assert all("list" not in b[0] and "set_alarm" not in b[0] for b in h.bubbles)
+    h.llm.replies = [
+        "[Pon el sonido en el monitor. | audio_output]\nPongo el sonido en el monitor."
+    ]
+    said_before = len(h.tts.said)
+    await h.bus.publish(TextEntered("pon el sonido en el monitor"))
+    await h.p.wait_idle()
+    assert "Pongo el sonido en el monitor." not in h.tts.said[said_before:]
+    assert h.tts.said[-1] in {p.spoken for p in PHRASES["garbled"]}
+    await h.p.close()
+
+
+async def test_clipboard_write_skips_second_llm_turn() -> None:
+    h = Harness()
+    res = ToolResult(
+        ok=True,
+        message="Copiado: correo@ejemplo.com",
+        display="Copiado al portapapeles",
+        data={"action": "write", "text": "correo@ejemplo.com", "observe": False},
+    )
+    with_router(
+        h,
+        Route([ToolCall("clipboard", {"action": "write", "text": "correo@ejemplo.com"})], "cw"),
+        [res],
+    )
+    await h.bus.publish(TextEntered("copia correo@ejemplo.com al portapapeles"))
+    await h.p.wait_idle()
+    assert h.llm.requests == []
     await h.p.close()

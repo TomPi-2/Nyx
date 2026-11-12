@@ -16,6 +16,10 @@ from nyx.stt.normalize import (
         ("NYAX, abre Visual Studio Code.", "Abre Visual Studio Code."),
         ("nyx abre Valorant", "Abre Valorant"),
         ("Oye Nyx, ¿qué hora es?", "¿Qué hora es?"),
+        ("¿Nyx? ¿Qué está sonando?", "¿Qué está sonando?"),
+        ("¡Nyx! Abre Spotify.", "Abre Spotify."),
+        ("¿Mix? ¿Cuánta RAM uso?", "¿Cuánta RAM uso?"),
+        ("Mix de canciones", "Mix de canciones"),
         ("¿Qué día es hoy?", "¿Qué día es hoy?"),
         ("Nixon fue presidente", "Nixon fue presidente"),  # no es la palabra de activación
     ],
@@ -76,6 +80,7 @@ def test_strip_wake_word_only_at_start() -> None:
         ("eso no existe, nix", True, False),
         ("No existe.", False, False),
         ("En el de mi pein, en el de mi pride", False, False),
+        ("¿Mix? ¿Cuánta RAM uso?", False, False),
         ("Nixon fue presidente", False, False),
     ],
 )

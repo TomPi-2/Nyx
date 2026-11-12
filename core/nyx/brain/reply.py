@@ -75,6 +75,10 @@ def clean(text: str) -> str:
     return _MARKDOWN.sub("", text)
 
 
+def _looks_like_sentence(text: str) -> bool:
+    return text.endswith((".", "!", "?")) or len(text.split()) >= 5
+
+
 class TextReplyParser:
     def __init__(self) -> None:
         self._pending = ""  # texto aún sin clasificar (¿cabecera o voz?)
@@ -128,10 +132,13 @@ class TextReplyParser:
             events.append(self.bubble)
             self._pending = ""
         if not self.spoken and self.bubble is not None:
-            # Solo cabecera: se dice el dato y su contexto («agujero negro, un objeto…»).
+            # Solo cabecera: se dice el dato y su contexto («agujero negro, un objeto…»). Si el
+            # contexto ya es una frase entera («El uso de CPU está al 30 %.»), se dice sin repetir
+            # la etiqueta de delante.
             said = self.bubble.display
             if self.bubble.secondary:
-                said += ", " + self.bubble.secondary.replace(" · ", ", ")
+                sec = self.bubble.secondary.strip()
+                said = sec if _looks_like_sentence(sec) else f"{said}, {sec.replace(' · ', ', ')}"
             self._speak(said, events)
         events.append(SpokenEnd())
         spoken = "".join(self.spoken).strip()

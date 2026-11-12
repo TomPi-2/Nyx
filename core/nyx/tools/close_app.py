@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from pydantic import Field
 
+from nyx.index.aliases import normalize
 from nyx.index.model import Entry, Kind
 from nyx.safety.undo import Undo
 from nyx.tools.base import (
@@ -24,6 +25,7 @@ from nyx.tools.base import (
     ToolContext,
     ToolResult,
 )
+from nyx.tools.focus_window import find_target_windows, process_for
 from nyx.winapi import launch, windows
 from nyx.winapi.windows import Window
 
@@ -31,6 +33,19 @@ from nyx.winapi.windows import Window
 # Code», «Documento1 - Word (sin guardar)»…
 _UNSAVED = re.compile(
     r"^\s*[*●•]|\s[*●•]\s|\*\s*-\s|\(sin guardar\)|\bunsaved\b|\bmodificado\b", re.I
+)
+_OPEN_FOLDERS = frozenset(
+    {
+        "carpeta",
+        "la carpeta",
+        "esta carpeta",
+        "carpeta abierta",
+        "la carpeta abierta",
+        "la carpeta que tengo abierta",
+    }
+)
+_FOLDER_PREFIX = re.compile(
+    r"^(?:la\s+)?carpeta(?:\s+(?:llamada|que\s+se\s+llama|de\s+nombre))?\s+"
 )
 
 
@@ -60,15 +75,30 @@ class CloseApp(Tool[CloseAppParams]):
     async def prepare(self, params: CloseAppParams, ctx: ToolContext) -> Prepared:
         entry = None
         if params.name:
-            best = ctx.index.confident(ctx.index.resolve(params.name, {Kind.APP, Kind.GAME}))
-            entry = best.entry if best else None
-            process = entry.process if entry else None
-            found = await asyncio.to_thread(windows.find_windows, params.name, process)
-            if process:
-                found = [w for w in found if w.process == process] or found[:1]
+            norm = normalize(params.name)
+            if norm in _OPEN_FOLDERS:
+                every = await asyncio.to_thread(windows.list_windows)
+                found = [w for w in every if w.process == "explorer.exe"][:1]
+                if not found:
+                    return Prepared("", error=ToolResult.fail("No veo ninguna carpeta abierta"))
+                label = found[0].title
+            elif _FOLDER_PREFIX.match(norm):
+                folder_q = _FOLDER_PREFIX.sub("", norm).strip()
+                fbest = ctx.index.confident(ctx.index.resolve(folder_q, {Kind.FOLDER}))
+                query = fbest.entry.name if fbest else folder_q
+                found = await asyncio.to_thread(windows.find_windows, query, None)
+                found = [w for w in found if w.process == "explorer.exe"][:1]
+                label = found[0].title if found else (fbest.entry.name if fbest else folder_q)
             else:
-                found = found[:1]
-            label = entry.name if entry else params.name
+                best = ctx.index.confident(ctx.index.resolve(params.name, {Kind.APP, Kind.GAME}))
+                entry = best.entry if best else None
+                process = process_for(ctx, params.name)
+                found = await asyncio.to_thread(find_target_windows, ctx, params.name)
+                if process:
+                    found = [w for w in found if w.process == process] or found[:1]
+                else:
+                    found = found[:1]
+                label = entry.name if entry else params.name
         else:
             fg = await asyncio.to_thread(windows.foreground)
             found = [fg] if fg else []

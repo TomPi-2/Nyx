@@ -617,3 +617,77 @@ def test_music_and_time_by_rule(
     index: SystemIndex, text: str, tool: str, args: dict[str, object]
 ) -> None:
     assert call(text, index) == (tool, args)
+
+
+@pytest.mark.parametrize(
+    ("text", "tool", "args"),
+    [
+        # Filas 11, 14, 17, 18, 19, 20, 23, 24, 27, 28, 29, 30 de ERRORES.md (6.16)
+        ("cierra la carpeta que tengo abierta", "close_app", {"name": "carpeta abierta"}),
+        ("cierra la carpeta llamada Fondos", "close_app", {"name": "carpeta fondos"}),
+        ("minimiza el navegador", "window_layout", {"action": "minimize", "name": "navegador"}),
+        (
+            "minimiza la ventana del operaje x",
+            "window_layout",
+            {"action": "minimize", "name": "operaje x"},
+        ),
+        ("oculta el Spotify", "window_layout", {"action": "minimize", "name": "spotify"}),
+        ("Minimize Spotify.", "window_layout", {"action": "minimize", "name": "spotify"}),
+        (
+            "quiero que minimices Spotify para no verlo en la pantalla",
+            "window_layout",
+            {"action": "minimize", "name": "spotify"},
+        ),
+        (
+            "borra las carpetas de Descargas",
+            "delete_files",
+            {"folder": "descargas", "kind": "folders", "all": True},
+        ),
+        (
+            "elimino las carpetas que hay dentro de Descargas",
+            "delete_files",
+            {"folder": "descargas", "kind": "folders", "all": True},
+        ),
+        ("mi ciudad es Valencia", "nyx_control", {"setting": "ciudad", "value": "Valencia"}),
+        ("pon mi ciudad en A Coruña", "nyx_control", {"setting": "ciudad", "value": "A Coruña"}),
+        ("¿qué tiempo ha hecho?", "get_weather", {}),
+        ("¿qué programa está consumiendo más?", "system_info", {"what": "top"}),
+        (
+            "copia mi correo filip@ejemplo.com al portapapeles",
+            "clipboard",
+            {"action": "write", "text": "filip@ejemplo.com"},
+        ),
+        (
+            "escribe en el blog de notas. Hola, ¿qué tal?",
+            "type_text",
+            {"app": "Bloc de notas", "text": "Hola, ¿qué tal?"},
+        ),
+        ("empecemos el cronómetro", "stopwatch", {"action": "start"}),
+        ("¿cuántos segundos lleva?", "stopwatch", {"action": "status"}),
+        ("ponen el sonido del monitor", "audio_output", {"device": "monitor"}),
+        (
+            "el sonido sigue saliendo por los cascos en vez de por el monitor",
+            "audio_output",
+            {"device": "monitor"},
+        ),
+        ("pana la música", "media_control", {"action": "pause"}),
+        ("quiero que pares la música", "media_control", {"action": "pause"}),
+        ("pausa al Spotify", "media_control", {"action": "pause", "source": "spotify"}),
+        (
+            "sigue sonando la música en Spotify para la",
+            "media_control",
+            {"action": "pause", "source": "spotify"},
+        ),
+    ],
+)
+def test_errors_616_by_rule(
+    index: SystemIndex, text: str, tool: str, args: dict[str, object]
+) -> None:
+    assert call(text, index) == (tool, args)
+
+
+def test_open_folder_delete_goes_to_llm(index: SystemIndex) -> None:
+    assert (
+        route("elimino las carpetas que hay dentro de la nueva carpeta que tengo abierta", index)
+        is None
+    )

@@ -52,7 +52,8 @@ class DeleteFiles(Tool[FileSelection]):
     name = "delete_files"
     description = (
         "Manda archivos o carpetas a la papelera. Ej.: «borra Fondos de Imágenes» "
-        "(folder=Imágenes, names=[Fondos], include_folders=true)."
+        "(folder=Imágenes, names=[Fondos], include_folders=true) o «borra las carpetas de "
+        "Descargas» (folder=Descargas, kind=folders)."
     )
     risk = Risk.RED
     game_policy = GamePolicy.DEFERRED

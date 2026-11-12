@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from nyx.executor import ToolCall
-from nyx.index.aliases import normalize
+from nyx.index.aliases import normalize, strip_articles
 from nyx.index.model import Kind
 from nyx.index.service import Match, SystemIndex
 from nyx.stt.normalize import NUMBER_WORDS, WAKE_VARIANTS
@@ -82,6 +82,7 @@ def _clean(text: str) -> str:
 
 
 _RAW: ContextVar[str] = ContextVar("router_raw", default="")
+_RAW_EXACT: ContextVar[str] = ContextVar("router_raw_exact", default="")
 
 Handler = Callable[[re.Match[str], SystemIndex], "Route | Miss | None"]
 _RULES: list[tuple[str, re.Pattern[str], Handler]] = []
@@ -97,6 +98,7 @@ def rule(name: str, pattern: str) -> Callable[[Handler], Handler]:
 
 def route(text: str, index: SystemIndex) -> Route | Miss | None:
     """Ruta para `text`, `Miss` si el patrón encaja sin destino claro, o None (→ LLM)."""
+    _RAW_EXACT.set(text.strip())
     _RAW.set(text.strip().rstrip(".!¡?¿ "))
     # «marca.com» → «marca punto com»: la limpieza quita los puntos; open_url los recupera.
     clean = _clean(_DOMAIN_DOT.sub(" punto ", text))
@@ -203,6 +205,14 @@ def _nyx_settings(m: re.Match[str], _: SystemIndex) -> Route:
     return _call("nyx_settings", "open_nyx_settings", section=section)
 
 
+@rule(
+    "city_set",
+    r"^(?:(?:pon|configura|guarda|cambia|establece|fija)\s+(?:mi\s+|la\s+)?ciudad(?:\s+(?:a|en))?|mi\s+ciudad\s+es(?:\s+en)?)\s+(?P<city>.+)$",
+)
+def _city_set(m: re.Match[str], _: SystemIndex) -> Route:
+    return _call("city_set", "nyx_control", setting="ciudad", value=_original(m.group("city")))
+
+
 # --- volumen (antes que «pon …» y «abre …») ---
 
 
@@ -284,11 +294,15 @@ def _mute(m: re.Match[str], index: SystemIndex) -> Route | None:
 
 @rule(
     "media_pause",
-    r"^(?:pausa|pausar|para|parar|deten|pausa la|para la)(?:\s+(?:la\s+|el\s+)?(?:musica|cancion|video|reproduccion|(?P<app>spotify|youtube)))?"
-    r"(?:\s+(?:de|en|del)\s+(?P<src>[a-z0-9 ]+))?$",
+    r"^(?:(?:quiero\s+que|puedes|podrias)\s+)?"
+    r"(?:"
+    r"(?:pausa|pausar|pauses|para|parar|pares|deten|detengas)(?:\s+(?:la\s+|el\s+|a\s+la\s+|al\s+)?(?:musica|cancion|video|reproduccion|(?P<app>spotify|youtube)))?"
+    r"|pana\s+(?:la\s+|el\s+)?(?:musica|cancion|video|reproduccion|(?P<app2>spotify|youtube))"
+    r")(?:\s+(?:de|en|del)\s+(?P<src>[a-z0-9 ]+))?$"
+    r"|^sigue\s+sonando\s+(?:la\s+musica|la\s+cancion|el\s+video)(?:\s+en\s+(?P<src2>[a-z0-9 ]+?))?\s+para(?:\s+la)?$",
 )
 def _pause(m: re.Match[str], _: SystemIndex) -> Route:
-    source = m.group("src") or m.group("app")
+    source = m.group("src") or m.group("app") or m.group("app2") or m.group("src2")
     return _call("media_pause", "media_control", action="pause", source=source)
 
 
@@ -523,7 +537,7 @@ def _screenshot(m: re.Match[str], _: SystemIndex) -> Route:
 _NUMWORD = "|".join(sorted([*NUMBER_WORDS, *_TENS], key=len, reverse=True))
 _N = rf"\d{{1,3}}|(?:{_NUMWORD})(?: y (?:{_NUMWORD}))?"
 _COUNT = rf"(?:(?P<n1>{_N})\s+)?(?:ultim[oa]s?|mas recientes?)(?:\s+(?P<n2>{_N}))?"
-_WHAT = r"(?:\s+(?P<what>archivos?|ficheros?|fotos?|imagen(?:es)?|videos?|documentos?|pdfs?|capturas?|audios?|canciones|cancion|cosas))?"
+_WHAT = r"(?:\s+(?P<what>archivos?|ficheros?|fotos?|imagen(?:es)?|videos?|documentos?|pdfs?|capturas?|audios?|canciones|cancion|carpetas?|cosas))?"
 _KIND_WORDS = {
     "fotos": "images",
     "imagenes": "images",
@@ -532,6 +546,8 @@ _KIND_WORDS = {
     "documentos": "documents",
     "audios": "audio",
     "canciones": "audio",
+    "carpetas": "folders",
+    "carpeta": "folders",
 }
 
 
@@ -733,6 +749,16 @@ def _close(m: re.Match[str], index: SystemIndex) -> Route | None:
     target = m.group("x")
     if target.startswith(("sesion", "la sesion", "el ordenador", "el pc")):
         return None  # cerrar sesión / apagar: system_power (fase 6)
+    if re.match(
+        r"^(?:(?:la|esta)\s+)?carpeta(?:\s+que\s+(?:tengo|hay))?\s+abierta$|^esta\s+carpeta$",
+        target,
+    ):
+        return _call("close", "close_app", name="carpeta abierta")
+    if mf := re.match(
+        r"^(?:la\s+)?carpeta(?:\s+(?:llamada|que\s+se\s+llama|de\s+nombre))?\s+(?P<f>.+)$",
+        target,
+    ):
+        return _call("close", "close_app", name=f"carpeta {mf.group('f')}")
     name = _window_name(target)
     return _call("close", "close_app", name=name)
 
@@ -789,16 +815,56 @@ def _transfer_named(m: re.Match[str], _: SystemIndex) -> Route:
 _DELETE = r"(?:borra(?:me)?|borrar|elimina(?:me)?|eliminar|(?:manda|tira|envia|mueve)(?:me)? a la papelera)"
 
 
-@rule("delete_folder", rf"^{_DELETE}\s+la\s+carpeta\s+(?P<x>.+)$")
+@rule(
+    "delete_folder",
+    rf"^{_DELETE}\s+la\s+carpeta(?:\s+(?:llamada|que\s+se\s+llame|con\s+el\s+nombre(?:\s+de)?|de\s+nombre))?\s+(?P<x>.+?)(?:\s+(?:de|del|en)\s+(?:la\s+carpeta\s+(?:de\s+)?)?(?:el\s+|la\s+)?(?P<parent>.+))?$",
+)
 def _delete_folder(m: re.Match[str], index: SystemIndex) -> Route | Miss:
-    matches = index.resolve(m.group("x"), {Kind.FOLDER})
+    name = _raw_after(
+        r"carpeta(?:\s+(?:llamada|que\s+se\s+llame|con\s+el\s+nombre(?:\s+de)?|de\s+nombre))?\s+(.+?)(?:\s+(?:de|del|en)\s+[^,]+)?$"
+    )
+    raw_x = m.group("x")
+    parent = m.group("parent")
+    if parent:
+        named_explicitly = bool(
+            re.search(
+                r"\bcarpeta\s+(?:llamada|que\s+se\s+llame|con\s+el\s+nombre|de\s+nombre)\b",
+                m.group(0),
+            )
+        )
+        if named_explicitly or index.confident(index.resolve(parent, {Kind.FOLDER})):
+            clean_name = (name or raw_x).strip(" «»\"'")
+            return _call(
+                "delete",
+                "delete_files",
+                folder=parent,
+                names=[clean_name],
+                include_folders=True,
+            )
+        raw_x = f"{raw_x} {m.group(0).split(raw_x, 1)[1].strip()}"
+    matches = index.resolve(raw_x, {Kind.FOLDER})
     best = index.confident(matches)
     if best is None:
-        return Miss(m.group("x"), matches)
+        return Miss(raw_x, matches)
     path = Path(best.entry.launch.value)
     return _call(
         "delete", "delete_files", folder=str(path.parent), names=[path.name], include_folders=True
     )
+
+
+@rule(
+    "delete_folders",
+    r"^(?:borra(?:me)?|borrar|elimina(?:me)?|elimino|eliminar|(?:manda|tira|envia|mueve)(?:me)?\s+a\s+la\s+papelera)\s+"
+    r"(?:todas\s+)?las\s+carpetas(?:\s+que\s+hay)?\s+(?:dentro\s+de(?:l)?|de|del|en)\s+"
+    r"(?:la\s+carpeta\s+(?:de\s+)?)?(?:el\s+|la\s+)?(?P<src>.+)$",
+)
+def _delete_folders(m: re.Match[str], index: SystemIndex) -> Route | None:
+    src = m.group("src")
+    if re.search(r"\b(?:que\s+(?:tengo|hay)\s+abierta|abierta|anterior|antes|esa|esta)\b", src):
+        return None
+    if index.confident(index.resolve(src, {Kind.FOLDER})) is None:
+        return None
+    return _call("delete_folders", "delete_files", folder=src, kind="folders", all=True)
 
 
 @rule(
@@ -857,17 +923,37 @@ def _list(m: re.Match[str], _: SystemIndex) -> Route | None:
 # --- ventanas ---
 
 
+_WIN_PREFIX = re.compile(
+    r"^(?:(?:la\s+ventana|ventana)\s+(?:de(?:l)?\s+)?|"
+    r"(?:el\s+programa|programa)\s+(?:de\s+)?|"
+    r"(?:la\s+(?:aplicacion|app))\s+(?:de\s+)?|"
+    r"(?:el|la|los|las)\s+)+"
+)
+
+
 def _window_name(raw: str | None) -> str | None:
     raw = (raw or "").strip()
-    return None if raw in _THIS_WINDOW else raw
+    if raw in _THIS_WINDOW:
+        return None
+    cleaned = _WIN_PREFIX.sub("", raw).strip()
+    return None if cleaned in _THIS_WINDOW else cleaned
 
 
 @rule(
     "window_state",
-    r"^(?P<verb>maximiza|maximizar|minimiza|minimizar|restaura|restaurar)(?:\s+(?P<x>.+))?$",
+    r"^(?:(?:quiero\s+que|puedes|podrias)\s+)?"
+    r"(?P<verb>maximiza(?:r)?|maximices|minimiza(?:r)?|minimices|minimize|"
+    r"oculta(?:r)?|ocultes|esconde(?:r)?|escondas|restaura(?:r)?|restaures)"
+    r"(?:\s+(?P<x>.+?))?(?:\s+para\s+no\s+verl[oa](?:\s+(?:en\s+(?:la\s+)?pantalla|mas))?)?$",
 )
 def _window_state(m: re.Match[str], _: SystemIndex) -> Route:
-    action = {"maxi": "maximize", "mini": "minimize", "rest": "restore"}[m.group("verb")[:4]]
+    v = m.group("verb")
+    if v.startswith("maxi"):
+        action = "maximize"
+    elif v.startswith("rest"):
+        action = "restore"
+    else:
+        action = "minimize"
     return _call("window_state", "window_layout", action=action, name=_window_name(m.group("x")))
 
 
@@ -945,7 +1031,7 @@ _WHEN_WEATHER = (
     "weather",
     r"^(?:(?:dime|mirame|consulta)\s+)?"
     r"(?:"
-    rf"que\s+tiempo\s+(?:hace|hara|hay|va\s+a\s+hacer)|como\s+esta\s+el\s+(?:tiempo|dia|cielo)|"
+    rf"que\s+tiempo\s+(?:hace|hara|hay|va\s+a\s+hacer|ha\s+hecho)|como\s+esta\s+el\s+(?:tiempo|dia|cielo)|"
     rf"que\s+tal\s+(?:el\s+tiempo|hace(?:\s+afuera|\s+fuera)?)|"
     rf"el\s+tiempo(?:\s+(?:de|para)\s+{_WHEN_WEATHER})?"
     r"|que\s+temperatura\s+(?:hace|hay|tenemos)|(?:a\s+)?cuantos\s+grados\s+(?:hace|hay|estamos)"
@@ -973,8 +1059,8 @@ _PC_TAIL = r"(?:\s+(?:en\s+|de\s+|del\s+)?(?:el\s+|mi\s+|la\s+)?(?:pc|ordenador|
     r"^(?:(?:dime|mirame|consulta)\s+)?"
     r"(?:"
     r"(?P<top>(?:que|cual\s+es\s+el)\s+(?:(?P<top_p>proceso|programa|aplicacion|app)\s+(?:que\s+mas\s+)?)?"
-    r"(?:(?:consume|usa|gasta|chupa)\s+mas(?:\s+(?:cpu|procesador|ram|memoria|recursos))?|"
-    r"(?:cpu|procesador|ram|memoria|recursos)\s+(?:consume|usa|gasta|chupa)))"
+    r"(?:(?:(?:esta|va)\s+)?(?:consume|consumiendo|usa|usando|gasta|gastando|chupa|chupando)\s+mas(?:\s+(?:cpu|procesador|ram|memoria|recursos))?|"
+    r"(?:cpu|procesador|ram|memoria|recursos)\s+(?:(?:esta|va)\s+)?(?:consume|consumiendo|usa|usando|gasta|gastando|chupa|chupando)))"
     r"|(?P<battery>cuanta\s+bateria\s+(?:me\s+)?(?:queda|tengo|tiene|hay)|"
     r"(?:que\s+(?:porcentaje|nivel)\s+de\s+|a\s+cuanto\s+esta\s+la\s+|como\s+(?:va|esta)\s+la\s+)bateria|"
     r"esta\s+(?:enchufado|cargando))"
@@ -1022,23 +1108,85 @@ def _clipboard_read(_: re.Match[str], __: SystemIndex) -> Route:
     return _call("clipboard_read", "clipboard", action="read")
 
 
+_RAW_POLITE = re.compile(r"(?:,\s*|\s+)(?:por favor|porfa|gracias)$", re.I)
+_COPY_PREFIX = re.compile(
+    r"^(?:(?:mi|el|la|este|esta)\s+)?(?:correo(?:\s+electr[oó]nico)?|e-?mail|"
+    r"texto|frase|enlace|link|url|direcci[oó]n(?:\s+de\s+correo)?|n[uú]mero|c[oó]digo|dato)"
+    r"(?:\s*[:\s]\s*)(.+)$",
+    re.I,
+)
+
+
+def _clean_dictated(raw: str) -> str:
+    text = raw.strip()
+    if (text.endswith(".") and not text.endswith("...")) or (
+        text.endswith(("!", "?")) and "¡" not in text and "¿" not in text
+    ):
+        text = text[:-1].rstrip()
+    return text.strip(" «»\"'")
+
+
+def _raw_without_polite() -> str:
+    return _RAW_POLITE.sub("", _clean_dictated(_RAW_EXACT.get())).strip()
+
+
 @rule(
     "clipboard_write",
     r"^(?:copia(?:me)?|guarda(?:me)?|pon(?:me)?)\s+(?:en\s+el\s+|al\s+)portapapeles\s+(?P<t1>.+)$"
     r"|^copia(?:me)?\s+(?P<t2>.+?)\s+(?:en\s+el\s+|al\s+)portapapeles$",
 )
 def _clipboard_write(m: re.Match[str], __: SystemIndex) -> Route:
-    raw = (
-        _raw_after(r"(?:en\s+el\s+|al\s+)portapapeles[:\s]+(.+)$")
-        if m.group("t1")
-        else _original(m.group("t2"))
-    )
-    return _call(
-        "clipboard_write",
-        "clipboard",
-        action="write",
-        text=raw or _original(m.group("t1") or m.group("t2")),
-    )
+    raw_line = _raw_without_polite()
+    extracted: str | None = None
+    if m.group("t1"):
+        if rm := re.search(
+            r"(?:copia(?:me)?|guarda(?:me)?|pon(?:me)?)\s+(?:en\s+el\s+|al\s+)portapapeles[:\s]+(.+)$",
+            raw_line,
+            re.I,
+        ):
+            extracted = rm.group(1)
+    elif rm := re.match(
+        r"^copia(?:me)?\s+(.+?)\s+(?:en\s+el\s+|al\s+)portapapeles$",
+        raw_line,
+        re.I,
+    ):
+        extracted = rm.group(1)
+    text = (extracted or _original(m.group("t1") or m.group("t2"))).strip()
+    if pm := _COPY_PREFIX.match(text):
+        text = pm.group(1).strip()
+    text = text.strip(" «»\"'")
+    return _call("clipboard_write", "clipboard", action="write", text=text)
+
+
+@rule(
+    "type_text_in_app",
+    r"^(?:escribe|teclea|dicta)(?:me)?\s+en\s+(?P<rest>.+)$",
+)
+def _type_text_in_app(m: re.Match[str], index: SystemIndex) -> Route | None:
+    raw_line = _RAW_POLITE.sub("", _RAW_EXACT.get().strip()).strip()
+    rm = re.match(r"^(?:escribe|teclea|dicta)(?:me)?\s+en\s+(.+)$", raw_line, re.I)
+    rest = rm.group(1).strip() if rm else m.group("rest")
+    if dm := re.match(r"^(?P<app>[^:.,]+?)\s*[:.,]\s+(?P<text>.+)$", rest):
+        cand = strip_articles(normalize(dm.group("app")))
+        best = index.confident(index.resolve(cand, {Kind.APP})) if cand else None
+        if best is not None or (cand and _find_windows(cand, None)):
+            app_name = best.entry.name if best is not None else dm.group("app").strip()
+            text = _clean_dictated(dm.group("text"))
+            if text:
+                return _call("type_text_in_app", "type_text", app=app_name, text=text)
+    words = rest.split()
+    for k in range(min(4, len(words) - 1), 0, -1):
+        prefix = " ".join(words[:k])
+        cand = strip_articles(normalize(prefix))
+        if not cand:
+            continue
+        best = index.confident(index.resolve(cand, {Kind.APP}))
+        if best is not None or _find_windows(cand, None):
+            app_name = best.entry.name if best is not None else prefix
+            text = _clean_dictated(" ".join(words[k:]))
+            if text:
+                return _call("type_text_in_app", "type_text", app=app_name, text=text)
+    return None
 
 
 @rule(
@@ -1046,8 +1194,9 @@ def _clipboard_write(m: re.Match[str], __: SystemIndex) -> Route:
     r"^(?:escribe|teclea|dicta)\s+(?!en\s+|un\s+|una\s+)(?P<text>.+)$",
 )
 def _type_text(m: re.Match[str], __: SystemIndex) -> Route:
-    raw = _raw_after(r"(?:escribe|teclea|dicta)[:\s]+(.+)$")
-    return _call("type_text", "type_text", text=raw or _original(m.group("text")))
+    rm = re.search(r"(?:escribe|teclea|dicta)[:\s]+(.+)$", _RAW_EXACT.get().strip(), re.I)
+    text = _clean_dictated(rm.group(1)) if rm else ""
+    return _call("type_text", "type_text", text=text or _original(m.group("text")))
 
 
 # --- brillo, energía, Wi-Fi y Bluetooth (6.11) ---
@@ -1147,9 +1296,9 @@ _CRONO = r"(?:el\s+|un\s+|mi\s+)?(?:cronometro|crono)"
 
 @rule(
     "stopwatch",
-    rf"^(?P<start>(?:pon(?:me)?|empieza|inicia|arranca|activa|abre(?:me)?|dale\s+al?)\s+{_CRONO}|cronometro)$"
+    rf"^(?P<start>(?:pon(?:me)?|empieza|empecemos|inicia|iniciemos|arranca|arranquemos|comienza|comencemos|activa|abre(?:me)?|dale\s+al?)\s+{_CRONO}|cronometro)$"
     rf"|^(?P<stop>(?:para|parame|deten|pausa|termina|corta)\s+{_CRONO})$"
-    rf"|^(?P<status>(?:dime\s+)?(?:cuanto\s+(?:tiempo\s+)?lleva(?:\s+{_CRONO})?"
+    rf"|^(?P<status>(?:dime\s+)?(?:cuanto(?:s\s+(?:segundos|minutos|horas))?(?:\s+tiempo)?\s+lleva(?:\s+{_CRONO})?"
     rf"|(?:como\s+va|que\s+(?:tiempo\s+)?marca|estado\s+de(?:l)?)\s+(?:el\s+|mi\s+)?(?:cronometro|crono)))$",
 )
 def _stopwatch(m: re.Match[str], __: SystemIndex) -> Route | None:
@@ -1159,20 +1308,23 @@ def _stopwatch(m: re.Match[str], __: SystemIndex) -> Route | None:
     return None
 
 
+_AUDIO_DEV = r"(?:auriculares|cascos|altavoces|bluetooth|hdmi|barra\s+de\s+sonido|monitor|tele(?:vision)?|tv|usb)"
+
+
 @rule(
     "audio_output",
-    r"^(?:(?:cambia|cambiame|selecciona|elige|pon|ponme|saca|pasa|manda)\s+)?"
+    r"^(?:(?:cambia|cambiame|selecciona|elige|pon|ponme|ponen|saca|pasa|manda)\s+)?"
     r"(?:"
     r"(?:la\s+)?salida\s+(?:de\s+|del\s+)?(?:audio|sonido)"
-    r"(?:\s+(?:a|al|en|por)\s+(?:los\s+|las\s+|el\s+|la\s+)?(?P<d1>.+))?"
+    r"(?:\s+(?:a|al|en|por|de|del)\s+(?:los\s+|las\s+|el\s+|la\s+)?(?P<d1>.+))?"
     r"|(?:el\s+)?dispositivo\s+(?:de\s+)?(?:salida|reproduccion|audio)"
-    r"(?:\s+(?:a|al|en|por)\s+(?:los\s+|las\s+|el\s+|la\s+)?(?P<d2>.+))?"
-    r"|(?:el\s+)?(?:audio|sonido)\s+(?:a|en|por)\s+(?:los\s+|las\s+|el\s+|la\s+)?"
-    r"(?P<d3>(?:auriculares|cascos|altavoces|bluetooth|hdmi|barra\s+de\s+sonido|monitor|tele(?:vision)?|tv|usb).*)"
+    r"(?:\s+(?:a|al|en|por|de|del)\s+(?:los\s+|las\s+|el\s+|la\s+)?(?P<d2>.+))?"
+    rf"|(?:el\s+)?(?:audio|sonido)\s+(?:a|al|en|por|de|del)\s+(?:los\s+|las\s+|el\s+|la\s+)?(?P<d3>{_AUDIO_DEV}.*)"
+    r"|(?:el\s+)?(?:audio|sonido)\s+(?:sigue\s+saliendo|sale)\s+por\s+.+?\s+en\s+vez\s+de(?:\s+por)?\s+(?:los\s+|las\s+|el\s+|la\s+)?(?P<d4>.+)"
     r")$",
 )
 def _audio_output(m: re.Match[str], __: SystemIndex) -> Route:
-    raw = m.group("d1") or m.group("d2") or m.group("d3")
+    raw = m.group("d1") or m.group("d2") or m.group("d3") or m.group("d4")
     device = _original(raw) if raw else None
     return _call("audio_output", "audio_output", device=device)
 

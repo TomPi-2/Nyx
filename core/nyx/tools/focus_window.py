@@ -6,6 +6,7 @@ import asyncio
 
 from pydantic import Field
 
+from nyx.index.aliases import normalize, strip_articles
 from nyx.index.model import Kind
 from nyx.tools.base import (
     Category,
@@ -17,7 +18,22 @@ from nyx.tools.base import (
     ToolContext,
     ToolResult,
 )
-from nyx.winapi import windows
+from nyx.winapi import focus, windows
+from nyx.winapi.windows import Window
+
+_OPERA_NAMES = frozenset({"opera", "opera gx", "operaje x", "opera g x", "operagx"})
+_BROWSER_NAMES = frozenset({"navegador", "browser"})
+_BROWSER_PROCESSES = frozenset(
+    {
+        "chrome.exe",
+        "msedge.exe",
+        "firefox.exe",
+        "opera.exe",
+        "opera_gx.exe",
+        "brave.exe",
+        "vivaldi.exe",
+    }
+)
 
 
 class FocusWindowParams(Params):
@@ -26,8 +42,35 @@ class FocusWindowParams(Params):
 
 def process_for(ctx: ToolContext, name: str) -> str | None:
     """Ejecutable de la app con ese nombre, si la caché lo sabe (más fiable que el título)."""
-    best = ctx.index.confident(ctx.index.resolve(name, {Kind.APP, Kind.GAME}))
-    return best.entry.process if best else None
+    clean = strip_articles(normalize(name))
+    if clean in _BROWSER_NAMES:
+        return focus.default_browser_process()
+    for query in (name, clean):
+        if query:
+            best = ctx.index.confident(ctx.index.resolve(query, {Kind.APP, Kind.GAME}))
+            if best and best.entry.process:
+                proc = best.entry.process
+                if proc == "launcher.exe" and "opera" in normalize(best.entry.name):
+                    return "opera.exe"
+                return proc
+    if clean in _OPERA_NAMES:
+        return "opera.exe"
+    return None
+
+
+def find_target_windows(ctx: ToolContext, name: str) -> list[Window]:
+    """Busca ventanas por nombre/alias/ejecutable (incluye «el navegador» y variantes de Opera)."""
+    clean = strip_articles(normalize(name))
+    process = process_for(ctx, name)
+    found = windows.find_windows(clean or name, process)
+    if not found and clean in _OPERA_NAMES:
+        for exe in ("opera.exe", "opera_gx.exe"):
+            found = windows.find_windows("opera", exe)
+            if found:
+                break
+    if not found and clean in _BROWSER_NAMES and process is None:
+        found = [w for w in windows.list_windows() if w.process in _BROWSER_PROCESSES]
+    return found
 
 
 class FocusWindow(Tool[FocusWindowParams]):
@@ -40,9 +83,7 @@ class FocusWindow(Tool[FocusWindowParams]):
 
     async def prepare(self, params: FocusWindowParams, ctx: ToolContext) -> Prepared:
         """Si no hay ninguna ventana así, se dice ya (también en partida, antes de diferirlo)."""
-        found = await asyncio.to_thread(
-            windows.find_windows, params.name, process_for(ctx, params.name)
-        )
+        found = await asyncio.to_thread(find_target_windows, ctx, params.name)
         if not found and not ctx.index.confident(
             ctx.index.resolve(params.name, {Kind.APP, Kind.GAME})
         ):
@@ -53,8 +94,7 @@ class FocusWindow(Tool[FocusWindowParams]):
         return Prepared(summary=f"Ventana {params.name}")
 
     async def run(self, params: FocusWindowParams, ctx: ToolContext) -> ToolResult:
-        process = process_for(ctx, params.name)
-        found = await asyncio.to_thread(windows.find_windows, params.name, process)
+        found = await asyncio.to_thread(find_target_windows, ctx, params.name)
         if not found:
             return ToolResult.fail(f"No veo ninguna ventana de {params.name}", "¿está abierta?")
         target = found[0]

@@ -128,3 +128,30 @@ async def test_close_active_window(ctx: ToolContext, desktop: FakeDesktop) -> No
     desktop.windows, desktop.fg = [DISCORD], 3
     prepared = await CloseApp().prepare(CloseAppParams(), ctx)
     assert prepared.summary == "Cerrar @Txiki - Discord"
+
+
+async def test_minimize_browser_and_opera_gx(ctx: ToolContext, desktop: FakeDesktop) -> None:
+    opera = Window(20, "Nueva pestaña - Opera GX", "opera.exe")
+    desktop.windows = [opera]
+    assert (
+        await WindowLayout().run(WindowLayoutParams(action="minimize", name="navegador"), ctx)
+    ).ok
+    assert (
+        await WindowLayout().run(WindowLayoutParams(action="minimize", name="operaje x"), ctx)
+    ).ok
+    assert desktop.shown == [(20, "minimize"), (20, "minimize")]
+
+
+async def test_close_explorer_folder_windows(
+    ctx: ToolContext, desktop: FakeDesktop, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    closed: list[int] = []
+    monkeypatch.setattr(windows, "close_window", closed.append)
+    folder_win = Window(31, "Nueva carpeta - Explorador de archivos", "explorer.exe")
+    desktop.windows = [CHROME, folder_win]
+    tool = CloseApp()
+    prep = await tool.prepare(CloseAppParams(name="carpeta abierta"), ctx)
+    assert prep.error is None
+    res = await tool.execute(CloseAppParams(name="carpeta abierta"), ctx, prep)
+    assert res.ok and closed == [31]
+    assert windows.find_windows("carpeta nueva", None, [folder_win]) == [folder_win]

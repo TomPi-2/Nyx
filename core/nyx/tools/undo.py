@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import re
+
 from pydantic import Field
 
 from nyx.tools.base import Category, GamePolicy, Params, Risk, Tool, ToolContext, ToolResult
+
+_ENTRY_ID = re.compile(r"[0-9a-f]{12}")
 
 
 class UndoParams(Params):
@@ -21,7 +25,11 @@ class UndoLast(Tool[UndoParams]):
     timeout_s = 120.0
 
     async def run(self, params: UndoParams, ctx: ToolContext) -> ToolResult:
-        entry = ctx.undo.take(params.id)
+        # El botón de la burbuja pasa el ID real (12 hex); si el modelo rellena «la» o similar,
+        # se ignora para deshacer la última acción.
+        raw_id = params.id.strip() if params.id else None
+        entry_id = raw_id if raw_id and _ENTRY_ID.fullmatch(raw_id) else None
+        entry = ctx.undo.take(entry_id)
         if entry is None:
             return ToolResult.fail("No hay nada que deshacer", "solo se puede en los primeros 30 s")
         try:

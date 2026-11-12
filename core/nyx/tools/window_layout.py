@@ -8,7 +8,7 @@ from typing import Literal
 from pydantic import Field
 
 from nyx.tools.base import Category, GamePolicy, Params, Risk, Tool, ToolContext, ToolResult
-from nyx.tools.focus_window import process_for
+from nyx.tools.focus_window import find_target_windows
 from nyx.winapi import windows
 
 Action = Literal["maximize", "minimize", "restore", "left", "right", "next_monitor"]
@@ -54,8 +54,7 @@ class WindowLayout(Tool[WindowLayoutParams]):
 
     async def run(self, params: WindowLayoutParams, ctx: ToolContext) -> ToolResult:
         if params.name:
-            process = process_for(ctx, params.name)
-            found = await asyncio.to_thread(windows.find_windows, params.name, process)
+            found = await asyncio.to_thread(find_target_windows, ctx, params.name)
             if not found:
                 return ToolResult.fail(f"No veo ninguna ventana de {params.name}")
             target = found[0]

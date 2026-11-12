@@ -3,7 +3,6 @@
 - Descarta las «alucinaciones» típicas de Whisper con silencio o ruido.
 - Quita «Nyx» (y cómo suele transcribirse) del principio.
 - Comprueba si la palabra de activación aparece de verdad (segunda verificación).
-- Comprueba si la palabra de activación aparece de verdad (segunda verificación).
 - Horas: «a las diez cincuenta» / «a las 10 y 50» → «a las 10:50».
 """
 
@@ -27,7 +26,13 @@ HALLUCINATIONS = (
 # Cómo transcribe Whisper «Nyx» (visto en pruebas reales: «Nix», «Nyx», «NYAX»…).
 WAKE_VARIANTS = frozenset({"nyx", "nix", "nics", "niks", "nicks", "nyks", "nyax", "nik", "nick"})
 _WAKE = re.compile(
-    rf"^\s*(?:oye\s*,?\s*)?(?:{'|'.join(sorted(WAKE_VARIANTS))})\b[\s,.:;-]*",
+    rf"^\s*[¿¡]?\s*(?:oye\s*,?\s*)?(?:{'|'.join(sorted(WAKE_VARIANTS))})\b[\s,.:;!?-]*",
+    re.IGNORECASE,
+)
+# Whisper a veces oye «¿Mix?» por «¿Nyx?». Solo al principio y con puntuación detrás; nunca
+# cuenta como confirmación en `has_wake_word` para no activar con «mix» en una conversación.
+_WAKE_MIX = re.compile(
+    r"^\s*[¿¡]?\s*(?:oye\s*,?\s*)?mix\s*[,.:;!?]+[\s,.:;!?-]*",
     re.IGNORECASE,
 )
 _WORD = re.compile(r"\w+")
@@ -152,7 +157,10 @@ def is_hallucination(text: str) -> bool:
 
 
 def strip_wake_word(text: str) -> str:
-    return _WAKE.sub("", text, count=1)
+    stripped = _WAKE.sub("", text, count=1)
+    if stripped == text:
+        stripped = _WAKE_MIX.sub("", text, count=1)
+    return stripped
 
 
 def normalize(text: str) -> str:
@@ -165,5 +173,7 @@ def normalize(text: str) -> str:
         return ""
     text = normalize_times(text)
     # Mayúscula en la primera letra, aunque vaya detrás de «¿» o «¡».
-    first = next(i for i, c in enumerate(text) if c.isalnum())
+    first = next((i for i, c in enumerate(text) if c.isalnum()), None)
+    if first is None:
+        return text
     return text[:first] + text[first].upper() + text[first + 1 :]

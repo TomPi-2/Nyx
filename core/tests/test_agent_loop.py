@@ -181,3 +181,21 @@ def test_last_action_expires_with_the_memory() -> None:
     assert memory.action() == "Abriendo Spotify"
     now[0] = 61
     assert memory.action() == ""
+
+
+def test_clipboard_observation_and_continuation_hint_avoid_duplication() -> None:
+    from nyx.brain.agent import continuation_hint
+
+    clip = ToolResult(
+        ok=True,
+        message="<<<PORTAPAPELES:\nHola mundo\nPORTAPAPELES>>>",
+        display="Portapapeles",
+        secondary="Hola mundo",
+        data={"action": "read", "text": "Hola mundo"},
+    )
+    obs = observation(ToolCall("clipboard", {"action": "read"}), clip)
+    assert obs.count("Hola mundo") == 1
+    run = AgentRun()
+    run.done.append((ToolCall("clipboard", {"action": "read"}), clip))
+    hint = continuation_hint(run)
+    assert "nunca «Información»" in hint and "[dato | contexto]" not in hint

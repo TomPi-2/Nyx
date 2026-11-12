@@ -113,9 +113,12 @@ def find_windows(
             score = 100.0
         else:
             title = normalize(w.title)
+            short_title = normalize(w.title.split(" - ")[0])
             exe = w.process.removesuffix(".exe")
             score = max(
                 float(fuzz.partial_ratio(query, title)) if len(query) >= 3 else 0.0,
+                float(fuzz.token_sort_ratio(query, title)) if len(query) >= 3 else 0.0,
+                float(fuzz.token_sort_ratio(query, short_title)) if len(query) >= 3 else 0.0,
                 float(fuzz.ratio(query, exe)),
             )
         if score >= 80:

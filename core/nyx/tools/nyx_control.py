@@ -99,7 +99,33 @@ def _quality(said: str, _: Any) -> Any:
     return None
 
 
+_SMALL_CITY_WORDS = {"de", "del", "la", "las", "los", "el", "y"}
+
+
+def _city(raw: str, _: Any = None) -> str | None:
+    cleaned = " ".join(raw.strip(" .,;:!?¡¿\"'«»").split())
+    norm = normalize(cleaned)
+    if not norm or norm in {
+        "mi ciudad",
+        "la mia",
+        "ninguna",
+        "otra",
+        "el de siempre",
+        "no se",
+        "nada",
+    }:
+        return None
+    if cleaned.islower():
+        words = cleaned.split()
+        return " ".join(
+            w if i > 0 and w in _SMALL_CITY_WORDS else w[:1].upper() + w[1:]
+            for i, w in enumerate(words)
+        )
+    return cleaned
+
+
 SETTINGS: dict[str, Setting] = {
+    "ciudad": Setting("general.city", "tu ciudad", _city),
     "calidad del cristal": Setting(
         "appearance.glass.quality",
         "calidad del cristal",
@@ -162,6 +188,7 @@ SettingName = Literal[
     "sensibilidad",
     "color",
     "tono de los paneles",
+    "ciudad",
 ]
 
 
@@ -192,8 +219,8 @@ class NyxControl(Tool[NyxControlParams]):
     name = "nyx_control"
     description = (
         "Cambia un ajuste tuyo, de Nyx. Ej.: «habla más despacio» (setting=velocidad de la "
-        "voz, value=más despacio), «cuando juegue, solo por voz» (setting=modo partida, "
-        "value=solo voz)."
+        "voz, value=más despacio), «hazte más grande» (setting=tamaño, value=más grande), "
+        "«cuando juegue, solo por voz» (setting=modo partida, value=solo voz)."
     )
     risk = Risk.GREEN
     game_policy = GamePolicy.ALLOWED
@@ -205,7 +232,8 @@ class NyxControl(Tool[NyxControlParams]):
             return ToolResult.fail("No puedo cambiar mis ajustes ahora")
         setting = SETTINGS[params.setting]
         current = _get(ctx.settings.model_dump(mode="json"), setting.path)
-        value = setting.parse(normalize(params.value), current)
+        raw_or_norm = params.value if params.setting == "ciudad" else normalize(params.value)
+        value = setting.parse(raw_or_norm, current)
         if value is None:
             return ToolResult.fail(
                 f"No sé qué poner en {setting.label}", f"has dicho «{params.value}»"

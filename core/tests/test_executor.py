@@ -89,3 +89,16 @@ def test_every_tool_has_a_spanish_verb() -> None:
 
     missing = [t.name for t in default_registry().all() if t.name not in _VERBS]
     assert missing == []
+
+
+def test_describe_call_translates_enum_values_without_touching_user_text() -> None:
+    from nyx.executor import describe_call
+
+    assert describe_call(ToolCall("system_info", {"what": "battery"})) == (
+        "mirar el estado del equipo la batería"
+    )
+    assert describe_call(ToolCall("system_info", {"what": "top"})) == (
+        "mirar el estado del equipo los procesos"
+    )
+    assert describe_call(ToolCall("clipboard", {"action": "read"})) == "usar el portapapeles leer"
+    assert describe_call(ToolCall("type_text", {"text": "stop battery"})) == "escribir stop battery"

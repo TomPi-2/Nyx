@@ -22,7 +22,7 @@ from nyx.tools.base import (
     ToolContext,
     ToolResult,
 )
-from nyx.tools.focus_window import process_for
+from nyx.tools.focus_window import find_target_windows
 from nyx.winapi import games, keys, windows
 
 FOCUS_SETTLE_S = 0.15
@@ -43,8 +43,8 @@ class TypeTextParams(Params):
 class TypeText(Tool[TypeTextParams]):
     name = "type_text"
     description = (
-        "Escribe texto en la app activa. "
-        "Ej.: «escribe llego en 10 minutos» (text=llego en 10 minutos)."
+        "Escribe texto en la app activa o en la app indicada. "
+        "Ej.: «escribe en el Bloc de notas hola» (app=Bloc de notas, text=hola)."
     )
     risk = Risk.YELLOW
     game_policy = GamePolicy.BLOCKED
@@ -54,9 +54,7 @@ class TypeText(Tool[TypeTextParams]):
     async def prepare(self, params: TypeTextParams, ctx: ToolContext) -> Prepared:
         short = _preview(params.text)
         if params.app:
-            found = await asyncio.to_thread(
-                windows.find_windows, params.app, process_for(ctx, params.app)
-            )
+            found = await asyncio.to_thread(find_target_windows, ctx, params.app)
             if not found:
                 return Prepared(
                     summary=short,

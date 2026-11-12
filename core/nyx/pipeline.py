@@ -13,7 +13,7 @@ import logging
 import re
 import time
 import uuid
-from collections.abc import Awaitable, Callable, Coroutine
+from collections.abc import Awaitable, Callable, Coroutine, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Protocol
@@ -763,7 +763,7 @@ class Pipeline:
         self._agent.done += list(zip(routed.calls, results, strict=False))
         # Lo último que se hizo, con su ruta (6.02): «ábrela», «muévela», «ciérralo»…
         self.brain.remember_action(memory_note(self._agent.done))
-        if failed is None and self._should_continue(routed.calls, marks):
+        if failed is None and self._should_continue(routed.calls, marks, results):
             # Consultó algo (archivos, alarmas…): el resultado vuelve al LLM para contarlo o
             # para dar el siguiente paso (HOJA-DE-RUTA §3.1).
             self._agent.steps += 1
@@ -895,14 +895,21 @@ class Pipeline:
         ):
             self._learn(text, ToolCall(plan.calls[0].name, plan.calls[0].arguments))
 
-    def _should_continue(self, calls: list[ToolCall], marks: _Marks) -> bool:
+    def _should_continue(
+        self, calls: list[ToolCall], marks: _Marks, results: Sequence[ToolResult] = ()
+    ) -> bool:
         """¿Hay que volver al LLM con lo consultado? Con límites de vueltas y de tiempo."""
         if self.executor is None or self._brain_off():
             return False
         if self._agent.steps >= MAX_STEPS or self._clock() - marks.end > MAX_SECONDS:
             log.info("Bucle de agente: límite alcanzado (%d vueltas)", self._agent.steps)
             return False
-        tools = (self.executor.registry.get(c.name) for c in calls)
+        tools = [self.executor.registry.get(c.name) for c in calls]
+        if len(results) == len(tools):
+            return any(
+                t is not None and t.observe and r.data.get("observe", True)
+                for t, r in zip(tools, results, strict=True)
+            )
         return any(t is not None and t.observe for t in tools)
 
     def _tool_keys(self) -> frozenset[str]:
@@ -996,14 +1003,17 @@ class Pipeline:
         # | …]», «listalarms, …»). Si la cabecera los trae, la burbuja sale de lo que se dice.
         keys = self._tool_keys()
         rebuild = False
+        held: list[str] = []
+        final_spoken = ""
 
         def say(sentence: str) -> None:
             nonlocal garbled, bubble
             if garbled or looks_like_code(sentence) or mentions_tool(sentence, keys):
                 garbled = True
                 return
-            if rebuild and bubble is None:
-                bubble = BubbleReady(first_sentence(sentence), "")
+            if rebuild:
+                held.append(sentence)
+                return
             if speech is not None:
                 marks.first_sentence = marks.first_sentence or self._clock()
                 speech.say(sentence)
@@ -1038,6 +1048,7 @@ class Pipeline:
                     elif isinstance(event, ReplyDone):
                         log.info("Respuesta: %s", event.reply.model_dump_json())
                         reply = event.reply
+                        final_spoken = reply.spoken.strip()
                         if looks_like_code(
                             f"{reply.display} {reply.secondary} {reply.spoken}"
                         ) or mentions_tool(reply.spoken, keys):
@@ -1046,6 +1057,15 @@ class Pipeline:
                             bubble = BubbleReady(first_sentence(reply.spoken), "")
                         elif speech is None:
                             bubble = text_bubble(reply)
+            if (
+                plan is None
+                and rebuild
+                and self._agent.steps == 0
+                and not final_spoken.endswith("?")
+            ):
+                # Ha escrito el nombre interno de la herramienta en la cabecera y una frase
+                # afirmativa sin emitir tool_calls (p. ej. fingir una acción o inventar un dato).
+                garbled = True
             if garbled and plan is None:
                 # Nunca se dice ni se enseña código (ERRORES.md, 2026-11-11).
                 log.warning("Respuesta con código o llamadas escritas: no se dice")
@@ -1061,6 +1081,12 @@ class Pipeline:
                 return
             if speech is not None and (rest := splitter.flush()):
                 say(rest)
+            if speech is not None and held:
+                if bubble is None:
+                    bubble = BubbleReady(first_sentence(" ".join(held)), "")
+                for sentence in held:
+                    marks.first_sentence = marks.first_sentence or self._clock()
+                    speech.say(sentence)
             if speech is not None:
                 await speech.finish()
             if not bubble_shown:

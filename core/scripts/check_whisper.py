@@ -26,6 +26,8 @@ from typing import Any
 import httpx
 from hwinfo import hardware, save_report
 
+from nyx.stt.whisper_server import VulkanDevice, parse_devices, pick_device
+
 PHRASES = [
     "Nyx, abre Visual Studio Code.",
     "Pon una alarma a las diez y cincuenta.",
@@ -56,12 +58,23 @@ def free_port() -> int:
         return port
 
 
+def detect_device(server: Path, preferred: str | None = None) -> VulkanDevice | None:
+    try:
+        out = subprocess.check_output(
+            [str(server), "--help"], stderr=subprocess.STDOUT, text=True, timeout=10
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return pick_device(parse_devices(out.splitlines()), preferred)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--server", type=Path, required=True, help="whisper-server.exe")
     parser.add_argument("--model", type=Path, required=True, help="modelo ggml (.bin)")
     parser.add_argument("--audio", type=Path, nargs="*", default=[])
     parser.add_argument("--runs", type=int, default=3)
+    parser.add_argument("--gpu", default=None, help="parte del nombre de la GPU Vulkan")
     args = parser.parse_args()
 
     tmp = Path(tempfile.mkdtemp(prefix="nyx-whisper-"))
@@ -72,15 +85,18 @@ def main() -> int:
             synthesize(text, wav)
             audio.append(wav)
 
+    chosen = detect_device(args.server, args.gpu)
+    cmd = [str(args.server), "-m", str(args.model), "-l", "es", "--port"]
     port = free_port()
+    cmd.append(str(port))
+    if chosen is not None:
+        cmd += ["--device", str(chosen.index)]
+        print(f"GPU Vulkan: {chosen.name} (--device {chosen.index})")
+
     log_path = tmp / "server.log"
     t0 = time.perf_counter()
     with log_path.open("w", encoding="utf-8", errors="replace") as log:
-        proc = subprocess.Popen(
-            [str(args.server), "-m", str(args.model), "-l", "es", "--port", str(port)],
-            stdout=log,
-            stderr=subprocess.STDOUT,
-        )
+        proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
     client = httpx.Client(base_url=f"http://127.0.0.1:{port}", timeout=120)
     try:
         while True:
@@ -122,6 +138,7 @@ def main() -> int:
     report = {
         "hardware": hardware(),
         "model": args.model.name,
+        "device": chosen.name if chosen is not None else None,
         "load_s": round(load_s, 2),
         "backend": backend_lines[:10],
         "results": results,
