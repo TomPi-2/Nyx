@@ -192,7 +192,7 @@ E. Calidad y cierre      6.15 6.16 6.17 → 6.18 → 6.19
 F. Grupos (2026-11-12)   6.20a → 6.17 → 6.20b → 6.20c → 6.20d, antes del bloque D
 ```
 
-**Orden actual (2026-11-12, tarde):** 6.20a, 6.17 y 6.20b hechas (6.20c pasa a la 0.7 y 6.20d se descarta mientras haya otra forma de evitar la pérdida de FPS) → 6.21 → 6.22 → 6.23 → 6.24 → bloque D y B → 6.19.
+**Orden actual (2026-11-13):** 6.20a, 6.17, 6.20b y 6.21 (pasos 1–4) hechas (6.20c pasa a la 0.7 y 6.20d se descarta mientras haya otra forma de evitar la pérdida de FPS) → 6.25 (reglas a lo grande) → 6.26 (respuestas fijas con variantes) → 6.22 → 6.23 → 6.24 → 6.27 (LoRA) → bloque D y B → 6.19.
 La 6.17 va antes del selector porque es la vara de medir: con la batería de hoy solo 31 de
 156 frases llegan al LLM, y son las únicas que pondrían a prueba los grupos.
 
@@ -604,6 +604,45 @@ Los dos errores de interfaz del 2026-11-12 en `ERRORES.md`:
   (WinRT `Geolocator`, solo si el usuario tiene la ubicación activada; si no, se queda
   vacía) y geocodificación inversa. Se confirmará con el usuario en el primer arranque
   interactivo (0.9).
+
+### 6.25 Reglas a lo grande · Claude (aprobada 2026-11-13)
+
+Tras la 6.21 (ningún modelo de esta talla actúa mejor que qwen2.5:7b): **el router resuelve
+todo lo que sea seguro y el modelo solo lo ambiguo, la conversación y las preguntas**. Gana en
+latencia (0 ms frente a 0,4–2 s), en fiabilidad y en FPS (el router no usa la gráfica).
+
+- Una regla **solo actúa si está segura**; ante la duda, la frase pasa al LLM. Mejor sin regla
+  que con una que hace lo que no se pidió.
+- Fuente de frases: los fallos del LLM en la batería (`bateria-6.21.md`), las variantes
+  naturales de cada herramienta (sinónimos, orden de palabras, «¿puedes…?», «me hace falta…»)
+  y los fallos del router de `ERRORES.md`.
+- Cada regla nueva entra con frases en la batería (positivas y parecidas que **no** deben
+  activarla). La batería no baja de la línea base y no falla ninguna frase que antes acertaba.
+- Mide: frases resueltas por el router (hoy 152/337), acierto total y del LLM, y primer token.
+
+### 6.26 Respuestas fijas con variantes · Claude (aprobada 2026-11-13)
+
+Lo que resuelve el router contesta sin LLM (no gasta gráfica ni tiempo), pero sin sonar a
+máquina: **4–5 variantes por resultado y según el tono** (cercano, neutro, breve…), elegidas sin
+repetir la última. Todas cumplen el criterio de escritura de la 6.23 (mayúscula, punto final,
+tildes) con una prueba que lo comprueba. El LLM sigue redactando la conversación y lo ambiguo.
+
+### 6.27 Ajuste fino (LoRA) de qwen2.5:7b · Claude (aprobada 2026-11-13)
+
+Para lo que queda al modelo tras la 6.25: que actúe en vez de contestar y que escriba la
+cabecera de los paneles bien (6.23). Misma memoria y velocidad que ahora.
+
+- **Entrenamiento en el portátil (RTX 3070, 8 GB) con CUDA, solo como herramienta de
+  desarrollo** (decisión del 2026-11-13): Nyx sigue sin CUDA; el resultado se exporta a GGUF y
+  se carga en Ollama (Vulkan) como ahora. QLoRA de 4 bits; librerías con licencia comprobada
+  antes de usarlas. Código en `core/training/llm/`, fuera de lo que se distribuye.
+- **Datos:** unos miles de ejemplos «frase → llamadas o respuesta con cabecera», de la batería,
+  del router y generados. **También con herramientas inventadas y variadas**, para que aprenda
+  a usar herramientas en general y no empeore con las de las extensiones (0.7).
+- **Medida honesta:** un conjunto de frases que no se usa nunca para entrenar, además de la
+  batería y `game_bench.py`. Solo se queda si mejora sin fallos nuevos ni más coste.
+- Licencia: qwen2.5:7b es Apache-2.0 y permite distribuir el modelo ajustado (se anota en la
+  auditoría de licencias).
 
 ### Rendimiento en partida (seguimiento)
 
