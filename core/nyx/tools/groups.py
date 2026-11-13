@@ -85,9 +85,16 @@ GROUPS: tuple[Group, ...] = (
     ),
     Group(
         "teclado",
-        "atajos y acciones dentro de una app (pestañas, guardar, zoom, micro) y escribir texto",
-        ("app_action", "send_hotkey", "type_text"),
+        "atajos y acciones dentro de una app (pestañas, guardar, zoom, micro), escribir texto y "
+        "pulsar o leer un botón o texto por su nombre",
+        ("app_action", "send_hotkey", "type_text", "ui_action"),
         (
+            r"pulsa",
+            r"boton",
+            r"casilla",
+            r"\bmarca\b",
+            r"desmarca",
+            r"que pone",
             r"pestan",
             r"pagina",
             r"incognito",

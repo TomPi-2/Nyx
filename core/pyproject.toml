@@ -87,5 +87,5 @@ link-mode = "copy"
 
 [[tool.mypy.overrides]]
 # Librerías sin anotaciones de tipos: se usan detrás de las interfaces de nyx.
-module = ["sounddevice", "vosk", "onnxruntime", "onnxruntime.*", "piper", "piper.*", "pocket_tts", "pocket_tts.*", "comtypes", "pycaw", "pycaw.*", "mss", "mss.*", "screen_brightness_control", "screen_brightness_control.*"]
+module = ["sounddevice", "vosk", "onnxruntime", "onnxruntime.*", "piper", "piper.*", "pocket_tts", "pocket_tts.*", "comtypes", "comtypes.*", "pycaw", "pycaw.*", "mss", "mss.*", "screen_brightness_control", "screen_brightness_control.*"]
 ignore_missing_imports = true

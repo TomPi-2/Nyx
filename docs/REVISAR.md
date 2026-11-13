@@ -41,3 +41,11 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
   pedir confirmación con «VideoLAN · VideoLAN.VLC»), cancelarlo, y «instala Chrome» (varios:
   debe preguntar cuál). **Limitación:** mientras instala, Nyx espera (hasta 15 min) y no
   atiende otra cosa; avisar al acabar en segundo plano queda para más adelante.
+- **6.14 `ui_action`** (UI Automation; nunca en juegos ni en Nyx; bloqueada en partida): pulsar
+  un botón o un menú, marcar una casilla o leer un texto por su nombre. Leer es verde; pulsar y
+  marcar, amarillo (Nyx avisa de que no se puede deshacer); rojo si el control se llama
+  «Eliminar», «Enviar», «Pagar», «Desinstalar»… Si hay varios parecidos, pregunta cuál. Al
+  ejecutar comprueba que el control sigue siendo el mismo **antes** de tocarlo. Probado sin
+  pulsar nada: encuentra el botón «Minimizar» de VS Code. Probar: en una ventana con botones,
+  «pulsa Aceptar» o «¿qué pone en el aviso?». Los menús de apps tipo Electron (VS Code,
+  Discord) a veces no se ven por UI Automation.

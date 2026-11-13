@@ -29,6 +29,7 @@ Todo lo que un usuario podría querer pedirle a Nyx, agrupado por áreas. La lis
 | Ventana siempre encima | «deja la calculadora siempre encima» | Idea | Verde |
 | Escritorios virtuales | «pásate al escritorio 2», «crea un escritorio» | F6 | Verde |
 | Distribuciones guardadas | «modo trabajo» (abre y coloca VS Code, Chrome y Spotify) | F6 | Verde |
+| Pulsar un botón, marcar una casilla o leer un texto por su nombre | «pulsa Aceptar», «marca Recordarme», «¿qué pone en el aviso?» | Hecho (`ui_action`, UI Automation; nunca en juegos) | Amarillo (rojo si es eliminar, enviar, pagar…) |
 | Instalar y desinstalar programas | «instálame el VLC», «desinstala el Zoom» | Hecho (`install_app`, con winget; enseña el nombre exacto y el editor) | Rojo |
 
 ## 2. Dentro de las apps (`app_action`, nunca en juegos)

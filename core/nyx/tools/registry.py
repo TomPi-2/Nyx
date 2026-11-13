@@ -72,6 +72,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.toggle_bluetooth import ToggleBluetooth
     from nyx.tools.toggle_wifi import ToggleWifi
     from nyx.tools.type_text import TypeText
+    from nyx.tools.ui_action import UiAction
     from nyx.tools.undo import UndoLast
     from nyx.tools.wait_for_window import WaitForWindow
     from nyx.tools.window_layout import WindowLayout
@@ -120,6 +121,7 @@ def default_registry() -> ToolRegistry:
             DeleteFiles(),
             RunPowershell(),
             InstallApp(),
+            UiAction(),
             UndoLast(),
         ]
     )

@@ -396,3 +396,5 @@
 {"frase": "¿qué versión de Windows tengo?", "tool": "run_powershell"}
 {"frase": "instálame el VLC", "tool": "install_app", "args": {"action": "install"}}
 {"frase": "desinstala el Zoom, que ya no lo uso", "tool": "install_app", "args": {"action": "uninstall"}}
+{"frase": "pulsa el botón Aceptar", "tool": "ui_action", "args": {"action": "click"}}
+{"frase": "marca la casilla de recordar contraseña", "tool": "ui_action", "args": {"action": "toggle"}}
