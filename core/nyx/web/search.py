@@ -20,6 +20,7 @@ contenido de fuera: la herramienta lo marca así y el modelo lo recibe sin herra
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import logging
 import re
 from dataclasses import dataclass
@@ -38,6 +39,10 @@ USER_AGENT = "Nyx/0.6 (asistente de escritorio para Windows)"
 TIMEOUT_S = 5.0
 MAX_SUMMARY = 3000  # por resultado
 MAX_PAGE_BYTES = 1_500_000  # una página más grande no se lee entera
+# Cada página tiene su propio tiempo: una que manda los datos con cuentagotas no puede comerse
+# los 15 s de la herramienta (el límite de httpx es por trozo, no por página). Si no llega a
+# tiempo, se usa el resumen del buscador.
+PAGE_DEADLINE_S = 6.0
 DDG_URL = "https://html.duckduckgo.com/html/"
 
 
@@ -61,7 +66,32 @@ class SearchError(Exception):
     """El buscador no ha respondido como se esperaba (cambio de formato, bloqueo…)."""
 
 
+class LocalAddressError(httpx.RequestError):
+    """Una página (o su redirección) apunta al propio equipo o a la red de casa."""
+
+
 _TAGS = re.compile(r"<[^>]+>")
+
+
+def local_address(url: str) -> bool:
+    """True si la dirección es del propio equipo o de la red local (el router, una impresora,
+    el puente de Nyx…): una página de internet no puede mandar a Nyx ahí, ni redirigiendo."""
+    host = (urlparse(url).hostname or "").lower().rstrip(".")
+    if not host or "." not in host or host == "localhost":
+        return True  # «router», «nas»: nombres de la red local
+    if host.endswith((".localhost", ".local", ".lan", ".home", ".internal", ".home.arpa")):
+        return True
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    return not ip.is_global
+
+
+async def _only_internet(request: httpx.Request) -> None:
+    # Se mira en cada petición, también en las de cada redirección.
+    if local_address(str(request.url)):
+        raise LocalAddressError("dirección local", request=request)
 
 
 def _client(transport: httpx.AsyncBaseTransport | None) -> httpx.AsyncClient:
@@ -71,6 +101,7 @@ def _client(transport: httpx.AsyncBaseTransport | None) -> httpx.AsyncClient:
         headers={"User-Agent": USER_AGENT, "Accept-Language": "es-ES,es;q=0.9"},
         follow_redirects=True,
         max_redirects=3,
+        event_hooks={"request": [_only_internet]},
     )
 
 
@@ -352,10 +383,19 @@ class DuckDuckGoSearch:
             async with _client(self._transport) as client:
                 found = await self.results(client, query)
                 picked = found[: max(limit, 1) + 2]  # alguno puede no leerse
-                read = await asyncio.gather(*(self._read(client, r) for r in picked))
+                read = await asyncio.gather(*(self._read_in_time(client, r) for r in picked))
                 return [hit for hit in read if hit is not None][:limit]
         except httpx.ConnectError as exc:
             raise OfflineError from exc
+
+    async def _read_in_time(self, client: httpx.AsyncClient, result: Result) -> SearchHit | None:
+        try:
+            return await asyncio.wait_for(self._read(client, result), PAGE_DEADLINE_S)
+        except TimeoutError:
+            log.info("%s tarda demasiado: uso el resumen del buscador", domain(result.url))
+            if not result.snippet:
+                return None
+            return SearchHit(result.title, result.url, result.snippet, domain(result.url))
 
     async def _read(self, client: httpx.AsyncClient, result: Result) -> SearchHit | None:
         host = domain(result.url)

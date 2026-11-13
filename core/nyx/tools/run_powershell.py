@@ -77,6 +77,7 @@ $typeNames = @(Find 'TypeExpressionAst') + @(Find 'TypeConstraintAst')
   members = @(Find 'InvokeMemberExpressionAst' | ForEach-Object { $_.Member.Extent.Text })
   redirects = @(Find 'FileRedirectionAst').Count
   assignments = @(Find 'AssignmentStatementAst').Count
+  variables = @(Find 'VariableExpressionAst' | ForEach-Object { $_.VariablePath.UserPath })
   strings = @(Find 'StringConstantExpressionAst' | ForEach-Object { $_.Value })
   errors = @($errors | ForEach-Object { "$($_.Message)" })
   ok = ($null -ne $ast)
@@ -96,6 +97,8 @@ class Analysis:
     strings: list[str] = field(default_factory=list)
     redirects: int = 0  # «> archivo»: escribe (y machaca) un archivo
     assignments: int = 0  # «$x = …»
+    # «$_», «$env:CLAVE» o «${C:\archivo.txt}» (esta última lee un archivo sin ninguna orden)
+    variables: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
 
@@ -132,6 +135,7 @@ def analyze(code: str) -> Analysis:
         strings=_as_list(data.get("strings")),
         redirects=int(data.get("redirects") or 0),
         assignments=int(data.get("assignments") or 0),
+        variables=_as_list(data.get("variables")),
         errors=_as_list(data.get("errors")),
     )
 
@@ -280,6 +284,9 @@ _NOT_READ_ONLY_PARAMS = frozenset(
     {"computername", "cimsession", "credential", "session", "outfile", "filepath", "path",
      "literalpath"}
 )  # fmt: skip
+# Variables que no leen nada de fuera: «${C:\x.txt}» lee un archivo y «$env:…» puede guardar
+# claves; cualquier otra, por si acaso, también se confirma.
+_SAFE_VARIABLES = frozenset({"_", "psitem", "true", "false", "null"})
 # Métodos y tipos que solo calculan («[math]::Round(…)», «.ToString('N1')»).
 _SAFE_MEMBERS = frozenset({"round", "floor", "ceiling", "abs", "min", "max", "tostring"})
 _SAFE_TYPES = frozenset({
@@ -291,8 +298,9 @@ _SAFE_TYPES = frozenset({
 def read_only(analysis: Analysis) -> bool:
     """True solo si todo lo que hay en el comando es de la lista cerrada de solo lectura.
 
-    Se mira después de `blocked`; ante cualquier duda (una orden, un parámetro, un método o un
-    tipo que no está en la lista, una asignación, una redirección), False: rojo, se confirma.
+    Se mira después de `blocked`; ante cualquier duda (una orden, un parámetro, un método, un
+    tipo o una variable que no está en la lista, una asignación, una redirección), False:
+    rojo, se confirma.
     """
     names = [re.split(r"[\\/]", raw.strip().lower())[-1] for raw in analysis.commands]
     return (
@@ -305,6 +313,7 @@ def read_only(analysis: Analysis) -> bool:
         and not any(p.lower() in _NOT_READ_ONLY_PARAMS for p in analysis.params)
         and all(m.strip().lower() in _SAFE_MEMBERS for m in analysis.members)
         and all(t.strip().lower() in _SAFE_TYPES for t in analysis.types)
+        and all(v.strip().lower() in _SAFE_VARIABLES for v in analysis.variables)
     )
 
 

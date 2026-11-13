@@ -48,6 +48,7 @@ from nyx.brain.longform import (
         ("apúntamelo", "save"),
         ("hazme una nota con esto", "save"),
         ("pásalo a una nota", "save"),
+        ("pásamela al bloc de notas", "save"),
         ("guarda la receta", "save"),
     ],
 )
@@ -67,6 +68,10 @@ def test_panel_commands(text: str, command: str) -> None:
         "copia hola al portapapeles",
         "¿cuántos huevos lleva?",
         "sí",  # sin oferta de guardar, un «sí» no es para el panel
+        # «pásala» a secas es saltar de canción, aunque el panel esté abierto (revisión 6.19)
+        "pásala",
+        "pásalo",
+        "pásamela",
     ],
 )
 def test_not_panel_commands(text: str) -> None:

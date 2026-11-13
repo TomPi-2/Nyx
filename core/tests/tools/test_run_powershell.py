@@ -172,6 +172,10 @@ NOT_GREEN = [
     r"Get-Volume -FilePath C:\x",
     "Get-Date | Out-File fecha.txt",
     "notepad",
+    # Variables que leen de fuera sin ninguna orden (revisión de la 6.19)
+    r"Get-Date; ${C:\Users\Public\notas.txt}",
+    "Get-Date; $env:USERPROFILE",
+    "Get-Process | Select-Object -First $MaximumHistoryCount",
 ]
 
 
@@ -198,6 +202,8 @@ def test_read_only_needs_everything_in_the_list() -> None:
     assert not read_only(Analysis(commands=["Get-Date"], members=["Kill"]))
     assert not read_only(Analysis(commands=["Get-Date"], types=["IO.File"]))
     assert not read_only(Analysis(commands=["Get-Date"], params=["ComputerName"]))
+    assert not read_only(Analysis(commands=["Get-Date"], variables=["env:APIKEY"]))
+    assert read_only(Analysis(commands=["Get-Process"], variables=["_", "true"]))
 
 
 async def test_read_only_runs_without_confirmation(ctx: ToolContext) -> None:

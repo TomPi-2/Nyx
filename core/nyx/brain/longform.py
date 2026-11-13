@@ -242,6 +242,10 @@ _WHAT = (
     r"(?:(?:el|la|los|las|este|esta|ese|esa|eso|esto)\s+)?"
     r"(?:panel|explicacion|receta|texto|respuesta|lista|pasos|resultado|cuadro|todo|eso|esto)"
 )
+_TO_NOTE = (
+    r"(?:\s+(?:en|a)\s+(?:una\s+|la\s+|mis\s+)?notas?"
+    r"|\s+(?:en|a)\s+(?:el\s+)?bloc de notas|\s+al bloc de notas)"
+)
 # «Cierra todo» no es del panel (puede querer decir todas las ventanas).
 _WHAT_CLOSE = _WHAT.replace("|todo", "")
 _PANEL: tuple[tuple[PanelCommand, re.Pattern[str]], ...] = (
@@ -265,11 +269,12 @@ _PANEL: tuple[tuple[PanelCommand, re.Pattern[str]], ...] = (
     (
         "save",
         re.compile(
-            r"^(?:guarda|guardame|guardar|guardamelo|guardamela|guardalo|guardala|apunta|"
-            r"apuntame|apuntalo|apuntala|apuntamelo|apuntamela|pasalo|pasala|pasamelo|"
-            rf"pasamela|haz(?:me)? una nota)(?:\s+{_WHAT})?"
+            r"^(?:(?:guarda|guardame|guardar|guardamelo|guardamela|guardalo|guardala|apunta|"
+            rf"apuntame|apuntalo|apuntala|apuntamelo|apuntamela|haz(?:me)? una nota)(?:\s+{_WHAT})?"
             r"(?:\s+(?:con|de)\s+(?:esto|eso|ello|la receta|la explicacion|los pasos|la lista))?"
-            r"(?:\s+(?:en|a)\s+(?:una\s+|la\s+|mis\s+)?notas?|\s+en\s+(?:el\s+)?bloc de notas)?$"
+            rf"(?:{_TO_NOTE})?"
+            # «pásala» a secas es saltar de canción (router: media_said): solo con «a una nota».
+            rf"|(?:pasalo|pasala|pasamelo|pasamela)(?:\s+{_WHAT})?{_TO_NOTE})$"
         ),
     ),
 )

@@ -5,17 +5,21 @@ Todo con una red falsa (`httpx.MockTransport`): ninguna prueba sale a internet.
 
 from __future__ import annotations
 
+import asyncio
+
 import httpx
 import pytest
 
 from nyx.tools.base import ToolContext
 from nyx.tools.web_search import WebSearch, WebSearchParams
+from nyx.web import search as search_module
 from nyx.web.search import (
     USER_AGENT,
     ChainSearch,
     DuckDuckGoSearch,
     OfflineError,
     WikipediaSearch,
+    local_address,
     page_text,
     parse_results,
     real_url,
@@ -165,3 +169,56 @@ async def test_tool_passes_two_sources_as_external_content(ctx: ToolContext) -> 
     assert result.external.startswith("[recetas.example] Tortilla de patatas jugosa:")
     assert "[es.wikipedia.org] Tortilla de patatas:" in result.external
     assert "pochadas" not in result.message  # lo de fuera no va en el mensaje
+
+
+# --- revisión de la 6.19: nada de la red local y cada página con su tiempo ---
+
+
+@pytest.mark.parametrize(
+    ("url", "local"),
+    [
+        ("http://localhost:8765/", True),
+        ("http://127.0.0.1/", True),
+        ("http://192.168.1.1/reiniciar", True),
+        ("http://10.0.0.5/", True),
+        ("http://169.254.1.1/", True),
+        ("http://[::1]/", True),
+        ("http://router/", True),
+        ("http://impresora.local/", True),
+        ("http://nas.home.arpa/", True),
+        ("https://es.wikipedia.org/wiki/Imprenta", False),
+        ("https://8.8.8.8/", False),
+        ("https://recetas.example/tortilla", False),
+    ],
+)
+def test_local_address(url: str, local: bool) -> None:
+    assert local_address(url) is local
+
+
+async def test_a_page_cannot_send_nyx_to_the_home_network() -> None:
+    calls: list[httpx.Request] = []
+    inner = web(calls)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "recetas.example" in str(request.url):
+            calls.append(request)
+            return httpx.Response(302, headers={"location": "http://192.168.1.1/reiniciar"})
+        return inner.handle_request(request)
+
+    hits = await DuckDuckGoSearch(transport=httpx.MockTransport(handler)).search("tortilla", 1)
+    assert all("192.168" not in str(c.url) for c in calls)  # la redirección no se sigue
+    assert hits[0].summary == "La receta de siempre, paso a paso."  # el resumen del buscador
+
+
+async def test_a_slow_page_does_not_hold_the_search(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(search_module, "PAGE_DEADLINE_S", 0.05)
+    inner = web([])
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if "recetas.example" in str(request.url):
+            await asyncio.sleep(2)
+        return inner.handle_request(request)
+
+    hits = await DuckDuckGoSearch(transport=httpx.MockTransport(handler)).search("tortilla", 3)
+    assert hits[0].summary == "La receta de siempre, paso a paso."
+    assert hits[1].summary == WIKI_SUMMARY["extract"]
