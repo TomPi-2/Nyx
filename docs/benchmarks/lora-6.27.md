@@ -108,6 +108,17 @@ todas con los tres.)
 **Veredicto:** la ronda 2 es la primera que mejora sin actuar sin deber, pero **la regla del
 plan (sin fallos nuevos ni más coste) no se cumple del todo**: 8 fallos nuevos leves y sin medir
 en partida (`game_bench.py`; mismo tamaño y cuantización, así que no debería cambiar). Decide
-el usuario (`docs/REVISAR.md`).
+el usuario (`docs/REVISAR.md`). **Decidido el 2026-11-13: se adopta** (opción a) y la ronda 3 corrige los 8.
 
 Informes: `lora-6.27-ollama-{base,r1,r2}-{reserva,bateria}.md`.
+
+## Ronda 3 (en curso) · 1.000 ejemplos, mismos ajustes
+
+- **`training/llm/fixes.py`:** 46 frases nuevas escritas a mano para lo que rompió la ronda 2
+  (ninguna de la batería ni de la reserva), 41 de ellas llegan al modelo, ×3: «ponme el X» es
+  abrir; «la ventana del X» es `focus_window`; «está muy alto» es bajar; el aviso a la hora dicha;
+  `move_files` con su carpeta de origen; dos cambios de volumen, dos llamadas; `app_action` con
+  su lista; lo que Nyx guarda de lo que oye es privacidad (`nyx_info`); y que sí guarda notas.
+- Los mensajes, con la lista de herramientas de ahora (`save_note` y la descripción corta de
+  `run_powershell`, de la 6.28): la ronda 2 se entrenó sin ellas.
+- Datos de la ronda 2 en `data/r2/` y su salida en `output/r2/`.

@@ -7,9 +7,14 @@
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $here
+# Todos los modelos cargados, no solo qwen2.5:7b (la batería deja los que mide, p. ej. nyx-r2:7b).
 try {
-    Invoke-RestMethod -Method Post -Uri http://127.0.0.1:11434/api/generate `
-        -Body '{"model":"qwen2.5:7b","keep_alive":0}' -ContentType 'application/json' | Out-Null
+    $loaded = (Invoke-RestMethod -Uri http://127.0.0.1:11434/api/ps).models
+    foreach ($m in $loaded) {
+        $body = @{ model = $m.name; keep_alive = 0 } | ConvertTo-Json
+        Invoke-RestMethod -Method Post -Uri http://127.0.0.1:11434/api/generate `
+            -Body $body -ContentType 'application/json' | Out-Null
+    }
 } catch { }
 $env:PYTHONIOENCODING = "utf-8"
 $env:HIP_VISIBLE_DEVICES = "0"

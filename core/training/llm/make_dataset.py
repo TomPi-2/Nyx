@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+from fixes import rows as fix_rows
 from limits import WITHOUT_TOOL, WITHOUT_TOOL_SPOKEN
 from limits import rows as limit_rows
 
@@ -538,6 +539,14 @@ def stage_build(valid_share: float, maximum: int) -> None:
             raise SystemExit(f"«{text}» está en la batería o en la reserva")
         if _reaches_llm(text, index):  # lo que resuelven las reglas no hace falta enseñarlo
             limits += [make(text, text_msg(reply), schemas) for _ in range(2)]
+    # Ronda 3: lo que rompió la ronda 2, con frases nuevas (fixes.py). Tres veces cada una,
+    # como las inventadas: son pocas y es justo lo que hay que corregir.
+    fixes: list[dict[str, Any]] = []
+    for text, message in fix_rows():
+        if normalize(text) in skip:
+            raise SystemExit(f"«{text}» está en la batería o en la reserva")
+        if _reaches_llm(text, index):
+            fixes += [make(text, message, schemas) for _ in range(3)]
     para = [r for r in jsonl_read(DATA / "paraphrases.jsonl") if not _LEAK.search(r["text"])]
     RNG.shuffle(para)
     # Charla: para no olvidar conversar ni llamar herramientas para todo. Son respuestas del
@@ -552,7 +561,7 @@ def stage_build(valid_share: float, maximum: int) -> None:
     ]
     RNG.shuffle(seeds)
 
-    fixed = [*invented, *limits]
+    fixed = [*invented, *limits, *fixes]
     if maximum:
         n_chat = min(len(chat), maximum * 16 // 100)
         n_para = min(len(para), max(0, maximum - len(fixed) - n_chat))
@@ -566,7 +575,7 @@ def stage_build(valid_share: float, maximum: int) -> None:
         examples = [*fixed, *chat, *paraphrases, *seeds]
     texts = sum(1 for e in examples if not e["messages"][-1].get("tool_calls"))
     print(
-        f"inventadas {len(invented)} · límites {len(limits)} · charla "
+        f"inventadas {len(invented)} · límites {len(limits)} · arreglos {len(fixes)} · charla "
         f"{len(chat) if not maximum else n_chat} · paráfrasis {len(paraphrases)} · en texto "
         f"{texts}/{len(examples)}"
     )

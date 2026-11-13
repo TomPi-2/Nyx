@@ -10,28 +10,12 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
    de solo lectura sin preguntar. Probar: «¿qué IP tengo?» (sin confirmación) y «¿qué hay en
    mi carpeta temporal con PowerShell?» (con confirmación: lee archivos).
 
-2. **LoRA (6.27): ¿se adopta la ronda 2?** Medidas las dos rondas en Ollama, como las usaría
-   Nyx (`docs/benchmarks/lora-6.27.md`, «En Ollama»):
-
-   | Modelo | Reserva (80) | Batería (409) | Actúa sin deber |
-   | --- | --- | --- | --- |
-   | `qwen2.5:7b` (ahora) | 62 | 377 | 0 |
-   | `nyx-r1:7b` | 70 | 379 | 11 → no se adopta |
-   | `nyx-r2:7b` | **70** | **391** | **0** |
-
-   La ronda 2 arregla 30 frases y no actúa nunca sin deber, pero **rompe 8 leves** (p. ej.
-   «ponme el Discord, porfa» → lo trae delante en vez de abrirlo; «a las 5 tengo médico,
-   avísame» → aviso a las 16:30; tres llamadas mal formadas que Nyx reintenta). La regla del
-   plan dice «sin fallos nuevos», así que decides tú:
-   - **a)** adoptarla ya (recomendado: lo que rompe es leve y lo que arregla, mucho más) y
-     corregir esos 8 en la ronda 3;
-   - **b)** ronda 3 primero (~4 h de gráfica, sin poder usar Nyx), con esos casos, `save_note` y
-     las frases nuevas, y decidir entonces.
-
-   Antes de adoptarla: probarla tú unos días (`llm.model: "nyx-r2:7b"` en `settings.json`) y
-   medirla en partida (`game_bench.py`; mismo tamaño, no debería cambiar). Para distribuirla
-   (0.9) habrá que publicar el GGUF (4,7 GB) con su huella SHA-256 y crearlo en Ollama en el
-   primer arranque, porque Ollama no lo descarga por nombre.
+2. ~~LoRA (6.27): ¿se adopta la ronda 2?~~ **Sí, opción a)** (2026-11-13). Tu Nyx ya usa
+   `nyx-r2:7b` (`llm.model` en `settings.json`; la copia anterior, en
+   `settings.json.antes-nyx-r2`). Reinicia el núcleo para que lo coja. Ronda 3 entrenando
+   (~4 h; mientras, Nyx no puede usar la gráfica) con frases nuevas para los 8 fallos
+   (`core/training/llm/fixes.py`). Pendiente: medirla en partida (`game_bench.py`) y llevar el
+   GGUF al portátil si se usa allí.
 
 3. ~~Buscar en internet~~ **Decidido** (2026-11-13): sin pagar ninguna API. Hecho: búsqueda en
    segundo plano con DuckDuckGo, leyendo las 2 mejores páginas (o Wikipedia si DuckDuckGo
