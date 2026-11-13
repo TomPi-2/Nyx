@@ -28,10 +28,19 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
    la izquierda», «busca una receta de lentejas con chorizo». **Ojo:** DuckDuckGo no es un
    servicio oficial para programas; revisarlo antes de la beta (0.9).
 
-4. **6.07 (aprender recetas): propuesta de descartar el «¿Lo busco?».** Coincide con tu duda:
-   donde Nyx dice «Aún no sé hacer eso» (mensajes, llamadas…), buscar no ayuda. Propuesta:
-   quitar la búsqueda de la 6.07 y dejar para la 0.7 lo de recordar un plan de varios pasos que
-   ha funcionado (como los atajos aprendidos). **Pendiente de que lo confirmes.**
+4. ~~6.07 sin «¿Lo busco?»~~ **Confirmado** (2026-11-13): lo que queda pasa a la 0.7.
+
+5. **Publicar el repositorio** (auditoría completa en `docs/LICENCIAS.md`; todo compatible):
+   - **GPL-3.0-only o -or-later.** La interfaz dice «only»; el núcleo no lo declara.
+   - **Tu correo en el historial** (170 commits): dejarlo, o reescribir el historial antes de
+     publicar para usar el correo `noreply` de GitHub (cambia todos los commits).
+   - **Revisar los borradores** `CLA.md` (con alguien con criterio legal), `SECURITY.md`
+     (avisos por el sistema privado de GitHub, sin correo) y `CONTRIBUTING.md`.
+   - **`nyx-v1.onnx`** bajo CC BY-SA 4.0 por sus datos de entrenamiento (recomendado).
+   - **Voz contratada:** fuera del repositorio, descargable aparte con su licencia. Para el
+     contrato: autorizar el entrenamiento del modelo de voz dentro del proyecto, regular la
+     revocación (LO 1/1982 art. 2.3) y definir «ingresos brutos».
+   - Créditos en la app (Kyutai, OpenSLR, Open-Meteo, OpenStreetMap…): tarea para la 0.9.
 
 ## Qué probar
 

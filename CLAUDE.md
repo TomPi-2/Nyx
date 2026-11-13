@@ -51,10 +51,14 @@ El historial completo de decisiones está en la sección 18 de `docs/SPEC.md`.
 
 Recuérdaselo al usuario al llegar a la fase 6.
 
-- [ ] `LICENSE` (GPL-3.0) y CLA para contribuciones
-- [ ] `SECURITY.md` y `CONTRIBUTING.md`
-- [ ] Revisar todo el historial de git en busca de secretos
-- [ ] Auditoría de licencias de dependencias y modelos (sección 2)
+- [x] `LICENSE` (GPL-3.0, texto oficial) y CLA para contribuciones (`CLA.md`, **borrador**
+  pendiente de revisión legal) — 2026-11-13
+- [x] `SECURITY.md` y `CONTRIBUTING.md` (borradores, 2026-11-13)
+- [x] Revisar todo el historial de git en busca de secretos: ninguno; el correo del autor sí
+  se verá (decisión pendiente en `docs/LICENCIAS.md`)
+- [x] Auditoría de licencias de dependencias y modelos: `docs/LICENCIAS.md` (todo compatible;
+  pendientes: «only»/«or-later», créditos en la app, licencia de `nyx-v1.onnx`, la voz
+  contratada fuera del repositorio)
 - [ ] Cambiar la visibilidad en GitHub y configurar SignPath
 
 ## Estructura
