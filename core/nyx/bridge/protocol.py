@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 16
+PROTOCOL_VERSION = 17
 
 
 class _Msg(BaseModel):
@@ -135,6 +135,14 @@ class ActionButton(_Msg):
     primary: bool = False
 
 
+class LongSectionMsg(_Msg):
+    """v17: una parte de una respuesta estructurada («Ingredientes», «Pasos»)."""
+
+    title: str
+    items: list[str]
+    ordered: bool = False
+
+
 class BubbleMsg(_Msg):
     type: Literal["bubble"] = "bubble"
     display: str
@@ -142,8 +150,29 @@ class BubbleMsg(_Msg):
     actions: list[ActionButton] = []
     alert: bool = False  # v4: alarmas y avisos (la interfaz lanza la notificación de Windows)
     # v7: qué panel la muestra y cuánto dura (cuenta atrás de confirmar y deshacer).
-    kind: Literal["response", "confirm", "undo", "alert"] = "response"
+    kind: Literal["response", "confirm", "undo", "alert", "long"] = "response"
     expires_s: float | None = None
+    # v17 (6.28): panel largo. El texto entero, las secciones (receta, pasos, lista) o, con
+    # `reading`, nada aún: llega frase a frase con `reading` (ReadingMsg).
+    text: str = ""
+    sections: list[LongSectionMsg] = []
+    reading: bool = False
+
+
+class ReadingMsg(_Msg):
+    """v17: panel largo, una frase que empieza a sonar; se escribe en `duration_s` (0: ya)."""
+
+    type: Literal["reading"] = "reading"
+    text: str
+    duration_s: float = Field(ge=0.0)
+
+
+class PanelNoteMsg(_Msg):
+    """v17: aviso al pie del panel largo; con `undo_action`, botón Deshacer con ese id."""
+
+    type: Literal["panel_note"] = "panel_note"
+    text: str
+    undo_action: str | None = None
 
 
 class BubbleHideMsg(_Msg):
@@ -250,6 +279,8 @@ ServerMessage = Annotated[
     | StateMsg
     | LevelMsg
     | BubbleMsg
+    | ReadingMsg
+    | PanelNoteMsg
     | BubbleHideMsg
     | GameMsg
     | SettingsMsg

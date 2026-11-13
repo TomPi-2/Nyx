@@ -28,8 +28,11 @@ from nyx.bridge.protocol import (
     GlassInfo,
     Hello,
     LevelMsg,
+    LongSectionMsg,
     MicLevelMsg,
     OpenSettingsMsg,
+    PanelNoteMsg,
+    ReadingMsg,
     SettingsGetMsg,
     SettingsMsg,
     SettingsSetMsg,
@@ -55,6 +58,8 @@ from nyx.events import (
     MicLevelChanged,
     NyxState,
     OpenSettingsWindow,
+    PanelNote,
+    ReadingAppended,
     SettingsChanged,
     SettingsRequested,
     SetupProgress,
@@ -117,6 +122,8 @@ class UIBridge:
             bus.subscribe(AudioLevel, self._on_level),
             bus.subscribe(BubbleShown, self._on_bubble),
             bus.subscribe(BubbleHidden, self._on_bubble_hidden),
+            bus.subscribe(ReadingAppended, self._on_reading),
+            bus.subscribe(PanelNote, self._on_panel_note),
             bus.subscribe(GameStateChanged, self._on_game),
             bus.subscribe(SettingsChanged, self._on_settings),
             bus.subscribe(OpenSettingsWindow, self._on_open_settings),
@@ -242,8 +249,20 @@ class UIBridge:
                 alert=event.alert,
                 kind=event.kind,
                 expires_s=event.expires_s,
+                text=event.text,
+                sections=[
+                    LongSectionMsg(title=s.title, items=list(s.items), ordered=s.ordered)
+                    for s in event.sections
+                ],
+                reading=event.reading,
             )
         )
+
+    async def _on_reading(self, event: ReadingAppended) -> None:
+        await self.broadcast(ReadingMsg(text=event.text, duration_s=max(0.0, event.duration_s)))
+
+    async def _on_panel_note(self, event: PanelNote) -> None:
+        await self.broadcast(PanelNoteMsg(text=event.text, undo_action=event.undo_action))
 
     async def _on_open_settings(self, event: OpenSettingsWindow) -> None:
         # Una sección desconocida abre la primera (lo valida el propio mensaje).

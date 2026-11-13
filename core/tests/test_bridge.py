@@ -14,7 +14,10 @@ from nyx.events import (
     AudioLevel,
     BubbleAction,
     BubbleShown,
+    LongSection,
     NyxState,
+    PanelNote,
+    ReadingAppended,
     SettingsChanged,
     SettingsRequested,
     StateChanged,
@@ -66,7 +69,27 @@ async def test_handshake_and_events(bridge: tuple[EventBus, int]) -> None:
             "alert": False,
             "kind": "response",
             "expires_s": None,
+            "text": "",
+            "sections": [],
+            "reading": False,
         }
+        # v17 (6.28): panel largo, frases al ritmo de la voz y aviso al pie.
+        await bus.publish(
+            BubbleShown(
+                display="Tortilla",
+                kind="long",
+                sections=(LongSection("Pasos", ("Batir", "Cuajar"), ordered=True),),
+            )
+        )
+        long = await _recv(conn)
+        assert long["kind"] == "long"
+        assert long["sections"] == [
+            {"title": "Pasos", "items": ["Batir", "Cuajar"], "ordered": True}
+        ]
+        await bus.publish(ReadingAppended("Hola.", 1.5))
+        assert await _recv(conn) == {"type": "reading", "text": "Hola.", "duration_s": 1.5}
+        await bus.publish(PanelNote("Copiado"))
+        assert await _recv(conn) == {"type": "panel_note", "text": "Copiado", "undo_action": None}
 
 
 async def test_wrong_token_is_rejected(bridge: tuple[EventBus, int]) -> None:

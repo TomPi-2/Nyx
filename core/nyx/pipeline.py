@@ -15,6 +15,7 @@ import time
 import uuid
 from collections.abc import Awaitable, Callable, Coroutine, Sequence
 from dataclasses import dataclass
+from datetime import date
 from enum import StrEnum
 from typing import Any, Protocol
 
@@ -28,6 +29,18 @@ from nyx.brain.agent import MAX_SECONDS, MAX_STEPS, AgentRun, continuation_hint,
 from nyx.brain.answers import Answers
 from nyx.brain.base import LLMError
 from nyx.brain.guard import looks_like_code, mentions_tool, tool_keys
+from nyx.brain.longform import (
+    LongAnswer,
+    PanelCommand,
+    is_long,
+    panel_command,
+    panel_title,
+    sentence_count,
+    spoken_summary,
+    structure,
+    to_answer,
+    wants_structure,
+)
 from nyx.brain.panel import tidy
 from nyx.brain.phrases import PhraseBook
 from nyx.brain.reply import BubbleReady, Reply, SpokenDelta, SpokenEnd, first_sentence
@@ -43,7 +56,10 @@ from nyx.events import (
     BubbleHidden,
     BubbleKind,
     BubbleShown,
+    LongSection,
     NyxState,
+    PanelNote,
+    ReadingAppended,
     StateChanged,
     TalkKey,
     TextEntered,
@@ -57,6 +73,7 @@ from nyx.settings.model import ListenSettings
 from nyx.stt.base import STTEngine, STTError
 from nyx.stt.normalize import normalize
 from nyx.tools.base import GamePolicy, ToolResult
+from nyx.tools.clipboard import write_clipboard_text
 from nyx.tts.base import TTSEngine, TTSError
 from nyx.tts.sentences import SentenceSplitter
 from nyx.wake.activations import ActivationLog, is_not_for_you
@@ -76,6 +93,15 @@ TALK_PREBUFFER_S = 0.3
 VERIFY_CLIP_S = 2.0  # audio que whisper revisa para confirmar «Nyx»
 # Herramientas tras las que el LLM sigue sin herramientas: lo leído de fuera no manda (6.06).
 TOOLS_OFF_AFTER = frozenset({"web_search"})
+# Panel largo (6.28): botones, cuánto vale un «sí» suelto tras ofrecer guardar la receta y
+# desde cuánto texto encontrado merece la pena pedir la estructura (receta, pasos, lista).
+LONG_ACTIONS = (
+    BubbleAction("long-save", "Guardar en una nota", primary=True),
+    BubbleAction("long-copy", "Copiar"),
+    BubbleAction("long-close", "Cerrar"),
+)
+OFFER_S = 120.0
+STRUCTURE_MIN_CHARS = 400
 THRESHOLD_CHECK_S = 60.0  # cada cuánto se mira si la subida automática del umbral ha bajado
 CONFIRM_TIMEOUT_S = 15.0  # SPEC sección 8: sin respuesta, se cancela
 CANCELLED_BUBBLE_S = 2.5
@@ -211,19 +237,26 @@ def bubble_duration(display: str, secondary: str) -> float:
 
 
 class _Speech:
-    """Sintetiza frases en orden mientras suenan las anteriores."""
+    """Sintetiza frases en orden mientras suenan las anteriores.
+
+    `on_sentence(texto, duración)` (6.28): se llama cuando cada frase empieza a sonar, con lo
+    que dura su audio, para que el panel largo la escriba a ese ritmo. Si la frase ya había
+    empezado (la primera suena mientras se genera), con lo que le queda."""
 
     def __init__(
         self,
         tts: TTSEngine,
         player: Player,
         on_start: Callable[[], Awaitable[None]],
+        on_sentence: Callable[[str, float], Awaitable[None]] | None = None,
     ) -> None:
         self._tts = tts
         self._player = player
         self._on_start = on_start
+        self._on_sentence = on_sentence
         self._queue: asyncio.Queue[str | None] = asyncio.Queue()
         self.started = False
+        self._announcing: set[asyncio.Task[None]] = set()
         self._task = asyncio.create_task(self._worker(), name="tts")
 
     def say(self, text: str) -> None:
@@ -232,25 +265,53 @@ class _Speech:
         self._queue.put_nowait(text)
 
     async def _worker(self) -> None:
+        loop = asyncio.get_running_loop()
         while (text := await self._queue.get()) is not None:
+            starts_at: float | None = None
+            samples = 0
             try:
                 # Cada trozo suena en cuanto se genera (Pocket: el primero en ~0,08 s).
                 async for audio in self._tts.stream(text):
                     if not self.started:
                         self.started = True
                         await self._on_start()
+                    if starts_at is None:
+                        starts_at = loop.time() + getattr(self._player, "queued_s", 0.0)
                     self._player.enqueue(audio)
+                    samples += audio.shape[0]
             except TTSError:
                 log.exception("Fallo de la voz con %r", text)
+            if self._on_sentence is not None and starts_at is not None and samples:
+                rate = self._tts.sample_rate or 1
+                self._announce(text, starts_at, samples / rate)
+
+    def _announce(self, text: str, starts_at: float, duration: float) -> None:
+        assert self._on_sentence is not None
+        on_sentence = self._on_sentence
+
+        async def at_start() -> None:
+            delay = starts_at - asyncio.get_running_loop().time()
+            if delay > 0:
+                await asyncio.sleep(delay)
+            await on_sentence(text, max(0.2, duration + min(0.0, delay)))
+
+        task = asyncio.create_task(at_start(), name="tts-sentence")
+        self._announcing.add(task)
+        task.add_done_callback(self._announcing.discard)
 
     async def finish(self) -> None:
         self._queue.put_nowait(None)
         await self._task
         if self.started:
             await self._player.drain()
+        # La última frase ya ha sonado: su aviso tiene que haber salido.
+        if self._announcing:
+            await asyncio.gather(*self._announcing, return_exceptions=True)
 
     async def abort(self) -> None:
         self._task.cancel()
+        for task in self._announcing:
+            task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await self._task
         self._player.clear()
@@ -327,6 +388,11 @@ class Pipeline:
         self._threshold_checked = time.time()
         self._side_tasks: set[asyncio.Task[None]] = set()
         self._barge: asyncio.Task[None] | None = None
+        # Panel largo (6.28): lo que enseña, si sigue abierto y hasta cuándo un «sí» suelto
+        # es «guárdamela» (solo tras ofrecerlo: recetas, pasos y listas).
+        self._long: LongAnswer | None = None
+        self._long_open = False
+        self._offer_until = 0.0
         if executor is not None and executor.confirm is None:
             executor.confirm = self.confirm
         self._unsubscribe = [
@@ -334,6 +400,8 @@ class Pipeline:
             bus.subscribe(TalkKey, self._on_talk),
             bus.subscribe(ActionChosen, self._on_action),
             bus.subscribe(Announce, self._on_announce),
+            bus.subscribe(BubbleShown, self._on_any_bubble),
+            bus.subscribe(BubbleHidden, self._on_any_bubble_hidden),
         ]
 
     @property
@@ -637,7 +705,10 @@ class Pipeline:
             task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await task
-            await self._hide_bubble()
+            # Un panel largo se queda (6.28): cortar la voz no es cerrar lo que se está leyendo,
+            # y así «Nyx, ciérralo» le llega al panel y no cierra la última app.
+            if not self._long_open:
+                await self._hide_bubble()
         if self.player is not None:
             self.player.clear()
 
@@ -681,7 +752,8 @@ class Pipeline:
             await self._go_idle()
             return
         followup = listening is not None and listening.followup
-        if followup and is_filler(text):
+        # «Sí» tras ofrecer guardar la receta no es una coletilla: es la respuesta (6.28).
+        if followup and is_filler(text) and self._panel_wants(text) is None:
             log.info("Seguimiento ignorado (coletilla): %r", text)
             await self._go_idle()
             return
@@ -703,6 +775,11 @@ class Pipeline:
             # «Nyx, para» con la alarma sonando: es para ella, no para la música.
             await self.ringer.stop()
             await self._hide_bubble()
+            return
+        if (command := self._panel_wants(text)) is not None:
+            # Con un panel largo abierto, «ciérralo», «cópialo» o «guárdamela» son para él
+            # (no para la última app o los últimos archivos).
+            await self._panel(command, text, from_voice=from_voice)
             return
         if self.activations is not None and is_not_for_you(text):
             await self._false_activation(from_voice=from_voice)
@@ -786,6 +863,8 @@ class Pipeline:
         # Solo las reglas del router son preguntas concretas; un atajo aprendido o un plan del
         # LLM pueden venir de una pregunta más libre que la frase hecha no contesta.
         direct = routed.rule not in ("llm", "aprendido")
+        if failed is None and await self._maybe_structured(routed.calls, results, marks):
+            return results  # receta, pasos o lista: panel con formato y oferta de guardarla
         if failed is None and self._should_continue(routed.calls, marks, results, direct=direct):
             # Consultó algo (archivos, alarmas…): el resultado vuelve al LLM para contarlo o
             # para dar el siguiente paso (HOJA-DE-RUTA §3.1).
@@ -1032,9 +1111,17 @@ class Pipeline:
         level_task: asyncio.Task[None] | None = None
 
         first_said = ""  # primera frase dicha: detalle para una cabecera de una palabra
+        # Respuesta larga (6.28): lo mandado a la voz, lo que ya ha empezado a sonar y, al
+        # pasar del panel corto al largo, lo que enseña este.
+        said: list[str] = []
+        sounded: list[str] = []
+        long_answer: LongAnswer | None = None
+        typed_long: Reply | None = None
 
         async def show_bubble() -> None:
             nonlocal bubble_shown
+            if long_answer is not None:
+                return  # ya está el panel largo: no se vuelve al corto
             if bubble is not None and (bubble.display or bubble.secondary):
                 bubble_shown = True
                 await self._show_bubble(
@@ -1049,11 +1136,36 @@ class Pipeline:
             level_task = asyncio.create_task(self._speaking_levels())
             log.info("Latencia: %s", _latency(marks))
 
+        long_ready = False  # el panel largo ya tiene escrito lo de antes: se sigue frase a frase
+
+        async def on_sentence(sentence: str, duration: float) -> None:
+            # Empieza a sonar: si ya es el panel largo, se escribe a lo que dura su audio.
+            sounded.append(sentence)
+            if long_answer is not None and long_ready:
+                long_answer.sentences.append(sentence)
+                await self.bus.publish(ReadingAppended(sentence, duration))
+
+        async def open_long() -> None:
+            """Pasa al panel largo con lo que ya ha sonado escrito de golpe."""
+            nonlocal long_answer, bubble_shown, long_ready
+            title = bubble.display if bubble is not None else ""
+            long_answer = LongAnswer(title=panel_title(title), sources=self._web_sources())
+            await self._show_long(long_answer, reading=True)
+            bubble_shown = True
+            # Lo que haya empezado a sonar mientras se enseñaba el panel también va aquí, en
+            # orden (si no, salía antes que lo anterior y repetido). Sin esperas desde aquí
+            # hasta `long_ready`: ninguna frase se cuela entre medias.
+            earlier = list(sounded)
+            long_answer.sentences = earlier
+            long_ready = True
+            if earlier:
+                await self.bus.publish(ReadingAppended(" ".join(earlier), 0.0))
+
         # Si la petición se escribió, por defecto la respuesta va solo en la burbuja (quien
         # escribe suele querer silencio); el ajuste responses.speak_typed la hace hablada.
         speak = from_voice or self.speak_typed
         speech = (
-            _Speech(self.tts, self.player, on_speech_start)
+            _Speech(self.tts, self.player, on_speech_start, on_sentence)
             if speak and self.tts is not None and self.player is not None
             else None
         )
@@ -1077,6 +1189,10 @@ class Pipeline:
             if speech is not None:
                 marks.first_sentence = marks.first_sentence or self._clock()
                 speech.say(sentence)
+                said.append(sentence)
+
+        def wants_long() -> bool:
+            return long_answer is None and speech is not None and is_long(" ".join(said), len(said))
 
         try:
             continuing = self._agent.steps > 0
@@ -1106,9 +1222,13 @@ class Pipeline:
                     elif isinstance(event, SpokenDelta) and speech is not None:
                         for sentence in splitter.feed(event.text):
                             say(sentence)
+                        if wants_long() and not garbled:
+                            await open_long()
                     elif isinstance(event, SpokenEnd) and speech is not None:
                         if rest := splitter.flush():
                             say(rest)
+                        if wants_long() and not garbled:
+                            await open_long()
                     elif isinstance(event, ReplyDone):
                         log.info("Respuesta: %s", event.reply.model_dump_json())
                         reply = event.reply
@@ -1121,6 +1241,8 @@ class Pipeline:
                             bubble = BubbleReady(first_sentence(reply.spoken), "")
                         elif speech is None:
                             bubble = text_bubble(reply)
+                            if is_long(final_spoken, sentence_count(final_spoken)):
+                                typed_long = reply
             if (
                 plan is None
                 and rebuild
@@ -1151,8 +1273,22 @@ class Pipeline:
                 for sentence in held:
                     marks.first_sentence = marks.first_sentence or self._clock()
                     speech.say(sentence)
+                    said.append(sentence)
+            if wants_long():
+                await open_long()
             if speech is not None:
                 await speech.finish()
+            if long_answer is not None:
+                long_answer.text = " ".join(long_answer.sentences or said)
+            elif not bubble_shown and typed_long is not None:
+                # Escrita y larga: todo de golpe en el panel largo (6.28).
+                long_answer = LongAnswer(
+                    title=panel_title(typed_long.display),
+                    text=typed_long.spoken.strip(),
+                    sources=self._web_sources(),
+                )
+                await self._show_long(long_answer)
+                bubble_shown = True
             if not bubble_shown:
                 if speech is None or not speech.started:
                     log.info("Latencia (sin voz): %s", _latency(marks))
@@ -1171,7 +1307,9 @@ class Pipeline:
         finally:
             if level_task is not None:
                 level_task.cancel()
-        if bubble_shown and bubble is not None:
+        # El panel largo no se va solo mientras se lee: lo cierra el usuario (o la interfaz,
+        # tras 2 minutos sin tocarlo).
+        if bubble_shown and bubble is not None and long_answer is None:
             self._schedule_bubble_hide(bubble_duration(bubble.display, bubble.secondary))
         if from_voice and self.listen.followup_s > 0 and self.capture is not None:
             await self.start_listening(followup=True)
@@ -1258,6 +1396,161 @@ class Pipeline:
             )
         )
 
+    # --- panel largo (6.28): explicación, receta, pasos o lista ---
+
+    async def _show_long(self, answer: LongAnswer, *, reading: bool = False) -> None:
+        """Panel largo con sus botones. `reading`: el texto llega frase a frase con la voz."""
+        if self._bubble_timer is not None:
+            self._bubble_timer.cancel()
+            self._bubble_timer = None
+        self._long = answer
+        text = "" if reading or answer.structured else answer.text
+        await self.bus.publish(
+            BubbleShown(
+                display=answer.title,
+                secondary=" · ".join(answer.sources) or None,
+                actions=LONG_ACTIONS,
+                kind="long",
+                text=text,
+                sections=tuple(LongSection(s.title, s.items, s.ordered) for s in answer.sections),
+                reading=reading,
+            )
+        )
+
+    def _web_sources(self) -> tuple[str, ...]:
+        """De dónde salió lo último buscado en internet en esta petición (para el panel)."""
+        for call, result in reversed(self._agent.done):
+            if call.name == "web_search" and result.ok and result.secondary:
+                return tuple(s for s in result.secondary.split(" · ") if s)
+        return ()
+
+    def _panel_wants(self, text: str) -> PanelCommand | None:
+        """Lo que `text` pide al panel largo abierto (cerrar, copiar, guardar), o None."""
+        if not self._long_open or self._long is None:
+            return None
+        return panel_command(text, offered=self._clock() < self._offer_until)
+
+    async def _panel(self, command: PanelCommand, text: str, *, from_voice: bool) -> None:
+        log.info("Panel largo: %s (%r)", command, text)
+        if command == "copy":
+            await self._copy_long()
+        elif command == "save":
+            await self._save_long(phrase=text, voice=from_voice)
+        else:
+            await self._close_long()
+        await self._go_idle()
+
+    async def _copy_long(self) -> None:
+        if self._long is None:
+            return
+        try:
+            await asyncio.to_thread(write_clipboard_text, self._long.copy_text())
+            note = "Copiado"
+        except Exception:
+            log.warning("No se pudo copiar el panel largo", exc_info=True)
+            note = "No he podido copiarlo"
+        await self.bus.publish(PanelNote(note))
+
+    async def _save_long(self, *, phrase: str = "(botón Guardar)", voice: bool = False) -> None:
+        self._offer_until = 0.0
+        answer = self._long
+        if answer is None or self.executor is None:
+            return
+        call = ToolCall(
+            "save_note",
+            {"title": answer.title or "Nota", "text": answer.note_text(date.today())},
+        )
+        result = await self.executor.run(call, phrase=phrase, voice=voice)
+        if not result.ok:
+            await self.bus.publish(PanelNote(result.display or result.message))
+            return
+        undo_id = result.data.get("undo_id")
+        await self.bus.publish(
+            PanelNote(
+                "Nota guardada en Documentos › Notas de Nyx",
+                f"long-undo-{undo_id}" if undo_id else None,
+            )
+        )
+
+    async def _undo_long_note(self, undo_id: str) -> None:
+        if self.executor is None:
+            return
+        result = await self.executor.run(
+            ToolCall("undo", {"id": undo_id}), phrase="(botón Deshacer de la nota)"
+        )
+        # Sin Deshacer: vuelven los botones de siempre (se puede guardar otra vez).
+        await self.bus.publish(PanelNote(result.display or result.message))
+
+    async def _close_long(self) -> None:
+        self._long_open = False
+        self._offer_until = 0.0
+        await self.bus.publish(BubbleHidden())
+
+    async def _on_long_action(self, action: str) -> None:
+        if action == "long-save":
+            self._spawn(self._save_long())
+        elif action == "long-copy":
+            self._spawn(self._copy_long())
+        elif action in ("long-close", "long-timeout"):
+            # «long-timeout»: la interfaz lo cierra tras 2 minutos sin tocarlo.
+            if self._long_open:
+                self._spawn(self._close_long())
+        elif action.startswith("long-undo-"):
+            self._spawn(self._undo_long_note(action.removeprefix("long-undo-")))
+
+    async def _on_any_bubble(self, event: BubbleShown) -> None:
+        # Cualquier otro panel (una respuesta nueva, una alarma) sustituye al largo.
+        self._long_open = event.kind == "long"
+        if not self._long_open:
+            self._offer_until = 0.0
+
+    async def _on_any_bubble_hidden(self, _: BubbleHidden) -> None:
+        self._long_open = False
+        self._offer_until = 0.0
+
+    async def _maybe_structured(
+        self, calls: Sequence[ToolCall], results: Sequence[ToolResult], marks: _Marks
+    ) -> bool:
+        """Tras buscar en internet algo que pide receta, pasos o lista: panel estructurado,
+        voz con el resumen y la oferta de guardarlo. False si no toca (o el modelo no lo
+        estructura): entonces el modelo lo cuenta como siempre."""
+        if (self.game is not None and self.game.active) or self._brain_off():
+            return False  # en partida, solo la voz (se puede guardar al terminar)
+        found_web = next(
+            (
+                r
+                for c, r in zip(calls, results, strict=False)
+                if c.name == "web_search"
+                and r.ok
+                and r.external
+                and r.data.get("how") != "navegador"
+            ),
+            None,
+        )
+        if found_web is None or found_web.external is None:
+            return False
+        if len(found_web.external) < STRUCTURE_MIN_CHARS or not wants_structure(marks.phrase):
+            return False
+        await self._set_state(NyxState.THINKING)
+        found = await structure(self.brain.llm, marks.phrase, found_web.external)
+        if found is None:
+            return False
+        sources = tuple(s for s in (found_web.secondary or "").split(" · ") if s)
+        answer = to_answer(found, sources)
+        spoken = spoken_summary(found)
+        log.info("Respuesta estructurada (%s): %s", found.tipo, answer.title)
+        await self._show_long(answer)
+        self.brain.memory.add(marks.phrase, f"{spoken}\n{answer.body_text()}")
+        if self._from_voice or self.speak_typed:
+            await self._say(spoken, marks)
+        # Un «sí» suelto vale como «guárdamela» durante un rato (también si se dice tarde).
+        self._offer_until = self._clock() + OFFER_S
+        if self._from_voice and self.listen.followup_s > 0 and self.capture is not None:
+            await self.start_listening(followup=True)
+        else:
+            await self._go_idle()
+        return True
+
     async def _hide_bubble(self) -> None:
         if self._bubble_timer is not None:
             self._bubble_timer.cancel()
@@ -1312,6 +1605,10 @@ class Pipeline:
             self._answer.set_result(value)
 
     async def _on_action(self, event: ActionChosen) -> None:
+        if event.id.startswith("long-"):
+            # Botones del panel largo: no dependen de `_actions`, que cambia con cada burbuja.
+            await self._on_long_action(event.id)
+            return
         handler = self._actions.get(event.id)
         if handler is None:
             log.info("Botón %s ya no está activo", event.id)

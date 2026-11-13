@@ -60,6 +60,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.pending import Pending
     from nyx.tools.rename_file import RenameFile
     from nyx.tools.run_powershell import RunPowershell
+    from nyx.tools.save_note import SaveNote
     from nyx.tools.screenshot import Screenshot
     from nyx.tools.send_hotkey import SendHotkey
     from nyx.tools.set_alarm import SetAlarm
@@ -98,6 +99,7 @@ def default_registry() -> ToolRegistry:
             Screenshot(),
             CloseApp(),
             CreateFolder(),
+            SaveNote(),
             ListFiles(),
             FindFiles(),
             MoveFiles(),

@@ -48,6 +48,13 @@ class Player:
         with self._lock:
             return bool(self._chunks)
 
+    @property
+    def queued_s(self) -> float:
+        """Lo que falta por sonar de lo encolado, en segundos (6.28: cuándo empieza una frase)."""
+        with self._lock:
+            samples = sum(int(c.shape[0]) for c in self._chunks) - self._offset
+        return max(0, samples) / self.sample_rate
+
     def enqueue(self, samples: Samples) -> None:
         if samples.size == 0:
             return

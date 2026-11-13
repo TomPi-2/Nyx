@@ -40,8 +40,18 @@ class BubbleAction:
     primary: bool = False
 
 
-#: Qué panel la muestra (SPEC sección 11): respuesta, confirmación, deshacer o aviso.
-BubbleKind = Literal["response", "confirm", "undo", "alert"]
+#: Qué panel la muestra (SPEC sección 11): respuesta, confirmación, deshacer, aviso o la
+#: respuesta larga (6.28: explicación, receta, pasos o lista).
+BubbleKind = Literal["response", "confirm", "undo", "alert", "long"]
+
+
+@dataclass(frozen=True, slots=True)
+class LongSection:
+    """Una parte de una respuesta estructurada («Ingredientes», «Pasos»)."""
+
+    title: str
+    items: tuple[str, ...]
+    ordered: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,6 +65,29 @@ class BubbleShown:
     kind: BubbleKind = "response"
     # Cuánto dura (confirmación que caduca, tiempo para deshacer): la interfaz lo enseña.
     expires_s: float | None = None
+    # Panel largo (6.28): el texto entero (petición escrita), las secciones (receta, pasos o
+    # lista) o, con `reading`, nada aún: el texto llega frase a frase (`ReadingAppended`).
+    text: str = ""
+    sections: tuple[LongSection, ...] = ()
+    reading: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class ReadingAppended:
+    """Panel largo: una frase que empieza a sonar y lo que dura (se escribe a ese ritmo).
+    `duration_s` 0: lo ya dicho antes de pasar al panel largo, de golpe."""
+
+    text: str
+    duration_s: float
+
+
+@dataclass(frozen=True, slots=True)
+class PanelNote:
+    """Aviso al pie del panel largo («Copiado», «Nota guardada…»). Con `undo_action`, el
+    botón Deshacer manda ese id; sin él, vuelven los botones de siempre."""
+
+    text: str
+    undo_action: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

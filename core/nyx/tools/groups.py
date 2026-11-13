@@ -147,9 +147,11 @@ GROUPS: tuple[Group, ...] = (
     ),
     Group(
         "archivos",
-        "ver qué hay en una carpeta, buscar archivos, abrir carpetas y crear carpetas",
-        ("list_files", "find_files", "open_path", "create_folder"),
+        "ver qué hay en una carpeta, buscar archivos, abrir y crear carpetas y guardar notas",
+        ("list_files", "find_files", "open_path", "create_folder", "save_note"),
         (
+            r"nota",
+            r"apunta",
             r"carpeta",
             r"archiv",
             r"fichero",

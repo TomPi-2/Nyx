@@ -49,7 +49,9 @@ def test_groups_stay_small() -> None:
 
 # --- el selector ---
 
-TIGHT = 12000  # presupuesto pequeño: no caben todas y se rotan los grupos
+# Presupuesto pequeño: no caben todas y se rotan los grupos (12.450 desde que «archivos»
+# lleva save_note, 6.28: con 12.000 ya no cabía el clima junto a los dos de archivos).
+TIGHT = 12450
 
 
 def test_today_everything_fits_and_the_list_never_changes() -> None:

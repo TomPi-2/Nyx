@@ -158,6 +158,7 @@ _VERBS = {
     "install_app": "instalar o desinstalar un programa",
     "ui_action": "pulsar o leer algo en una app",
     "web_search": "buscar en internet",
+    "save_note": "guardar la nota",
     "set_brightness": "cambiar el brillo",
     "toggle_wifi": "cambiar el Wi-Fi",
     "toggle_bluetooth": "cambiar el Bluetooth",

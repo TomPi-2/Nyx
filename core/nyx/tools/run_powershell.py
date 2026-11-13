@@ -339,9 +339,9 @@ class RunPowershellParams(Params):
 class RunPowershell(Tool[RunPowershellParams]):
     name = "run_powershell"
     description = (
-        "Ejecuta un comando de PowerShell; las consultas de solo lectura van sin preguntar y "
-        "el resto, con confirmación. Solo si ninguna otra herramienta sirve. Ej.: «¿qué IP "
-        "tengo?» (Get-NetIPAddress), «¿cuánto lleva encendido el PC?» ((Get-Date) - "
+        # Si pide confirmación o no lo decide SafetyGuard (solo lectura: verde), no el modelo.
+        "Ejecuta un comando de PowerShell. Solo si ninguna otra herramienta sirve. Ej.: «¿qué "
+        "IP tengo?» (Get-NetIPAddress), «¿cuánto lleva encendido el PC?» ((Get-Date) - "
         "(Get-CimInstance Win32_OperatingSystem).LastBootUpTime)."
     )
     risk = Risk.RED
