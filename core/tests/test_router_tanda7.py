@@ -89,3 +89,12 @@ def test_a_question_after_busca_is_not_a_file(index: SystemIndex) -> None:
         "find_files",
         {"query": "contrato"},
     )
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["ábreme el último documento que descargué", "abre la foto más reciente", "abre lo que guardé"],
+)
+def test_open_the_latest_is_for_the_llm(text: str, index: SystemIndex) -> None:
+    """ERRORES.md (2026-11-12): no es un nombre («No encuentro…»), son dos pasos (LLM)."""
+    assert route(text, index) is None

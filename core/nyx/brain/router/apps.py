@@ -190,6 +190,10 @@ _REFERENCE = re.compile(
     r"^(?:la|lo|las|los|eso|esto|esa|ese|esas|esos|ella|ello|aquello)$"
     r"|\bque (?:has|acabas de|me has) (?:creado|abierto|descargado|movido|copiado|encontrado)\b"
     r"|\bde antes\b|\b(?:la|lo) (?:anterior|ultim[oa])\b"
+    # «ábreme el último documento que descargué» (ERRORES.md): buscarlo y abrirlo son dos
+    # pasos, del LLM; no un nombre que no se encuentra.
+    r"|\b(?:ultim[oa]s?|mas recientes?)\b"
+    r"|\bque (?:descargue|me descargue|he descargado|me baje|guarde|he guardado|cree|he creado)\b"
 )
 _EXPLANATION = re.compile(r"\s+(?:que|para|porque|pa)\s+.+$")
 _LO_DE = re.compile(r"^lo\s+del?\s+")
