@@ -1,0 +1,80 @@
+{"frase": "oye, me abres el Spotify que quiero poner algo de fondo", "tool": "open_app", "args": {"name": "Spotify"}}
+{"frase": "ponme el Discord, porfa", "tool": "open_app", "args": {"name": "Discord"}}
+{"frase": "lánzame el Steam", "tool": "open_app", "args": {"name": "Steam"}}
+{"frase": "voy a jugar un rato al Fortnite, ábremelo", "tool": "open_app", "args": {"name": "Fortnite"}}
+{"frase": "quiero escribir una carta, ábreme el Word", "tool": "open_app", "args": {"name": "Word"}}
+{"frase": "pásame a la ventana del Chrome", "tool": "focus_window", "args": {"name": "Chrome"}}
+{"frase": "trae el Spotify delante", "tool": "focus_window", "args": {"name": "Spotify"}}
+{"frase": "el Chrome que ocupe toda la pantalla", "tool": "window_layout|app_action"}
+{"frase": "quita el Discord de la vista", "tool": "window_layout", "args": {"action": "minimize"}}
+{"frase": "echa el Chrome a la derecha", "tool": "window_layout", "args": {"action": "right"}}
+{"frase": "ciérrame todo lo del Steam", "tool": "close_app", "args": {"name": "Steam"}}
+{"frase": "no quiero ver más el Discord, ciérralo", "tool": "close_app", "args": {"name": "Discord"}}
+{"frase": "está muy alto, bájalo un poco", "tool": "set_volume|app_action"}
+{"frase": "súbelo, que casi no se oye", "tool": "set_volume|app_action"}
+{"frase": "déjame el volumen a la mitad", "tool": "set_volume", "args": {"level": 50}}
+{"frase": "quita el sonido del todo", "tool": "set_volume", "args": {"mute": true}}
+{"frase": "el Chrome está sonando muy alto", "tool": "set_volume", "args": {"app": "Chrome"}}
+{"frase": "para la canción un momento", "tool": "media_control", "args": {"action": "pause"}}
+{"frase": "esta no me gusta, la siguiente", "tool": "media_control", "args": {"action": "next"}}
+{"frase": "dale otra vez a la música", "tool": "media_control", "args": {"action": "play"}}
+{"frase": "¿cómo se llama esta canción que suena?", "tool": "now_playing"}
+{"frase": "¿quién canta esto que está sonando?", "tool": "now_playing"}
+{"frase": "despiértame pasado mañana a las ocho menos cuarto", "tool": "set_alarm", "args": {"time": "07:45"}}
+{"frase": "ponme una alarma para mañana a las nueve y media", "tool": "set_alarm", "args": {"time": "09:30"}}
+{"frase": "avísame dentro de veinte minutos", "tool": "set_timer", "args": {"minutes": 20}}
+{"frase": "las galletas tienen que estar 15 minutos en el horno, avísame", "tool": "set_timer", "args": {"minutes": 15}}
+{"frase": "recuérdame a las 8 de la tarde que tengo que llamar a Pedro", "tool": "set_alarm", "args": {"time": "20:00"}}
+{"frase": "¿qué alarmas tengo puestas para mañana?", "tool": "list_alarms"}
+{"frase": "quita la alarma de las siete", "tool": "cancel_alarm"}
+{"frase": "empieza a cronometrar ya", "tool": "stopwatch", "args": {"action": "start"}}
+{"frase": "¿cuánto tiempo llevo con el cronómetro?", "tool": "stopwatch", "args": {"action": "status"}}
+{"frase": "¿me queda mucha batería?", "tool": "system_info", "args": {"what": "battery"}}
+{"frase": "¿el portátil se está cargando?", "tool": "system_info", "args": {"what": "battery"}}
+{"frase": "¿cuánta RAM estoy gastando ahora mismo?", "tool": "system_info", "args": {"what": "ram"}}
+{"frase": "¿tengo hueco en el disco para otro juego?", "tool": "system_info", "args": {"what": "disk"}}
+{"frase": "¿qué programa está tirando tanto del procesador?", "tool": "system_info", "args": {"what": "top"}}
+{"frase": "¿cómo va de carga el procesador?", "tool": "system_info", "args": {"what": "cpu"}}
+{"frase": "¿qué tiempo va a hacer el fin de semana?", "tool": "get_weather"}
+{"frase": "¿hace frío en Madrid ahora?", "tool": "get_weather", "args": {"city": "Madrid"}}
+{"frase": "¿me llevo el paraguas hoy?", "tool": "get_weather"}
+{"frase": "baja un poco la luz de la pantalla", "tool": "set_brightness"}
+{"frase": "ponme el brillo al máximo", "tool": "set_brightness", "args": {"level": 100}}
+{"frase": "desconecta el bluetooth", "tool": "toggle_bluetooth", "args": {"enabled": false}}
+{"frase": "conéctate al wifi otra vez", "tool": "toggle_wifi", "args": {"enabled": true}}
+{"frase": "bloquea el ordenador que me voy", "tool": "system_power", "args": {"action": "lock"}}
+{"frase": "hazle una foto a la pantalla", "tool": "screenshot"}
+{"frase": "¿qué tengo en la carpeta de Documentos?", "tool": "list_files", "args": {"folder": "Documentos"}}
+{"frase": "enséñame lo último que me he bajado", "tool": "list_files|find_files"}
+{"frase": "búscame el archivo del contrato", "tool": "find_files"}
+{"frase": "crea una carpeta que se llame Facturas en el escritorio", "tool": "create_folder", "args": {"name": "Facturas"}}
+{"frase": "ábreme la carpeta de Descargas", "tool": "open_path"}
+{"frase": "manda a la papelera lo último que descargué", "tool": "delete_files"}
+{"frase": "mueve las fotos del escritorio a Imágenes", "tool": "move_files"}
+{"frase": "lo de antes no, deshazlo", "tool": "undo"}
+{"frase": "llévame a la configuración de la pantalla", "tool": "open_settings"}
+{"frase": "quiero cambiar el idioma del teclado", "tool": "open_settings"}
+{"frase": "ábreme la web de la Wikipedia", "tool": "open_url"}
+{"frase": "entra en YouTube", "tool": "open_url|open_app"}
+{"frase": "¿qué tengo copiado?", "tool": "clipboard", "args": {"action": "read"}}
+{"frase": "copia esto: nos vemos a las cinco", "tool": "clipboard", "args": {"action": "write"}}
+{"frase": "escribe hola, ¿qué tal? en el bloc de notas", "tool": "type_text"}
+{"frase": "en la partida, ¿qué me queda pendiente?", "tool": "pending"}
+{"frase": "habla un poco más despacio", "tool": "nyx_control", "args": {"setting": "velocidad de la voz"}}
+{"frase": "ponte de color rojo", "tool": "nyx_control", "args": {"setting": "color"}}
+{"frase": "mi ciudad es Bilbao", "tool": "nyx_control", "args": {"setting": "ciudad", "value": "Bilbao"}}
+{"frase": "¿qué cosas sabes hacer?", "tool": "nyx_info"}
+{"frase": "ábreme tus ajustes", "tool": "open_nyx_settings"}
+{"frase": "pon los auriculares como salida de sonido", "tool": "audio_output"}
+{"frase": "abre el bloc de notas y escribe la lista de la compra", "plan": ["open_app", "type_text"]}
+{"frase": "cierra el Discord y pon música", "plan": ["close_app", "media_control"]}
+{"frase": "¿quién escribió Cien años de soledad?", "tipo": "respuesta"}
+{"frase": "¿cuánto es 17 por 23?", "tipo": "respuesta"}
+{"frase": "¿cómo se dice mariposa en inglés?", "tipo": "respuesta"}
+{"frase": "cuéntame un chiste corto", "tipo": "respuesta"}
+{"frase": "¿qué es la fotosíntesis?", "tipo": "respuesta"}
+{"frase": "¿cuál es la capital de Australia?", "tipo": "respuesta"}
+{"frase": "dame una idea para cenar", "tipo": "respuesta"}
+{"frase": "¿en qué año llegó el hombre a la Luna?", "tipo": "respuesta"}
+{"frase": "¿cuántos días tiene un año bisiesto?", "tipo": "respuesta"}
+{"frase": "gracias, Nyx", "tipo": "respuesta"}

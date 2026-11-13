@@ -207,6 +207,13 @@ def report(outcomes: list[Outcome], model: str, how: str = "") -> str:
 async def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--solo", help="solo las frases que contienen este texto")
+    parser.add_argument(
+        "--frases",
+        type=Path,
+        default=PHRASES,
+        help="otro archivo de frases (p. ej. tests/battery/reserva.jsonl, 6.27: nunca se "
+        "usa para entrenar)",
+    )
     parser.add_argument("--informe", type=Path, help="guardar el informe en Markdown")
     parser.add_argument(
         "--veces",
@@ -259,7 +266,7 @@ async def main() -> int:
 
     cases = [
         json.loads(line)
-        for line in PHRASES.read_text(encoding="utf-8").splitlines()
+        for line in args.frases.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
     if args.solo:

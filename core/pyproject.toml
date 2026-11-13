@@ -68,6 +68,8 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 [tool.ruff.lint.per-file-ignores]
 # Las reglas del router son expresiones regulares: se leen mejor en una línea.
 "nyx/brain/router/*.py" = ["E501"]
+# Tablas de ejemplos para el LoRA (6.27): se leen mejor en una línea.
+"training/llm/make_dataset.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"
