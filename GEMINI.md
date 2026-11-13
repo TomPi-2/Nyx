@@ -28,5 +28,29 @@ Estás continuando el plan de la versión en curso: [docs/PLAN-0.6.md](docs/PLAN
 - Si una comprobación falla y no sabes por qué tras dos intentos, para y explícalo: no
   desactives pruebas, no añadas `# type: ignore` ni `noqa` para esquivarlas.
 - Responde al usuario en español de España.
+
+## Cómo está el cerebro desde la 6.25 (léelo antes de tocar reglas o herramientas)
+
+- **Reglas del router:** `core/nyx/brain/router/`, un archivo por tema (`apps.py`,
+  `sonido.py`, `ventanas.py`…). Una regla nueva se registra con `@rule("nombre", patrón)` y se
+  pone su nombre en `ORDER` de `router/__init__.py`: **gana la primera que encaja**, así que el
+  sitio importa (una prueba exige que toda regla esté en `ORDER`).
+- **Primero las pruebas, después la regla:** cada tanda tiene su `core/tests/test_router_*.py`
+  con frases que deben activarla **y frases parecidas que no** («pon la música más alta» no es
+  una ventana). Una regla solo actúa si está segura; ante la duda, que devuelva `None` (el LLM).
+- **Comprueba que no cambia nada más:** antes y después de tocar reglas, pasa todas las frases
+  de la batería y de las pruebas por `route()` y compara; solo deben cambiar las que buscabas.
+- **Expresiones regulares:** con Edit, nunca con scripts de Python o heredocs: un `\b` se
+  convierte en un carácter de retroceso invisible y la regla deja de funcionar sin error. Tras
+  editar, `grep -c $'\x08'` en el archivo debe dar 0.
+- **Batería con semilla:** `uv run python scripts/battery.py` usa `--semilla 1` por defecto
+  (dos medidas de lo mismo dan lo mismo). La reserva `tests/battery/reserva.jsonl` **nunca**
+  se usa para escribir reglas ni para entrenar: es la medida honesta.
+- **Respuestas habladas sin LLM** con variantes por tono: `core/nyx/brain/answers.py`. **Paneles**:
+  todo pasa por `brain/panel.py` (`tidy`): mayúscula, punto solo en frases.
+- **Herramientas rojas** (`run_powershell`, `install_app`, `ui_action` en lo irreversible):
+  nunca bajes su riesgo ni su lista de bloqueo, y si el análisis o la búsqueda fallan, que no
+  se haga nada (nunca «no sé qué es, adelante»).
+- **El LoRA** (`core/training/llm/`) tiene su propio entorno; no lo toques sin que te lo pidan.
 - Cuando el usuario vuelva a Claude, Claude revisará lo que hayas hecho: deja en «Notas para
   la revisión» del Registro cualquier duda, atajo o cosa que no hayas podido probar.
