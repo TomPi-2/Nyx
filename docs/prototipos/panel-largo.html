@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Respuestas largas de Nyx</title>
+<style>
+/*
+ * Prototipo de la tarea 6.28 (2026-11-13): respuestas largas y notas.
+ * Tres tipos de respuesta: corta (como ahora), texto largo (se escribe al ritmo de la voz, sin
+ * borrar nada) y estructurada (receta, pasos o lista: todo de golpe y con formato). El cristal
+ * se imita con backdrop-filter; en Nyx lo dibuja el motor de cristal (SPEC sección 12).
+ */
+:root {
+  --page: #0f0f11; --text: #f5f5f7; --text-2: rgba(235, 235, 245, 0.62);
+  --text-3: rgba(235, 235, 245, 0.34); --control: rgba(118, 118, 128, 0.26);
+  --control-hi: rgba(160, 160, 170, 0.42); --active: rgba(229, 229, 234, 0.92);
+  --on-active: #1c1c1e; --raised: rgba(58, 58, 60, 0.45); --tint: rgba(28, 28, 30, 0.5);
+  --nyx: #f5f5f7;
+  --chrome: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --page: #f2f2f4; --text: #1c1c1e; --text-2: rgba(60, 60, 67, 0.64);
+  --text-3: rgba(60, 60, 67, 0.36); --control: rgba(118, 118, 128, 0.14);
+  --control-hi: rgba(118, 118, 128, 0.28); --active: rgba(72, 72, 74, 0.92);
+  --on-active: #f5f5f7; --raised: rgba(255, 255, 255, 0.55); --tint: rgba(242, 242, 247, 0.62);
+  --nyx: #3a3a3c;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text); font-family: var(--chrome); }
+main { max-width: 1180px; margin: 0 auto; padding: 28px 16px 64px; display: grid; gap: 22px; }
+h1 { font: 600 30px/1.1 var(--display); margin: 0; }
+p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 82ch; }
+.bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.bar .label { font-size: 13px; color: var(--text-2); }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 999px; background: var(--control); }
+.seg button { border: 0; border-radius: 999px; padding: 7px 14px; background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer; }
+.seg button.on { background: var(--active); color: var(--on-active); }
+.explain { font-size: 13px; line-height: 1.5; color: var(--text-2); max-width: 90ch; min-height: 3em; }
+.explain b { color: var(--text); font-weight: 600; }
+
+/* Escritorio de muestra */
+.desk {
+  position: relative; overflow: hidden; border-radius: 24px; height: 640px;
+  background:
+    radial-gradient(40% 55% at 12% 18%, #ff7a59 0, transparent 70%),
+    radial-gradient(45% 55% at 88% 20%, #3a7bff 0, transparent 70%),
+    radial-gradient(50% 60% at 55% 100%, #22c08a 0, transparent 70%), #2a1d4a;
+}
+.desk[data-bg="oscuro"] { background:
+  radial-gradient(60% 70% at 30% 20%, #2b2d38 0, transparent 70%),
+  radial-gradient(50% 60% at 80% 80%, #1b2433 0, transparent 70%), #101114; }
+.desk[data-bg="claro"] { background:
+  radial-gradient(50% 60% at 20% 30%, #fde3c8 0, transparent 70%),
+  radial-gradient(50% 60% at 80% 70%, #cfe3ff 0, transparent 70%), #f4f1ec; }
+.desk::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5; mix-blend-mode: soft-light;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.55) 0 2px, transparent 2px) 0 0 / 46px 46px,
+    linear-gradient(rgba(255,255,255,.35) 0 2px, transparent 2px) 0 0 / 46px 46px;
+}
+
+/* Nyx arriba en el centro y los paneles debajo, con el hueco fijo de 14 px */
+.stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; padding-top: 22px; }
+.nyx {
+  width: 60px; height: 60px; border-radius: 25px; background: var(--nyx); flex: none;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25); transition: transform .4s cubic-bezier(.3,1.6,.5,1), opacity .3s;
+}
+.nyx.speaking { animation: talk .38s ease-in-out infinite alternate; }
+.nyx.gone { opacity: 0; transform: scale(.6); }
+@keyframes talk { from { transform: scale(1) rotate(0deg); } to { transform: scale(1.07) rotate(3deg); } }
+.gap { height: 14px; flex: none; }
+
+.glass {
+  background: var(--tint); color: var(--text);
+  backdrop-filter: blur(22px) saturate(1.15); -webkit-backdrop-filter: blur(22px) saturate(1.15);
+  border-radius: 26px; box-shadow: 0 18px 50px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.10);
+}
+.panel { transform-origin: 50% 0; animation: pop .5s cubic-bezier(.3,1.5,.5,1) both; }
+@keyframes pop { 0% { transform: scale(0); opacity: 0; } 70% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+
+/* Corta */
+.short { padding: 18px 28px 20px; text-align: center; min-width: 220px; display: grid; gap: 2px; }
+.short .big { font: 600 28px/1.15 var(--display); letter-spacing: -.01em; }
+.short .small { font-size: 13px; color: var(--text-2); }
+
+/* Larga: lectura y estructurada */
+.long { width: min(560px, calc(100% - 32px)); display: flex; flex-direction: column; max-height: 520px; }
+.long header { padding: 18px 22px 6px; display: grid; gap: 2px; }
+.long header .title { font: 600 20px/1.2 var(--display); }
+.long header .meta { font-size: 12px; color: var(--text-3); }
+.scroller { position: relative; overflow-y: auto; padding: 4px 22px 8px; scroll-behavior: smooth; overscroll-behavior: contain; }
+.scroller::-webkit-scrollbar { width: 10px; }
+.scroller::-webkit-scrollbar-thumb { background: var(--control); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+.reading p { margin: 0 0 10px; font-size: 15px; line-height: 1.55; }
+.reading .s { transition: color .5s, opacity .5s; }
+.reading .s.new { animation: fadein .45s ease both; }
+.reading .s.now { color: var(--text); }
+.reading .s.read { color: var(--text-2); }
+@keyframes fadein { from { opacity: 0; filter: blur(3px); } to { opacity: 1; filter: none; } }
+.caret { display: inline-block; width: 2px; height: 1em; vertical-align: -0.15em; background: var(--text-2); margin-left: 2px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.follow {
+  position: sticky; bottom: 6px; margin: 0 auto; display: none; width: max-content;
+  border: 0; border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 12px; cursor: pointer;
+  background: var(--active); color: var(--on-active); box-shadow: 0 6px 18px rgba(0,0,0,.25);
+}
+.follow.show { display: block; }
+
+.struct h3 { font: 600 13px/1.2 var(--chrome); letter-spacing: .04em; text-transform: uppercase; color: var(--text-2); margin: 14px 0 6px; }
+.struct h3:first-child { margin-top: 4px; }
+.struct ul, .struct ol { margin: 0; padding-left: 22px; display: grid; gap: 5px; font-size: 15px; line-height: 1.45; }
+.struct li::marker { color: var(--text-3); }
+.struct ol li { padding-left: 2px; }
+.struct li.now { color: var(--text); }
+
+.long footer { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px 14px; align-items: center; }
+.pill { border: 0; border-radius: 999px; padding: 9px 16px; font: inherit; font-size: 14px; cursor: pointer; background: var(--control); color: inherit; transition: background .2s, transform .15s; }
+.pill:hover { background: var(--control-hi); }
+.pill:active { transform: scale(.97); }
+.pill.primary { background: var(--active); color: var(--on-active); }
+.pill.primary.offer { animation: offer 1.6s ease-in-out 2; }
+@keyframes offer { 50% { transform: scale(1.05); } }
+.footer-note { font-size: 12px; color: var(--text-3); margin-left: auto; padding-right: 6px; }
+.saved { font-size: 13px; color: var(--text-2); padding: 0 8px; }
+.saved b { color: var(--text); font-weight: 600; }
+.link { border: 0; background: none; padding: 0; font: inherit; color: var(--text); text-decoration: underline; cursor: pointer; }
+
+/* Voz: subtítulo pequeño bajo el escritorio (solo en el prototipo, para «oír» sin altavoces) */
+.voice { position: absolute; left: 16px; right: 16px; bottom: 14px; text-align: center; font-size: 13px; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.6); min-height: 1.4em; }
+
+/* Bloc de notas de mentira, para ver el formato de la nota */
+.notepad { position: absolute; right: 18px; bottom: 44px; width: min(380px, calc(100% - 36px)); border-radius: 10px; overflow: hidden; background: #fff; color: #1b1b1b; box-shadow: 0 20px 50px rgba(0,0,0,.4); display: none; animation: pop .45s cubic-bezier(.3,1.5,.5,1) both; transform-origin: 100% 100%; }
+.notepad.show { display: block; }
+.notepad .bar-np { background: #f3f3f3; font: 12px "Segoe UI", sans-serif; padding: 8px 12px; display: flex; justify-content: space-between; }
+.notepad pre { margin: 0; padding: 12px 14px; font: 13px/1.45 Consolas, "Cascadia Mono", monospace; white-space: pre-wrap; max-height: 300px; overflow: auto; }
+
+@media (max-width: 640px) { .desk { height: 700px; } .long { max-height: 560px; } }
+@media (prefers-reduced-motion: reduce) { .panel, .reading .s.new, .nyx.speaking, .pill.primary.offer { animation: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Respuestas largas y notas</h1>
+  <p class="lead">Prototipo de la tarea 6.28. Elige un tipo de respuesta y pulsa «Repetir» para verlo desde el principio.
+    En la explicación, sube con la rueda mientras Nyx habla: deja de seguir la lectura y aparece «Seguir leyendo».
+    «Guardar en una nota» enseña cómo quedaría el archivo en el Bloc de notas.</p>
+
+  <div class="bar">
+    <span class="label">Respuesta</span>
+    <div class="seg" id="kind">
+      <button data-v="corta">Corta</button>
+      <button data-v="explicacion" class="on">Explicación (por voz)</button>
+      <button data-v="escrita">Explicación (escrita)</button>
+      <button data-v="receta">Receta</button>
+    </div>
+    <button class="pill" id="replay">Repetir</button>
+  </div>
+  <div class="bar">
+    <span class="label">Cómo aparece el texto</span>
+    <div class="seg" id="reveal">
+      <button data-v="frase" class="on">Frase a frase</button>
+      <button data-v="letra">Letra a letra</button>
+    </div>
+    <span class="label">Voz del navegador</span>
+    <div class="seg" id="tts">
+      <button data-v="no" class="on">No (subtítulos)</button>
+      <button data-v="si">Sí</button>
+    </div>
+    <span class="label">Fondo</span>
+    <div class="seg" id="bg">
+      <button data-v="color" class="on">Color</button>
+      <button data-v="oscuro">Oscuro</button>
+      <button data-v="claro">Claro</button>
+    </div>
+    <span class="label">Tema</span>
+    <div class="seg" id="theme">
+      <button data-v="dark" class="on">Oscuro</button>
+      <button data-v="light">Claro</button>
+    </div>
+  </div>
+  <div class="explain" id="explain"></div>
+
+  <div class="desk" id="desk" data-bg="color">
+    <div class="stage">
+      <div class="nyx" id="nyx"></div>
+      <div class="gap"></div>
+      <div id="slot"></div>
+    </div>
+    <div class="notepad" id="notepad">
+      <div class="bar-np"><span id="np-title">Tortilla de patatas (13-11-2026).txt - Bloc de notas</span><span>✕</span></div>
+      <pre id="np-text"></pre>
+    </div>
+    <div class="voice" id="voice"></div>
+  </div>
+</main>
+
+<script>
+const EXPLAIN = {
+  corta: "<b>Corta</b>: como ahora. El dato grande y una línea pequeña; se va sola a los 4–15 s (el puntero encima la pausa).",
+  explicacion: "<b>Explicación por voz</b>: el texto se escribe al ritmo de la voz y no se borra nada. El panel crece hasta un alto máximo y luego se desplaza solo. Si subes para releer, deja de seguir la lectura. Al acabar se queda abierto hasta que lo cierras, haces otra petición o pasan 2 minutos sin tocarlo. En las explicaciones, solo el botón de guardar (sin ofrecerlo por voz).",
+  escrita: "<b>Explicación escrita</b>: si la pregunta fue escrita (sin voz), sale todo de golpe. Mismos botones y mismo tiempo para leerlo.",
+  receta: "<b>Receta, pasos o lista</b>: sale entera y con formato. La voz no la lee entera: dice un resumen y ofrece guardarla en una nota (puedes contestar «sí» o «guárdamela», o pulsar el botón).",
+};
+const EXPLANATION = {
+  title: "Por qué el cielo es azul",
+  meta: "es.wikipedia.org · scientificamerican.com",
+  sentences: [
+    "El cielo es azul por un fenómeno llamado dispersión de Rayleigh.",
+    "La luz del Sol parece blanca, pero en realidad mezcla todos los colores, cada uno con su longitud de onda.",
+    "Al entrar en la atmósfera, esa luz choca con las moléculas de nitrógeno y oxígeno, que son mucho más pequeñas que la longitud de onda de la luz.",
+    "Esas moléculas desvían mucho más la luz de onda corta, la azul y la violeta, que la de onda larga, como la roja.",
+    "Así, la luz azul rebota en todas direcciones y nos llega desde cualquier punto del cielo.",
+    "Aunque el violeta se dispersa todavía más, lo vemos azul porque el Sol emite menos violeta, parte se absorbe arriba y nuestros ojos son menos sensibles a él.",
+    "Al atardecer, la luz cruza mucha más atmósfera: casi todo el azul se pierde por el camino y llegan sobre todo los rojos y naranjas.",
+    "Por eso las puestas de sol tienen esos colores, y por eso en la Luna, sin atmósfera, el cielo es negro incluso de día.",
+  ],
+};
+const RECIPE = {
+  title: "Tortilla de patatas",
+  meta: "pequerecetas.com · directoalpaladar.com · 4 personas · 45 min",
+  sections: [
+    { name: "Ingredientes", ordered: false, items: ["6 huevos", "4 patatas medianas (unos 800 g)", "1 cebolla (opcional)", "Aceite de oliva virgen extra", "Sal"] },
+    { name: "Pasos", ordered: true, items: [
+      "Pela las patatas y córtalas en láminas finas. Pica la cebolla.",
+      "Pon abundante aceite en una sartén a fuego medio y añade las patatas y la cebolla con un poco de sal.",
+      "Pocha unos 20–25 minutos, removiendo de vez en cuando, hasta que estén tiernas sin dorarse demasiado.",
+      "Escúrrelas bien del aceite y mézclalas con los huevos batidos con sal. Deja reposar 5 minutos.",
+      "En la sartén con una cucharada de aceite, cuaja la mezcla 3–4 minutos a fuego medio.",
+      "Dale la vuelta con un plato, cuaja el otro lado 2–3 minutos y sirve.",
+    ] },
+  ],
+  spoken: "Es una tortilla de patatas para cuatro, con cinco ingredientes y seis pasos; la tienes en pantalla. ¿Te la guardo en una nota?",
+};
+
+const $ = (id) => document.getElementById(id);
+const state = { kind: "explicacion", reveal: "frase", tts: "no" };
+let run = 0; // cada «Repetir» invalida lo anterior
+
+function seg(id, key, after) {
+  $(id).addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    [...$(id).children].forEach((x) => x.classList.toggle("on", x === b));
+    after(b.dataset.v);
+  });
+}
+seg("kind", "kind", (v) => { state.kind = v; play(); });
+seg("reveal", "reveal", (v) => { state.reveal = v; play(); });
+seg("tts", "tts", (v) => { state.tts = v; play(); });
+seg("bg", "bg", (v) => { $("desk").dataset.bg = v; });
+seg("theme", "theme", (v) => { document.documentElement.dataset.theme = v; });
+$("replay").addEventListener("click", play);
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const words = (t) => t.trim().split(/\s+/).length;
+
+/** «Dice» una frase: con la voz del navegador si se pide (y hay una en español), si no a
+ *  unos 2,8 palabras por segundo con subtítulo. Devuelve cuando acaba. */
+async function say(text, id) {
+  $("voice").textContent = state.tts === "no" ? `«${text}»` : "";
+  const synth = window.speechSynthesis;
+  const es = synth && synth.getVoices().find((v) => v.lang && v.lang.startsWith("es"));
+  if (state.tts === "si" && es) {
+    await new Promise((resolve) => {
+      const u = new SpeechSynthesisUtterance(text);
+      u.voice = es; u.lang = es.lang; u.rate = 1.05; u.onend = resolve; u.onerror = resolve;
+      synth.speak(u);
+    });
+  } else {
+    await sleep(Math.max(1400, words(text) * 360));
+  }
+  if (id === run) $("voice").textContent = "";
+}
+
+function speaking(on) { $("nyx").classList.toggle("speaking", on); }
+
+function shortPanel() {
+  $("slot").innerHTML = `<div class="glass panel short"><span class="big">22 °C</span><span class="small">Valencia · soleado</span></div>`;
+}
+
+function longPanel({ title, meta, body, offer }) {
+  $("slot").innerHTML = `
+    <div class="glass panel long" id="long">
+      <header><span class="title">${title}</span><span class="meta">${meta}</span></header>
+      <div class="scroller" id="scroller">${body}<button class="follow" id="follow">Seguir leyendo ↓</button></div>
+      <footer id="footer">
+        <button class="pill primary${offer ? " offer" : ""}" id="save">Guardar en una nota</button>
+        <button class="pill" id="copy">Copiar</button>
+        <button class="pill" id="close">Cerrar</button>
+        <span class="footer-note" id="fnote"></span>
+      </footer>
+    </div>`;
+  $("save").addEventListener("click", save);
+  $("copy").addEventListener("click", () => { $("fnote").textContent = "Copiado"; });
+  $("close").addEventListener("click", () => { run++; speechSynthesis?.cancel(); speaking(false); $("slot").innerHTML = ""; $("notepad").classList.remove("show"); });
+  // Seguir la lectura salvo que el usuario suba para releer.
+  const sc = $("scroller");
+  sc.dataset.follow = "1";
+  sc.addEventListener("wheel", (e) => { if (e.deltaY < 0) stopFollow(); }, { passive: true });
+  sc.addEventListener("touchmove", stopFollow, { passive: true });
+  sc.addEventListener("scroll", () => { if (sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 4) resumeFollow(); });
+  $("follow").addEventListener("click", () => { resumeFollow(); sc.scrollTop = sc.scrollHeight; });
+}
+function stopFollow() { const sc = $("scroller"); if (sc) { sc.dataset.follow = "0"; $("follow").classList.add("show"); } }
+function resumeFollow() { const sc = $("scroller"); if (sc) { sc.dataset.follow = "1"; $("follow").classList.remove("show"); } }
+function follow() { const sc = $("scroller"); if (sc && sc.dataset.follow === "1") sc.scrollTop = sc.scrollHeight; }
+
+function noteText(kind) {
+  const date = "13-11-2026";
+  if (kind === "receta") {
+    let out = `${RECIPE.title}\nFuente: ${RECIPE.meta.split(" · ").slice(0, 2).join(", ")} · Guardada el ${date}\n`;
+    for (const s of RECIPE.sections) {
+      out += `\n${s.name.toUpperCase()}\n`;
+      s.items.forEach((it, i) => { out += s.ordered ? `${i + 1}. ${it}\n` : `• ${it}\n`; });
+    }
+    return out;
+  }
+  return `${EXPLANATION.title}\nFuente: ${EXPLANATION.meta.replace(" · ", ", ")} · Guardada el ${date}\n\n` +
+    EXPLANATION.sentences.join(" ").replace(/(\. )(?=Al entrar|Así,|Al atardecer)/g, ".\n\n") + "\n";
+}
+
+function save() {
+  const kind = state.kind === "receta" ? "receta" : "explicacion";
+  const title = kind === "receta" ? RECIPE.title : EXPLANATION.title;
+  $("footer").innerHTML = `<span class="saved">Guardada en <b>Documentos › Notas de Nyx</b></span>
+    <button class="pill" id="undo">Deshacer</button><button class="pill" id="close2">Cerrar</button>`;
+  $("np-title").textContent = `${title} (13-11-2026).txt - Bloc de notas`;
+  $("np-text").textContent = noteText(kind);
+  $("notepad").classList.add("show");
+  $("undo").addEventListener("click", () => { $("notepad").classList.remove("show"); $("footer").innerHTML = `<span class="saved">Nota enviada a la papelera</span>`; });
+  $("close2").addEventListener("click", () => { $("slot").innerHTML = ""; $("notepad").classList.remove("show"); });
+}
+
+async function typeInto(el, text, ms, id) {
+  // Letra a letra, repartiendo la duración de la frase entre sus letras.
+  const step = Math.max(8, ms / text.length);
+  for (let i = 1; i <= text.length; i++) {
+    if (id !== run) return;
+    el.textContent = text.slice(0, i);
+    if (i % 3 === 0) follow();
+    await sleep(step);
+  }
+}
+
+async function play() {
+  const id = ++run;
+  speechSynthesis?.cancel();
+  $("explain").innerHTML = EXPLAIN[state.kind];
+  $("notepad").classList.remove("show");
+  $("voice").textContent = "";
+  $("nyx").classList.remove("gone");
+  speaking(false);
+  $("slot").innerHTML = "";
+  await sleep(250);
+  if (id !== run) return;
+
+  if (state.kind === "corta") {
+    shortPanel(); speaking(true);
+    await say("En Valencia hace 22 grados y está soleado.", id);
+    if (id === run) speaking(false);
+    return;
+  }
+
+  if (state.kind === "escrita") {
+    $("nyx").classList.add("gone");
+    const body = `<div class="reading"><p>${EXPLANATION.sentences.map((s) => `<span class="s">${s} </span>`).join("")}</p></div>`;
+    longPanel({ title: EXPLANATION.title, meta: EXPLANATION.meta, body, offer: false });
+    return;
+  }
+
+  if (state.kind === "receta") {
+    const body = `<div class="struct">${RECIPE.sections.map((s) => `<h3>${s.name}</h3>` +
+      (s.ordered ? `<ol>${s.items.map((x) => `<li>${x}</li>`).join("")}</ol>` : `<ul>${s.items.map((x) => `<li>${x}</li>`).join("")}</ul>`)).join("")}</div>`;
+    longPanel({ title: RECIPE.title, meta: RECIPE.meta, body, offer: false });
+    speaking(true);
+    await say(RECIPE.spoken, id);
+    if (id !== run) return;
+    speaking(false);
+    const btn = $("save"); if (btn) btn.classList.add("offer");
+    $("fnote").textContent = "Di «sí» o «guárdamela»";
+    return;
+  }
+
+  // Explicación por voz: cada frase aparece cuando empieza a sonar; nada se borra.
+  longPanel({ title: EXPLANATION.title, meta: EXPLANATION.meta, body: `<div class="reading"><p id="para"></p></div>`, offer: false });
+  const para = $("para");
+  speaking(true);
+  let prev = null;
+  for (const sentence of EXPLANATION.sentences) {
+    if (id !== run || !$("para")) return;
+    if (prev) { prev.classList.remove("now"); prev.classList.add("read"); }
+    const span = document.createElement("span");
+    span.className = "s now new";
+    para.appendChild(span);
+    const dur = Math.max(1400, words(sentence) * 360);
+    if (state.reveal === "letra" && state.tts === "no") {
+      const caret = document.createElement("span"); caret.className = "caret";
+      span.after(caret);
+      await Promise.all([typeInto(span, sentence + " ", dur * 0.9, id), say(sentence, id)]);
+      caret.remove();
+    } else {
+      span.textContent = sentence + " ";
+      follow();
+      await say(sentence, id);
+    }
+    prev = span;
+    follow();
+  }
+  if (id !== run) return;
+  if (prev) { prev.classList.remove("now"); prev.classList.add("read"); }
+  speaking(false);
+  $("fnote").textContent = "Se queda abierto mientras lo lees";
+}
+
+// Las voces del navegador cargan tarde en algunos navegadores.
+if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => {};
+play();
+</script>
+</body>
+</html>

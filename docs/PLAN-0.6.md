@@ -348,6 +348,11 @@ conocimiento general: revisa por qué acababa en la negativa de búsqueda).
 
 ### 6.07 Aprender a hacer cosas (recetas) · Claude
 
+**Cambio del 2026-11-13 (usuario):** fuera el «¿Lo busco?» y la búsqueda: donde Nyx dice «Aún
+no sé hacer eso» (mensajes, llamadas…), buscar no ayuda, y lo que se puede componer con las
+herramientas que hay el 7B ya lo sabe. Lo que queda (recordar un plan de varios pasos que ha
+funcionado, como los atajos aprendidos) pasa a la 0.7. Lo de abajo queda como referencia.
+
 Diseño en HOJA-DE-RUTA §3.6. Resumen de lo que hay que construir:
 
 1. Cuando el LLM no tiene herramienta para algo («pon la barra de tareas a la izquierda»):
@@ -650,6 +655,31 @@ cabecera de los paneles bien (6.23). Misma memoria y velocidad que ahora.
   batería y `game_bench.py`. Solo se queda si mejora sin fallos nuevos ni más coste.
 - Licencia: qwen2.5:7b es Apache-2.0 y permite distribuir el modelo ajustado (se anota en la
   auditoría de licencias).
+
+### 6.28 Respuestas largas y notas · Claude (aprobada 2026-11-13)
+
+Idea del usuario: lo que Nyx encuentra (una receta, unos pasos) no se memoriza oyéndolo una
+vez; hay que poder leerlo con calma y guardarlo.
+
+- **Tres tipos de respuesta.** Corta (como ahora). Texto largo: se escribe al ritmo de la voz,
+  frase a frase y sin borrar nada; el panel crece hasta un alto máximo y luego se desplaza
+  solo, salvo que el usuario suba para releer (entonces «Seguir leyendo»); escrita, todo de
+  golpe. Estructurada (receta, pasos, lista): toda de golpe con formato (título, secciones con
+  viñetas o numeradas, fuentes); la voz dice un resumen, no la lee entera.
+- **Tiempo para leer:** los paneles largos no se van solos mientras se leen: Cerrar, Esc, otra
+  petición o 2 min sin tocarlos (el puntero encima para el tiempo). SPEC §11 cambia solo para
+  ellos.
+- **Guardar en una nota:** botones «Guardar en una nota», «Copiar» y «Cerrar». Por voz, Nyx lo
+  **ofrece solo en recetas, pasos y listas** (en las explicaciones largas, solo el botón);
+  «sí» o «guárdamela» también un rato después. Herramienta nueva `save_note`: texto plano en
+  `Documentos\Notas de Nyx\<título> (dd-mm-aaaa).txt`, nunca sobrescribe («(2)»), lo abre en el
+  Bloc de notas; amarilla con Deshacer (a la papelera); en partida, al terminar.
+- **Estructura:** tras `web_search`, si el resultado es largo, una segunda llamada al modelo con
+  esquema JSON (`format` de Ollama) da tipo, título, secciones y la frase para la voz. No se
+  toca el prompt de siempre (el LoRA se entrena con él). En partida no se estructura.
+- **Orden:** prototipo `docs/prototipos/panel-largo.html` (el usuario lo aprueba) → núcleo
+  (`brain/longform.py`, `tools/save_note.py`, regla «guárdamelo», aviso de la frase que suena,
+  protocolo v17) → interfaz (`LongPanel.svelte`) → SPEC §7, §11 y §12, `ACCIONES.md`, `nyx.md`.
 
 ### Rendimiento en partida (seguimiento)
 
