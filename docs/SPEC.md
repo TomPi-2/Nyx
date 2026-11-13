@@ -173,7 +173,9 @@ El cerebro decide qué herramientas ejecutar en dos niveles: un router determini
 - Patrones en español con variantes: "abre/abrir/lanza/inicia X", "cierra X", "sube/baja el volumen", "silencia", "captura de pantalla", "para la grabación"…
 - X se resuelve contra los alias de la caché con coincidencia difusa (rapidfuzz). Si la puntuación es mayor de 90 y no hay empate, se ejecuta directamente.
 - Si hay duda, pasa al nivel 2 con los candidatos como pista.
-- El router aprende: cuando el LLM resuelve una frase a una única acción simple con éxito, se guarda como atajo (con opción de revisarlos en ajustes).
+- El router aprende: cuando el LLM resuelve una frase a una única acción simple con éxito, se guarda como atajo (con opción de revisarlos en ajustes y olvidarlos todos de golpe).
+- **Reglas a lo grande (0.6, tarea 6.25):** todo lo que se pueda resolver con seguridad lo resuelve el router, y el LLM solo lo ambiguo, la conversación y las preguntas. Gana en latencia (0 ms frente a 0,4–2 s), en fiabilidad y en FPS (el router no usa la gráfica). Las reglas viven en `core/nyx/brain/router/`, un archivo por tema, y el orden en que se prueban es fijo (`ORDER`: gana la primera que encaja). Una regla solo actúa si está segura (nombres exactos de apps del equipo, páginas de Configuración, colores…); ante la duda, el LLM. Cada tanda entra con pruebas escritas antes que la regla, también las frases que no deben activarla. Con la batería de la 0.6, el router acierta todas las frases que resuelve (256/256).
+- **Respuestas sin el LLM (6.20a y 6.26):** lo que el router resuelve y tiene respuesta hecha (batería, qué suena, cronómetro…) se dice sin pasar por el LLM, con 2–4 variantes por tono (cercano, neutro, divertido) que no repiten la última (`brain/answers.py`).
 
 **Nivel 2: LLM con herramientas:**
 
@@ -185,10 +187,11 @@ El cerebro decide qué herramientas ejecutar en dos niveles: un router determini
 - **Planes de varios pasos:** "Abre el bloc de notas y abre una nueva pestaña" = `open_app(notepad)` → `wait_for_window` → `send_hotkey(ctrl+n)`. El ejecutor hace las esperas, no el LLM.
 - **Memoria corta:** últimos 6 turnos para entender "y ahora ciérralo" o "muévelos también".
 - **Preferencias aprendidas:** si el usuario corrige ("no, el Chrome, no Edge"), se guarda como preferencia local.
+- **Ajuste fino (0.6, tarea 6.27):** un LoRA del 7B, entrenado en local con ejemplos generados en local (paráfrasis de frases cuya llamada saben las reglas, charla y herramientas inventadas), para que actúe en vez de contestar en texto. Se entrena en el PC con ROCm como herramienta de desarrollo y se usa en Ollama con Vulkan; solo se adopta si mejora la batería y la reserva de frases sin perder FPS.
 
 **Nivel 3 (opcional, desactivado por defecto): nube gratuita.** Para preguntas complejas de conocimiento general, opción de usar una API con plan gratuito. El usuario la activa y pone su clave; nunca se envían datos del sistema, solo la pregunta.
 
-**Preguntas de actualidad:** búsqueda web (por ejemplo, DuckDuckGo sin clave) + resumen del LLM, indicando la fuente en la burbuja.
+**Internet (0.6, tareas 6.05 y 6.06):** `web_search` busca en Wikipedia (gratis, sin clave) o abre la búsqueda en el navegador; la burbuja dice la fuente. Lo leído llega al LLM marcado como contenido de fuera y, en esa vuelta, **sin herramientas**: una web no puede hacer que Nyx actúe. La actualidad (noticias, resultados) necesita una API con clave: pendiente de que el usuario elija proveedor.
 
 ## 7. Catálogo de herramientas
 
@@ -201,7 +204,7 @@ Unas 35 herramientas genéricas cubren miles de peticiones al combinarse. Cada u
 | `focus_window` | Trae una ventana al frente | Verde | pywin32 |
 | `window_layout` | Maximizar, minimizar, mover a otro monitor, dividir pantalla | Verde | pywin32 + atajos de Windows |
 | `open_url` | Abre una web en el navegador por defecto | Verde | `os.startfile`; diccionario de sitios (YouTube, Claude…) |
-| `web_search` | Busca en internet y abre o resume | Verde | Navegador o búsqueda + LLM |
+| `web_search` | Busca en internet y resume, o abre la búsqueda en el navegador | Verde | Wikipedia (con la fuente); `web.search_url`; sin herramientas en la vuelta siguiente |
 | `create_folder` | Crea una carpeta | Verde | pathlib |
 | `list_files` | Lista con filtros (últimos N, tipo, fecha, tamaño) | Verde | pathlib + Everything |
 | `find_files` | Busca archivos en todo el disco | Verde | Everything |
@@ -230,7 +233,14 @@ Unas 35 herramientas genéricas cubren miles de peticiones al combinarse. Cada u
 | `system_power` | Bloquear, suspender, reiniciar, apagar | Rojo (bloquear: verde) | APIs de Windows |
 | `system_info` | Batería, CPU, RAM, GPU, espacio en disco | Verde | psutil |
 | `nyx_control` | Cambiar ajustes de Nyx por voz ("modo silencio", "habla más despacio") | Verde | Settings |
-| `run_powershell` | Comodín para lo que no cubre nada más | Rojo siempre | Muestra el comando antes; lista de bloqueo |
+| `run_powershell` | Comodín para lo que no cubre nada más | Rojo siempre | Muestra el comando antes; lista de bloqueo con el analizador de PowerShell; si el análisis falla, no se ejecuta |
+| `install_app` | Instalar o desinstalar un programa | Rojo siempre | winget; confirma nombre exacto, editor e id; nunca adivina entre varios |
+| `ui_action` | Pulsar un botón, marcar una casilla o leer un texto de una app | Amarillo (leer: verde; eliminar, enviar, pagar…: rojo) | UI Automation; nunca en juegos; comprueba el control antes de tocarlo |
+| `app_action` | Acciones dentro de una app (pestañas, guardar, zoom, buscar…) | Verde | Catálogo de atajos por app e idioma (`app_catalog.py`) |
+| `now_playing`, `stopwatch`, `audio_output` | Qué suena, cronómetro, salida de audio | Verde | SMTC; en memoria; ajustes de sonido |
+| `list_alarms`, `cancel_alarm` | Ver y quitar alarmas y temporizadores | Verde | Planificador propio |
+| `nyx_info`, `pending` | Lo que Nyx sabe de sí misma; lo pendiente para después de la partida | Verde | `knowledge/nyx.md`; cola diferida |
+| `undo` | Deshacer lo último (30 s) | Verde | Registro de deshacer |
 
 **Cómo se resuelven los ejemplos del usuario:**
 
