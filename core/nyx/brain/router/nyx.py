@@ -12,6 +12,7 @@ from nyx.brain.router.comun import (
 )
 from nyx.index.service import SystemIndex
 from nyx.stt.normalize import WAKE_VARIANTS
+from nyx.tools.nyx_control import COLORS
 
 # --- Ajustes de Nyx (lo primero: «muéstrame tus ajustes» no es cambiar de ventana, y
 # «abre los ajustes de sonido» es la Configuración de Windows) ---
@@ -92,6 +93,19 @@ _NYX_PART = {
 def _nyx_change(m: re.Match[str], _: SystemIndex) -> Route:
     section = _NYX_PART[re.sub(r"\s+", " ", m.group("what"))]
     return _call("nyx_change", "open_nyx_settings", section=section)
+
+
+# Colores de Nyx (los de nyx_control), los compuestos primero: «azul cielo» antes que «azul».
+_COLOR = "|".join(sorted(COLORS, key=len, reverse=True))
+
+
+@rule(
+    "nyx_color",
+    # «ponte de color rosa», «cámbiate a color turquesa», «ponte azul cielo» (tanda 7).
+    rf"^(?:ponte|cambiate|vuelvete|pintate)\s+(?:a\s+|de\s+|en\s+)?(?:color\s+)?(?P<c>{_COLOR})$",
+)
+def _nyx_color(m: re.Match[str], _: SystemIndex) -> Route:
+    return _call("nyx_color", "nyx_control", setting="color", value=m.group("c"))
 
 
 # --- Nyx sobre sí misma (6.03; el 7B se lo inventaba: «puedo navegar por internet») ---

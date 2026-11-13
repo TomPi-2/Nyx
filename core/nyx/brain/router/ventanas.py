@@ -178,7 +178,12 @@ def _focus(m: re.Match[str], index: SystemIndex) -> Route | None:
     return None
 
 
-@rule("focus_back", r"^vuelve\s+(?:al|a\s+la|a)\s+(?P<x>.+)$")
+@rule(
+    "focus_back",
+    # «llévame a la ventana del Discord», «llévame al Spotify» (tanda 7).
+    r"^(?:vuelve\s+(?:al|a\s+la|a)|llevame\s+(?:a\s+la\s+ventana\s+(?:del?\s+)?|al|a\s+la|a))"
+    r"\s*(?P<x>.+)$",
+)
 def _focus_back(m: re.Match[str], index: SystemIndex) -> Route | None:
     """«Vuelve al Visual Studio Code» (6.25): solo si es una app del equipo; «vuelve a la
     página anterior» o «vuelve a intentarlo» no."""

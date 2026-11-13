@@ -83,7 +83,9 @@ def _unmute(m: re.Match[str], _: SystemIndex) -> Route:
 
 @rule(
     "mute",
-    r"^(?:silencia(?:lo|r)?|mutea|silencio|quita(?:r)? el sonido|calla el (?:pc|ordenador))(?:\s+(?P<app>.+))?$",
+    # «quítale el sonido al Chrome», «quita el sonido del Spotify» (6.25, tanda 7).
+    r"^(?:silencia(?:lo|r)?|mutea|silencio|quita(?:r|le)? el sonido|calla el (?:pc|ordenador))"
+    r"(?:\s+(?:a\s+la\s+|al\s+|a\s+|del\s+|de\s+)?(?P<app>.+))?$",
 )
 def _mute(m: re.Match[str], index: SystemIndex) -> Route | None:
     app = m.group("app")
@@ -159,11 +161,24 @@ _SONG = r"(?:cancion|tema|pista|video)"
     rf"^(?P<prev>(?:vuelve\s+a\s+poner|pon(?:me)?\s+otra\s+vez|repite)\s+(?:la|el)\s+(?:{_SONG}\s+)?"
     r"(?:de\s+antes|anterior))$"
     rf"|^(?P<next>(?:salta|saltate|pasa(?:te)?)\s+(?:este|esta)\s+{_SONG}"
-    r"(?:\s+(?:de|en)\s+(?:youtube|spotify))?)$",
+    r"(?:\s+(?:de|en)\s+(?:youtube|spotify))?)$"
+    # «esta canción no me gusta, pásala» (tanda 7): no gustar una canción es pasar a otra.
+    r"|^(?P<dislike>(?:esta|este)\s+(?:cancion|tema)\s+no\s+me\s+gusta(?:\s+(?:pasala|pasalo|"
+    r"quitala|quitalo|saltala|saltalo|la\s+siguiente|siguiente))?)$",
 )
 def _media_said(m: re.Match[str], _: SystemIndex) -> Route:
     action = "previous" if m.group("prev") else "next"
     return _call("media_said", "media_control", action=action)
+
+
+@rule(
+    "media_mood",
+    # «pon algo para relajarme», «ponme algo de música para concentrarme» (tanda 7): música, sin
+    # elegir cuál. «Pon algo de orden en el escritorio» no (no lleva «para»).
+    r"^pon(?:me)?\s+algo(?:\s+de\s+musica)?\s+para\s+.+$",
+)
+def _media_mood(_: re.Match[str], __: SystemIndex) -> Route:
+    return _call("media_mood", "media_control", action="play", music=True)
 
 
 _LOUD = r"(?:fuerte|alto)"
@@ -266,6 +281,9 @@ def _audio_output(m: re.Match[str], __: SystemIndex) -> Route:
     return _call("audio_output", "audio_output", device=device)
 
 
-@rule("media_go_on", r"^sigue\s+con\s+la\s+(?:musica|cancion)$")
+@rule(
+    "media_go_on",
+    r"^(?:sigue\s+con\s+la\s+(?:musica|cancion)|vuelve\s+a\s+poner\s+la\s+musica)$",
+)
 def _media_go_on(_: re.Match[str], __: SystemIndex) -> Route:
     return _call("media_go_on", "media_control", action="play")

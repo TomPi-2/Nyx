@@ -246,6 +246,18 @@ def _alarms_cancel(m: re.Match[str], __: SystemIndex) -> Route:
     return _call("alarms_cancel", "cancel_alarm", which=which)
 
 
+@rule(
+    "alarms_forget",
+    # «olvida el recordatorio de llamar a mamá», «olvídate de la alarma de las 7» (tanda 7).
+    r"^(?:olvida|olvidate\s+de|ya\s+no\s+quiero)\s+(?:el|la)\s+(?:recordatorio|alarma|temporizador)"
+    r"\s+(?:de\s+)?(?P<w>.+)$",
+)
+def _alarms_forget(m: re.Match[str], __: SystemIndex) -> Route:
+    # «de las 7» → «7», como `alarms_cancel`: la herramienta lo entiende como hora.
+    which = re.sub(r"^las?\s+(?=\d)", "", _original(m.group("w")))
+    return _call("alarms_forget", "cancel_alarm", which=which)
+
+
 _CRONO = r"(?:el\s+|un\s+|mi\s+)?(?:cronometro|crono)"
 
 
