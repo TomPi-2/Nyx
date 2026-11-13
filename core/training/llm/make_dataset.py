@@ -51,6 +51,7 @@ DATA = HERE / "data"
 CORE = HERE.parents[1]
 BATTERY = CORE / "tests" / "battery"
 RNG = random.Random(627)
+MAX_CHAT = 350  # ejemplos de charla como mucho (ver stage_build)
 
 Calls = list[dict[str, Any]]
 
@@ -185,10 +186,14 @@ def stage_seeds() -> None:
 PARAPHRASE = """Eres un generador de frases para entrenar a un asistente de voz de PC en español \
 de España. Te doy una petición. Escribe {k} formas DISTINTAS de pedir EXACTAMENTE lo mismo, como \
 la diría una persona real hablando: coloquial, con rodeos, explicando el motivo, preguntando, \
-con muletillas («oye», «porfa», «venga»), en otro orden… Mantén igual estos datos si aparecen: \
-{keep}. No añadas peticiones nuevas. Una frase por línea, sin numerar ni comillas.
+con muletillas («oye», «porfa», «venga»), en otro orden…{keep} No añadas peticiones nuevas. \
+Una frase por línea, sin numerar ni comillas.
 
 Petición: {text}"""
+
+
+# Restos de la instrucción que a veces se cuelan en la paráfrasis.
+_LEAK = re.compile(r"\(ningun|petici[oó]n:|\bmant[eé]n\b|datos? (?:clave|iguales)", re.I)
 
 
 def _keep_values(calls: Calls) -> list[str]:
@@ -245,7 +250,9 @@ async def stage_paraphrase(per_seed: int) -> None:
         for i, seed in enumerate(seeds):
             keep = _keep_values(seed["calls"])
             prompt = PARAPHRASE.format(
-                k=per_seed, text=seed["text"], keep=", ".join(keep) or "(ninguno)"
+                k=per_seed,
+                text=seed["text"],
+                keep=f" Mantén igual estos datos: {', '.join(keep)}." if keep else "",
             )
             try:
                 raw = await _chat(client, settings.llm.model, prompt, 0.9)
@@ -254,7 +261,12 @@ async def stage_paraphrase(per_seed: int) -> None:
                 continue
             for line in raw.splitlines():
                 text = line.strip().strip("-•*0123456789.) ").strip("«»\"'")
-                if not text or len(text.split()) > 25 or normalize(text) in skip:
+                if (
+                    not text
+                    or len(text.split()) > 25
+                    or normalize(text) in skip
+                    or _LEAK.search(text)
+                ):
                     continue
                 if normalize(text) == normalize(seed["text"]):
                     continue
@@ -298,7 +310,7 @@ async def stage_chat(per_topic: int) -> None:
     settings = load_settings()
     skip = excluded()
     registry = default_registry()
-    keys = tool_keys(registry.names())
+    keys = tool_keys(t.name for t in registry.all())
     questions: list[str] = []
     async with httpx.AsyncClient(base_url=settings.llm.host) as client:
         for topic in TOPICS:
@@ -343,6 +355,32 @@ async def stage_chat(per_topic: int) -> None:
     await llm.aclose()
     jsonl_write(DATA / "chat.jsonl", rows)
     print(f"{len(rows)} respuestas de charla")
+
+
+# Lo que el 7B dice que hace o hará sin hacerlo (el «no actúa» que se quiere quitar).
+_CLAIMS = re.compile(
+    r"\b(?:abro|abrir[eé]|busco|buscar[eé]|pongo|pondr[eé]|voy a|te (?:abro|pongo|busco)|"
+    r"he (?:abierto|puesto|buscado|creado)|puedo (?:buscar|abrir|poner)|en tu "
+    r"(?:biblioteca|pc|ordenador|equipo))\b",
+    re.I,
+)
+
+
+def clean_chat(reply: str) -> str | None:
+    """Una respuesta de charla apta para entrenar, o None. La cabecera tiene que ser del
+    modelo (corta, sin «…»: si no la escribe, Nyx la saca de la voz y sale recortada) y la
+    línea grande va con mayúscula (6.23)."""
+    header, _, spoken = reply.partition("\n")
+    inner = header.strip().strip("[]")
+    display, _, secondary = inner.partition("|")
+    display, secondary = display.strip(), secondary.strip()
+    if not display or display.endswith(("…", ".", "?", "!")) or len(display.split()) > 6:
+        return None  # sin cabecera propia, o la cabecera es una frase entera
+    if _CLAIMS.search(spoken) or not spoken.strip():
+        return None
+    display = display[:1].upper() + display[1:]
+    head = f"[{display} | {secondary}]" if secondary else f"[{display}]"
+    return f"{head}\n{spoken.strip()}"
 
 
 # --- herramientas inventadas ---
@@ -454,9 +492,16 @@ def stage_build(valid_share: float) -> None:
     for row in jsonl_read(DATA / "seeds.jsonl"):
         add(row["text"], calls_msg(row["calls"]), schemas)
     for row in jsonl_read(DATA / "paraphrases.jsonl"):
-        add(row["text"], calls_msg(row["calls"]), schemas)
-    for row in jsonl_read(DATA / "chat.jsonl"):
-        add(row["text"], {"role": "assistant", "content": row["reply"]}, schemas)
+        if not _LEAK.search(row["text"]):
+            add(row["text"], calls_msg(row["calls"]), schemas)
+    # Charla: para no olvidar conversar ni llamar herramientas para todo. Son respuestas del
+    # propio 7B (a veces con datos mal), así que pocas: lo que se enseña es el formato.
+    chat = [
+        (r["text"], c) for r in jsonl_read(DATA / "chat.jsonl") if (c := clean_chat(r["reply"]))
+    ]
+    RNG.shuffle(chat)
+    for text, reply in chat[:MAX_CHAT]:
+        add(text, {"role": "assistant", "content": reply}, schemas)
     for row in jsonl_read(DATA / "invented.jsonl"):
         extra = {"type": "function", "function": row["tool"]}
         tools = [*schemas, extra]
