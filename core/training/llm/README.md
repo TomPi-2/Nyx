@@ -48,6 +48,35 @@ Notas:
 - Antes de entrenar el 7B: cerrar Nyx y sacar el modelo de Ollama de la gráfica (no caben los
   dos en 12 GB).
 
+## Entrenar, medir y exportar
+
+```powershell
+.venv/Scripts/python.exe make_dataset.py juntar --maximo 1000   # data/train.jsonl y valid.jsonl
+./entrenar.ps1                       # en segundo plano; output/train.log, reanuda si se corta
+.venv/Scripts/python.exe serve.py    # API de Ollama en 127.0.0.1:11500: modelos «base» y «lora»
+# desde core/, con el entorno de Nyx:
+uv run python scripts/battery.py --frases tests/battery/reserva.jsonl --host http://127.0.0.1:11500 --modelo lora
+```
+
+`serve.py` compara el modelo con y sin el LoRA en el mismo motor (transformers en 4 bits), con
+el mismo prompt que Ollama (`render`) y la misma semilla. Sirve para decidir si el LoRA merece
+la pena; las latencias no cuentan (sin caché de prefijo ni streaming).
+
+**Exportar a Ollama.** Ollama 0.40 ya no importa este modelo por sí solo: desde safetensors
+solo cuantiza a int4/int8/nvfp4 y su importador nuevo (MLX) no admite Qwen2, y ya no acepta
+adaptadores LoRA. El camino es GGUF con llama.cpp (MIT): `export.py` deja el modelo unido en
+`output/merged` (16 bits, ~15 GB) y después:
+
+```powershell
+git clone --depth 1 https://github.com/ggml-org/llama.cpp output/llama.cpp
+uv pip install --python .venv/Scripts/python.exe gguf   # misma versión que output/llama.cpp/gguf-py
+.venv/Scripts/python.exe output/llama.cpp/convert_hf_to_gguf.py output/merged --outtype f16 --outfile output/nyx-f16.gguf
+# cuantizar a Q4_K_M (como qwen2.5:7b) con llama-quantize de una release de llama.cpp:
+llama-quantize output/nyx-f16.gguf output/nyx-q4_k_m.gguf Q4_K_M
+# Modelfile: «FROM ./nyx-q4_k_m.gguf» + plantilla, sistema y parámetros de qwen2.5:7b
+ollama create nyx-qwen2.5:7b -f output/Modelfile
+```
+
 ## Licencias (comprobadas antes de usarlas)
 
 Unsloth, transformers, TRL: Apache-2.0 · PyTorch: BSD-3 · bitsandbytes: MIT · llama.cpp

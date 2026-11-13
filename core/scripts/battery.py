@@ -238,6 +238,18 @@ async def main() -> int:
     )
     parser.add_argument("--modelo", default=None, help="otro modelo de Ollama (6.21)")
     parser.add_argument(
+        "--host",
+        default=None,
+        help="otro servidor con la API de Ollama (6.27: training/llm/serve.py compara el "
+        "modelo con y sin LoRA)",
+    )
+    parser.add_argument(
+        "--espera",
+        type=float,
+        default=60.0,
+        help="segundos máximos de silencio del modelo antes de cortar",
+    )
+    parser.add_argument(
         "--con-aviso",
         action="store_true",
         help="con el aviso de «esto se resuelve con herramientas» (6.21; desactivado en Nyx)",
@@ -275,7 +287,8 @@ async def main() -> int:
         random.Random(args.mezclar).shuffle(cases)
     settings = load_settings()
     model = args.modelo or settings.llm.model
-    llm = OllamaEngine(settings.llm.host, model, num_ctx=settings.llm.num_ctx, timeout_s=60)
+    host = args.host or settings.llm.host
+    llm = OllamaEngine(host, model, num_ctx=settings.llm.num_ctx, timeout_s=args.espera)
     if args.sin_grupos:
         brain = Brain(llm, tools=REGISTRY.schemas())
         how = "Herramientas: todas en cada petición (sin grupos)."

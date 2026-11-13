@@ -713,6 +713,15 @@ class Pipeline:
             spoken = f"{no[0]}." if from_voice or self.speak_typed else None
             await self._fail(no[0], no[1], spoken)
             return
+        if (thanks := self.answers.thanks(text)) is not None:
+            # «Gracias, Nyx»: se contesta sin el LLM, que alguna vez lo tomaba por una orden.
+            log.info("Agradecimiento: %r", text)
+            await self._show_bubble(thanks, "", spoken=thanks)
+            self._schedule_bubble_hide(bubble_duration(thanks, ""))
+            if from_voice or self.speak_typed:
+                await self._say(thanks, marks)
+            await self._go_idle()
+            return
         if self.router is not None and self.executor is not None:
             routed = self.router(text)
             if isinstance(routed, Route):

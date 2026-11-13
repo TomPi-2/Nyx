@@ -15,11 +15,14 @@ Todas las variantes empiezan en mayúscula, acaban en punto y llevan sus tildes:
 from __future__ import annotations
 
 import random
+import re
 from collections.abc import Callable, Mapping
 from typing import Any
 
 from nyx.alarms.spoken import spoken_duration
+from nyx.index.aliases import normalize
 from nyx.settings.model import ResponseTone
+from nyx.stt.normalize import WAKE_VARIANTS
 from nyx.tools.base import ToolResult
 
 Data = Mapping[str, Any]
@@ -379,6 +382,32 @@ def answer_key(tool: str, args: Data, result: ToolResult) -> tuple[str, dict[str
     return None
 
 
+# --- Agradecimientos (6.27) ---
+# «Gracias, Nyx» no es una orden: con el LoRA, el modelo llegó a llamar a `undo`. Un «gracias»
+# suelto (con «vale», «muchas», «de verdad», el nombre…) se contesta aquí, sin el LLM. Solo la
+# frase entera: «no, gracias», «gracias, ahora pon música» o «sí, gracias» no encajan. Las
+# confirmaciones («¿lo apago?» → «vale, gracias») van por otro camino y nunca llegan aquí.
+_NAMES = "|".join(sorted(WAKE_VARIANTS))
+THANKS = re.compile(
+    r"^(?:(?:vale|ok|okey|genial|perfecto|estupendo|muy bien|bien|bueno|pues|oye|ya esta|listo|"
+    rf"{_NAMES})\s+)*"
+    r"(?:(?:muchas|muchisimas|mil)\s+)?gracias"
+    r"(?:\s+(?:de verdad|de nuevo|otra vez|por todo|por (?:la|tu) ayuda|tio|tia|crack|guapa|"
+    rf"{_NAMES}))*$"
+    r"|^(?:te lo agradezco|muy amable|que amable)(?:\s+(?:" + _NAMES + r"))?$"
+)
+
+THANKS_REPLIES: dict[ResponseTone, tuple[str, ...]] = {
+    "cercano": ("¡De nada!", "Para eso estoy.", "¡A ti!", "Cuando quieras."),
+    "neutro": ("De nada.", "Un placer.", "No hay de qué."),
+    "divertido": ("¡Para eso me tienes!", "¡A mandar!", "¡Siempre a tu servicio!"),
+}
+
+
+def is_thanks(text: str) -> bool:
+    return bool(THANKS.match(" ".join(normalize(text).split())))
+
+
 class Answers:
     """Elige la variante del tono elegido sin repetir la última de cada respuesta."""
 
@@ -402,3 +431,13 @@ class Answers:
             return None  # faltan datos: mejor el mensaje de la herramienta
         self._last[key] = index
         return text
+
+    def thanks(self, text: str) -> str | None:
+        """La respuesta a un agradecimiento suelto, o None si la frase es otra cosa."""
+        if not is_thanks(text):
+            return None
+        options = THANKS_REPLIES[self.tone]
+        choices = [i for i in range(len(options)) if i != self._last.get("thanks")] or [0]
+        index = self._rng.choice(choices)
+        self._last["thanks"] = index
+        return options[index]

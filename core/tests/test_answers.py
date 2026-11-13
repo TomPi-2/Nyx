@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from nyx.brain.answers import ANSWERS, Answers, answer_key
+from nyx.brain.answers import ANSWERS, THANKS_REPLIES, Answers, answer_key, is_thanks
 from nyx.tools.base import ToolResult
 
 TONES = ("cercano", "neutro", "divertido")
@@ -134,3 +134,53 @@ def test_keys_from_real_results() -> None:
     assert key("stopwatch", {"action": "start"}, {"running": True}) is None  # en silencio
     assert key("list_alarms", {}, {"ids": [1]}) is None  # la lista la dice la herramienta
     assert key("list_alarms", {}, {}) == "no_alarms"
+
+
+# --- agradecimientos (6.27) ---
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "gracias",
+        "Gracias, Nyx",
+        "¡Muchas gracias!",
+        "mil gracias de verdad",
+        "vale, gracias",
+        "perfecto, muchas gracias Nyx",
+        "genial gracias por la ayuda",
+        "Nyx, gracias",
+        "te lo agradezco",
+        "muy amable",
+    ],
+)
+def test_thanks(text: str) -> None:
+    assert is_thanks(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "no, gracias",
+        "sí, gracias",
+        "gracias, ahora pon música",
+        "pon música, gracias",
+        "dale las gracias a Marta",
+        "¿cómo se dice gracias en alemán?",
+        "escribe gracias en el chat",
+        "vale",
+        "perfecto",
+    ],
+)
+def test_not_thanks(text: str) -> None:
+    assert not is_thanks(text)
+
+
+@pytest.mark.parametrize("tone", TONES)
+def test_thanks_replies_vary_and_never_repeat_the_last(tone: str) -> None:
+    answers = Answers(tone, random.Random(3))  # type: ignore[arg-type]
+    said = [answers.thanks("gracias") for _ in range(12)]
+    assert all(s and (s[0].isupper() or s[0] == "¡") for s in said)
+    assert all(a != b for a, b in itertools.pairwise(said))
+    assert len(set(said)) == len(THANKS_REPLIES[tone])  # type: ignore[index]
+    assert answers.thanks("pon música") is None

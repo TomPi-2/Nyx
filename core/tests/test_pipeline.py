@@ -533,3 +533,25 @@ async def test_one_word_header_gets_the_detail_of_the_voice(speak_typed: bool) -
     # Hablado: solo la frase. Escrito: debajo, el resto de la respuesta (sin repetirla).
     assert h.bubbles == [(first, None if speak_typed else "Coge paraguas.")]
     await h.p.close()
+
+
+@pytest.mark.parametrize("speak_typed", [True, False])
+async def test_thanks_is_answered_without_the_llm(speak_typed: bool) -> None:
+    """6.27: «gracias, Nyx» no es una orden (el modelo llegó a deshacer lo último)."""
+    h = Harness(speak_typed=speak_typed)
+    await h.bus.publish(TextEntered("Muchas gracias, Nyx"))
+    await h.p.wait_idle()
+    assert h.llm.requests == []
+    assert len(h.bubbles) == 1
+    assert h.bubbles[0][0] in {"¡De nada!", "Para eso estoy.", "¡A ti!", "Cuando quieras."}
+    assert len(h.tts.said) == (1 if speak_typed else 0)
+    assert h.p.mode is Mode.IDLE
+    await h.p.close()
+
+
+async def test_thanks_with_an_order_still_goes_to_the_llm() -> None:
+    h = Harness()
+    await h.bus.publish(TextEntered("gracias, ¿y en francés cómo se dice?"))
+    await h.p.wait_idle()
+    assert len(h.llm.requests) == 1
+    await h.p.close()
