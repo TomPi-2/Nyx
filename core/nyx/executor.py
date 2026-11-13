@@ -155,6 +155,7 @@ _VERBS = {
     "system_info": "mirar el estado del equipo",
     "system_power": "controlar el encendido del equipo",
     "run_powershell": "ejecutar un comando de PowerShell",
+    "install_app": "instalar o desinstalar un programa",
     "set_brightness": "cambiar el brillo",
     "toggle_wifi": "cambiar el Wi-Fi",
     "toggle_bluetooth": "cambiar el Bluetooth",

@@ -35,3 +35,9 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
   ejecutar código de fuera, elevarse, apagar, otros intérpretes y `& $x`. Si el análisis falla,
   no se ejecuta. Probar: «¿qué IP tengo?» (debe pedir confirmación con el comando exacto) y
   algo peligroso como «borra la carpeta temporal con PowerShell» (debe negarse).
+- **6.14 `install_app`** (roja siempre, bloqueada en partida): busca con winget y la
+  confirmación enseña el nombre exacto, el editor y el id; si hay varios que se parecen, no
+  adivina y dice cuáles. Instala en silencio y sin `--force`. Probar: «instálame el VLC» (debe
+  pedir confirmación con «VideoLAN · VideoLAN.VLC»), cancelarlo, y «instala Chrome» (varios:
+  debe preguntar cuál). **Limitación:** mientras instala, Nyx espera (hasta 15 min) y no
+  atiende otra cosa; avisar al acabar en segundo plano queda para más adelante.

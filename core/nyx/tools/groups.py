@@ -393,8 +393,9 @@ GROUPS: tuple[Group, ...] = (
     ),
     Group(
         "avanzado",
-        "lo que no cubre nada más: comandos de PowerShell (siempre con confirmación)",
-        ("run_powershell",),
+        "instalar o desinstalar programas y lo que no cubre nada más (PowerShell), siempre "
+        "con confirmación",
+        ("run_powershell", "install_app"),
         (
             r"powershell",
             r"comando",
@@ -406,6 +407,10 @@ GROUPS: tuple[Group, ...] = (
             r"uptime",
             r"variables? de entorno",
             r"version de windows",
+            r"\binstal",
+            r"desinstal",
+            r"winget",
+            r"quita(?:me)? el programa",
         ),
     ),
 )
