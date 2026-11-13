@@ -12,14 +12,10 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
    he dejado **roja siempre** (cada comando pide confirmación). Si quieres la excepción, hay
    que cambiar la SPEC primero.
 
-2. **LoRA (6.27): permiso para convertirlo con llama.cpp.** Ollama 0.40 ya no importa un
-   Qwen2 ajustado por sí solo (ni `q4_K_M` desde safetensors, ni adaptadores LoRA, ni Qwen2 en
-   su importador nuevo). El único camino es pasarlo a GGUF con llama.cpp (MIT, herramienta de
-   desarrollo: no va en Nyx), y **ejecutar el script de conversión desde un clon de su
-   repositorio me lo ha bloqueado el control de permisos** de esta sesión. Mientras tanto lo
-   mido con un servidor propio (`core/training/llm/serve.py`). Para seguir, o lo ejecutas tú
-   (pasos en `core/training/llm/README.md`, «Exportar a Ollama») o me das permiso para
-   hacerlo. Lo dejo listo con la ronda que salga mejor.
+2. **LoRA (6.27).** ~~Permiso para llama.cpp~~: dado el 2026-11-13. Ruta probada: la ronda 1
+   ya está en Ollama como `nyx-r1:7b` (GGUF Q4_K_M, 4,7 GB, misma plantilla y parámetros que
+   `qwen2.5:7b`). Pendiente: medirla en Ollama cuando acabe de entrenar la ronda 2 (no caben
+   las dos cosas en la gráfica) y decidir con las dos rondas.
 
    **Ronda 1 medida, no se adopta** (`docs/benchmarks/lora-6.27.md`): acierta mucho más
    (reserva 50 → 72 de 80; batería 341 → 373 de 400) pero **actúa cuando no debe** («llama a
