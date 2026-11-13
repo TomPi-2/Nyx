@@ -27,6 +27,8 @@ models/
 *.bin
 core/training/data/
 core/training/output/
+core/training/llm/output/
+core/training/llm/data/
 
 # Grabaciones de audio y registros
 *.wav
