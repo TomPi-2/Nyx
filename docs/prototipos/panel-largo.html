@@ -92,7 +92,7 @@ p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 82ch; }
 
 /* Larga: lectura y estructurada */
 .long { width: min(560px, calc(100% - 32px)); display: flex; flex-direction: column; max-height: 520px; }
-.long header { padding: 18px 22px 6px; display: grid; gap: 2px; }
+.long header { padding: 18px 22px 6px; display: grid; gap: 2px; text-align: center; }
 .long header .title { font: 600 20px/1.2 var(--display); }
 .long header .meta { font-size: 12px; color: var(--text-3); }
 .scroller { position: relative; overflow-y: auto; padding: 4px 22px 8px; scroll-behavior: smooth; overscroll-behavior: contain; }
@@ -133,6 +133,11 @@ p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 82ch; }
 .link { border: 0; background: none; padding: 0; font: inherit; color: var(--text); text-decoration: underline; cursor: pointer; }
 
 /* Voz: subtítulo pequeño bajo el escritorio (solo en el prototipo, para «oír» sin altavoces) */
+.say-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.say-row input { flex: 1 1 260px; min-width: 0; border: 0; border-radius: 999px; padding: 9px 16px; font: inherit; font-size: 14px; background: var(--control); color: inherit; outline: none; }
+.say-row input::placeholder { color: var(--text-3); }
+.heard { font-size: 13px; color: var(--text-2); }
+.heard b { color: var(--text); font-weight: 600; }
 .voice { position: absolute; left: 16px; right: 16px; bottom: 14px; text-align: center; font-size: 13px; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.6); min-height: 1.4em; }
 
 /* Bloc de notas de mentira, para ver el formato de la nota */
@@ -186,6 +191,11 @@ p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 82ch; }
     </div>
   </div>
   <div class="explain" id="explain"></div>
+  <div class="say-row">
+    <input id="say" placeholder="Dile a Nyx… (p. ej. «ciérralo», «copia la receta», «guárdamela en una nota»)" autocomplete="off">
+    <button class="pill" id="say-go">Decir</button>
+    <span class="heard" id="heard"></span>
+  </div>
 
   <div class="desk" id="desk" data-bg="color">
     <div class="stage">
@@ -338,9 +348,7 @@ function longPanel({ title, meta, body, offer }) {
         <span class="footer-note" id="fnote"></span>
       </footer>
     </div>`;
-  $("save").addEventListener("click", save);
-  $("copy").addEventListener("click", () => { $("fnote").textContent = "Copiado"; });
-  $("close").addEventListener("click", () => { run++; speechSynthesis?.cancel(); speaking(false); $("slot").innerHTML = ""; $("notepad").classList.remove("show"); });
+  wireFooter();
   // Seguir la lectura salvo que el usuario suba para releer.
   const sc = $("scroller");
   sc.dataset.follow = "1";
@@ -367,7 +375,28 @@ function noteText(kind) {
     EXPLANATION.sentences.join(" ").replace(/(\. )(?=Al entrar|Así,|Al atardecer)/g, ".\n\n") + "\n";
 }
 
+/** Los botones de siempre, con un aviso opcional al lado («Copiado», «Nota enviada a la papelera»). */
+function wireFooter(note = "") {
+  if (!$("footer")) return;
+  $("footer").innerHTML = `
+    <button class="pill primary" id="save">Guardar en una nota</button>
+    <button class="pill" id="copy">Copiar</button>
+    <button class="pill" id="close">Cerrar</button>
+    <span class="footer-note" id="fnote">${note}</span>`;
+  $("save").addEventListener("click", save);
+  $("copy").addEventListener("click", copy);
+  $("close").addEventListener("click", closePanel);
+}
+
+function closePanel() {
+  run++; speechSynthesis?.cancel(); speaking(false);
+  $("slot").innerHTML = ""; $("notepad").classList.remove("show"); $("voice").textContent = "";
+}
+
+function copy() { if ($("fnote")) $("fnote").textContent = "Copiado"; }
+
 function save() {
+  if (!$("footer")) return;
   const kind = state.kind === "receta" ? "receta" : "explicacion";
   const title = kind === "receta" ? RECIPE.title : EXPLANATION.title;
   $("footer").innerHTML = `<span class="saved">Guardada en <b>Documentos › Notas de Nyx</b></span>
@@ -375,9 +404,42 @@ function save() {
   $("np-title").textContent = `${title} (13-11-2026).txt - Bloc de notas`;
   $("np-text").textContent = noteText(kind);
   $("notepad").classList.add("show");
-  $("undo").addEventListener("click", () => { $("notepad").classList.remove("show"); $("footer").innerHTML = `<span class="saved">Nota enviada a la papelera</span>`; });
-  $("close2").addEventListener("click", () => { $("slot").innerHTML = ""; $("notepad").classList.remove("show"); });
+  $("undo").addEventListener("click", undoNote);
+  $("close2").addEventListener("click", closePanel);
 }
+
+function undoNote() {
+  $("notepad").classList.remove("show");
+  wireFooter("Nota enviada a la papelera");
+}
+
+// --- Por voz: mientras hay un panel largo abierto, estas frases son para él ---
+const norm = (t) => t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+  .replace(/[^a-z0-9ñ ]+/g, " ").replace(/\s+/g, " ").trim().replace(/^(?:oye |nyx )+/, "");
+const WHAT = "(?:el |la |los |las |este |esta |ese |esa |eso |esto )?(?:panel|explicacion|receta|texto|respuesta|lista|pasos|resultado|todo|eso|esto|cuadro)";
+// «Cierra todo» no es del panel (puede querer decir todas las ventanas): fuera «todo».
+const WHAT_CLOSE = WHAT.replace("|todo", "");
+const VOICE = [
+  { what: "cerrar", re: new RegExp(`^(?:(?:cierra|cierrame|cerrar|quita|quitame|oculta|ocultame|esconde|escondeme|aparta|apartame)(?:lo|la|los|las)?(?: ${WHAT_CLOSE})?(?: ya)?|ya (?:esta|lo he leido|me lo he leido|vale)|vale ya|listo|fuera|no hace falta|ya no lo necesito)$`) },
+  { what: "copiar", re: new RegExp(`^(?:copia|copiame|copiar|copiamelo|copiamela|copialo|copiala|copialos|copiaselo)(?: ${WHAT})?(?: entero| entera| completo| completa)?(?: (?:al|en el) portapapeles)?$`) },
+  { what: "guardar en una nota", re: new RegExp(`^(?:si|vale|venga|si porfa|si por favor|claro|(?:guarda|guardame|guardar|guardamelo|guardamela|guardalo|guardala|apunta|apuntame|apuntalo|apuntala|apuntamelo|apuntamela|pasalo|pasala|pasamelo|pasamela|haz(?:me)? una nota)(?: ${WHAT})?(?: (?:con|de) (?:esto|eso|ello|la receta|la explicacion))?(?: (?:en|a) (?:una |la |mis )?notas?| en (?:el )?bloc de notas)?)$`) },
+];
+function heard(text) {
+  const t = norm(text);
+  if (!t) return;
+  const panelOpen = !!$("long");
+  const hit = VOICE.find((v) => v.re.test(t));
+  if (!panelOpen) { $("heard").innerHTML = "Sin panel abierto: esto iría al resto de Nyx como siempre."; return; }
+  if (!hit) { $("heard").innerHTML = "No es para el panel: lo resolvería Nyx como siempre."; return; }
+  if (hit.what === "guardar en una nota" && /^(si|vale|venga|claro|si porfa|si por favor)$/.test(t) && state.kind !== "receta") {
+    $("heard").innerHTML = "«Sí» solo cuenta justo después de que Nyx ofrezca guardarla (recetas, pasos y listas).";
+    return;
+  }
+  $("heard").innerHTML = `Nyx entiende: <b>${hit.what}</b>`;
+  ({ cerrar: closePanel, copiar: copy, "guardar en una nota": save })[hit.what]();
+}
+$("say-go").addEventListener("click", () => { heard($("say").value); $("say").select(); });
+$("say").addEventListener("keydown", (e) => { if (e.key === "Enter") { heard($("say").value); $("say").select(); } });
 
 async function play() {
   const id = ++run;
