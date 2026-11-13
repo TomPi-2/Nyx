@@ -42,7 +42,8 @@ def check_gpu() -> None:
 
 def train_tiny() -> None:
     os.environ.setdefault("HF_HUB_DISABLE_XET", "1")  # Unsloth: descargas en AMD
-    from unsloth import FastLanguageModel  # antes que trl y transformers (lo pide Unsloth)
+    # Unsloth antes que trl y transformers (lo pide él): ruff no debe reordenarlo.
+    from unsloth import FastLanguageModel  # noqa: I001
 
     import torch
     from datasets import Dataset
