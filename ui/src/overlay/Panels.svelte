@@ -12,9 +12,10 @@
   import { connectCore, type CoreConnection } from "$lib/core";
   import { applyAppearance } from "$theme/apply";
   import { DEFAULT_GLASS, edgeLevelToPx, glass, glassFromSettings } from "$lib/glass";
-  import type { ActionButton, BubbleKind, ServerMessage } from "$lib/protocol";
+  import type { ActionButton, BubbleKind, LongSection, ServerMessage } from "$lib/protocol";
   import AlertPanel from "./panels/AlertPanel.svelte";
   import ConfirmPanel from "./panels/ConfirmPanel.svelte";
+  import LongPanel, { type Chunk } from "./panels/LongPanel.svelte";
   import ResponsePanel from "./panels/ResponsePanel.svelte";
   import UndoPanel from "./panels/UndoPanel.svelte";
   import {
@@ -44,6 +45,10 @@
   const PAD = 28;
   /** Alto máximo de un panel (la respuesta larga se desplaza por dentro). */
   const AREA_HEIGHT = 340;
+  /** El panel largo (6.28) llega a 480 px y lleva botones debajo. */
+  const LONG_AREA_HEIGHT = 520;
+  /** El panel largo se cierra solo tras 2 minutos sin tocarlo (con el puntero encima, no). */
+  const LONG_IDLE_MS = 120_000;
 
   interface Bubble {
     id: number;
@@ -52,6 +57,12 @@
     actions: ActionButton[];
     kind: BubbleKind;
     expiresMs: number | null;
+    // Panel largo (v17)
+    text: string;
+    sections: LongSection[];
+    chunks: Chunk[];
+    note: string;
+    undoAction: string | null;
   }
 
   let bubble = $state<Bubble | null>(null);
@@ -112,7 +123,7 @@
       // Cabe en cualquier sitio: bajo Nyx o bajo el campo de texto con 6 líneas.
       height:
         Math.max(lowered, raisedTop(size) + INPUT_MAX_HEIGHT + PANEL_GAP + edgePx) +
-        AREA_HEIGHT +
+        (bubble?.kind === "long" ? LONG_AREA_HEIGHT : AREA_HEIGHT) +
         PAD,
       top: 0,
     });
@@ -122,9 +133,10 @@
     void invoke("island_set_visible", { visible });
   });
 
-  // Solo los botones reciben clics; el resto de la ventana los deja pasar.
+  // Solo los botones (y el panel largo entero, `data-hit`) reciben clics; el resto de la
+  // ventana los deja pasar.
   function updateHitRects() {
-    const buttons = visible && slot ? [...slot.querySelectorAll("button")] : [];
+    const buttons = visible && slot ? [...slot.querySelectorAll("button, [data-hit]")] : [];
     const rects = buttons.map((b) => {
       const r = b.getBoundingClientRect();
       return [r.x, r.y, r.width, r.height];
@@ -162,10 +174,62 @@
       kind: kindOf(msg),
       expiresMs:
         msg.expires_s !== null && msg.expires_s !== undefined ? msg.expires_s * 1000 : null,
+      text: msg.text ?? "",
+      sections: msg.sections ?? [],
+      chunks: [],
+      note: "",
+      undoAction: null,
     };
+    lastActivity = performance.now();
     glass.poke();
     glass.follow(POP_IN_MS + 80);
   }
+
+  // --- panel largo (6.28) ---
+
+  /** Una frase que empieza a sonar: se escribe al ritmo de su audio. */
+  function addChunk(text: string, durationS: number) {
+    if (bubble?.kind !== "long") return;
+    const chunk: Chunk = { text, durationMs: durationS * 1000, at: performance.now() };
+    bubble = { ...bubble, chunks: [...bubble.chunks, chunk] };
+    lastActivity = performance.now();
+    glass.follow(400);
+  }
+
+  function setNote(text: string, undoAction: string | null) {
+    if (bubble?.kind !== "long") return;
+    bubble = { ...bubble, note: text, undoAction };
+    lastActivity = performance.now();
+  }
+
+  function longAction(id: string) {
+    lastActivity = performance.now();
+    core?.send({ type: "action", id });
+  }
+
+  // Se cierra solo tras 2 minutos sin tocarlo; con el puntero encima, el tiempo no corre.
+  let lastActivity = performance.now();
+  let pointerInside = false;
+  function onPointer(inside: boolean) {
+    pointerInside = inside;
+    lastActivity = performance.now();
+  }
+  $effect(() => {
+    if (bubble?.kind !== "long") return;
+    const timer = setInterval(() => {
+      if (pointerInside) lastActivity = performance.now();
+      else if (performance.now() - lastActivity > LONG_IDLE_MS) longAction("long-timeout");
+    }, 5000);
+    return () => clearInterval(timer);
+  });
+
+  // El panel largo crece mientras se escribe: la zona que recibe el ratón crece con él.
+  $effect(() => {
+    if (!slot) return;
+    const observer = new ResizeObserver(() => requestAnimationFrame(updateHitRects));
+    observer.observe(slot);
+    return () => observer.disconnect();
+  });
 
   function hide() {
     if (!bubble || leaving) return;
@@ -205,6 +269,12 @@
           sendNotification({ title: msg.display, body: msg.secondary ?? "" });
         }
         show(msg);
+        break;
+      case "reading":
+        addChunk(msg.text, msg.duration_s);
+        break;
+      case "panel_note":
+        setNote(msg.text, msg.undo_action);
         break;
       case "bubble_hide":
         hide();
@@ -289,6 +359,25 @@
             actionLabel={primary?.label ?? null}
             onaction={() => primary && choose(primary.id)}
           />
+        {:else if bubble.kind === "long"}
+          <div
+            class="long-wrap"
+            role="presentation"
+            onpointerenter={() => onPointer(true)}
+            onpointerleave={() => onPointer(false)}
+            onwheel={() => (lastActivity = performance.now())}
+          >
+            <LongPanel
+              title={bubble.display}
+              meta={bubble.secondary}
+              text={bubble.text}
+              sections={bubble.sections}
+              chunks={bubble.chunks}
+              note={bubble.note}
+              undoAction={bubble.undoAction}
+              onaction={longAction}
+            />
+          </div>
         {:else}
           <ResponsePanel display={bubble.display} secondary={bubble.secondary} />
         {/if}

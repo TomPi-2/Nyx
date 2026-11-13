@@ -47,6 +47,19 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
 6. **Reglas nuevas (6.25):** frases como «necesito la calculadora», «pon el Chrome en grande»,
    «la pasta tarda 12 minutos, avísame», «me deslumbra la pantalla», «vivo en Sevilla»…
    (todas en `docs/benchmarks/bateria-6.25-*.md`).
+7. **Respuestas largas y notas (6.28)** (reinicia el núcleo y la interfaz: protocolo v17):
+   - Por voz: «Nyx, explícame por qué el cielo es azul». El panel se escribe letra a letra al
+     ritmo de la voz, sin borrar; sube con la rueda mientras habla («Seguir leyendo»). Corta a
+     Nyx a mitad («Nyx, ciérralo»): la voz para y el panel se cierra (no cierra ninguna app).
+   - «Nyx, busca una receta de tortilla de patatas»: panel con Ingredientes y Pasos, la voz
+     dice un resumen y «¿Te la guardo en una nota?». Di «sí»: se abre el Bloc de notas con la
+     receta (en `Documentos\Notas de Nyx`). Prueba «Deshacer» (a la papelera; vuelven los
+     botones), «cópiala», «cierra el panel».
+   - Escrito (Win+Alt+N): una pregunta larga sale de golpe en el panel largo.
+   - «Apunta en una nota que mañana tengo dentista»: nota nueva al momento.
+   - Lo que no he podido probar sin ti: la interfaz real (cristal, tamaño de la ventana, la
+     rueda y el puntero encima), la voz real sincronizada y el tiempo de la estructura con el
+     7B (2–4 s más tras buscar una receta).
 
 ## Hecho en esta tanda
 

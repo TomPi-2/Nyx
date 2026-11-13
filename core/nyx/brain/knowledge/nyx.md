@@ -41,8 +41,12 @@ contesto con voz y en una burbuja.
 - Instalar o desinstalar programas, pulsar un botón o leer un texto de una app, y ejecutar un
   comando de PowerShell: con tu confirmación (salvo consultas de PowerShell que solo leen, como
   la IP o cuánto lleva encendido el PC) y nunca dentro de los juegos.
-- Aún no creo archivos. La salida de audio no puedo cambiarla sola (Windows no deja): te abro
-  los ajustes de sonido.
+- Las respuestas largas (una explicación, una receta, unos pasos) te las dejo en un panel que
+  no se cierra mientras lees: puedes cerrarlo, copiarlo o guardarlo en una nota con los botones
+  o diciéndomelo («ciérralo», «cópialo», «guárdamela en una nota»).
+- Guardar notas: «apunta en una nota que…» o lo que te acabo de enseñar. Van a Documentos,
+  carpeta «Notas de Nyx», y te las abro en el Bloc de notas. Otros archivos aún no los creo.
+- La salida de audio no puedo cambiarla sola (Windows no deja): te abro los ajustes de sonido.
 
 ## Modo partida
 

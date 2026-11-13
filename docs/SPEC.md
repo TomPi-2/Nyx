@@ -206,6 +206,7 @@ Unas 35 herramientas genéricas cubren miles de peticiones al combinarse. Cada u
 | `open_url` | Abre una web en el navegador por defecto | Verde | `os.startfile`; diccionario de sitios (YouTube, Claude…) |
 | `web_search` | Busca en internet y resume, o abre la búsqueda en el navegador | Verde | DuckDuckGo y las páginas que da, o Wikipedia (con las fuentes); `web.search_url`; sin herramientas en la vuelta siguiente |
 | `create_folder` | Crea una carpeta | Verde | pathlib |
+| `save_note` | Guarda un texto en una nota nueva y la abre en el Bloc de notas (botón y voz del panel largo, «apunta en una nota que…») | Amarillo (Deshacer: a la papelera) | `Documentos\Notas de Nyx\<título> (dd-mm-aaaa).txt`; nunca sobrescribe («(2)», creación exclusiva); diferida en partida |
 | `list_files` | Lista con filtros (últimos N, tipo, fecha, tamaño) | Verde | pathlib + Everything |
 | `find_files` | Busca archivos en todo el disco | Verde | Everything |
 | `move_files` / `copy_files` | Mueve o copia | Amarillo | shutil; deshacer disponible 30 s |
@@ -411,6 +412,7 @@ Nyx no tiene ventana principal: cada elemento (la isla, una burbuja, un aviso) e
 | --- | --- | --- |
 | Indicador | Escuchando, pensando, hablando | Ver sección 12 |
 | Burbuja de respuesta | Respuestas informativas | Dato clave grande + línea secundaria; desaparece sola |
+| Panel largo (6.28) | Explicaciones largas, recetas, pasos y listas | Título centrado y fuentes; el texto se escribe letra a letra al ritmo de la voz sin borrar nada (escrito: de golpe); receta, pasos o lista: secciones con viñetas o numeradas, de golpe. Botones Guardar en una nota, Copiar y Cerrar; tras guardar, aviso y Deshacer |
 | Burbuja de confirmación | Acciones de riesgo rojo | Resumen + Confirmar / Cancelar |
 | Burbuja de deshacer | Acciones amarillas | Texto corto + "Deshacer", 30 s |
 | Campo de texto | Atajo de escritura | Pastilla de cristal con cursor y botón de enviar. Si el texto no cabe, crece hacia abajo (ancho fijo, hasta 6 líneas; después se desplaza por dentro). Enter envía, Mayús+Enter salta de línea, Esc cierra |
@@ -432,6 +434,7 @@ Nyx no tiene ventana principal: cada elemento (la isla, una burbuja, un aviso) e
 **Tiempos y lectura:**
 
 - Duración de una burbuja: unos 300 ms por palabra, mínimo 4 s y máximo 15 s; el puntero encima la pausa.
+- **Panel largo (6.28):** no se va solo mientras se lee: Cerrar, otra respuesta o 2 minutos sin tocarlo (el puntero encima para el tiempo). Crece hasta 480 px y después sigue la lectura, salvo que el usuario suba con la rueda (entonces «Seguir leyendo»). Cortar a Nyx mientras lee para la voz pero deja el panel. Con el panel abierto, la voz lo maneja: «ciérralo», «oculta el panel», «cópialo», «copia la receta», «guárdamela en una nota»…; tras una receta, pasos o lista, Nyx ofrece guardarla por voz y un «sí» suelto vale (en las explicaciones, solo el botón). Esas frases solo son para el panel mientras está abierto («ciérralo» sin panel sigue siendo cerrar una app).
 - Clic en la burbuja copia el texto destacado; arrastrarla la cierra.
 - Máximo una burbuja de respuesta a la vez; las nuevas reemplazan a las anteriores con transición.
 

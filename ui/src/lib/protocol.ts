@@ -2,7 +2,7 @@
 
 import type { FontId, NyxColorId, PanelTintId } from "$theme/palette";
 
-export const PROTOCOL_VERSION = 16;
+export const PROTOCOL_VERSION = 17;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -30,8 +30,15 @@ export interface GlassInfo {
   show_in_captures: boolean;
 }
 
-/** v7: qué panel muestra la burbuja (SPEC sección 11). */
-export type BubbleKind = "response" | "confirm" | "undo" | "alert";
+/** v7: qué panel muestra la burbuja (SPEC sección 11). v17: «long», la respuesta larga. */
+export type BubbleKind = "response" | "confirm" | "undo" | "alert" | "long";
+
+/** v17: una parte de una respuesta estructurada («Ingredientes», «Pasos»). */
+export interface LongSection {
+  title: string;
+  items: string[];
+  ordered: boolean;
+}
 
 /** v8: herramienta para la lista de políticas en partida (Ajustes → Modo partida). */
 export interface ToolInfo {
@@ -200,7 +207,15 @@ export type ServerMessage =
       kind: BubbleKind;
       /** v7: cuánto dura (cuenta atrás de confirmar y deshacer), en segundos. */
       expires_s: number | null;
+      /** v17 (panel largo): el texto entero, las secciones o, con `reading`, nada aún. */
+      text?: string;
+      sections?: LongSection[];
+      reading?: boolean;
     }
+  /** v17: panel largo, una frase que empieza a sonar; se escribe en `duration_s` (0: ya). */
+  | { type: "reading"; text: string; duration_s: number }
+  /** v17: aviso al pie del panel largo; con `undo_action`, botón Deshacer con ese id. */
+  | { type: "panel_note"; text: string; undo_action: string | null }
   | { type: "bubble_hide" }
   /** v5: partida en marcha; con «solo voz» o «desactivado» la isla no aparece sobre el juego. */
   | {

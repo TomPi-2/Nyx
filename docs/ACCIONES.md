@@ -76,6 +76,7 @@ Los atajos siguen el idioma de Windows (en español, «nuevo» es Ctrl+U y «gua
 | Acción | Ejemplos | Estado | Riesgo |
 | --- | --- | --- | --- |
 | Crear carpeta | «crea la carpeta Fondos en Imágenes» | Hecho | Amarillo |
+| Guardar una nota | «apunta en una nota que mañana tengo dentista», «guárdamela en una nota» (con el panel largo abierto) | Hecho (`save_note`, 6.28: `Documentos\Notas de Nyx`, nunca sobrescribe) | Amarillo |
 | Listar lo que hay | «¿qué hay en Descargas?» | Hecho | Verde |
 | Buscar archivos (nombre, tipo, extensión) | «busca la factura de la luz», «los pdf de Documentos» | Hecho | Verde |
 | Mover, copiar, renombrar | «mueve los 3 últimos archivos de Descargas a Documentos» | Hecho | Amarillo |
@@ -113,6 +114,7 @@ Los atajos siguen el idioma de Windows (en español, «nuevo» es Ctrl+U y «gua
 | Cálculos y conversiones | «¿cuánto es 17 por 23?», «pasa 30 dólares a euros» (cambio: internet) | Hecho (cálculo) / F6 (divisas) |
 | El tiempo | «¿va a llover mañana?» (Open-Meteo, ciudad fija en ajustes) | Hecho |
 | Buscar en internet | «busca en internet quién inventó la imprenta», «busca cómo poner la barra de tareas a la izquierda» (en segundo plano: DuckDuckGo y las páginas que da, o Wikipedia, con las fuentes; o abrirlo en el navegador) | Hecho (`web_search`) |
+| Respuestas largas | «explícame por qué el cielo es azul», «busca una receta de lentejas» (panel largo: se escribe al ritmo de la voz; recetas, pasos y listas con formato y oferta de guardarlas) y, con el panel abierto, «ciérralo», «cópialo», «guárdamela en una nota» | Hecho (6.28) |
 | Actualidad | «¿quién ganó ayer el Madrid?» (noticias y resultados) | Pendiente de elegir proveedor (6.05) |
 | Definiciones y sinónimos | «otra palabra para bonito» | Hecho (LLM) |
 | Sobre el PC | «¿cuánta RAM uso?», «¿qué consume más CPU?», «temperatura de la gráfica» | Hecho (batería, CPU, RAM, disco, procesos) |
