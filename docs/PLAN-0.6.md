@@ -637,10 +637,12 @@ tildes) con una prueba que lo comprueba. El LLM sigue redactando la conversació
 Para lo que queda al modelo tras la 6.25: que actúe en vez de contestar y que escriba la
 cabecera de los paneles bien (6.23). Misma memoria y velocidad que ahora.
 
-- **Entrenamiento en el portátil (RTX 3070, 8 GB) con CUDA, solo como herramienta de
-  desarrollo** (decisión del 2026-11-13): Nyx sigue sin CUDA; el resultado se exporta a GGUF y
-  se carga en Ollama (Vulkan) como ahora. QLoRA de 4 bits; librerías con licencia comprobada
-  antes de usarlas. Código en `core/training/llm/`, fuera de lo que se distribuye.
+- **Entrenamiento en el PC (RX 7700 XT, 12 GB) con ROCm** (cambio del 2026-11-13: Unsloth
+  da la serie RX 7000 por soportada en Windows, WSL y Linux). Orden: Windows nativo → WSL2 →
+  como último recurso el portátil (RTX 3070) con CUDA, solo como herramienta de desarrollo.
+  Nyx sigue sin ROCm ni CUDA: el resultado se exporta a GGUF y se carga en Ollama (Vulkan) como
+  ahora. QLoRA de 4 bits; librerías con licencia comprobada antes de usarlas. Código en
+  `core/training/llm/`, fuera de lo que se distribuye.
 - **Datos:** unos miles de ejemplos «frase → llamadas o respuesta con cabecera», de la batería,
   del router y generados. **También con herramientas inventadas y variadas**, para que aprenda
   a usar herramientas en general y no empeore con las de las extensiones (0.7).
