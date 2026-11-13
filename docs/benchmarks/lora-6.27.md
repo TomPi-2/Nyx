@@ -3,7 +3,7 @@
 ## Cómo se mide
 
 Ollama 0.40 no importa un Qwen2 ajustado (ver `core/training/llm/README.md`) y la conversión a
-GGUF con llama.cpp queda pendiente de permiso. Para decidir si el LoRA merece la pena,
+GGUF con llama.cpp (permiso del 2026-11-13) se probó después: ver «En Ollama», al final. Para decidir si el LoRA merece la pena,
 `core/training/llm/serve.py` da la API de Ollama con el modelo de 4 bits de Unsloth y responde
 como `base` (sin LoRA) o `lora`. La batería (`scripts/battery.py --host … --modelo …`) es la de
 siempre: router, grupos, reencaminado, juez, 3 pasadas por frase y semilla 1. **Solo vale la
@@ -52,7 +52,7 @@ general; ninguna de «eso no lo sé hacer» ni de cortesía).
 
 Informes: `lora-6.27-r1-{reserva,bateria}-{base,lora}.md`.
 
-## Ronda 2 (en curso) · 970 ejemplos, mismos ajustes
+## Ronda 2 (2026-11-13) · 970 ejemplos, mismos ajustes, 235 min
 
 Cambios en los datos (`make_dataset.py juntar --maximo 1000`):
 
@@ -66,5 +66,48 @@ Cambios en los datos (`make_dataset.py juntar --maximo 1000`):
   `now_playing`).
 - 360 de 1.000 ejemplos en texto (antes, 194).
 
+Pérdida 0,427 (validación **0,126**, la mitad que la ronda 1). Pico 7,4 GB.
+
 Aparte, «gracias» suelto ya no llega al modelo: lo contesta Nyx con variantes por tono
 (`brain/answers.py`). En la batería sigue llegando al modelo (mide al modelo, no a Nyx).
+
+## En Ollama (2026-11-13) · los tres modelos, como los usaría Nyx
+
+Cada ronda unida al modelo base, convertida a GGUF y cuantizada a Q4_K_M con llama.cpp (4,7 GB,
+como `qwen2.5:7b`), y creada en Ollama con la misma plantilla, sistema y parámetros, comprobado
+byte a byte (`training/llm/export.py`). Batería de siempre: 3 pasadas, semilla 1. La batería ya
+tiene 409 frases (las 9 nuevas de la 6.28).
+
+| Modelo | Reserva (80) | Batería (409) | Actúa sin deber | No actúa | Llamada rota |
+| --- | --- | --- | --- | --- | --- |
+| `qwen2.5:7b` | 62 (78 %) | 377 (92 %) | 0 | 34 | 0 |
+| `nyx-r1:7b` | 70 (88 %) | 379 (93 %) | **11** | 1 | 0 |
+| `nyx-r2:7b` | **70 (88 %)** | **391 (96 %)** | **0** | 10 | 0 |
+
+(Actúa sin deber y no actúa: suma de reserva y batería. Las frases del router, 292, aciertan
+todas con los tres.)
+
+- **Ronda 1:** en Ollama sigue actuando sin deber («pídeme una pizza» → pausa la música, «¿qué
+  hora es?» → `now_playing`, «manda un correo…» → escribe uno inventado). Rompe 17 frases.
+  En Ollama ninguna llamada sale rota (con `serve.py`, `now_playing` sí): seguramente era cosa de cómo `serve.py` genera y corta, no del modelo. **No se adopta.**
+- **Ronda 2:** arregla 30 frases (19 de la batería, 11 de la reserva) y **no actúa nunca sin
+  deber**. Rompe 8, ninguna peligrosa:
+  - reserva: «ponme el Discord, porfa» → `focus_window` (esperaba `open_app`); «pásame a la
+    ventana del Chrome» → `window_layout`; «mueve las fotos del escritorio a Imágenes» →
+    llamada incompleta (Nyx la reintenta);
+  - batería: «a las 5 de la tarde tengo médico, avísame» → aviso a las 16:30; «está muy alto el
+    sonido» → pregunta de qué app; y tres llamadas mal formadas que Nyx reintenta (`move_files`,
+    `set_volume`, `app_action`).
+- Los fallos de los tres siguen siendo sobre todo «no actúa» en lo que Nyx no sabe hacer, y
+  respuestas que niegan cosas que sí hace («¿guardas lo que te digo?» → «Aún no sé guardar
+  archivos»: no conoce `save_note` porque no estaba al entrenar).
+- **Latencia:** primer token con mediana de 470 ms con la ronda 2 frente a 1.310 ms con
+  `qwen2.5:7b`. No lo tomo como medida: la del modelo base fue la primera tras la conversión
+  (carga en frío y el procesador aún ocupado). Hay que repetirla.
+
+**Veredicto:** la ronda 2 es la primera que mejora sin actuar sin deber, pero **la regla del
+plan (sin fallos nuevos ni más coste) no se cumple del todo**: 8 fallos nuevos leves y sin medir
+en partida (`game_bench.py`; mismo tamaño y cuantización, así que no debería cambiar). Decide
+el usuario (`docs/REVISAR.md`).
+
+Informes: `lora-6.27-ollama-{base,r1,r2}-{reserva,bateria}.md`.
