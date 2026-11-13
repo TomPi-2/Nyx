@@ -37,6 +37,24 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
      revocación (LO 1/1982 art. 2.3) y definir «ingresos brutos».
    - Créditos en la app (Kyutai, OpenSLR, Open-Meteo, OpenStreetMap…): tarea para la 0.9.
 
+6. **Contrato de voz** (2026-11-13): en Word, fuera del repositorio (lleva datos personales), en
+   `Documentos\Tepnyx\Legal\`: `Contrato-cesion-voz-Nyx.docx` (listo para rellenar y firmar)
+   y `Notas-revision-contrato-voz.docx` (qué se decidió, qué se corrigió y qué mirar con el
+   abogado). Las 7 casillas que marcaste, aplicadas como proponía. Lo que decidí yo y puedes
+   cambiar:
+   - **Tope de la indemnización por revocación: 500 €** (o lo cobrado por el Cedente, si es
+     más; nunca más de lo gastado de verdad). La cifra la puse yo.
+   - **Ingresos mixtos de Tepnyx** (un patrocinio de toda la marca, vender varias apps juntas):
+     a partes iguales entre los productos incluidos, salvo acuerdo. Hacía falta porque Tepnyx
+     también es la marca de Decider: tal como estaba, sus ingresos contaban para el 10 %.
+   - **Directos y vídeos**: la licencia de la voz ahora deja que se oiga en grabaciones y
+     directos usando Nyx con normalidad (antes lo prohibía, y choca con «Mostrar Nyx en
+     capturas y directos»).
+   - **Logo**: no había ningún PNG de la bola en negro; lo saqué del blanco sin fondo
+     (`Legal\tepnyx-mark-black.png`, la misma forma en negro puro).
+   - Faltan: la ciudad de los juzgados y los datos de ambos. El documento de Claude del
+     contrato se queda en la versión anterior: la buena es la del Word.
+
 ## Qué probar
 
 1. **Color de Nyx (6.23):** Ajustes → Apariencia → un color que no sea blanco. Todo el cuadrado
@@ -64,6 +82,13 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
    - Lo que no he podido probar sin ti: la interfaz real (cristal, tamaño de la ventana, la
      rueda y el puntero encima), la voz real sincronizada y el tiempo de la estructura con el
      7B (2–4 s más tras buscar una receta).
+
+8. **Revisión de cierre (6.19)** (reinicia el núcleo):
+   - Con una receta o explicación en pantalla y música sonando, «Nyx, pásala»: pasa la canción
+     y el panel sigue. «Pásala a una nota» sí la guarda.
+   - «¿Qué IP tengo?» sigue sin preguntar; algo como «dime la carpeta de mi usuario con
+     PowerShell» (usa `$env:USERPROFILE`) ahora pide confirmación.
+   - Buscar en internet funciona igual (no debería notarse nada).
 
 ## Hecho en esta tanda
 
