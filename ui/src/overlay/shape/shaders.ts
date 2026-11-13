@@ -19,7 +19,6 @@ uniform float uAudio;      // nivel de voz (0-1)
 uniform float uTime;
 uniform vec2 uSquash;      // estirar/aplastar al hablar
 uniform vec3 uColor;
-uniform float uShade;      // volumen sutil (0-1)
 
 // Ruido simplex 3D (Ashima Arts, MIT)
 vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
@@ -76,13 +75,9 @@ void main(){
   float d = field(p);
   float alpha = clamp(0.5 - d, 0.0, 1.0);
   if (alpha <= 0.0) { gl_FragColor = vec4(0.0); return; }
-  // Volumen muy sutil: sigue siendo blanco y opaco, pero se lee como un sólido líquido.
-  float e = 1.5;
-  vec2 g = vec2(field(p+vec2(e,0.0))-field(p-vec2(e,0.0)), field(p+vec2(0.0,e))-field(p-vec2(0.0,e)));
-  vec3 nrm = normalize(vec3(-g, 2.2*e));
-  float rim = 1.0 - smoothstep(0.0, max(uBig.z,1.0)*0.22, -d);
-  float light = dot(nrm, normalize(vec3(-0.45, -0.6, 0.65)));
-  vec3 col = uColor * (1.0 - uShade*(0.07*rim - 0.035*light));
-  gl_FragColor = vec4(col*alpha, alpha);
+  // Color plano: todo el cuadrado exactamente del color elegido (6.23). El sombreado de antes
+  // (borde un 7 % más oscuro y una luz según la pendiente) partía la forma en cuatro triángulos
+  // por las diagonales, que con colores se notaban; y calculaba la forma 5 veces por píxel.
+  gl_FragColor = vec4(uColor*alpha, alpha);
 }
 `;

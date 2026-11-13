@@ -48,7 +48,6 @@ const UNIFORMS = [
   "uTime",
   "uSquash",
   "uColor",
-  "uShade",
 ] as const;
 
 /** Muelle crítico-amortiguado sencillo: el valor va hacia su objetivo con algo de rebote. */
@@ -417,7 +416,6 @@ export class NyxShape {
     const g = this.gray;
     const [cr, cg, cb] = this.color;
     gl.uniform3f(u.uColor, cr * g, cg * g, cb * g);
-    gl.uniform1f(u.uShade, 1);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
 }
