@@ -25,6 +25,13 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
    (Brave Search, Bing… con plan gratuito); (b) el buscador del navegador es **Google** por
    defecto (`web.search_url`): dime si prefieres otro (DuckDuckGo, Bing…).
 
+4. **6.07 (aprender recetas), sin empezar.** Necesita dos cosas que no puedo decidir bien solo:
+   (a) un buscador de webs de verdad para los «cómo se hace» (Wikipedia no los tiene: va con
+   la decisión 3a); y (b) cambiar el prompt de sistema para que el modelo ofrezca «¿lo busco?»,
+   que conviene hacer **después** de decidir si el LoRA se queda (se entrena con el prompt
+   actual y cambiarlo ahora lo desajustaría). Alternativa sin internet: que el modelo proponga
+   la receta con lo que ya sabe (pasos con las herramientas que hay, cada uno confirmado).
+
 ## Qué probar
 
 1. **Color de Nyx (6.23):** Ajustes → Apariencia → un color que no sea blanco. Todo el cuadrado
