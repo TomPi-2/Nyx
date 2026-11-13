@@ -1,6 +1,6 @@
 # Plan de la versión 0.7 — Extensiones
 
-> **BORRADOR** (2026-11-13, Claude), pendiente del visto bueno del usuario. Fuente:
+> **Aprobado por el usuario el 2026-11-13.** Se empieza al cerrar la 0.6. Fuente:
 > [HOJA-DE-RUTA.md](HOJA-DE-RUTA.md) §2 (0.7), §4 (plataforma de extensiones) y §5 (modos).
 > Funciona como [PLAN-0.6.md](PLAN-0.6.md): una tarea por sesión, sus comprobaciones (§0.3 de
 > ese plan, que siguen valiendo), un commit y su fila en el Registro. Si algo choca con la

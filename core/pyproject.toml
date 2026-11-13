@@ -2,6 +2,7 @@
 name = "nyx"
 version = "0.0.0"
 description = "Núcleo de Nyx: asistente de voz local para Windows 11"
+license = "GPL-3.0-only"
 requires-python = ">=3.12,<3.13"
 # Las dependencias de cada fase se añaden al aprobar su plan (ver CLAUDE.md).
 dependencies = [

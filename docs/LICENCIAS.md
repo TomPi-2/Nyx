@@ -7,7 +7,7 @@ cada pieza, comprobado una a una. Lo que necesita una decisión está en **Pendi
 ## Resumen
 
 - **Código de Nyx:** GPL-3.0 (`LICENSE`). `ui/package.json` y `ui/src-tauri/Cargo.toml` dicen
-  `GPL-3.0-only`; `core/pyproject.toml` no lo dice (pendiente: «only» u «or-later»).
+  `GPL-3.0-only`, y `core/pyproject.toml` también desde el 2026-11-13 (decisión del usuario).
 - **Todas las dependencias que se distribuyen son compatibles con GPL-3.0.** Ninguna es de
   pago ni prohíbe distribuir.
 - **Hay que citar autores** (CC BY, ODbL, OFL): falta una pantalla de créditos en Ajustes →
@@ -55,7 +55,7 @@ Apache-2.0 y MPL-2.0 son compatibles con GPL-3.0 (en el sentido de distribuirlas
 | whisper-server (whisper.cpp) | Voz a texto | MIT | — |
 | Silero VAD 5.1.2 | Detección de voz | MIT | — |
 | openWakeWord: melspectrogram y embedding_model | Rasgos para «Nyx» | Apache-2.0 (Google speech_embedding) | Los modelos de palabras de openWakeWord (CC BY-NC-SA) **no** se usan |
-| `nyx-v1.onnx` (propio, en el repositorio) | Activación «Nyx» | Ver abajo | Atribuir los datos de entrenamiento |
+| `nyx-v1.onnx` (propio, en el repositorio) | Activación «Nyx» | **CC BY-SA 4.0** (`core/nyx/wake/data/LICENSE-nyx-v1.md`) | Atribuir los datos de entrenamiento (en ese archivo) |
 | Vosk small es 0.42 | Palabra personalizada | Apache-2.0 | — |
 | Pocket TTS (Kyutai) | Voz | Código MIT; **pesos CC BY 4.0** | **Citar a Kyutai** en la app y la documentación |
 | Voz «lola» (Pocket TTS) | Voz predeterminada | Clip de Common Voice (CC0) | — |
@@ -131,12 +131,15 @@ Puntos para quien revise el contrato (no son asesoramiento legal):
 
 ## Pendiente
 
-1. **GPL-3.0-only o -or-later** (ahora «only» en la interfaz; el núcleo no lo declara).
+1. ~~GPL-3.0-only o -or-later~~ **«only»** en todo (2026-11-13; con el CLA, Tepnyx puede
+   relicenciar si hiciera falta).
 2. **Correo en el historial:** dejarlo o reescribir el historial antes de publicar.
 3. **Créditos en la app** (Ayuda → Licencias) y archivo de avisos con el instalador (0.9):
    Kyutai, OpenSLR/Google, Piper (sharvard, libritts, daniela), Open-Meteo, OpenStreetMap,
    Qwen y las fuentes OFL.
-4. **Licencia de `nyx-v1.onnx`:** CC BY-SA 4.0 con las atribuciones (recomendado).
+4. ~~Licencia de `nyx-v1.onnx`~~ **Hecho:** CC BY-SA 4.0 con las atribuciones
+   (`core/nyx/wake/data/LICENSE-nyx-v1.md`, también para `nyx-v1.pt`).
 5. **DuckDuckGo** antes de la beta.
-6. **Contrato de la voz** con los tres puntos de arriba; la voz, fuera del repositorio.
-7. CLA, `SECURITY.md` y `CONTRIBUTING.md`: borradores en la raíz para que los revises.
+6. ~~Contrato de la voz~~ **Hecho** (en Word, fuera del repositorio; lo revisa un abogado).
+7. CLA, `SECURITY.md` y `CONTRIBUTING.md`: **aceptados por el usuario** (2026-11-13). El CLA
+   conviene que lo mire también el abogado antes de aceptar contribuciones de fuera.

@@ -35,53 +35,35 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
 
 4. ~~6.07 sin «¿Lo busco?»~~ **Confirmado** (2026-11-13): lo que queda pasa a la 0.7.
 
-5. **Publicar el repositorio** (auditoría completa en `docs/LICENCIAS.md`; todo compatible):
-   - **GPL-3.0-only o -or-later.** La interfaz dice «only»; el núcleo no lo declara.
-   - **Tu correo en el historial** (170 commits): dejarlo, o reescribir el historial antes de
-     publicar para usar el correo `noreply` de GitHub (cambia todos los commits).
-   - **Revisar los borradores** `CLA.md` (con alguien con criterio legal), `SECURITY.md`
-     (avisos por el sistema privado de GitHub, sin correo) y `CONTRIBUTING.md`.
-   - **`nyx-v1.onnx`** bajo CC BY-SA 4.0 por sus datos de entrenamiento (recomendado).
-   - **Voz contratada:** fuera del repositorio, descargable aparte con su licencia. Para el
-     contrato: autorizar el entrenamiento del modelo de voz dentro del proyecto, regular la
-     revocación (LO 1/1982 art. 2.3) y definir «ingresos brutos».
-   - Créditos en la app (Kyutai, OpenSLR, Open-Meteo, OpenStreetMap…): tarea para la 0.9.
+5. ~~Publicar el repositorio~~ **Adelante** (2026-11-13). Hecho: «GPL-3.0-only» en todo (el
+   núcleo ya lo declara), `nyx-v1.onnx` y `nyx-v1.pt` bajo CC BY-SA 4.0 con sus atribuciones
+   (`core/nyx/wake/data/LICENSE-nyx-v1.md`), borradores de CLA, SECURITY y CONTRIBUTING
+   aceptados (el CLA, mejor que lo mire también el abogado). Créditos en la app: 0.9.
+   **Falta que confirmes dos cosas, porque no tienen vuelta atrás:**
+   - **Tu correo en el historial** (y el usuario de Windows en 5 líneas antiguas): no te di
+     recomendación. Reescribir el historial lo oculta, pero cambia el identificador de todos
+     los commits (los del Registro de los planes dejarían de valer y habría que rehacerlos) y
+     obliga a forzar la subida a GitHub. Mi recomendación ahora: **reescribirlo**, una sola
+     vez y justo antes de publicar, porque después ya no se puede quitar; y desde hoy, el
+     correo `noreply` de GitHub en los commits nuevos. ¿Lo hago?
+   - **Hacer público el repositorio** (y SignPath): lo hago cuando me digas «publícalo»,
+     después de lo del correo.
 
-6. **Contrato de voz** (2026-11-13): en Word, fuera del repositorio (lleva datos personales), en
-   `Documentos\Tepnyx\Legal\`: `Contrato-cesion-voz-Nyx.docx` (listo para rellenar y firmar)
-   y `Notas-revision-contrato-voz.docx` (qué se decidió, qué se corrigió y qué mirar con el
-   abogado). Las 7 casillas que marcaste, aplicadas como proponía. Lo que decidí yo y puedes
-   cambiar:
-   - **Tope de la indemnización por revocación: 500 €** (o lo cobrado por el Cedente, si es
-     más; nunca más de lo gastado de verdad). La cifra la puse yo.
-   - **Ingresos mixtos de Tepnyx** (un patrocinio de toda la marca, vender varias apps juntas):
-     a partes iguales entre los productos incluidos, salvo acuerdo. Hacía falta porque Tepnyx
-     también es la marca de Decider: tal como estaba, sus ingresos contaban para el 10 %.
-   - **Directos y vídeos**: la licencia de la voz ahora deja que se oiga en grabaciones y
-     directos usando Nyx con normalidad (antes lo prohibía, y choca con «Mostrar Nyx en
-     capturas y directos»).
-   - **Logo**: no había ningún PNG de la bola en negro; lo saqué del blanco sin fondo
-     (`Legal\tepnyx-mark-black.png`, la misma forma en negro puro).
-   - Faltan: la ciudad de los juzgados y los datos de ambos. El documento de Claude del
-     contrato se queda en la versión anterior: la buena es la del Word.
+6. ~~Contrato de voz~~ **Hecho** (2026-11-13): lo revisa un abogado. Abierto: la ciudad
+   (te propuse Valencia como lugar de celebración y los juzgados del domicilio de quien sea
+   demandado).
 
-7. **Plan de la 0.7 (borrador):** `docs/PLAN-0.7.md`, 17 tareas sacadas de la hoja de ruta
-   (§2, §4 y §5), con el mismo formato que el de la 0.6. No se empieza hasta que lo apruebes y
-   cierres la 0.6. Decisiones que trae marcadas: cómo se aíslan las extensiones (7.05, se
-   mide antes), dónde vive la clave de firma (7.08), luz nocturna y «no molestar» sin API
-   oficial (7.10) y si Spotify deja «poner algo concreto» sin cuenta de desarrollador (7.14).
+7. ~~Plan de la 0.7~~ **Aprobado** (2026-11-13): se empieza al cerrar la 0.6.
 
 ## Qué probar
 
-1. **Color de Nyx (6.23):** Ajustes → Apariencia → un color que no sea blanco. Todo el cuadrado
-   del mismo color, sin triángulos ni borde oscuro; el movimiento, igual que siempre.
+Probado y bien (2026-11-13): color de Nyx (6.23), ciudad automática (6.24) y falsas
+activaciones (6.22).
+
 2. **Paneles (6.23):** unas preguntas por voz y escritas. Mayúscula al principio, punto solo en
    las frases, la línea pequeña solo si aporta, y un «Sí» suelto cambiado por la frase.
 3. **Respuestas con variedad (6.26):** «¿cuánta batería me queda?», «¿qué suena?», «¿cuánto
    marca el crono?» varias veces y con cada tono (se aplica al reiniciar).
-4. **Ciudad automática (6.24):** con la ciudad vacía en Ajustes → General, «¿qué tiempo hace?».
-5. **Falsas activaciones (6.22):** si salta sola varias veces, que deje de hacerlo un rato; el
-   registro dice «Umbral de activación: 0.xx → 0.yy». Opción nueva en Ajustes → Activación.
 6. **Reglas nuevas (6.25):** frases como «necesito la calculadora», «pon el Chrome en grande»,
    «la pasta tarda 12 minutos, avísame», «me deslumbra la pantalla», «vivo en Sevilla»…
    (todas en `docs/benchmarks/bateria-6.25-*.md`).
