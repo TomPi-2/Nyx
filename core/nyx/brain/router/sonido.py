@@ -104,8 +104,14 @@ def _mute(m: re.Match[str], index: SystemIndex) -> Route | None:
     r")(?:\s+(?:de|en|del)\s+(?P<src>[a-z0-9 ]+))?$"
     r"|^sigue\s+sonando\s+(?:la\s+musica|la\s+cancion|el\s+video)(?:\s+en\s+(?P<src2>[a-z0-9 ]+?))?\s+para(?:\s+la)?$",
 )
-def _pause(m: re.Match[str], _: SystemIndex) -> Route:
+def _pause(m: re.Match[str], _: SystemIndex) -> Route | None:
     source = m.group("src") or m.group("app") or m.group("app2") or m.group("src2")
+    if m.group("src") and re.match(
+        r"[a-z]+(?:ar|er|ir)(?:me|te|se|lo|la|le|nos|os|los|las|les)?\b", m.group("src")
+    ):
+        # «para de cronometrar», «para de hablar»: dejar de hacer algo, no pausar una fuente
+        # que se llame así (6.25).
+        return None
     return _call("media_pause", "media_control", action="pause", source=source)
 
 
@@ -175,6 +181,21 @@ rule(
 )
 def _now_playing(_: re.Match[str], __: SystemIndex) -> Route:
     return _call("now_playing", "now_playing")
+
+
+@rule(
+    "now_playing_said",
+    # 6.25: «¿cómo se llama lo que estoy escuchando?», «¿de quién es este tema?», «¿qué grupo
+    # es este?». «¿De quién es este libro?» o «¿qué grupo me recomiendas?» no.
+    r"^como\s+se\s+llama\s+(?:lo\s+que\s+(?:estoy\s+escuchando|suena|esta\s+sonando)"
+    r"|esto\s+que\s+(?:suena|estoy\s+escuchando))$"
+    r"|^(?:de\s+quien|quien)\s+es\s+(?:este|esta|el|la)\s+(?:tema|cancion)(?:\s+que\s+suena)?$"
+    r"|^que\s+(?:grupo|artista|cantante|banda)\s+(?:es\s+(?:este|esta|esto)"
+    r"|(?:esta\s+sonando|suena|canta(?:\s+esto)?))$"
+    r"|^que\s+estoy\s+escuchando$",
+)
+def _now_playing_said(_: re.Match[str], __: SystemIndex) -> Route:
+    return _call("now_playing_said", "now_playing")
 
 
 _AUDIO_DEV = r"(?:auriculares|cascos|altavoces|bluetooth|hdmi|barra\s+de\s+sonido|monitor|tele(?:vision)?|tv|usb)"

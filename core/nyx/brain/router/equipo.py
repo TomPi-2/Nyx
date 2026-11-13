@@ -54,6 +54,36 @@ def _system_info(m: re.Match[str], __: SystemIndex) -> Route | None:
     return None
 
 
+_DEVICE = r"(?:el\s+|mi\s+)?(?:portatil|pc|ordenador|equipo)"
+_PROGRAM = r"(?:programa|proceso|aplicacion|app)"
+_EATS = r"(?:gastando|consumiendo|usando|chupando|comiendo)(?:se)?"
+
+
+@rule(
+    "system_state",
+    # 6.25: preguntas por el estado dichas de otra forma («¿tengo el portátil enchufado?»,
+    # «¿me queda sitio para instalar…?», «¿por qué va tan lento el PC?»).
+    rf"^(?P<battery>(?:tengo|esta)\s+{_DEVICE}\s+(?:enchufado|cargando|conectado)"
+    r"(?:\s+a\s+la\s+(?:corriente|luz))?"
+    r"|(?:me\s+)?queda\s+(?:mucha\s+|poca\s+|suficiente\s+)?bateria(?:\s+para\s+.+)?"
+    r"|(?:que\s+tal|como)\s+(?:voy|ando|estoy|vamos)\s+de\s+bateria)$"
+    r"|^(?P<ram>cuanta\s+(?:memoria|ram)\s+(?:me\s+)?queda(?:\s+libre)?)$"
+    r"|^(?P<disk>(?:me\s+)?(?:queda|hay|tengo)\s+(?:sitio|espacio)(?:\s+libre)?"
+    r"(?:\s+(?:en\s+(?:el\s+)?disco(?:\s+duro)?|para\s+.+))?"
+    r"|cuanto\s+(?:sitio|espacio)\s+(?:libre\s+)?(?:me\s+)?(?:queda|tengo|hay)(?:\s+libre)?)$"
+    rf"|^(?P<top>(?:que|cual\s+de\s+mis)\s+(?:{_PROGRAM}(?:s|es)?\s+)?(?:esta|va)\s+{_EATS}\s+"
+    r"(?:mas|tanta|tanto|toda\s+la)\s+(?:memoria|ram|cpu|procesador|recursos)"
+    rf"|{_DEVICE}\s+(?:va|esta)\s+(?:muy\s+)?(?:cargado|lento|lentisimo|saturado|a\s+tope)"
+    rf"|por\s+que\s+(?:va|esta)\s+(?:tan\s+)?(?:lento|cargado)\s+{_DEVICE}"
+    rf"|por\s+que\s+{_DEVICE}\s+va\s+tan\s+lento)$",
+)
+def _system_state(m: re.Match[str], __: SystemIndex) -> Route | None:
+    for kind in ("battery", "ram", "disk", "top"):
+        if m.group(kind):
+            return _call("system_state", "system_info", what=kind)
+    return None
+
+
 # --- brillo, energía, Wi-Fi y Bluetooth (6.11) ---
 
 _BRIGHTNESS_TAIL = (

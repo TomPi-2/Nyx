@@ -359,3 +359,13 @@
 {"frase": "aparta el Chrome", "tool": "window_layout", "args": {"action": "minimize", "name": "Chrome"}}
 {"frase": "manda esta ventana abajo", "tool": "window_layout", "args": {"action": "minimize"}}
 {"frase": "vuelve a poner el Spotify como estaba", "tool": "window_layout", "args": {"action": "restore", "name": "Spotify"}}
+{"frase": "¿está mi portátil enchufado a la corriente?", "tool": "system_info", "args": {"what": "battery"}}
+{"frase": "¿queda algo de batería?", "tool": "system_info", "args": {"what": "battery"}}
+{"frase": "¿qué está gastando tanta memoria?", "tool": "system_info", "args": {"what": "top"}}
+{"frase": "¿por qué va tan lento el ordenador?", "tool": "system_info"}
+{"frase": "¿qué artista es este?", "tool": "now_playing"}
+{"frase": "¿llevo paraguas hoy?", "tool": "get_weather"}
+{"frase": "¿hará calor el sábado?", "tool": "get_weather"}
+{"frase": "¿a qué hora suena mi alarma?", "tool": "list_alarms"}
+{"frase": "¿cuánto le queda al temporizador de la pasta?", "tool": "list_alarms"}
+{"frase": "para de cronometrar", "tool": "stopwatch", "args": {"action": "stop"}}

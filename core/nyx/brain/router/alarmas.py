@@ -180,6 +180,23 @@ def _alarms_list(_: re.Match[str], __: SystemIndex) -> Route:
     return _call("alarms_list", "list_alarms")
 
 
+_TELL_ME = r"(?:(?:me\s+)?(?:puedes|podrias)\s+decir(?:me)?\s+|dime\s+)?"
+
+
+@rule(
+    "alarms_state",
+    # 6.25: «¿a qué hora sonaba la alarma de mañana?», «¿cuánto falta para que suene el
+    # temporizador?», «¿tengo algo programado?» (antes el 7B contestaba sin mirar).
+    rf"^{_TELL_ME}a\s+que\s+hora\s+(?:sonaba|suena|sonara|era|es|tengo|tenia|puse)\s+"
+    r"(?:la|mi)\s+alarma(?:\s+(?:de|para)\s+(?:hoy|manana|esta\s+(?:tarde|noche)))?$"
+    rf"|^{_TELL_ME}cuanto\s+(?:le\s+)?(?:falta|queda)\s+(?:para\s+(?:que\s+suene\s+)?)?"
+    r"(?:el|la|mi|al|a\s+la)\s+(?:temporizador|alarma|recordatorio)(?:\s+de\s+[a-z ]+)?$"
+    r"|^tengo\s+algo\s+(?:programado|puesto)(?:\s+(?:para\s+)?(?:hoy|manana))?$",
+)
+def _alarms_state(_: re.Match[str], __: SystemIndex) -> Route:
+    return _call("alarms_state", "list_alarms")
+
+
 @rule(
     "alarms_cancel",
     r"^(?:cancela|quita|quitame|borra|elimina|anula)\s+(?:el|la|los|las|mi|mis)\s+"
@@ -208,4 +225,21 @@ def _stopwatch(m: re.Match[str], __: SystemIndex) -> Route | None:
     for action in ("start", "stop", "status"):
         if m.group(action):
             return _call("stopwatch", "stopwatch", action=action)
+    return None
+
+
+@rule(
+    "stopwatch_said",
+    # 6.25: «cronometra cuánto tardo», «empieza a contar el tiempo», «para de contar»,
+    # «¿cuánto marca el crono?». «Deja de contar chistes» no: solo «contar» a secas o el tiempo.
+    r"^(?P<start>cronometra(?:me)?(?:\s+(?:cuanto|lo\s+que)\s+.+)?"
+    r"|(?:empieza|ponte|comienza)\s+a\s+contar(?:\s+el\s+tiempo)?)$"
+    r"|^(?P<stop>(?:ya\s+(?:he\s+terminado|he\s+acabado|esta)\s+)?"
+    r"(?:para|deja|termina)\s+de\s+(?:contar(?:\s+el\s+tiempo)?|cronometrar))$"
+    rf"|^(?P<status>cuanto\s+(?:marca|lleva|va)\s+{_CRONO})$",
+)
+def _stopwatch_said(m: re.Match[str], __: SystemIndex) -> Route | None:
+    for action in ("start", "stop", "status"):
+        if m.group(action):
+            return _call("stopwatch_said", "stopwatch", action=action)
     return None
