@@ -8,8 +8,11 @@ from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 
+from rapidfuzz import fuzz
+
 from nyx.executor import ToolCall
 from nyx.index.aliases import normalize
+from nyx.index.model import Kind
 from nyx.index.service import Match, SystemIndex
 from nyx.stt.normalize import NUMBER_WORDS
 from nyx.winapi import windows
@@ -131,3 +134,19 @@ def _clean_dictated(raw: str) -> str:
     ):
         text = text[:-1].rstrip()
     return text.strip(" «»\"'")
+
+
+TYPO_RATIO = 85
+
+
+def _fix_typo(name: str | None, index: SystemIndex) -> str | None:
+    """«crome» (Whisper) → «Google Chrome»: solo si se parece mucho a una sola app y no es ya
+    uno de sus nombres; si no, el nombre tal cual (window_layout busca la ventana)."""
+    if not name:
+        return name
+    best = index.confident(index.resolve(name, {Kind.APP, Kind.GAME}))
+    # Solo parecido letra a letra («crome»/«chrome»), no por estar dentro de un nombre más
+    # largo: «navegador» no es «Opera GX navegador» (window_layout busca el predeterminado).
+    if best is None or best.alias == name or fuzz.ratio(name, best.alias) < TYPO_RATIO:
+        return name
+    return best.entry.name

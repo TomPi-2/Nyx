@@ -23,7 +23,8 @@ from nyx.tools.app_catalog import profile_for
 _APP_AT = r"(?:\s+(?:de|en|del)\s+(?P<app>[a-z0-9 ]+?))?"
 _APP_AFTER = r"(?:\s+(?:de|en|del|para)\s+(?P<app2>[a-z0-9 ]+?))?"
 _VOLUME_TAIL = (
-    rf"(?P<much0>\s+mucho)?(?:\s+un poco)?\s+(?:el\s+)?(?:volumen|sonido){_APP_AT}(?:\s+(?:a|al|hasta(?:\s+el)?)\s+{_NUM})?"
+    # «bolumen»: así lo oye Whisper a veces; «a un 30»: así lo escribe el 7B (6.25).
+    rf"(?P<much0>\s+mucho)?(?:\s+un poco)?\s+(?:el\s+)?(?:volumen|bolumen|sonido){_APP_AT}(?:\s+(?:a|al|hasta(?:\s+el)?)\s+(?:un\s+)?{_NUM})?"
     rf"{_APP_AFTER}(?P<much>\s+mucho)?(?:\s+un poco)?$"
 )
 
@@ -63,7 +64,7 @@ def _volume_down(m: re.Match[str], index: SystemIndex) -> Route | None:
 
 @rule(
     "volume_set",
-    rf"^(?:(?:pon|deja|ajusta|cambia)\s+(?:el\s+)?)?volumen\s+(?:a|al|en)?\s*{_NUM}(?:\s*%|\s+por ciento)?$",
+    rf"^(?:(?:pon|deja|ajusta|cambia)\s+(?:el\s+)?)?(?:volumen|bolumen)\s+(?:a|al|en)?\s*(?:un\s+)?{_NUM}(?:\s*%|\s+por ciento)?$",
 )
 def _volume_set(m: re.Match[str], _: SystemIndex) -> Route | None:
     level = parse_number(m.group("n"))
@@ -119,7 +120,8 @@ def _pause(m: re.Match[str], _: SystemIndex) -> Route | None:
     "media_play",
     r"^(?:(?:reanuda|reanudar|continua|play|dale al play|dale a play|reproduce|quita la pausa)(?:\s+(?:la\s+|el\s+|a la\s+|al\s+)?(?:musica|cancion|video))?"
     r"|(?:pon|ponme|quiero)\s+(?:algo de\s+|un poco de\s+|la\s+)?musica)"
-    r"(?:\s+(?:de|en|del)\s+(?P<src>[a-z0-9 ]+))?$",
+    # «pon la música en aleatorio» es el modo aleatorio, no una fuente (6.25).
+    r"(?:\s+(?:de|en|del)\s+(?P<src>(?!(?:modo\s+)?(?:aleatorio|bucle|repeticion))[a-z0-9 ]+))?$",
 )
 def _play(m: re.Match[str], _: SystemIndex) -> Route:
     # «Pon música» (sin decir dónde) es poner música, no reanudar lo último que sonó.
@@ -147,10 +149,55 @@ def _previous(m: re.Match[str], _: SystemIndex) -> Route:
     return _call("media_previous", "media_control", action="previous")
 
 
+# --- sonido dicho de otra forma (6.25) ---
+
+_SONG = r"(?:cancion|tema|pista|video)"
+
+
+@rule(
+    "media_said",
+    rf"^(?P<prev>(?:vuelve\s+a\s+poner|pon(?:me)?\s+otra\s+vez|repite)\s+(?:la|el)\s+(?:{_SONG}\s+)?"
+    r"(?:de\s+antes|anterior))$"
+    rf"|^(?P<next>(?:salta|saltate|pasa(?:te)?)\s+(?:este|esta)\s+{_SONG}"
+    r"(?:\s+(?:de|en)\s+(?:youtube|spotify))?)$",
+)
+def _media_said(m: re.Match[str], _: SystemIndex) -> Route:
+    action = "previous" if m.group("prev") else "next"
+    return _call("media_said", "media_control", action=action)
+
+
+_LOUD = r"(?:fuerte|alto)"
+_SOFT = r"(?:bajo|flojo|bajito)"
+
+
+@rule(
+    "volume_said",
+    # «el Discord se oye demasiado fuerte», «el Valorant se oye muy bajo»: solo si lo que
+    # suena es una app o un juego del equipo; «no oigo nada» / «no se oye nada»: más volumen.
+    r"^(?:el\s+|la\s+)?(?P<app>[a-z0-9 ]+?)\s+(?:se\s+oye|suena|esta)\s+(?:muy|demasiado|super)\s+"
+    rf"(?:(?P<loud>{_LOUD})|(?P<soft>{_SOFT}))$"
+    r"|^(?P<deaf>no\s+(?:oigo|se\s+oye)\s+(?:nada|casi\s+nada)"
+    r"(?:\s+sube(?:lo|me)?\s+(?:eso|el\s+volumen|un\s+poco))?)$",
+)
+def _volume_said(m: re.Match[str], index: SystemIndex) -> Route | None:
+    if m.group("deaf"):
+        return _call("volume_said", "set_volume", change=10)
+    best = index.confident(index.resolve(m.group("app"), {Kind.APP, Kind.GAME}))
+    if best is None:
+        return None
+    step = -10 if m.group("loud") else 10
+    profile = profile_for(best.entry.process, best.entry.name)
+    action = "volume_down" if step < 0 else "volume_up"
+    if profile is not None and action in profile.actions:
+        return _call("volume_said", "app_action", app=best.entry.name, action=action)
+    return _call("volume_said", "set_volume", change=step, app=best.entry.name)
+
+
 _SPOTIFY = r"(?:\s+(?:en|de)\s+spotify)?$"
 rule(
     "shuffle",
-    r"^(?:pon|activa|quita|desactiva)\s+(?:el\s+)?(?:modo\s+)?(?:aleatorio|shuffle)" + _SPOTIFY,
+    r"^(?:pon|activa|quita|desactiva)\s+(?:(?:la\s+musica|las\s+canciones)\s+en\s+)?(?:el\s+)?"
+    r"(?:modo\s+)?(?:aleatorio|shuffle)" + _SPOTIFY,
 )(lambda m, index: _call("shuffle", "app_action", app="Spotify", action="shuffle"))
 rule(
     "repeat",
@@ -217,3 +264,8 @@ def _audio_output(m: re.Match[str], __: SystemIndex) -> Route:
     raw = m.group("d1") or m.group("d2") or m.group("d3") or m.group("d4")
     device = _original(raw) if raw else None
     return _call("audio_output", "audio_output", device=device)
+
+
+@rule("media_go_on", r"^sigue\s+con\s+la\s+(?:musica|cancion)$")
+def _media_go_on(_: re.Match[str], __: SystemIndex) -> Route:
+    return _call("media_go_on", "media_control", action="play")

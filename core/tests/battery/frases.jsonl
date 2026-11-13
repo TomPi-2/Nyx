@@ -298,7 +298,7 @@
 {"frase": "ábreme una pestaña de incógnito en Chrome", "tool": "app_action", "args": {"action": "incognito", "app": "Chrome"}}
 {"frase": "silencia mi micro en Discord", "tool": "app_action", "args": {"action": "toggle_mute", "app": "Discord"}}
 {"frase": "pon la música en aleatorio", "tool": "app_action", "args": {"action": "shuffle"}}
-{"frase": "busca en esta página la palabra precio", "tool": "app_action|send_hotkey"}
+{"frase": "busca en esta página la palabra precio", "plan": ["app_action", "type_text"]}
 {"frase": "vuelve a la página anterior", "tool": "app_action|send_hotkey"}
 {"frase": "acerca la página, que no veo la letra", "tool": "app_action|send_hotkey"}
 {"frase": "pulsa control z", "tool": "send_hotkey|undo"}
@@ -369,3 +369,25 @@
 {"frase": "¿a qué hora suena mi alarma?", "tool": "list_alarms"}
 {"frase": "¿cuánto le queda al temporizador de la pasta?", "tool": "list_alarms"}
 {"frase": "para de cronometrar", "tool": "stopwatch", "args": {"action": "stop"}}
+{"frase": "el Spotify se oye muy bajito", "tool": "app_action|set_volume", "args": {"app": "Spotify"}}
+{"frase": "no se oye casi nada", "tool": "set_volume"}
+{"frase": "pon otra vez la canción anterior", "tool": "media_control", "args": {"action": "previous"}}
+{"frase": "pásate esta canción", "tool": "media_control", "args": {"action": "next"}}
+{"frase": "sube el bolumen del Discord", "tool": "set_volume", "args": {"app": "Discord"}}
+{"frase": "pon el volumen a un cincuenta", "tool": "set_volume", "args": {"level": 50}}
+{"frase": "¿cómo cambio el fondo de pantalla?", "tool": "open_settings"}
+{"frase": "tengo que configurar la impresora", "tool": "open_settings"}
+{"frase": "llévame a los ajustes del wifi", "tool": "open_settings"}
+{"frase": "quiero cambiar tu voz", "tool": "open_nyx_settings", "args": {"section": "voz"}}
+{"frase": "vivo en Zaragoza", "tool": "nyx_control", "args": {"setting": "ciudad", "value": "Zaragoza"}}
+{"frase": "córtame internet", "tool": "toggle_wifi", "args": {"enabled": false}}
+{"frase": "amplía un poco la letra", "tool": "app_action", "args": {"action": "zoom_in"}}
+{"frase": "busca la palabra factura en la página", "plan": ["app_action", "type_text"]}
+{"frase": "pasado mañana tengo que levantarme a las 8", "tool": "set_alarm", "args": {"time": "08:00"}}
+{"frase": "quiero que me despiertes mañana a las siete", "tool": "set_alarm", "args": {"time": "07:00"}}
+{"frase": "el arroz tarda veinte minutos, avísame", "tool": "set_timer", "args": {"minutes": 20}}
+{"frase": "cuenta cinco minutos para la lavadora", "tool": "set_timer", "args": {"minutes": 5}}
+{"frase": "¿tengo algo en Descargas?", "tool": "list_files", "args": {"folder": "Descargas"}}
+{"frase": "me ciega la pantalla", "tool": "set_brightness"}
+{"frase": "vuelve al Discord", "tool": "focus_window", "args": {"name": "Discord"}}
+{"frase": "abre el Spotify que quiero escuchar música", "tool": "open_app", "args": {"name": "Spotify"}}

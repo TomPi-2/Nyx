@@ -209,3 +209,19 @@ def _list(m: re.Match[str], _: SystemIndex) -> Route | None:
     raw_n = m.group("n1") or m.group("n2")
     newest = parse_number(raw_n) if raw_n else None
     return _call("list", "list_files", folder=m.group("f"), newest=newest)
+
+
+@rule(
+    "files_said",
+    # 6.25: «¿tengo algo en el escritorio?», «dime qué he descargado últimamente».
+    r"^tengo\s+algo\s+en\s+(?:el\s+|la\s+|mi\s+)?(?:carpeta\s+(?:de\s+)?)?(?P<f>[a-z ]+)$"
+    r"|^(?P<dl>(?:dime\s+|ensename\s+)?que\s+(?:me\s+)?he\s+descargado"
+    r"(?:\s+(?:ultimamente|hoy|antes|esta\s+semana))?)$",
+)
+def _files_said(m: re.Match[str], _: SystemIndex) -> Route | None:
+    if m.group("dl"):
+        return _call("files_said", "list_files", folder="Descargas", newest=5)
+    folder = m.group("f").strip()
+    if folder.startswith(("que ", "pendiente", "programado")):
+        return None
+    return _call("files_said", "list_files", folder=folder)

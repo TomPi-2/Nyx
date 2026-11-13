@@ -8,6 +8,7 @@ from nyx.brain.router.comun import (
     Miss,
     Route,
     _call,
+    _fix_typo,
     _window_name,
     rule,
 )
@@ -40,7 +41,7 @@ def _close(m: re.Match[str], index: SystemIndex) -> Route | None:
         target,
     ):
         return _call("close", "close_app", name=f"carpeta {mf.group('f')}")
-    name = _window_name(target)
+    name = _fix_typo(_window_name(target), index)  # «dis cord» (Whisper) → Discord (6.25)
     return _call("close", "close_app", name=name)
 
 
@@ -151,6 +152,31 @@ def _open_need(m: re.Match[str], index: SystemIndex) -> Route | None:
     return _call("open_need", "open_app", name=name) if name else None
 
 
+# --- ajustes de Windows por lo que se quiere cambiar (6.25): «quiero cambiar el fondo de
+# pantalla», «¿cómo cambio el idioma?», «llévame a los ajustes del bluetooth». Solo si lo
+# nombrado es exactamente una página de Configuración. ---
+
+
+def _exact_setting(raw: str, index: SystemIndex) -> str | None:
+    bare = strip_articles(raw.strip())
+    best = index.confident(index.resolve(bare, {Kind.SETTING}))
+    return best.entry.name if best is not None and best.alias == bare else None
+
+
+@rule(
+    "settings_need",
+    r"^(?:quiero|necesito|tengo que|como)\s+(?:cambiar|cambio|configurar|configuro|ajustar|ajusto)"
+    r"\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|mis\s+)?(?P<x>[a-z0-9 ]+)$"
+    r"|^no\s+me\s+(?:va|funciona)\s+(?:el\s+|la\s+)?(?P<y>[a-z0-9 ]+?)\s+llevame\s+a\s+"
+    r"(?:donde\s+se\s+configura|(?:sus|los)\s+ajustes)$"
+    r"|^llevame\s+a\s+(?:los\s+ajustes|la\s+configuracion|las\s+opciones)\s+(?:de\s+la|del|de)\s+"
+    r"(?P<z>[a-z0-9 ]+)$",
+)
+def _settings_need(m: re.Match[str], index: SystemIndex) -> Route | None:
+    page = _exact_setting(m.group("x") or m.group("y") or m.group("z"), index)
+    return _call("settings_need", "open_settings", page=page) if page else None
+
+
 # --- abrir (lo último: es el patrón más general) ---
 
 _IN_BROWSER = re.compile(r"\s+en (?:el )?(?:navegador|chrome|edge|firefox|internet)$")
@@ -165,6 +191,8 @@ _REFERENCE = re.compile(
     r"|\bque (?:has|acabas de|me has) (?:creado|abierto|descargado|movido|copiado|encontrado)\b"
     r"|\bde antes\b|\b(?:la|lo) (?:anterior|ultim[oa])\b"
 )
+_EXPLANATION = re.compile(r"\s+(?:que|para|porque|pa)\s+.+$")
+_LO_DE = re.compile(r"^lo\s+del?\s+")
 _TOOL_FOR_KIND = {
     Kind.APP: ("open_app", "name"),
     Kind.GAME: ("open_app", "name"),
@@ -196,6 +224,12 @@ def _open(m: re.Match[str], index: SystemIndex) -> Route | Miss | None:
         return _call("open", "open_url", target=target)
     matches = index.resolve(target, kinds)
     best = index.confident(matches)
+    if best is None:
+        # «arranca el Discord que voy a hablar con los colegas», «abre lo del bluetooth para
+        # emparejar unos cascos» (6.25): sin la explicación de detrás, si así sí está claro.
+        short = _EXPLANATION.sub("", _LO_DE.sub("", target)).strip()
+        if short and short != target:
+            best = index.confident(index.resolve(short, kinds))
     if best is None:
         return Miss(target, matches)
     tool, arg = _TOOL_FOR_KIND[best.entry.kind]

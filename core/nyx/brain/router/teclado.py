@@ -15,6 +15,7 @@ from nyx.brain.router.comun import (
     _original,
     rule,
 )
+from nyx.executor import ToolCall
 from nyx.index.aliases import normalize, strip_articles
 from nyx.index.model import Kind
 from nyx.index.service import SystemIndex
@@ -125,3 +126,41 @@ def _type_text(m: re.Match[str], __: SystemIndex) -> Route:
     rm = re.search(r"(?:escribe|teclea|dicta)[:\s]+(.+)$", _RAW_EXACT.get().strip(), re.I)
     text = _clean_dictated(rm.group(1)) if rm else ""
     return _call("type_text", "type_text", text=text or _original(m.group("text")))
+
+
+# --- zoom y buscar en la página (6.25) ---
+
+
+@rule(
+    "zoom",
+    r"^(?:acerca|amplia|agranda|haz\s+mas\s+grande)(?:me)?\s+(?:un\s+poco\s+)?(?:la\s+)?"
+    r"(?P<in>pagina|letra|texto)(?:\s+que\s+no\s+(?:veo|leo)(?:\s+(?:la\s+letra|bien|nada))?)?$"
+    r"|^(?:aleja|reduce|haz\s+mas\s+pequen[ao])(?:me)?\s+(?:un\s+poco\s+)?(?:la\s+)?"
+    r"(?P<out>pagina|letra|texto)$",
+)
+def _zoom(m: re.Match[str], __: SystemIndex) -> Route:
+    return _call("zoom", "app_action", action="zoom_in" if m.group("in") else "zoom_out")
+
+
+@rule(
+    "find_in_page",
+    # «busca en esta página la palabra precio», «busca Madrid en la página»: abrir la búsqueda
+    # de la app (Ctrl+F) y escribir lo que se busca.
+    r"^busca(?:me)?\s+en\s+(?:esta|la)\s+(?:pagina|web)\s+(?:la\s+palabra\s+|el\s+texto\s+)?(?P<q>.+)$"
+    r"|^busca(?:me)?\s+(?:la\s+palabra\s+|el\s+texto\s+)?(?P<q2>.+?)\s+en\s+(?:esta|la)\s+(?:pagina|web)$",
+)
+def _find_in_page(m: re.Match[str], __: SystemIndex) -> Route:
+    text = _original(m.group("q") or m.group("q2"))
+    return Route(
+        [ToolCall("app_action", {"action": "find"}), ToolCall("type_text", {"text": text})],
+        "find_in_page",
+    )
+
+
+@rule(
+    "page_back",
+    # 6.25: «vuelve a la página anterior» («vuelve atrás» es deshacer, regla `undo`).
+    r"^(?:vuelve|ve|regresa|vete)\s+a\s+la\s+pagina\s+anterior$|^pagina\s+anterior$",
+)
+def _page_back(_: re.Match[str], __: SystemIndex) -> Route:
+    return _call("page_back", "app_action", action="back")

@@ -140,6 +140,17 @@ def _radio_toggle(m: re.Match[str], __: SystemIndex) -> Route:
     return _call("radio_toggle", tool, enabled=enabled)
 
 
+@rule(
+    "internet_off",
+    # «quítame internet un rato», «desconéctame del wifi» (6.25). Solo el Wi‑Fi: es lo que Nyx
+    # puede apagar (y deshacer).
+    r"^(?:quita(?:me)?|corta(?:me)?)\s+(?:el\s+)?internet(?:\s+un\s+rato)?$"
+    r"|^desconecta(?:me)?\s+(?:del?\s+)?(?:el\s+)?wi\s*fi(?:\s+un\s+rato)?$",
+)
+def _internet_off(_: re.Match[str], __: SystemIndex) -> Route:
+    return _call("internet_off", "toggle_wifi", enabled=False)
+
+
 _PC_TARGET = r"(?:el\s+|mi\s+|la\s+)?(?:pc|ordenador|equipo|portatil|sistema|windows)"
 
 
@@ -155,3 +166,14 @@ def _system_power(m: re.Match[str], __: SystemIndex) -> Route | None:
         if m.group(action):
             return _call("system_power", "system_power", action=action)
     return None
+
+
+@rule(
+    "brightness_said",
+    # 6.25: «me deslumbra la pantalla», «la pantalla está muy oscura».
+    r"^(?P<down>me\s+(?:deslumbra|ciega|molesta)\s+(?:la\s+pantalla|el\s+brillo)"
+    r"|la\s+pantalla\s+(?:esta\s+)?(?:muy|demasiado)\s+(?:brillante|clara))$"
+    r"|^(?P<up>(?:no\s+veo\s+(?:nada|bien)\s+)?la\s+pantalla\s+(?:esta\s+)?(?:muy|demasiado)\s+oscura)$",
+)
+def _brightness_said(m: re.Match[str], __: SystemIndex) -> Route:
+    return _call("brightness_said", "set_brightness", change=-20 if m.group("down") else 20)

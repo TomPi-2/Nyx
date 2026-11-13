@@ -6,6 +6,7 @@ import re
 
 from nyx.brain.router.comun import (
     _N,
+    RULES_BY_NAME,
     Route,
     _call,
     _original,
@@ -117,6 +118,40 @@ def _alarm(m: re.Match[str], _: SystemIndex) -> Route | None:
     return _call(
         "alarm", "set_alarm", time=when, day="tomorrow" if tomorrow else None, repeat=repeat
     )
+
+
+def _as(rule_name: str, canonical: str, index: SystemIndex, said: str) -> Route | None:
+    """Pasa `canonical` por la regla `rule_name` y devuelve su ruta con el nombre `said`
+    (6.25: «tengo que levantarme a las 7» → «despiértame a las 7»)."""
+    pattern, handler = RULES_BY_NAME[rule_name]
+    m = pattern.match(re.sub(r"\s+", " ", canonical).strip())
+    result = handler(m, index) if m else None
+    return Route(result.calls, said) if isinstance(result, Route) else None
+
+
+@rule(
+    "alarm_said",
+    r"^(?:(?P<day>manana)\s+)?tengo\s+que\s+(?:levantarme|despertarme)\s+(?:(?P<day2>manana)\s+)?"
+    r"(?P<rest>a\s+las?\s+.+)$"
+    r"|^quiero\s+que\s+me\s+despiertes\s+(?P<rest2>.+)$",
+)
+def _alarm_said(m: re.Match[str], index: SystemIndex) -> Route | None:
+    day = "manana " if m.group("day") or m.group("day2") else ""
+    rest = m.group("rest") or m.group("rest2")
+    return _as("alarm", f"despiertame {day}{rest}", index, "alarm_said")
+
+
+@rule(
+    "timer_said",
+    # «la pasta tarda 12 minutos, avísame», «en un cuarto de hora tengo que salir, avísame»,
+    # «cuenta tres minutos para el té». Sin cantidad («la pasta tarda mucho») no hay regla.
+    r"^.+?\s+tarda\s+(?P<a1>.+?)\s+avisame(?:\s+cuando\s+(?:este|acabe|termine)(?:\s+lista?)?)?$"
+    r"|^en\s+(?P<a2>.+?)\s+tengo\s+que\s+.+?\s+avisame$"
+    r"|^cuenta(?:me)?\s+(?P<a3>.+?)\s+para\s+.+$",
+)
+def _timer_said(m: re.Match[str], index: SystemIndex) -> Route | None:
+    amount = m.group("a1") or m.group("a2") or m.group("a3")
+    return _as("timer", f"temporizador de {amount}", index, "timer_said")
 
 
 _REMIND = r"(?:recuerdame|recordarme|avisame(?:\s+(?:para|de))?)"

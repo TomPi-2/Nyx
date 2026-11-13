@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import re
 
-from rapidfuzz import fuzz
-
 from nyx.brain.router import comun
 from nyx.brain.router.comun import (
     Route,
     _call,
+    _fix_typo,
     _window_name,
     rule,
 )
@@ -98,22 +97,6 @@ def _window_state(m: re.Match[str], index: SystemIndex) -> Route:
 # más grande la letra» o «quita de en medio los archivos» no son ventanas. ---
 
 
-TYPO_RATIO = 85
-
-
-def _fix_typo(name: str | None, index: SystemIndex) -> str | None:
-    """«crome» (Whisper) → «Google Chrome»: solo si se parece mucho a una sola app y no es ya
-    uno de sus nombres; si no, el nombre tal cual (window_layout busca la ventana)."""
-    if not name:
-        return name
-    best = index.confident(index.resolve(name, {Kind.APP, Kind.GAME}))
-    # Solo parecido letra a letra («crome»/«chrome»), no por estar dentro de un nombre más
-    # largo: «navegador» no es «Opera GX navegador» (window_layout busca el predeterminado).
-    if best is None or best.alias == name or fuzz.ratio(name, best.alias) < TYPO_RATIO:
-        return name
-    return best.entry.name
-
-
 def _window_target(raw: str | None, index: SystemIndex) -> tuple[bool, str | None]:
     """(es una ventana, nombre para window_layout); sin nombre = la ventana activa."""
     name = _window_name(raw)
@@ -193,3 +176,13 @@ def _focus(m: re.Match[str], index: SystemIndex) -> Route | None:
     ):
         return _call("focus", "focus_window", name=name)
     return None
+
+
+@rule("focus_back", r"^vuelve\s+(?:al|a\s+la|a)\s+(?P<x>.+)$")
+def _focus_back(m: re.Match[str], index: SystemIndex) -> Route | None:
+    """«Vuelve al Visual Studio Code» (6.25): solo si es una app del equipo; «vuelve a la
+    página anterior» o «vuelve a intentarlo» no."""
+    best = index.confident(index.resolve(m.group("x"), {Kind.APP, Kind.GAME}))
+    if best is None:
+        return None
+    return _call("focus_back", "focus_window", name=best.entry.name)

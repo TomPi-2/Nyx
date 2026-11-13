@@ -60,6 +60,40 @@ def _city_set(m: re.Match[str], _: SystemIndex) -> Route:
     return _call("city_set", "nyx_control", setting="ciudad", value=_original(m.group("city")))
 
 
+@rule(
+    "city_live",
+    # «vivo en Sevilla» (6.25); «vivo en un piso» o «vivo en casa de mis padres» no.
+    r"^vivo\s+en\s+(?P<city>(?!(?:un|una|el|la|los|las|mi|mis|casa|el\s+centro)\b)[a-z ]+)$",
+)
+def _city_live(m: re.Match[str], _: SystemIndex) -> Route:
+    return _call("city_live", "nyx_control", setting="ciudad", value=_original(m.group("city")))
+
+
+_NYX_PART = {
+    "voz": "voz",
+    "color": "apariencia",
+    "colores": "apariencia",
+    "tamano": "apariencia",
+    "letra": "apariencia",
+    "aspecto": "apariencia",
+    "palabra": "activacion",
+    "palabra de activacion": "activacion",
+    "tono": "respuestas",
+}
+
+
+@rule(
+    "nyx_change",
+    # «quiero cambiarte la voz», «quiero cambiar tu color» (6.25): lo de Nyx, en sus Ajustes.
+    # «Quiero cambiar la voz del vídeo» no: tiene que ser «te» o «tu».
+    r"^(?:quiero|me\s+gustaria|como\s+puedo)\s+(?:cambiarte\s+(?:la|el|los|las)|cambiar\s+tus?)\s+"
+    r"(?P<what>voz|colores|color|tamano|letra|aspecto|palabra\s+de\s+activacion|palabra|tono)$",
+)
+def _nyx_change(m: re.Match[str], _: SystemIndex) -> Route:
+    section = _NYX_PART[re.sub(r"\s+", " ", m.group("what"))]
+    return _call("nyx_change", "open_nyx_settings", section=section)
+
+
 # --- Nyx sobre sí misma (6.03; el 7B se lo inventaba: «puedo navegar por internet») ---
 
 
@@ -95,3 +129,21 @@ def _pending(_: re.Match[str], __: SystemIndex) -> Route:
 )
 def _pending_cancel(_: re.Match[str], __: SystemIndex) -> Route:
     return _call("pending_cancel", "pending", action="cancel")
+
+
+@rule(
+    "nyx_said",
+    # 6.25: ajustes de Nyx pedidos con rodeos.
+    r"^(?P<shortcuts>donde\s+(?:veo|estan|puedo\s+ver|miro)\s+(?:los\s+)?atajos"
+    r"(?:\s+que\s+has\s+aprendido)?)$"
+    r"|^(?P<silent>cuando\s+te\s+escriba\s+no\s+me\s+(?:contestes|respondas)\s+(?:hablando|en\s+voz(?:\s+alta)?)"
+    r"|no\s+me\s+hables\s+cuando\s+te\s+escriba)$"
+    r"|^(?P<less>no\s+te\s+actives\s+tan\s+(?:facilmente|facil|rapido)|activate\s+menos"
+    r"|no\s+saltes\s+tanto)$",
+)
+def _nyx_said(m: re.Match[str], _: SystemIndex) -> Route:
+    if m.group("shortcuts"):
+        return _call("nyx_said", "open_nyx_settings", section="cerebro")
+    if m.group("silent"):
+        return _call("nyx_said", "nyx_control", setting="voz al escribir", value="no")
+    return _call("nyx_said", "nyx_control", setting="sensibilidad", value="menos")
