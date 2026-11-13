@@ -141,3 +141,22 @@ async def test_launch_failure_is_unavailable() -> None:
     with pytest.raises(LLMError) as exc:
         _ = [c async for c in llm.stream(MESSAGES)]
     assert exc.value.kind is LLMErrorKind.UNAVAILABLE
+
+
+async def test_seed_only_when_set() -> None:
+    """Nyx no fija semilla; la batería sí, para comparar cambios sin la suerte del muestreo."""
+    seen: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(request.content))
+        return httpx.Response(200, content=ndjson({"message": {"content": ""}, "done": True}))
+
+    llm = engine(handler)
+    _ = [c async for c in llm.stream(MESSAGES)]
+    llm.seed = 7
+    _ = [c async for c in llm.stream(MESSAGES)]
+    llm.seed = None
+    _ = [c async for c in llm.stream(MESSAGES)]
+    assert ["seed" in s["options"] for s in seen] == [False, True, False]
+    assert seen[1]["options"]["seed"] == 7
+    await llm.aclose()

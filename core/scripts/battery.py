@@ -248,6 +248,13 @@ async def main() -> int:
         help="presupuesto de herramientas como si `llm.num_ctx` fuera este (p. ej. 8192: no "
         "caben todas y se rotan por grupos); Ollama sigue con el contexto de los ajustes",
     )
+    parser.add_argument(
+        "--semilla",
+        type=int,
+        default=1,
+        help="semilla del modelo (pasada n: semilla + n). Con ella, dos medidas de lo mismo dan "
+        "lo mismo y una diferencia es del cambio, no de la suerte (6.25). 0 = sin semilla.",
+    )
     args = parser.parse_args()
 
     cases = [
@@ -281,13 +288,20 @@ async def main() -> int:
     if not args.sin_reencaminar:
         brain.reroute = lambda text: written_command(text, index)  # como en Nyx (6.21)
     await brain.warmup()
+    llm.seed = args.semilla or None
+    if args.semilla:
+        how += f" Semilla del modelo: {args.semilla}."
     outcomes: list[Outcome] = []
     for case in cases:
         outcome = await run_case(case, index, brain)
         first_try = outcome.extra.get("first_ms")
         if outcome.path == "llm" and args.veces > 1:
             # El modelo no responde siempre igual: se repite y cuenta la mayoría.
-            tries = [outcome] + [await run_case(case, index, brain) for _ in range(args.veces - 1)]
+            tries = [outcome]
+            for n in range(1, args.veces):
+                llm.seed = args.semilla + n if args.semilla else None
+                tries.append(await run_case(case, index, brain))
+            llm.seed = args.semilla or None
             good = sum(t.ok for t in tries)
             outcome = next(t for t in tries if t.ok == (good * 2 > len(tries)))
             if 0 < good < len(tries):

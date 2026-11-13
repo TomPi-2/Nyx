@@ -99,13 +99,15 @@ class OllamaEngine:
         num_ctx: int = 4096,
         timeout_s: float = 8.0,
         temperature: float = 0.3,
+        seed: int | None = None,
         launcher: Callable[[], bool] | None = None,
         start_timeout_s: float = START_TIMEOUT_S,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         self.model = model
         self._keep_alive = keep_alive
-        self._options = {"num_ctx": num_ctx, "temperature": temperature}
+        self._options: dict[str, float | int] = {"num_ctx": num_ctx, "temperature": temperature}
+        self.seed = seed
         self._launcher = launcher
         self._start_timeout_s = start_timeout_s
         self._launched_at: float | None = None
@@ -115,6 +117,20 @@ class OllamaEngine:
             timeout=httpx.Timeout(timeout_s, connect=3.0),
             transport=transport,
         )
+
+    @property
+    def seed(self) -> int | None:
+        """Semilla del muestreo: con ella, la misma pregunta da la misma respuesta. Nyx no la
+        usa; la batería sí, para que las comparaciones entre cambios sean exactas (6.25)."""
+        seed = self._options.get("seed")
+        return None if seed is None else int(seed)
+
+    @seed.setter
+    def seed(self, value: int | None) -> None:
+        if value is None:
+            self._options.pop("seed", None)
+        else:
+            self._options["seed"] = value
 
     async def aclose(self) -> None:
         await self._client.aclose()
