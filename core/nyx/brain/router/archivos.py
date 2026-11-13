@@ -178,11 +178,23 @@ def _delete_named(m: re.Match[str], _: SystemIndex) -> Route:
     return _call("delete", "delete_files", folder=m.group("src"), names=[m.group("name")])
 
 
+# Lo que se busca en internet aunque no se diga «en internet» (sin «archivo», «foto»… ni
+# carpeta: «busca el pdf de la receta» sigue siendo un archivo).
+_WEB_THING = re.compile(
+    r"(?:receta|recetas|tutorial|tutoriales|instrucciones|informacion|noticias|significado|"
+    r"definicion|letra de|pasos para|ideas para|trucos para|consejos para)\b"
+)
+
+
 @rule(
     "find",
-    r"^(?:busca(?:me)?|buscar|encuentra(?:me)?|donde esta(?:n)?)\s+(?:el|la|los|las|un|una|mis|mi)?\s*(?P<what>archivos?|ficheros?|documentos?|fotos?|imagen(?:es)?|videos?|pdfs?)?\s*(?:del|de|que se llama|llamado|con)?\s*(?P<q>.+?)(?:\s+en\s+(?P<f>(?!google|internet|la web|youtube).+))?$",
+    # \b tras el artículo y el «de»: sin él, «busca una receta» buscaba «a receta» (2026-11-13).
+    r"^(?:busca(?:me)?|buscar|encuentra(?:me)?|donde esta(?:n)?)\s+(?:(?:el|la|los|las|un|una|mis|mi)\b)?\s*(?P<what>archivos?|ficheros?|documentos?|fotos?|imagen(?:es)?|videos?|pdfs?)?\s*(?:(?:del|de|que se llama|llamado|con)\b)?\s*(?P<q>.+?)(?:\s+en\s+(?P<f>(?!google|internet|la web|youtube).+))?$",
 )
 def _find(m: re.Match[str], index: SystemIndex) -> Route | None:
+    if not m.group("what") and not m.group("f") and _WEB_THING.match(m.group("q")):
+        # «busca una receta de lentejas», «búscame un tutorial de Excel»: no es un archivo.
+        return _call("find", "web_search", query=_original(m.group("q")))
     folder = m.group("f")
     if (
         folder

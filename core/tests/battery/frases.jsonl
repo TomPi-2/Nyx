@@ -398,3 +398,12 @@
 {"frase": "desinstala el Zoom, que ya no lo uso", "tool": "install_app", "args": {"action": "uninstall"}}
 {"frase": "pulsa el botón Aceptar", "tool": "ui_action", "args": {"action": "click"}}
 {"frase": "marca la casilla de recordar contraseña", "tool": "ui_action", "args": {"action": "toggle"}}
+{"frase": "apunta en una nota que mañana tengo dentista a las cinco", "tool": "save_note"}
+{"frase": "toma nota de comprar pilas y leche", "tool": "save_note"}
+{"frase": "hazme una nota con la contraseña del wifi, está en la nevera", "tool": "save_note"}
+{"frase": "necesito acordarme de llamar al fontanero, apúntalo en una nota", "tool": "save_note"}
+{"frase": "busca una receta de tortilla de patatas", "tool": "web_search"}
+{"frase": "búscame un tutorial para hacer tablas dinámicas en Excel", "tool": "web_search"}
+{"frase": "explícame por qué el cielo es azul", "tipo": "respuesta"}
+{"frase": "explícame cómo funciona una vacuna", "tipo": "respuesta"}
+{"frase": "¿me explicas qué es la inflación?", "tipo": "respuesta"}
