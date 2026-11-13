@@ -55,6 +55,12 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
    - Faltan: la ciudad de los juzgados y los datos de ambos. El documento de Claude del
      contrato se queda en la versión anterior: la buena es la del Word.
 
+7. **Plan de la 0.7 (borrador):** `docs/PLAN-0.7.md`, 17 tareas sacadas de la hoja de ruta
+   (§2, §4 y §5), con el mismo formato que el de la 0.6. No se empieza hasta que lo apruebes y
+   cierres la 0.6. Decisiones que trae marcadas: cómo se aíslan las extensiones (7.05, se
+   mide antes), dónde vive la clave de firma (7.08), luz nocturna y «no molestar» sin API
+   oficial (7.10) y si Spotify deja «poner algo concreto» sin cuenta de desarrollador (7.14).
+
 ## Qué probar
 
 1. **Color de Nyx (6.23):** Ajustes → Apariencia → un color que no sea blanco. Todo el cuadrado
