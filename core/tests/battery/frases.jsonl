@@ -351,3 +351,11 @@
 {"frase": "quiero jugar al Valorant", "tool": "open_app", "args": {"name": "VALORANT"}}
 {"frase": "vamos a echar unas partidas al lol", "tool": "open_app", "args": {"name": "League of Legends"}}
 {"frase": "hoy toca un rato de Rocket League", "tool": "open_app", "args": {"name": "Rocket League"}}
+{"frase": "deja el Spotify en grande", "tool": "window_layout", "args": {"action": "maximize", "name": "Spotify"}}
+{"frase": "hazme la ventana más grande", "tool": "window_layout", "args": {"action": "maximize"}}
+{"frase": "pon el bloc de notas más grande", "tool": "window_layout", "args": {"action": "maximize", "name": "Bloc de notas"}}
+{"frase": "maximisa el Spotify", "tool": "window_layout", "args": {"action": "maximize", "name": "Spotify"}}
+{"frase": "quítame el Discord de en medio", "tool": "window_layout", "args": {"action": "minimize", "name": "Discord"}}
+{"frase": "aparta el Chrome", "tool": "window_layout", "args": {"action": "minimize", "name": "Chrome"}}
+{"frase": "manda esta ventana abajo", "tool": "window_layout", "args": {"action": "minimize"}}
+{"frase": "vuelve a poner el Spotify como estaba", "tool": "window_layout", "args": {"action": "restore", "name": "Spotify"}}

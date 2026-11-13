@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+from rapidfuzz import fuzz
+
 from nyx.brain.router import comun
 from nyx.brain.router.comun import (
     Route,
@@ -74,11 +76,12 @@ def _screenshot(m: re.Match[str], _: SystemIndex) -> Route:
 @rule(
     "window_state",
     r"^(?:(?:quiero\s+que|puedes|podrias)\s+)?"
-    r"(?P<verb>maximiza(?:r)?|maximices|minimiza(?:r)?|minimices|minimize|"
+    r"(?P<verb>maximiza(?:r)?|maximices|maximisa(?:r)?|minimiza(?:r)?|minimices|minimize|"
+    r"minimisa(?:r)?|"
     r"oculta(?:r)?|ocultes|esconde(?:r)?|escondas|restaura(?:r)?|restaures)"
     r"(?:\s+(?P<x>.+?))?(?:\s+para\s+no\s+verl[oa](?:\s+(?:en\s+(?:la\s+)?pantalla|mas))?)?$",
 )
-def _window_state(m: re.Match[str], _: SystemIndex) -> Route:
+def _window_state(m: re.Match[str], index: SystemIndex) -> Route:
     v = m.group("verb")
     if v.startswith("maxi"):
         action = "maximize"
@@ -86,7 +89,77 @@ def _window_state(m: re.Match[str], _: SystemIndex) -> Route:
         action = "restore"
     else:
         action = "minimize"
-    return _call("window_state", "window_layout", action=action, name=_window_name(m.group("x")))
+    name = _window_name(m.group("x"))
+    return _call("window_state", "window_layout", action=action, name=_fix_typo(name, index))
+
+
+# --- ventanas dichas de otra forma (6.25): «pon el Chrome en grande», «quita de en medio
+# esta ventana». Solo si lo nombrado es esta ventana, una ventana o una app del equipo: «haz
+# más grande la letra» o «quita de en medio los archivos» no son ventanas. ---
+
+
+TYPO_RATIO = 85
+
+
+def _fix_typo(name: str | None, index: SystemIndex) -> str | None:
+    """«crome» (Whisper) → «Google Chrome»: solo si se parece mucho a una sola app y no es ya
+    uno de sus nombres; si no, el nombre tal cual (window_layout busca la ventana)."""
+    if not name:
+        return name
+    best = index.confident(index.resolve(name, {Kind.APP, Kind.GAME}))
+    # Solo parecido letra a letra («crome»/«chrome»), no por estar dentro de un nombre más
+    # largo: «navegador» no es «Opera GX navegador» (window_layout busca el predeterminado).
+    if best is None or best.alias == name or fuzz.ratio(name, best.alias) < TYPO_RATIO:
+        return name
+    return best.entry.name
+
+
+def _window_target(raw: str | None, index: SystemIndex) -> tuple[bool, str | None]:
+    """(es una ventana, nombre para window_layout); sin nombre = la ventana activa."""
+    name = _window_name(raw)
+    if name is None:
+        return True, None
+    if re.match(r"^(?:la\s+)?ventana\s", (raw or "").strip()):
+        return True, name
+    best = index.confident(index.resolve(name, {Kind.APP, Kind.GAME}))
+    if best is None:
+        return False, name
+    return True, best.entry.name if best.alias != name else name
+
+
+def _layout(rule_name: str, action: str, raw: str | None, index: SystemIndex) -> Route | None:
+    ok, name = _window_target(raw, index)
+    return _call(rule_name, "window_layout", action=action, name=name) if ok else None
+
+
+_BIG = r"(?:en grande|a pantalla grande|en pantalla grande|mas grande|maximizad[oa])"
+
+
+@rule("window_big", rf"^(?:pon(?:me)?|deja(?:me)?|haz(?:me)?)\s+(?P<x>.+?)\s+{_BIG}$")
+def _window_big(m: re.Match[str], index: SystemIndex) -> Route | None:
+    return _layout("window_big", "maximize", m.group("x"), index)
+
+
+@rule("window_bigger", r"^(?:haz(?:me)?|pon(?:me)?)\s+mas\s+grande\s+(?P<x>.+)$")
+def _window_bigger(m: re.Match[str], index: SystemIndex) -> Route | None:
+    return _layout("window_bigger", "maximize", m.group("x"), index)
+
+
+@rule(
+    "window_away",
+    r"^(?:quita(?:me)?|aparta(?:me)?)\s+(?P<x>.+?)\s+de\s+en\s+medio$"
+    r"|^quita(?:me)?\s+de\s+en\s+medio\s+(?P<y>.+)$"
+    r"|^aparta(?:me)?\s+(?P<z>.+)$"
+    r"|^(?:manda|baja)(?:me)?\s+(?P<w>.+?)\s+abajo$",
+)
+def _window_away(m: re.Match[str], index: SystemIndex) -> Route | None:
+    raw = m.group("x") or m.group("y") or m.group("z") or m.group("w")
+    return _layout("window_away", "minimize", raw, index)
+
+
+@rule("window_back", r"^vuelve\s+a\s+poner\s+(?P<x>.+?)\s+como\s+estaba$")
+def _window_back(m: re.Match[str], index: SystemIndex) -> Route | None:
+    return _layout("window_back", "restore", m.group("x"), index)
 
 
 @rule("window_side", r"^(?:pon|mueve|coloca|pasa)\s+(?P<x>.+?)\s+a la (?P<side>izquierda|derecha)$")
