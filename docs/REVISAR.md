@@ -6,7 +6,11 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
 
 ## Decisiones pendientes
 
-_(ninguna todavía)_
+1. **`run_powershell`, ¿excepción verde para órdenes de solo lectura?** El plan de la 0.6
+   (6.13) proponía que órdenes como `Get-Date` o `Get-Process` se ejecutaran sin preguntar,
+   pero la SPEC §7 dice «rojo siempre» y CLAUDE.md prohíbe bajar los niveles de seguridad. La
+   he dejado **roja siempre** (cada comando pide confirmación). Si quieres la excepción, hay
+   que cambiar la SPEC primero.
 
 ## Qué probar
 
@@ -25,4 +29,9 @@ _(ninguna todavía)_
 
 ## Hecho en esta tanda
 
-_(se va completando)_
+- **6.13 `run_powershell`** (roja siempre, bloqueada en partida). La lista de bloqueo usa el
+  analizador de PowerShell, no el texto: borrar sin papelera, sobrescribir archivos (`>`,
+  `Set-Content`, `-Force`), discos, registro, políticas, servicios, desinstalar, descargar o
+  ejecutar código de fuera, elevarse, apagar, otros intérpretes y `& $x`. Si el análisis falla,
+  no se ejecuta. Probar: «¿qué IP tengo?» (debe pedir confirmación con el comando exacto) y
+  algo peligroso como «borra la carpeta temporal con PowerShell» (debe negarse).

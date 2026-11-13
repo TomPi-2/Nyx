@@ -154,6 +154,7 @@ _VERBS = {
     "get_weather": "mirar el tiempo",
     "system_info": "mirar el estado del equipo",
     "system_power": "controlar el encendido del equipo",
+    "run_powershell": "ejecutar un comando de PowerShell",
     "set_brightness": "cambiar el brillo",
     "toggle_wifi": "cambiar el Wi-Fi",
     "toggle_bluetooth": "cambiar el Bluetooth",

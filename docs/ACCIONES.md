@@ -147,7 +147,7 @@ Los atajos siguen el idioma de Windows (en español, «nuevo» es Ctrl+U y «gua
 | Suspender, reiniciar, apagar, programar apagado | «apaga el ordenador en una hora» | Hecho (`system_power`: suspender, reiniciar, apagar) / F6 (programado) | Rojo |
 | Cerrar un programa colgado | «cierra lo que se ha quedado colgado» | F6 | Rojo |
 | Vaciar la papelera | — | **Nunca** (borrado permanente) | — |
-| PowerShell | órdenes concretas de una lista permitida | F6 | Rojo |
+| PowerShell | «¿qué IP tengo?», «¿cuánto lleva encendido el PC?» (lo que no cubre nada más) | Hecho (`run_powershell`: siempre con confirmación y lista de bloqueo) | Rojo |
 
 ## 10. Juegos
 

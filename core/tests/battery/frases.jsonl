@@ -391,3 +391,6 @@
 {"frase": "me ciega la pantalla", "tool": "set_brightness"}
 {"frase": "vuelve al Discord", "tool": "focus_window", "args": {"name": "Discord"}}
 {"frase": "abre el Spotify que quiero escuchar música", "tool": "open_app", "args": {"name": "Spotify"}}
+{"frase": "¿qué dirección IP tiene mi ordenador?", "tool": "run_powershell"}
+{"frase": "¿cuánto tiempo lleva encendido el PC?", "tool": "run_powershell"}
+{"frase": "¿qué versión de Windows tengo?", "tool": "run_powershell"}

@@ -391,4 +391,21 @@ GROUPS: tuple[Group, ...] = (
             r"pega",
         ),
     ),
+    Group(
+        "avanzado",
+        "lo que no cubre nada más: comandos de PowerShell (siempre con confirmación)",
+        ("run_powershell",),
+        (
+            r"powershell",
+            r"comando",
+            r"terminal",
+            r"consola",
+            r"\bip\b",
+            r"direccion ip",
+            r"encendido",
+            r"uptime",
+            r"variables? de entorno",
+            r"version de windows",
+        ),
+    ),
 )
