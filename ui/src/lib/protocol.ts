@@ -76,7 +76,7 @@ export interface NyxSettings {
   llm: { model: string; timeout_s: number };
   onboarding: { done: boolean };
   privacy: { usage_data: boolean };
-  /** 6.06: buscar en internet (Wikipedia) y el buscador para abrir en el navegador. */
+  /** 6.06: buscar en internet (DuckDuckGo o Wikipedia) y el buscador para el navegador. */
   web: { enabled: boolean; search_url: string };
   game: {
     mode: "off" | "voice" | "normal";

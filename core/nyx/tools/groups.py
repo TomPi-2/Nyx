@@ -400,7 +400,7 @@ GROUPS: tuple[Group, ...] = (
     ),
     Group(
         "internet",
-        "buscar en internet (Wikipedia) lo que no se sabe, o abrir la búsqueda en el navegador",
+        "buscar en internet lo que no se sabe, o abrir la búsqueda en el navegador",
         ("web_search",),
         (
             r"internet",

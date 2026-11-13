@@ -22,18 +22,16 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
    Tamaño: 970 ejemplos y una pasada (~4,5 h por ronda en la RX 7700 XT); más ejemplos o
    pasadas, de noche si hace falta.
 
-3. **Buscar en internet (6.05).** El plan decía que eligieras tú. He hecho lo que no depende
-   de esa elección: **Wikipedia** (gratis, sin clave) y **abrir la búsqueda en el navegador**.
-   Pendiente: (a) si quieres actualidad (noticias, resultados), elegir una API con clave
-   (Brave Search, Bing… con plan gratuito); (b) el buscador del navegador es **Google** por
-   defecto (`web.search_url`): dime si prefieres otro (DuckDuckGo, Bing…).
+3. ~~Buscar en internet~~ **Decidido** (2026-11-13): sin pagar ninguna API. Hecho: búsqueda en
+   segundo plano con DuckDuckGo, leyendo las 2 mejores páginas (o Wikipedia si DuckDuckGo
+   falla), y Google para abrir en el navegador. Probar: «busca cómo poner la barra de tareas a
+   la izquierda», «busca una receta de lentejas con chorizo». **Ojo:** DuckDuckGo no es un
+   servicio oficial para programas; revisarlo antes de la beta (0.9).
 
-4. **6.07 (aprender recetas), sin empezar.** Necesita dos cosas que no puedo decidir bien solo:
-   (a) un buscador de webs de verdad para los «cómo se hace» (Wikipedia no los tiene: va con
-   la decisión 3a); y (b) cambiar el prompt de sistema para que el modelo ofrezca «¿lo busco?»,
-   que conviene hacer **después** de decidir si el LoRA se queda (se entrena con el prompt
-   actual y cambiarlo ahora lo desajustaría). Alternativa sin internet: que el modelo proponga
-   la receta con lo que ya sabe (pasos con las herramientas que hay, cada uno confirmado).
+4. **6.07 (aprender recetas): propuesta de descartar el «¿Lo busco?».** Coincide con tu duda:
+   donde Nyx dice «Aún no sé hacer eso» (mensajes, llamadas…), buscar no ayuda. Propuesta:
+   quitar la búsqueda de la 6.07 y dejar para la 0.7 lo de recordar un plan de varios pasos que
+   ha funcionado (como los atajos aprendidos). **Pendiente de que lo confirmes.**
 
 ## Qué probar
 

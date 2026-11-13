@@ -1,8 +1,9 @@
 """web_search: buscar en internet (0.6, tarea 6.06). Verde, `observe`, permitida en partida.
 
-- «resumen»: Wikipedia (ver `nyx/web/search.py`). Lo encontrado vuelve al LLM **marcado como
-  contenido de fuera** y, en esa vuelta, **sin herramientas** (el pipeline no se las pasa): una
-  web no puede hacer que Nyx actúe.
+- «resumen»: en segundo plano, sin abrir nada: DuckDuckGo y el texto de las 2 mejores páginas,
+  o Wikipedia si DuckDuckGo falla (ver `nyx/web/search.py`). Lo encontrado vuelve al LLM
+  **marcado como contenido de fuera** y, en esa vuelta, **sin herramientas** (el pipeline no se
+  las pasa): una web no puede hacer que Nyx actúe.
 - «navegador»: abre la búsqueda en el navegador (`web.search_url`); en partida no se abre nada
   encima del juego, se busca el resumen.
 - Sin conexión: «No tengo conexión» al momento. Caché de 15 minutos por consulta.
@@ -25,11 +26,12 @@ from pydantic import Field
 
 from nyx.index.aliases import normalize
 from nyx.tools.base import Category, GamePolicy, Params, Risk, Tool, ToolContext, ToolResult
-from nyx.web.search import OfflineError, SearchEngine, SearchHit, WikipediaSearch
+from nyx.web.search import OfflineError, SearchEngine, SearchHit, default_engine
 
 log = logging.getLogger(__name__)
 
 CACHE_TTL_S = 15 * 60.0
+RESULTS = 2  # páginas que se leen y se pasan al modelo
 
 
 class WebSearchParams(Params):
@@ -42,7 +44,7 @@ class WebSearchParams(Params):
 class WebSearch(Tool[WebSearchParams]):
     name = "web_search"
     description = (
-        "Busca en internet (Wikipedia) lo que no sabes o no recuerdas bien. "
+        "Busca en internet lo que no sabes o no recuerdas bien. "
         "Ej.: «busca quién fundó Tepnyx», «búscalo en el navegador» (how=navegador)."
     )
     risk = Risk.GREEN
@@ -58,10 +60,10 @@ class WebSearch(Tool[WebSearchParams]):
         opener: Callable[[str], object] = webbrowser.open,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
-        self._engine = engine or WikipediaSearch()
+        self._engine = engine or default_engine()
         self._open = opener
         self._clock = clock
-        self._cache: dict[str, tuple[float, SearchHit]] = {}
+        self._cache: dict[str, tuple[float, list[SearchHit]]] = {}
 
     async def run(self, params: WebSearchParams, ctx: ToolContext) -> ToolResult:
         if not ctx.settings.web.enabled:
@@ -87,10 +89,10 @@ class WebSearch(Tool[WebSearchParams]):
         now = self._clock()
         cached = self._cache.get(key)
         if cached is not None and now - cached[0] < CACHE_TTL_S:
-            hit = cached[1]
+            hits = cached[1]
         else:
             try:
-                hits = await self._engine.search(params.query, limit=1)
+                hits = await self._engine.search(params.query, limit=RESULTS)
             except OfflineError:
                 return ToolResult.fail("No tengo conexión", "no puedo buscar en internet")
             except (httpx.HTTPError, ValueError, KeyError):
@@ -100,13 +102,13 @@ class WebSearch(Tool[WebSearchParams]):
                 return ToolResult.fail(
                     "No he encontrado nada", "puedo abrir la búsqueda en el navegador"
                 )
-            hit = hits[0]
-            self._cache[key] = (now, hit)
+            self._cache[key] = (now, hits)
+        sources = list(dict.fromkeys(h.source for h in hits))
         return ToolResult(
             ok=True,
-            message=f"He buscado «{params.query}» en internet (fuente: {hit.source}).",
-            display=hit.title,
-            secondary=hit.source,
-            external=f"{hit.title}: {hit.summary}",
-            data={"how": "resumen", "source": hit.source, "url": hit.url},
+            message=f"He buscado «{params.query}» en internet (fuente: {', '.join(sources)}).",
+            display=hits[0].title,
+            secondary=" · ".join(sources),
+            external="\n\n".join(f"[{h.source}] {h.title}: {h.summary}" for h in hits),
+            data={"how": "resumen", "source": hits[0].source, "url": hits[0].url},
         )

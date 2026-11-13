@@ -27,7 +27,7 @@
   <Card title="Buscar en internet">
     <Row
       label="Buscar lo que no sé"
-      hint="Busco en Wikipedia cuando me lo pides o no sé algo. Solo sale lo que se busca, nunca datos de tu equipo, y te digo de dónde lo he sacado."
+      hint="Busco en DuckDuckGo (o en Wikipedia) cuando me lo pides o no sé algo, y leo las páginas que encuentro sin abrir el navegador. Solo sale lo que se busca y las visitas a esas páginas, nunca datos de tu equipo, y te digo de dónde lo he sacado."
     >
       <Toggle
         label="Buscar lo que no sé"

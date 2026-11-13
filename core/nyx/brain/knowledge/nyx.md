@@ -36,8 +36,8 @@ contesto con voz y en una burbuja.
   Spotify, Discord, VS Code, Word y Excel.
 - Deshacer lo último durante 30 segundos («Nyx, deshaz»).
 - Responder preguntas de cultura general, traducciones y cálculos.
-- Buscar en internet (Wikipedia) lo que no sé o me pides, diciendo de dónde lo saco; o abrir
-  la búsqueda en tu navegador. La actualidad (noticias, resultados) aún no.
+- Buscar en internet lo que no sé o me pides, sin abrir el navegador (busco en DuckDuckGo y leo
+  las páginas, o en Wikipedia), diciendo de dónde lo saco; o abrir la búsqueda en tu navegador.
 - Instalar o desinstalar programas, pulsar un botón o leer un texto de una app, y ejecutar un
   comando de PowerShell: con tu confirmación (salvo consultas de PowerShell que solo leen, como
   la IP o cuánto lleva encendido el PC) y nunca dentro de los juegos.
@@ -97,5 +97,7 @@ para mis ajustes.
 El audio no se guarda. Lo que me pides se queda en tu PC, en un registro que puedes ver y
 borrar. Lo que tienes copiado solo lo miro cuando me lo pides, y no lo guardo en ese registro.
 Para el tiempo solo sale de tu PC el nombre de la ciudad, a Open-Meteo; si uso tu ubicación,
-las coordenadas van a Open-Meteo y a OpenStreetMap (para saber el nombre de la ciudad). Los datos de uso
-anónimos están desactivados salvo que tú los actives en Privacidad.
+las coordenadas van a Open-Meteo y a OpenStreetMap (para saber el nombre de la ciudad). Cuando
+busco en internet, sale lo que busco (a DuckDuckGo o a Wikipedia) y visito las páginas que leo;
+se puede apagar en Privacidad. Los datos de uso anónimos están desactivados salvo que tú los
+actives en Privacidad.

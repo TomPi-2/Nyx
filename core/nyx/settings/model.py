@@ -177,7 +177,8 @@ class OnboardingSettings(_Section):
 
 
 class WebSettings(_Section):
-    """Internet (6.06): buscar en Wikipedia y, como respaldo, abrir la búsqueda en el navegador.
+    """Internet (6.06): buscar en segundo plano (DuckDuckGo y las páginas que da, o Wikipedia)
+    y, como respaldo, abrir la búsqueda en el navegador.
     `search_url` lleva «{q}» donde va lo que se busca."""
 
     enabled: bool = True

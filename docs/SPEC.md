@@ -191,7 +191,7 @@ El cerebro decide qué herramientas ejecutar en dos niveles: un router determini
 
 **Nivel 3 (opcional, desactivado por defecto): nube gratuita.** Para preguntas complejas de conocimiento general, opción de usar una API con plan gratuito. El usuario la activa y pone su clave; nunca se envían datos del sistema, solo la pregunta.
 
-**Internet (0.6, tareas 6.05 y 6.06):** `web_search` busca en Wikipedia (gratis, sin clave) o abre la búsqueda en el navegador; la burbuja dice la fuente. Lo leído llega al LLM marcado como contenido de fuera y, en esa vuelta, **sin herramientas**: una web no puede hacer que Nyx actúe. La actualidad (noticias, resultados) necesita una API con clave: pendiente de que el usuario elija proveedor.
+**Internet (0.6, tareas 6.05 y 6.06):** `web_search` busca en segundo plano, sin abrir el navegador, gratis y sin clave: DuckDuckGo (su versión HTML, por POST como su formulario) da los resultados y Nyx lee el texto de las 2 mejores páginas (de Wikipedia, su resumen oficial); si DuckDuckGo falla o bloquea, Wikipedia (solo artículos cuyo título está en la pregunta); si nada, ofrece abrir la búsqueda en el navegador. La burbuja dice las fuentes. Lo leído llega al LLM marcado como contenido de fuera y, en esa vuelta, **sin herramientas**: una web no puede hacer que Nyx actúe. DuckDuckGo no es un servicio oficial para programas: revisar antes de la beta (0.9). Una API con clave (Brave) queda descartada por ahora (de pago).
 
 ## 7. Catálogo de herramientas
 
@@ -204,7 +204,7 @@ Unas 35 herramientas genéricas cubren miles de peticiones al combinarse. Cada u
 | `focus_window` | Trae una ventana al frente | Verde | pywin32 |
 | `window_layout` | Maximizar, minimizar, mover a otro monitor, dividir pantalla | Verde | pywin32 + atajos de Windows |
 | `open_url` | Abre una web en el navegador por defecto | Verde | `os.startfile`; diccionario de sitios (YouTube, Claude…) |
-| `web_search` | Busca en internet y resume, o abre la búsqueda en el navegador | Verde | Wikipedia (con la fuente); `web.search_url`; sin herramientas en la vuelta siguiente |
+| `web_search` | Busca en internet y resume, o abre la búsqueda en el navegador | Verde | DuckDuckGo y las páginas que da, o Wikipedia (con las fuentes); `web.search_url`; sin herramientas en la vuelta siguiente |
 | `create_folder` | Crea una carpeta | Verde | pathlib |
 | `list_files` | Lista con filtros (últimos N, tipo, fecha, tamaño) | Verde | pathlib + Everything |
 | `find_files` | Busca archivos en todo el disco | Verde | Everything |
@@ -804,3 +804,4 @@ Reglas de trabajo:
 | 2026-11-13 | Ciudad automática (6.24): sin ciudad en Ajustes, el tiempo usa la ubicación de Windows (`Windows.Devices.Geolocation`, solo si está activada y permitida), con la máxima precisión que dé Windows (decisión del usuario). Las coordenadas van a Open-Meteo (previsión) y a Nominatim de OpenStreetMap (nombre de la ciudad, una vez por sitio). Se confirmará con el usuario en el primer arranque (0.9). | 2, 8 |
 | 2026-11-13 | Búsqueda en internet (6.05, decidido sin el usuario y pendiente de su revisión): Wikipedia (gratis, sin clave, CC BY-SA con la fuente) y abrir la búsqueda en el navegador como respaldo (`web.search_url`, Google por defecto). Lo leído va al LLM como contenido de fuera y la vuelta siguiente, sin herramientas. La actualidad con una API con clave, cuando el usuario elija proveedor. `run_powershell`, `install_app` y `ui_action` (6.13 y 6.14): `run_powershell` roja siempre (la excepción verde del plan choca con §7 y queda para el usuario). | 7, 8 |
 | 2026-11-13 | Excepción verde de `run_powershell` (decisión del usuario): las consultas de solo lectura de una lista cerrada se ejecutan sin preguntar. Comprobado con el analizador de PowerShell; ante la duda, rojo. Solo esta herramienta puede bajar así (`Tool.green_when_read_only`); en partida sigue bloqueada y en Ajustes no se puede bajar su nivel. | 7, 8 |
+| 2026-11-13 | Búsqueda en internet en segundo plano (decisión del usuario: nada de pago). Google no sirve (su API cierra a nuevos usuarios y se apaga el 1-1-2027; leer sus páginas va contra sus condiciones) y Brave ya no es gratis. DuckDuckGo (versión HTML, por POST como su formulario, User-Agent de Nyx sin disfrazarse de navegador) + el texto de las 2 mejores páginas; Wikipedia de respaldo; Google solo para abrir en el navegador. Sin dependencias nuevas. Revisar antes de la beta. | 7, 8 |
