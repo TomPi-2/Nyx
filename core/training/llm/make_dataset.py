@@ -470,17 +470,20 @@ def _msg(m: ChatMessage) -> dict[str, Any]:
     return {"role": m.role, "content": m.content}
 
 
-def stage_build(valid_share: float) -> None:
+def stage_build(valid_share: float, maximum: int) -> None:
+    """train.jsonl y valid.jsonl. Con `maximum`, se queda con lo que más vale (cada ejemplo
+    lleva el prompt y las ~40 herramientas, unos 6.800 tokens: en la RX 7700 XT son ~20 s por
+    ejemplo): todas las herramientas inventadas, las paráfrasis que las reglas no cogen, algo
+    de charla y, si sobra sitio, las semillas (lo que las reglas ya resuelven vale menos)."""
     registry = default_registry()
     schemas = registry.schemas()
     brain = Brain(llm=None, tools=schemas)  # type: ignore[arg-type]  # solo build_messages
     start = datetime(2026, 11, 13, 8, 0)
-    examples: list[dict[str, Any]] = []
 
-    def add(text: str, assistant: dict[str, Any], tools: list[dict[str, Any]]) -> None:
+    def make(text: str, assistant: dict[str, Any], tools: list[dict[str, Any]]) -> dict[str, Any]:
         brain._clock = lambda: start + timedelta(minutes=RNG.randint(0, 60 * 24 * 60))
         messages = [_msg(m) for m in brain.build_messages(text)]
-        examples.append({"messages": [*messages, assistant], "tools": tools})
+        return {"messages": [*messages, assistant], "tools": tools}
 
     def calls_msg(calls: Calls) -> dict[str, Any]:
         return {
@@ -489,25 +492,35 @@ def stage_build(valid_share: float) -> None:
             "tool_calls": [{"type": "function", "function": c} for c in calls],
         }
 
-    for row in jsonl_read(DATA / "seeds.jsonl"):
-        add(row["text"], calls_msg(row["calls"]), schemas)
-    for row in jsonl_read(DATA / "paraphrases.jsonl"):
-        if not _LEAK.search(row["text"]):
-            add(row["text"], calls_msg(row["calls"]), schemas)
+    invented: list[dict[str, Any]] = []
+    for row in jsonl_read(DATA / "invented.jsonl"):
+        for _ in range(4):  # pocos ejemplos: se repiten con fechas y órdenes distintos
+            tools = [*schemas, {"type": "function", "function": row["tool"]}]
+            RNG.shuffle(tools)
+            invented.append(make(row["text"], calls_msg(row["calls"]), tools))
+    para = [r for r in jsonl_read(DATA / "paraphrases.jsonl") if not _LEAK.search(r["text"])]
+    RNG.shuffle(para)
+    para.sort(key=lambda r: r["router"])  # primero las que las reglas no cogen
+    paraphrases = [make(r["text"], calls_msg(r["calls"]), schemas) for r in para]
     # Charla: para no olvidar conversar ni llamar herramientas para todo. Son respuestas del
     # propio 7B (a veces con datos mal), así que pocas: lo que se enseña es el formato.
-    chat = [
+    chat_rows = [
         (r["text"], c) for r in jsonl_read(DATA / "chat.jsonl") if (c := clean_chat(r["reply"]))
     ]
-    RNG.shuffle(chat)
-    for text, reply in chat[:MAX_CHAT]:
-        add(text, {"role": "assistant", "content": reply}, schemas)
-    for row in jsonl_read(DATA / "invented.jsonl"):
-        extra = {"type": "function", "function": row["tool"]}
-        tools = [*schemas, extra]
-        RNG.shuffle(tools)
-        for _ in range(4):  # pocos ejemplos: se repiten con fechas distintas
-            add(row["text"], calls_msg(row["calls"]), tools)
+    RNG.shuffle(chat_rows)
+    chat = [make(t, {"role": "assistant", "content": c}, schemas) for t, c in chat_rows[:MAX_CHAT]]
+    seeds = [
+        make(r["text"], calls_msg(r["calls"]), schemas) for r in jsonl_read(DATA / "seeds.jsonl")
+    ]
+    RNG.shuffle(seeds)
+
+    if maximum:
+        n_chat = min(len(chat), maximum // 5)
+        n_para = min(len(paraphrases), maximum - len(invented) - n_chat)
+        n_seed = max(0, maximum - len(invented) - n_chat - n_para)
+        examples = [*invented, *chat[:n_chat], *paraphrases[:n_para], *seeds[:n_seed]]
+    else:
+        examples = [*invented, *chat, *paraphrases, *seeds]
     RNG.shuffle(examples)
     n_valid = max(1, int(len(examples) * valid_share))
     jsonl_write(DATA / "valid.jsonl", examples[:n_valid])
@@ -522,7 +535,8 @@ def main() -> None:
     )
     parser.add_argument("--por-semilla", type=int, default=8)
     parser.add_argument("--por-tema", type=int, default=40)
-    parser.add_argument("--validar", type=float, default=0.05)
+    parser.add_argument("--validar", type=float, default=0.03)
+    parser.add_argument("--maximo", type=int, default=0, help="ejemplos como mucho (0 = todos)")
     args = parser.parse_args()
     if args.etapa == "semillas":
         stage_seeds()
@@ -533,7 +547,7 @@ def main() -> None:
     elif args.etapa == "inventadas":
         stage_invented()
     else:
-        stage_build(args.validar)
+        stage_build(args.validar, args.maximo)
 
 
 if __name__ == "__main__":

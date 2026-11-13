@@ -91,13 +91,15 @@ def load(path: Path) -> Dataset:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--pasos", type=int, default=-1, help="-1 = las épocas enteras")
-    parser.add_argument("--epocas", type=float, default=2.0)
+    parser.add_argument("--epocas", type=float, default=1.0)
     parser.add_argument("--rango", type=int, default=16, help="rango del LoRA")
     parser.add_argument("--contexto", type=int, default=8192)
     args = parser.parse_args()
 
     train = load(HERE / "data" / "train.jsonl")
-    valid = load(HERE / "data" / "valid.jsonl")
+    # Validación pequeña y solo al final: en esta gráfica medirla cuesta casi como entrenar.
+    valid_all = load(HERE / "data" / "valid.jsonl")
+    valid = valid_all.select(range(min(24, len(valid_all))))
     print(f"{len(train)} ejemplos para entrenar, {len(valid)} para validar")
 
     model, tokenizer = FastLanguageModel.from_pretrained(
@@ -137,9 +139,9 @@ def main() -> None:
             lr_scheduler_type="cosine",
             warmup_steps=10,
             logging_steps=10,
-            eval_strategy="steps",
-            eval_steps=50,
-            save_steps=100,
+            eval_strategy="no",
+            save_steps=20,  # si se corta (sesión, apagón), se retoma desde aquí
+            save_total_limit=2,
             bf16=bf16,
             fp16=not bf16,
             optim="adamw_8bit",
@@ -155,12 +157,20 @@ def main() -> None:
         response_part="<|im_start|>assistant\n",
     )
     t0 = time.perf_counter()
-    stats = trainer.train()
+    checkpoints = HERE / "output" / "checkpoints"
+    resume = any(checkpoints.glob("checkpoint-*")) if checkpoints.exists() else False
+    if resume:
+        print("Retomando desde el último guardado")
+    stats = trainer.train(resume_from_checkpoint=resume or None)
     minutes = (time.perf_counter() - t0) / 60
     peak = torch.cuda.max_memory_allocated() / 2**30
     print(f"Hecho en {minutes:.0f} min · pérdida {stats.training_loss:.3f} · pico {peak:.1f} GB")
     model.save_pretrained(str(HERE / "output" / "lora"))
     tokenizer.save_pretrained(str(HERE / "output" / "lora"))
+    metrics = trainer.evaluate()
+    print(
+        f"Validación ({len(valid)} ejemplos): pérdida {metrics.get('eval_loss', float('nan')):.3f}"
+    )
 
 
 if __name__ == "__main__":
