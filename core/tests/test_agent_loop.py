@@ -261,3 +261,22 @@ async def test_free_question_still_goes_back_to_the_llm() -> None:
     assert len(h.llm.requests) == 2
     assert h.tts.said == ["Sí, te da para una partida corta."]
     await h.p.close()
+
+
+async def test_ready_answer_uses_the_tone_variants() -> None:
+    """6.26: con datos, la respuesta se dice con una variante del tono elegido."""
+    import random
+
+    from nyx.brain.answers import ANSWERS, Answers
+
+    data = {"what": "battery", "has_battery": True, "percent": 40, "plugged": False}
+    result = BATTERY.model_copy(update={"data": data})
+    h = Harness(speak_typed=True)
+    h.p.answers = Answers("neutro", random.Random(3))
+    with_router(h, Route([ToolCall("system_info", {"what": "battery"})], "system_info"), [result])
+    await h.bus.publish(TextEntered("¿cuánta batería me queda?"))
+    await h.p.wait_idle()
+    neutral = {variant(data) for variant in ANSWERS["battery"]["neutro"]}
+    assert h.llm.requests == [] and len(h.tts.said) == 1 and h.tts.said[0] in neutral
+    assert h.bubbles[-1] == ("40 %", "batería · desenchufado")  # el panel no cambia
+    await h.p.close()

@@ -25,6 +25,7 @@ from nyx.audio.capture import AudioCapture, Frame, rms_level
 from nyx.audio.playback import Player
 from nyx.audio.vad import Endpointer, EndReason, VoiceDetector
 from nyx.brain.agent import MAX_SECONDS, MAX_STEPS, AgentRun, continuation_hint, memory_note
+from nyx.brain.answers import Answers
 from nyx.brain.base import LLMError
 from nyx.brain.guard import looks_like_code, mentions_tool, tool_keys
 from nyx.brain.phrases import PhraseBook
@@ -277,6 +278,7 @@ class Pipeline:
         wake_phrase: WakePhrase | None = None,
         game: GameGate | None = None,
         phrases: PhraseBook | None = None,
+        answers: Answers | None = None,
         clock: Callable[[], float] = time.perf_counter,
     ) -> None:
         self.bus = bus
@@ -299,6 +301,8 @@ class Pipeline:
         self.wake_phrase = wake_phrase or WakePhrase()  # «Nyx» o la palabra personalizada
         self.game = game
         self.phrases = phrases or PhraseBook()
+        # Respuestas habladas con variantes según el tono (6.26).
+        self.answers = answers or Answers()
         # Umbral del detector sin el ajuste por errores (para recalcularlo al apuntar uno).
         threshold = getattr(wake, "threshold", None)
         offset = activations.offset if activations is not None else 0.0
@@ -795,7 +799,11 @@ class Pipeline:
         elif shown is not None and shown.display:
             await self._show_bubble(shown.display, shown.secondary or "")
             self._schedule_bubble_hide(bubble_duration(shown.display, shown.secondary or ""))
-        answer = " ".join(r.message.strip() for r in results if r.speak and r.message.strip())
+        answer = " ".join(
+            (self.answers.say(call.name, call.arguments, r) or r.message).strip()
+            for call, r in zip(routed.calls, results, strict=False)
+            if r.speak and r.message.strip()
+        )
         if direct and answer and speak:
             # La respuesta ya está hecha (6.20a): se dice sin pasar por el LLM.
             await self._say(answer, marks)

@@ -112,7 +112,11 @@ class NowPlayingTool(Tool[NowPlayingParams]):
             return ToolResult.fail("No he podido ver qué suena")
         if now is None or not now.title:
             return ToolResult(
-                ok=True, message="No suena nada ahora.", display="No suena nada", speak=True
+                ok=True,
+                message="No suena nada ahora.",
+                display="No suena nada",
+                speak=True,
+                data={"playing": False, "title": ""},
             )
         by = f" de {now.artist}" if now.artist else ""
         state = "Suena" if now.playing else "En pausa:"
@@ -122,5 +126,10 @@ class NowPlayingTool(Tool[NowPlayingParams]):
             speak=True,
             display=now.title,
             secondary=" · ".join(p for p in (now.artist, now.app) if p),
-            data={"playing": now.playing},
+            data={
+                "playing": now.playing,
+                "title": now.title,
+                "artist": now.artist or "",
+                "app": now.app,
+            },
         )

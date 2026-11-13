@@ -20,6 +20,7 @@ from nyx.alarms.store import AlarmStore
 from nyx.audio.capture import AudioCapture
 from nyx.audio.playback import Player
 from nyx.audio.vad import SileroVAD
+from nyx.brain.answers import Answers
 from nyx.brain.base import LLMError
 from nyx.brain.ollama import OllamaEngine, launch_ollama
 from nyx.brain.phrases import PhraseBook
@@ -308,6 +309,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         wake_phrase=wake_phrase,
         game=game,
         phrases=phrases,
+        answers=Answers(settings.responses.tone),
     )
     log.info(
         "Servicios listos en %.1f s (voz: %s, activación: %s, respuesta hablada: %s)",

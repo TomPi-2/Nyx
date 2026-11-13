@@ -56,6 +56,7 @@ def _battery(ps: Any) -> ToolResult:
     plugged = bool(batt.power_plugged)
     state = "enchufado" if plugged else "desenchufado"
     rem = ""
+    mins_total = 0
     secs = getattr(batt, "secsleft", None)
     if not plugged and isinstance(secs, int | float) and 0 < secs < 24 * 3600:
         mins_total = round(float(secs) / 60)
@@ -71,7 +72,13 @@ def _battery(ps: Any) -> ToolResult:
         message=f"Tienes un {pct} % de batería y está {state}{rem}.",
         display=f"{pct} %",
         secondary=f"batería · {state}",
-        data={"what": "battery", "has_battery": True, "percent": pct, "plugged": plugged},
+        data={
+            "what": "battery",
+            "has_battery": True,
+            "percent": pct,
+            "plugged": plugged,
+            "remaining_min": mins_total,  # 0 si no se sabe o está enchufado
+        },
     )
 
 
