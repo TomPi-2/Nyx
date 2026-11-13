@@ -17,16 +17,27 @@
   const shortcuts = $derived(settings.setupStatus?.shortcuts ?? []);
   let timeout = $state<number | null>(null);
 
-  /** Los modelos probados con la batería de frases (core/nyx/setup/hardware.py, LLM_CHOICES).
-   *  En la primera versión, uno solo: el 7B (decisión 2026-11-11). */
-  const SUPPORTED = ["qwen2.5:7b"];
+  /** Los modelos probados con la batería de frases, con su nombre para el usuario: el 7B base
+   *  (core/nyx/setup/hardware.py, LLM_CHOICES; decisión 2026-11-11) y sus LoRA de Nyx (6.27),
+   *  que se crean en Ollama a mano hasta que el instalador (0.9) los descargue. Solo aparecen
+   *  los que estén instalados. */
+  const SUPPORTED: { id: string; label: string }[] = [
+    { id: "nyx-r2:7b", label: "Nyx · 7B (recomendado)" },
+    { id: "nyx-r3:7b", label: "Nyx · 7B, ronda 3 (en prueba)" },
+    { id: "qwen2.5:7b", label: "Qwen 2.5 · 7B (base, sin ajustar)" },
+  ];
+
+  const same = (a: string, b: string) => a === b || a === `${b}:latest` || b === `${a}:latest`;
 
   function modelOptions(installed: string[], current: string) {
-    const list = installed
-      .filter((m) => SUPPORTED.some((s) => m === s || m === `${s}:latest`))
-      .map((m) => ({ value: m, label: m }));
-    if (current && !installed.some((m) => m === current || m === `${current}:latest`)) {
-      list.unshift({ value: current, label: `${current} (no instalado)` });
+    const list = SUPPORTED.filter((s) => installed.some((m) => same(m, s.id))).map((s) => ({
+      value: s.id,
+      label: s.label,
+    }));
+    // El que está en uso sale siempre, aunque no sea de la lista o no esté instalado.
+    if (current && !list.some((o) => same(o.value, current))) {
+      const installedNow = installed.some((m) => same(m, current));
+      list.unshift({ value: current, label: installedNow ? current : `${current} (no instalado)` });
     }
     return list;
   }
@@ -48,7 +59,7 @@
     <div class="lockable" class:locked={!ollama?.running}>
       <Row
         label="Modelo local"
-        hint="El que usa Nyx para entender lo que pides y responder. Por ahora, uno solo: el que se ha probado a fondo con Nyx."
+        hint="El que usa Nyx para entender lo que pides y responder. Solo salen los que se han probado a fondo con Nyx."
         stacked
       >
         <Select
