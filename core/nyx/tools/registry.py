@@ -75,6 +75,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.ui_action import UiAction
     from nyx.tools.undo import UndoLast
     from nyx.tools.wait_for_window import WaitForWindow
+    from nyx.tools.web_search import WebSearch
     from nyx.tools.window_layout import WindowLayout
     from nyx.winapi.location import Locator
 
@@ -122,6 +123,7 @@ def default_registry() -> ToolRegistry:
             RunPowershell(),
             InstallApp(),
             UiAction(),
+            WebSearch(),
             UndoLast(),
         ]
     )

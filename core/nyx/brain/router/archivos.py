@@ -11,6 +11,7 @@ from nyx.brain.router.comun import (
     Miss,
     Route,
     _call,
+    _original,
     parse_number,
     rule,
 )
@@ -179,7 +180,7 @@ def _delete_named(m: re.Match[str], _: SystemIndex) -> Route:
 
 @rule(
     "find",
-    r"^(?:busca(?:me)?|buscar|encuentra(?:me)?|donde esta(?:n)?)\s+(?:el|la|los|las|un|una|mis|mi)?\s*(?P<what>archivos?|ficheros?|documentos?|fotos?|imagen(?:es)?|videos?|pdfs?)?\s*(?:de|del|que se llama|llamado|con)?\s*(?P<q>.+?)(?:\s+en\s+(?P<f>(?!google|internet|la web|youtube).+))?$",
+    r"^(?:busca(?:me)?|buscar|encuentra(?:me)?|donde esta(?:n)?)\s+(?:el|la|los|las|un|una|mis|mi)?\s*(?P<what>archivos?|ficheros?|documentos?|fotos?|imagen(?:es)?|videos?|pdfs?)?\s*(?:del|de|que se llama|llamado|con)?\s*(?P<q>.+?)(?:\s+en\s+(?P<f>(?!google|internet|la web|youtube).+))?$",
 )
 def _find(m: re.Match[str], index: SystemIndex) -> Route | None:
     folder = m.group("f")
@@ -191,6 +192,12 @@ def _find(m: re.Match[str], index: SystemIndex) -> Route | None:
         return None  # «busca un canal en Discord»: dentro de una app (LLM)
     if re.search(r"\ben (?:google|internet|la web|youtube)\b", m.group(0)):
         return None  # búsqueda web (fase 6)
+    if re.match(
+        r"(?:que|quien|quienes|cuando|donde|como|cual|cuales|cuanto|por que)\b", m.group("q")
+    ):
+        # «busca qué aplicaciones ha creado Tepnyx» es una pregunta, no un archivo
+        # (ERRORES.md, 2026-11-11): el LLM, con web_search.
+        return None
     what = (m.group("what") or "").rstrip("s")
     kind = {"foto": "images", "image": "images", "imagene": "images", "video": "videos"}.get(what)
     query = m.group("q")
@@ -225,3 +232,15 @@ def _files_said(m: re.Match[str], _: SystemIndex) -> Route | None:
     if folder.startswith(("que ", "pendiente", "programado")):
         return None
     return _call("files_said", "list_files", folder=folder)
+
+
+@rule(
+    "web_search",
+    # «busca en internet quién inventó la imprenta», «búscame en Google recetas de lentejas»,
+    # «busca en Wikipedia Napoleón» (6.06). YouTube no: es una web que se abre.
+    r"^(?:busca(?:me)?|buscar|mira)\s+en\s+(?:internet|google|la\s+web|wikipedia)\s+(?P<q>.+)$"
+    r"|^(?:busca(?:me)?|mira)\s+(?P<q2>.+?)\s+en\s+(?:internet|google|la\s+web|wikipedia)$",
+)
+def _web_search(m: re.Match[str], __: SystemIndex) -> Route:
+    query = _original(m.group("q") or m.group("q2"))
+    return _call("web_search", "web_search", query=query)

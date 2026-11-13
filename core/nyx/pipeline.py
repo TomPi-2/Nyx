@@ -74,6 +74,8 @@ THINKING_AFTER_S = 0.3
 HOLD_S = 0.4  # mantener el atajo más que esto = hablar mientras se mantiene
 TALK_PREBUFFER_S = 0.3
 VERIFY_CLIP_S = 2.0  # audio que whisper revisa para confirmar «Nyx»
+# Herramientas tras las que el LLM sigue sin herramientas: lo leído de fuera no manda (6.06).
+TOOLS_OFF_AFTER = frozenset({"web_search"})
 THRESHOLD_CHECK_S = 60.0  # cada cuánto se mira si la subida automática del umbral ha bajado
 CONFIRM_TIMEOUT_S = 15.0  # SPEC sección 8: sin respuesta, se cancela
 CANCELLED_BUBBLE_S = 2.5
@@ -1069,7 +1071,11 @@ class Pipeline:
 
         try:
             continuing = self._agent.steps > 0
-            respond = self.brain.respond(text, extra, continuing=continuing)
+            # Tras leer internet, la vuelta siguiente va sin herramientas (6.06).
+            read_web = any(call.name in TOOLS_OFF_AFTER for call, _ in self._agent.done)
+            respond = self.brain.respond(
+                text, extra, continuing=continuing, tools_off=continuing and read_web
+            )
             async with contextlib.aclosing(respond) as events:
                 async for event in events:
                     if marks.first_token is None:

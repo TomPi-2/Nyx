@@ -198,9 +198,15 @@ async def test_delete_folder_by_name(index: SystemIndex) -> None:
     assert str(args["folder"]).endswith("Imagenes")
 
 
-@pytest.mark.parametrize("text", ["busca recetas en google", "cierra sesión"])
+@pytest.mark.parametrize("text", ["cierra sesión"])
 async def test_file_routes_left_for_later(index: SystemIndex, text: str) -> None:
     assert route(text, index) is None
+
+
+async def test_web_searches_are_not_files(index: SystemIndex) -> None:
+    """Antes se dejaban para después; desde la 6.06, a web_search (nunca a find_files)."""
+    routed = route("busca recetas en google", index)
+    assert isinstance(routed, Route) and routed.calls[0].name == "web_search"
 
 
 async def test_la_carpeta_de(index: SystemIndex) -> None:

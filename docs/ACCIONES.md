@@ -112,7 +112,8 @@ Los atajos siguen el idioma de Windows (en español, «nuevo» es Ctrl+U y «gua
 | Hora y fecha | «¿qué hora es?», «¿qué día cae el 25?» | Hecho |
 | Cálculos y conversiones | «¿cuánto es 17 por 23?», «pasa 30 dólares a euros» (cambio: internet) | Hecho (cálculo) / F6 (divisas) |
 | El tiempo | «¿va a llover mañana?» (Open-Meteo, ciudad fija en ajustes) | Hecho |
-| Actualidad | «¿quién ganó ayer el Madrid?» (búsqueda web + resumen, con la fuente) | F6 |
+| Buscar en internet | «busca en internet quién inventó la imprenta» (Wikipedia, con la fuente; o abrirlo en el navegador) | Hecho (`web_search`) |
+| Actualidad | «¿quién ganó ayer el Madrid?» (noticias y resultados) | Pendiente de elegir proveedor (6.05) |
 | Definiciones y sinónimos | «otra palabra para bonito» | Hecho (LLM) |
 | Sobre el PC | «¿cuánta RAM uso?», «¿qué consume más CPU?», «temperatura de la gráfica» | Hecho (batería, CPU, RAM, disco, procesos) |
 | Sobre la red | «¿cuál es mi IP?», «¿va bien internet?» | F6 |

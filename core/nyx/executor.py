@@ -157,6 +157,7 @@ _VERBS = {
     "run_powershell": "ejecutar un comando de PowerShell",
     "install_app": "instalar o desinstalar un programa",
     "ui_action": "pulsar o leer algo en una app",
+    "web_search": "buscar en internet",
     "set_brightness": "cambiar el brillo",
     "toggle_wifi": "cambiar el Wi-Fi",
     "toggle_bluetooth": "cambiar el Bluetooth",

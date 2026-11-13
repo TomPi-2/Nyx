@@ -67,3 +67,25 @@ def test_not_batch7(text: str, index: SystemIndex) -> None:
         "set_volume",
         "cancel_alarm",
     }, got
+
+
+@pytest.mark.parametrize(
+    ("text", "query"),
+    [
+        ("busca en internet quién inventó la imprenta", "quién inventó la imprenta"),
+        ("búscame en Google recetas de lentejas", "recetas de lentejas"),
+        ("busca Napoleón en Wikipedia", "Napoleón"),
+    ],
+)
+def test_web_search_rule(text: str, query: str, index: SystemIndex) -> None:
+    assert first(text, index) == ("web_search", {"query": query})
+
+
+def test_a_question_after_busca_is_not_a_file(index: SystemIndex) -> None:
+    """ERRORES.md (2026-11-11): «busca qué aplicaciones ha creado Tepnyx» buscaba archivos."""
+    got = first("busca qué aplicaciones ha creado Tepnyx", index)
+    assert got is None or got[0] != "find_files"
+    assert first("busca el archivo del contrato", index) == (
+        "find_files",
+        {"query": "contrato"},
+    )

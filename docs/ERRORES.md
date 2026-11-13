@@ -6,13 +6,13 @@ Fallos vistos al usar Nyx que quedan pendientes de corregir. Se apuntan aquí pa
 
 | Fecha | Frase o situación | Qué pasa | Qué debería pasar | Pista |
 | --- | --- | --- | --- | --- |
-| 2026-11-11 | «Busca qué aplicaciones ha creado Tepnyx» | Busca archivos en el disco. | Buscar en internet. | Falta `web_search` (fase 6); el router no debe mandar preguntas a `find_files`. |
 | 2026-11-12 | «Ábreme el último documento que descargué» | «No encuentro…». | Buscar el documento más reciente de Descargas y abrirlo (dos pasos, LLM). | Mismo caso: un `Miss` con frase larga debería ir al LLM. Batería 6.17. |
 
 ## Corregidos
 
 | Fecha | Error | Commit |
 | --- | --- | --- |
+| 2026-11-13 | «Busca qué aplicaciones ha creado Tepnyx»: «busca» seguido de una pregunta ya no va a buscar archivos (lo decide el modelo, que tiene `web_search`); «busca en internet/Google/Wikipedia…» va directo a `web_search`. De paso, «busca el archivo del contrato» buscaba «l contrato». | (6.06) |
 | 2026-11-13 | Nyx con un color puesto (interfaz): Color plano en `shaders.ts` (sin el sombreado que partía la forma en cuatro triángulos y oscurecía el borde); el movimiento no cambia. **Pendiente de que el usuario lo pruebe con colores.** | `7dc05c8` (6.23) |
 | 2026-11-13 | Paneles de respuesta (interfaz y cerebro): Criterio común en `core/nyx/brain/panel.py` para todos los paneles: mayúscula, punto solo en frases (opción A, RAE), la línea pequeña solo si aporta y la grande con la primera frase de la voz si era una palabra vacía («Sí», «Claro»). Prueba de tildes en todos los textos fijos. **Pendiente de que el usuario lo vea en uso.** | `e6c976a` (6.23) |
 | 2026-11-13 | «Arranca el Discord que voy a hablar con los colegas»: Abrir sin la explicación de detrás si así se encuentra (`router/apps.py`). | `fb37c46` (6.25) |

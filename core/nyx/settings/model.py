@@ -176,6 +176,14 @@ class OnboardingSettings(_Section):
     done: bool = False
 
 
+class WebSettings(_Section):
+    """Internet (6.06): buscar en Wikipedia y, como respaldo, abrir la búsqueda en el navegador.
+    `search_url` lleva «{q}» donde va lo que se busca."""
+
+    enabled: bool = True
+    search_url: str = Field(default="https://www.google.com/search?q={q}", max_length=300)
+
+
 class PrivacySettings(_Section):
     """Privacidad (SPEC sección 8). Desactivado por defecto: solo con permiso explícito."""
 
@@ -198,6 +206,7 @@ class Settings(BaseModel):
     appearance: AppearanceSettings = Field(default_factory=AppearanceSettings)
     onboarding: OnboardingSettings = Field(default_factory=OnboardingSettings)
     privacy: PrivacySettings = Field(default_factory=PrivacySettings)
+    web: WebSettings = Field(default_factory=WebSettings)
 
 
 def settings_path() -> Path:

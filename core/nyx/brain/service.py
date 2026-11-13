@@ -142,15 +142,23 @@ class Brain:
         ]
 
     async def respond(
-        self, text: str, extra: str = "", *, continuing: bool = False
+        self,
+        text: str,
+        extra: str = "",
+        *,
+        continuing: bool = False,
+        tools_off: bool = False,
     ) -> AsyncGenerator[ReplyEvent | ReplyDone | ToolPlan, None]:
         """`extra`: contexto de esta petición (ventana activa, candidatos si no se encontró…).
 
         `continuing`: es otra vuelta de la misma petición (bucle de agente): el turno de la
-        memoria corta se sustituye en vez de añadir otro."""
+        memoria corta se sustituye en vez de añadir otro.
+
+        `tools_off`: sin herramientas (tras leer una web, 6.06: lo que diga no puede hacer que
+        Nyx actúe; solo se cuenta)."""
         parser = TextReplyParser()
         calls: list[LLMToolCall] = []
-        tools = self.tools_for(text, keep=continuing)
+        tools = [] if tools_off else self.tools_for(text, keep=continuing)
         if not continuing and self.tools_hint and self._needs_tools(text):
             extra = f"{extra}\n{TOOLS_HINT}" if extra else TOOLS_HINT
         # Una llamada escrita como texto a una herramienta que no estaba en la lista también

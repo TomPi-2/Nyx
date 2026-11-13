@@ -51,6 +51,7 @@ EDITABLE: tuple[str, ...] = (
     "llm.timeout_s",
     "onboarding.",
     "privacy.",
+    "web.",
 )
 #: Lo que solo se lee al arrancar: cambiarlo pide reiniciar Nyx.
 NEEDS_RESTART: tuple[str, ...] = (

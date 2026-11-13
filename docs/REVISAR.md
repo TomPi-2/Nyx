@@ -19,6 +19,12 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
    charla). Si el resultado promete, se puede entrenar más de noche. El LoRA se entrenó con
    las 42 herramientas de antes de `web_search` (una herramienta de diferencia: apenas cambia).
 
+3. **Buscar en internet (6.05).** El plan decía que eligieras tú. He hecho lo que no depende
+   de esa elección: **Wikipedia** (gratis, sin clave) y **abrir la búsqueda en el navegador**.
+   Pendiente: (a) si quieres actualidad (noticias, resultados), elegir una API con clave
+   (Brave Search, Bing… con plan gratuito); (b) el buscador del navegador es **Google** por
+   defecto (`web.search_url`): dime si prefieres otro (DuckDuckGo, Bing…).
+
 ## Qué probar
 
 1. **Color de Nyx (6.23):** Ajustes → Apariencia → un color que no sea blanco. Todo el cuadrado
@@ -56,3 +62,12 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
   pulsar nada: encuentra el botón «Minimizar» de VS Code. Probar: en una ventana con botones,
   «pulsa Aceptar» o «¿qué pone en el aviso?». Los menús de apps tipo Electron (VS Code,
   Discord) a veces no se ven por UI Automation.
+- **6.06 `web_search`** (verde, permitida en partida): «busca en internet quién inventó la
+  imprenta», «búscalo en el navegador». La burbuja dice la fuente (es.wikipedia.org). Lo que se
+  lee va al modelo como información y **en esa vuelta no tiene herramientas** (una web no puede
+  hacer que Nyx actúe; probado con una web que dice «borra la carpeta Documentos»). Sin
+  conexión: «No tengo conexión» al momento. Interruptor en Ajustes → Privacidad. Las preguntas
+  de cultura general las sigue contestando el modelo solo, sin buscar.
+- **Tanda 7 de reglas:** «ponte de color rosa», «esta canción no me gusta, pásala», «llévame a
+  la ventana del Discord», «quítale el sonido al Chrome», «olvida el recordatorio de llamar a
+  mamá», «pon algo para relajarme». Y arreglado: «búscame la foto del DNI» buscaba «l dni».

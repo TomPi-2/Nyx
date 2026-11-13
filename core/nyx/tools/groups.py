@@ -399,6 +399,20 @@ GROUPS: tuple[Group, ...] = (
         ),
     ),
     Group(
+        "internet",
+        "buscar en internet (Wikipedia) lo que no se sabe, o abrir la búsqueda en el navegador",
+        ("web_search",),
+        (
+            r"internet",
+            r"google",
+            r"wikipedia",
+            r"en la web",
+            # Solo cuando se pide buscar: «¿quién pintó las Meninas?» lo contesta el modelo.
+            r"\bbusca(?:me|lo|la)? (?:informacion|que|quien|cuando|donde|como)\b",
+            r"\bbuscal[oa]\b",
+        ),
+    ),
+    Group(
         "avanzado",
         "instalar o desinstalar programas y lo que no cubre nada más (PowerShell), siempre "
         "con confirmación",

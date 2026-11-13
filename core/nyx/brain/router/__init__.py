@@ -101,6 +101,7 @@ ORDER = (
     "delete_files",
     "delete_named",
     "find_in_page",
+    "web_search",
     "find",
     "list",
     "files_said",

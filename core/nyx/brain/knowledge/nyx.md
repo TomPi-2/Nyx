@@ -36,8 +36,12 @@ contesto con voz y en una burbuja.
   Spotify, Discord, VS Code, Word y Excel.
 - Deshacer lo último durante 30 segundos («Nyx, deshaz»).
 - Responder preguntas de cultura general, traducciones y cálculos.
-- Aún no busco en internet ni creo archivos: llegará pronto. La salida de audio no puedo
-  cambiarla sola (Windows no deja): te abro los ajustes de sonido.
+- Buscar en internet (Wikipedia) lo que no sé o me pides, diciendo de dónde lo saco; o abrir
+  la búsqueda en tu navegador. La actualidad (noticias, resultados) aún no.
+- Instalar o desinstalar programas, pulsar un botón o leer un texto de una app, y ejecutar un
+  comando de PowerShell: siempre con tu confirmación y nunca dentro de los juegos.
+- Aún no creo archivos. La salida de audio no puedo cambiarla sola (Windows no deja): te abro
+  los ajustes de sonido.
 
 ## Modo partida
 

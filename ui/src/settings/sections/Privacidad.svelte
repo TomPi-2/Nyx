@@ -18,12 +18,25 @@
 <Card title="Qué sale de tu equipo">
   <p class="text">
     Nyx funciona en tu equipo: lo que dices y escribes, tus archivos y lo que hay en tu pantalla no
-    salen de él. Solo se conecta a internet para lo que pides (abrir una página, descargar los
-    modelos) y, si lo activas abajo, para los datos de uso anónimos.
+    salen de él. Solo se conecta a internet para lo que pides (abrir una página, buscar algo,
+    descargar los modelos) y, si lo activas abajo, para los datos de uso anónimos.
   </p>
 </Card>
 
 {#if data}
+  <Card title="Buscar en internet">
+    <Row
+      label="Buscar lo que no sé"
+      hint="Busco en Wikipedia cuando me lo pides o no sé algo. Solo sale lo que se busca, nunca datos de tu equipo, y te digo de dónde lo he sacado."
+    >
+      <Toggle
+        label="Buscar lo que no sé"
+        checked={data.web.enabled}
+        onchange={(enabled) => settings.set({ web: { enabled } })}
+      />
+    </Row>
+  </Card>
+
   <Card title="Ayudar a mejorar Nyx">
     <Row
       label="Enviar datos de uso anónimos"
