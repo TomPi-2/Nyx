@@ -7,19 +7,19 @@ Fallos vistos al usar Nyx que quedan pendientes de corregir. Se apuntan aquí pa
 | Fecha | Frase o situación | Qué pasa | Qué debería pasar | Pista |
 | --- | --- | --- | --- | --- |
 | 2026-11-11 | «Busca qué aplicaciones ha creado Tepnyx» | Busca archivos en el disco. | Buscar en internet. | Falta `web_search` (fase 6); el router no debe mandar preguntas a `find_files`. |
-| 2026-11-12 | Nyx con un color puesto (interfaz) | Se nota que el cuadrado está hecho de 4 triángulos: 2 se ven más claros que los otros 2. Y todo el borde se ve un poco más oscuro. | Todo el cuadrado exactamente del mismo color, sea cual sea el color elegido, sin borde más oscuro. **El movimiento está perfecto: no tocarlo**; el problema es solo el color. | Revisar el sombreado del orbe (WebGL): probablemente el color se mezcla o interpola por vértice/triángulo, o hay un degradado o antialias en el borde. |
-| 2026-11-12 | Paneles de respuesta (interfaz y cerebro) | A veces el mensaje grande va con un mensaje pequeño que no aporta nada. Otras veces el grande se queda corto: una sola palabra cuando debería dar algo más de detalle. | Línea pequeña solo si aporta; línea grande con el detalle justo. **Todo bien escrito en las dos líneas:** mayúscula inicial, punto final, tildes y demás reglas. | Cabecera `[dato \| contexto]` del modelo (`brain/reply.py`, `prompts.py`), `display`/`secondary` de cada herramienta y frases de `phrases.py`. Hoy muchas no llevan punto ni mayúscula a propósito: hay que cambiar el criterio en todas a la vez y añadir una prueba que lo exija. |
-| 2026-11-12 | «Arranca el Discord que voy a hablar con los colegas» | «No encuentro el discord que voy a hablar con los colegas». | Abrir Discord. | Router `open`: lo que va detrás del nombre («que…», «para…») entra en el nombre y el `Miss` no pasa al LLM. Batería 6.17. |
-| 2026-11-12 | «Abre lo del bluetooth para emparejar unos cascos» | «No encuentro…». | Abrir Configuración → Bluetooth. | Mismo caso que el anterior. Batería 6.17. |
 | 2026-11-12 | «Ábreme el último documento que descargué» | «No encuentro…». | Buscar el documento más reciente de Descargas y abrirlo (dos pasos, LLM). | Mismo caso: un `Miss` con frase larga debería ir al LLM. Batería 6.17. |
-| 2026-11-12 | «Cierra el dis cord» (Whisper parte la palabra) | Intenta cerrar «dis cord»: no lo encuentra. | Cerrar Discord. | La regla `close` no resuelve el nombre en el índice como `open`. Batería 6.17. |
-| 2026-11-12 | «Pon la música en aleatorio» | Reproduce con `source="aleatorio"`. | Aleatorio en Spotify (`app_action shuffle`). | Regla de reproducir: «en X» no siempre es la app. Batería 6.17. |
-| 2026-11-12 | «Busca en esta página la palabra precio» | Busca archivos llamados «en esta pagina la palabra precio». | Ctrl+F en la app activa (`app_action find`). | Regla `find`: excluir «en esta página/ventana». Batería 6.17. |
 
 ## Corregidos
 
 | Fecha | Error | Commit |
 | --- | --- | --- |
+| 2026-11-13 | Nyx con un color puesto (interfaz): Color plano en `shaders.ts` (sin el sombreado que partía la forma en cuatro triángulos y oscurecía el borde); el movimiento no cambia. **Pendiente de que el usuario lo pruebe con colores.** | `7dc05c8` (6.23) |
+| 2026-11-13 | Paneles de respuesta (interfaz y cerebro): Criterio común en `core/nyx/brain/panel.py` para todos los paneles: mayúscula, punto solo en frases (opción A, RAE), la línea pequeña solo si aporta y la grande con la primera frase de la voz si era una palabra vacía («Sí», «Claro»). Prueba de tildes en todos los textos fijos. **Pendiente de que el usuario lo vea en uso.** | (6.23) |
+| 2026-11-13 | «Arranca el Discord que voy a hablar con los colegas»: Abrir sin la explicación de detrás si así se encuentra (`router/apps.py`). | `fb37c46` (6.25) |
+| 2026-11-13 | «Abre lo del bluetooth para emparejar unos cascos»: Abrir sin «lo de» ni la explicación de detrás. | `fb37c46` (6.25) |
+| 2026-11-13 | «Cierra el dis cord» (Whisper parte la palabra): Nombres mal oídos corregidos si se parecen letra a letra (`comun._fix_typo`). | `fb37c46` (6.25) |
+| 2026-11-13 | «Pon la música en aleatorio»: Modo aleatorio de Spotify; «aleatorio» ya no es una fuente. | `fb37c46` (6.25) |
+| 2026-11-13 | «Busca en esta página la palabra precio»: Ctrl+F en la app y escribir la palabra (`find_in_page`). | `fb37c46` (6.25) |
 | 2026-11-12 | «Explícame qué es un agujero negro» ya explica el tema con el LLM local sin decir que no puede buscar en internet (comprobado en Ollama y batería). | 0.6 (6.16) |
 | 2026-11-12 | «Elimina la carpeta llamada "carpeta nueva" del escritorio»: `find_windows` y `_matches_name` en `files.py` aceptan orden distinto de palabras (`token_sort_ratio`), `resolve_folder` revisa subcarpetas recientes en disco sin reescanear y `select()` sugiere la más parecida si no coincide. | 0.6 (6.16) |
 | 2026-11-12 | «Cierra la carpeta que tengo abierta» / «Cierra la carpeta llamada nueva carpeta»: `close_app` y la regla `close` del router resuelven ventanas del Explorador por carpeta abierta o por nombre. | 0.6 (6.16) |

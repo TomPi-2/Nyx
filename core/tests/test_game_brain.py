@@ -53,7 +53,7 @@ async def test_questions_wait_when_there_is_no_brain() -> None:
     await h.bus.publish(TextEntered("¿Qué es un agujero negro?"))
     await h.p.wait_idle()
     assert h.llm.requests == []  # ni se le pregunta
-    assert shown[-1].display == "En partida no puedo pensarlo"
+    assert shown[-1].display == "En partida no puedo pensarlo."
     assert h.tts.said[-1] == "En partida no puedo pensarlo. Pregúntamelo al terminar."
     await h.p.close()
 

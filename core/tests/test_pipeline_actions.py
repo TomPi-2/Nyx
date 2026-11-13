@@ -58,7 +58,7 @@ async def test_action_with_result_shows_bubble() -> None:
     with_router(h, Route([ToolCall("screenshot")], "screenshot"), [result])
     await h.bus.publish(TextEntered("haz una captura"))
     await h.p.wait_idle()
-    assert h.bubbles == [("Captura guardada", "copiada")]
+    assert h.bubbles == [("Captura guardada", "Copiada")]
     assert h.tts.said == []
     await h.p.close()
 
@@ -69,7 +69,7 @@ async def test_failed_action_is_explained() -> None:
     await h.say()
     await h.p.wait_idle()
     assert NyxState.ERROR in h.states
-    assert h.bubbles[-1][0] == "No he podido abrir Spotify"
+    assert h.bubbles[-1][0] == "No he podido abrir Spotify."
     assert h.tts.said == ["No he podido abrir Spotify"]  # por voz, se dice
     await h.p.close()
 

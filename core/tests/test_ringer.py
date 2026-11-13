@@ -96,7 +96,7 @@ async def test_missed_alarms_single_notice() -> None:
     await bus.publish(AlarmsMissed((ALARM,)))
     bubble = seen[0]
     assert isinstance(bubble, BubbleShown) and bubble.alert
-    assert bubble.display == "Mientras estaba apagado"
+    assert bubble.display == "Mientras estaba apagado."
     assert len(player.played) == 1 and not ringer.ringing
     await ringer.close()
 

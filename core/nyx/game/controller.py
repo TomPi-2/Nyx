@@ -14,6 +14,7 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
+from nyx.brain.panel import tidy
 from nyx.bus import EventBus
 from nyx.events import Announce, BubbleHidden, BubbleShown
 from nyx.game.detector import GameStateChanged
@@ -146,9 +147,7 @@ class GameController:
         lines = [f"Hecho: {_join(done)}"] if done else []
         if failed:
             lines.append(f"No pude: {_join(failed)}")
-        await self.bus.publish(
-            BubbleShown(display="Al terminar la partida", secondary=" · ".join(lines))
-        )
+        await self.bus.publish(BubbleShown(*tidy("Al terminar la partida", " · ".join(lines))))
         if any(item.voice for item in pending):
             spoken = [f"Ya he hecho lo pendiente: {_join(done)}." if done else ""]
             if failed:

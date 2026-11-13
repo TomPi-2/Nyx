@@ -10,6 +10,7 @@ import pytest
 
 from nyx.audio.capture import FRAME_S, FRAME_SAMPLES
 from nyx.brain.base import ChatMessage, LLMError, LLMErrorKind, LLMToolCall
+from nyx.brain.panel import tidy
 from nyx.brain.phrases import LLM_ERROR_KEY, PHRASES
 from nyx.brain.service import Brain
 from nyx.bus import EventBus
@@ -296,7 +297,7 @@ async def test_typed_request_can_also_be_spoken() -> None:
     await h.p.wait_idle()
     assert h.states == [NyxState.THINKING, NyxState.SPEAKING, NyxState.IDLE]
     assert h.tts.said == ["En alemán se dice Hallo."]
-    assert h.bubbles == [("Hallo", "hola · alemán")]
+    assert h.bubbles == [("Hallo", "Hola · alemán")]
     assert h.p.mode is Mode.IDLE  # sin ventana de seguimiento: no se habló al micrófono
     await h.p.close()
 
@@ -309,7 +310,7 @@ async def test_voice_flow_with_followup_window() -> None:
     # Prebúfer de 0,5 s + 1 s de voz + 0,7 s de silencio, aprox.
     assert h.stt.full_calls[0] >= (n(1.0) + n(0.7)) * FRAME_SAMPLES
     assert h.tts.said == ["En alemán se dice Hallo."]
-    assert h.bubbles == [("Hallo", "hola · alemán")]
+    assert h.bubbles == [("Hallo", "Hola · alemán")]
     assert h.llm.asked[0] == "¿Cómo se dice hola en alemán?"  # sin «Nix,»
     # Ventana de seguimiento: escucha sin repetir la palabra y, sin voz, vuelve a reposo.
     assert h.p.mode is Mode.LISTENING
@@ -444,7 +445,7 @@ async def test_llm_errors_are_explained(kind: LLMErrorKind) -> None:
     assert NyxState.ERROR in h.states
     assert h.states[-1] is NyxState.IDLE
     expected = PHRASES[LLM_ERROR_KEY[kind]]
-    assert h.bubbles[-1] in {(p.display, p.secondary) for p in expected}
+    assert h.bubbles[-1] in {tidy(p.display, p.secondary) for p in expected}
     assert h.tts.said and h.tts.said[-1] in {p.spoken for p in expected}
     await h.p.close()
 
@@ -453,7 +454,7 @@ async def test_llm_error_on_text_request_is_silent() -> None:
     h = Harness(llm=FakeLLM(error=LLMError(LLMErrorKind.UNAVAILABLE)))
     await h.bus.publish(TextEntered("hola"))
     await h.p.wait_idle()
-    assert h.bubbles[-1][0] in {p.display for p in PHRASES["error_unavailable"]}
+    assert h.bubbles[-1][0] in {tidy(p.display)[0] for p in PHRASES["error_unavailable"]}
     assert h.tts.said == []
     await h.p.close()
 
@@ -517,5 +518,18 @@ async def test_code_in_reply_is_never_spoken(raw: str) -> None:
     await h.p.wait_idle()
     assert all("(" not in s and "{" not in s for s in h.tts.said)
     assert h.tts.said[-1] in {p.spoken for p in PHRASES["garbled"]}
-    assert h.bubbles[-1] in {(p.display, p.secondary) for p in PHRASES["garbled"]}
+    assert h.bubbles[-1] in {tidy(p.display, p.secondary) for p in PHRASES["garbled"]}
+    await h.p.close()
+
+
+@pytest.mark.parametrize("speak_typed", [True, False])
+async def test_one_word_header_gets_the_detail_of_the_voice(speak_typed: bool) -> None:
+    """6.23: «[Sí | respuesta]» no dice nada; el panel enseña la primera frase de la voz."""
+    reply = "[Sí | respuesta]\nSí, mañana va a llover por la tarde. Coge paraguas."
+    h = Harness(llm=FakeLLM(reply), speak_typed=speak_typed)
+    await h.bus.publish(TextEntered("¿va a llover mañana?"))
+    await h.p.wait_idle()
+    first = "Sí, mañana va a llover por la tarde."
+    # Hablado: solo la frase. Escrito: debajo, el resto de la respuesta (sin repetirla).
+    assert h.bubbles == [(first, None if speak_typed else "Coge paraguas.")]
     await h.p.close()

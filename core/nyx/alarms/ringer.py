@@ -24,6 +24,7 @@ import numpy as np
 from nyx.alarms.scheduler import AlarmFired, AlarmsMissed
 from nyx.alarms.spoken import fired_text, missed_text
 from nyx.audio.playback import Player, Samples
+from nyx.brain.panel import tidy
 from nyx.bus import EventBus
 from nyx.events import (
     ActionChosen,
@@ -147,6 +148,7 @@ class AlarmRinger:
     async def _on_fired(self, event: AlarmFired) -> None:
         await self._silence()  # si sonaba otra, la nueva la sustituye
         display, secondary, spoken = fired_text(event.alarm)
+        display, secondary = tidy(display, secondary)  # criterio de los paneles (6.23)
         log.info("Suena %s %s: %s", event.alarm.kind, event.alarm.id, spoken)
         self._button = f"alarm-stop-{uuid.uuid4().hex[:8]}"
         await self.bus.publish(
@@ -188,7 +190,7 @@ class AlarmRinger:
             self.player.enqueue(await self.tts.synthesize(text))
 
     async def _on_missed(self, event: AlarmsMissed) -> None:
-        display, secondary = missed_text(event.alarms)
+        display, secondary = tidy(*missed_text(event.alarms))
         await self.bus.publish(
             BubbleShown(display=display, secondary=secondary, alert=True, kind="alert")
         )

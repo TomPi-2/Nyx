@@ -104,7 +104,7 @@ async def test_red_action_confirmed_with_button(ctx: ToolContext) -> None:
     await h.bus.publish(TextEntered("borra a.txt"))
     yes, _no = await wait_for_buttons(h)
     assert h.p.state is NyxState.CONFIRM
-    assert h.bubbles[-1] == ("Mandar a la papelera «a.txt»", "de Descargas · di «sí» o «no»")
+    assert h.bubbles[-1] == ("Mandar a la papelera «a.txt»", "De Descargas · di «sí» o «no»")
     await h.bus.publish(ActionChosen(yes))
     await h.p.wait_idle()
     assert Danger.done == ["borrado"]

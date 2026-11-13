@@ -23,6 +23,7 @@ from nyx.audio.vad import SileroVAD
 from nyx.brain.answers import Answers
 from nyx.brain.base import LLMError
 from nyx.brain.ollama import OllamaEngine, launch_ollama
+from nyx.brain.panel import tidy
 from nyx.brain.phrases import PhraseBook
 from nyx.brain.router import refusal, route, written_command
 from nyx.brain.select import ToolSelector, tools_budget
@@ -431,7 +432,7 @@ async def _notice(bus: EventBus, problems: list[str]) -> None:
     if notice is None:
         return
     await asyncio.sleep(NOTICE_DELAY_S)
-    display, secondary = notice
+    display, secondary = tidy(*notice)
     await bus.publish(BubbleShown(display=display, secondary=secondary))
     # Con varias cosas que leer, se deja un poco más.
     await asyncio.sleep(NOTICE_S + 3 * secondary.count("\n"))

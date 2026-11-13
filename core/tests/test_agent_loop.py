@@ -32,7 +32,7 @@ async def test_query_from_the_router_is_told_by_the_llm() -> None:
     assert "C:\\" not in asked  # sin rutas: se leerían en voz alta
     assert "list_files" not in asked  # en español, sin nombres internos
     assert h.tts.said == ["Tienes una factura, una foto y unas notas."]
-    assert h.bubbles[-1] == ("3 archivos", "en Descargas")
+    assert h.bubbles[-1] == ("3 archivos", "En Descargas")
     await h.p.close()
 
 
@@ -83,7 +83,7 @@ async def test_repeating_the_same_call_ends_the_loop() -> None:
     await h.bus.publish(TextEntered("¿qué hay en Descargas?"))
     await h.p.wait_idle()
     assert len(executor.calls) == 1  # no se repite
-    assert h.bubbles[-1] == ("3 archivos", "factura.pdf, foto.png…")
+    assert h.bubbles[-1] == ("3 archivos", "Factura.pdf, foto.png…")
     await h.p.close()
 
 
@@ -236,7 +236,7 @@ async def test_ready_answer_from_the_router_is_said_without_the_llm() -> None:
     await h.p.wait_idle()
     assert h.llm.requests == []  # ni una vuelta en la gráfica
     assert h.tts.said == ["Tienes un 40 % de batería y está desenchufado."]
-    assert h.bubbles[-1] == ("40 %", "batería · desenchufado")
+    assert h.bubbles[-1] == ("40 %", "Batería · desenchufado")
     await h.p.close()
 
 
@@ -246,7 +246,7 @@ async def test_ready_answer_typed_goes_only_to_the_bubble() -> None:
     await h.bus.publish(TextEntered("¿cuánta batería me queda?"))
     await h.p.wait_idle()
     assert h.llm.requests == [] and h.tts.said == []
-    assert h.bubbles[-1] == ("40 %", "batería · desenchufado")
+    assert h.bubbles[-1] == ("40 %", "Batería · desenchufado")
     await h.p.close()
 
 
@@ -278,5 +278,5 @@ async def test_ready_answer_uses_the_tone_variants() -> None:
     await h.p.wait_idle()
     neutral = {variant(data) for variant in ANSWERS["battery"]["neutro"]}
     assert h.llm.requests == [] and len(h.tts.said) == 1 and h.tts.said[0] in neutral
-    assert h.bubbles[-1] == ("40 %", "batería · desenchufado")  # el panel no cambia
+    assert h.bubbles[-1] == ("40 %", "Batería · desenchufado")  # el panel no cambia
     await h.p.close()

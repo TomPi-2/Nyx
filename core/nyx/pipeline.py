@@ -28,6 +28,7 @@ from nyx.brain.agent import MAX_SECONDS, MAX_STEPS, AgentRun, continuation_hint,
 from nyx.brain.answers import Answers
 from nyx.brain.base import LLMError
 from nyx.brain.guard import looks_like_code, mentions_tool, tool_keys
+from nyx.brain.panel import tidy
 from nyx.brain.phrases import PhraseBook
 from nyx.brain.reply import BubbleReady, Reply, SpokenDelta, SpokenEnd, first_sentence
 from nyx.brain.router import IN_GAME_REFUSAL, Miss, Route
@@ -1019,11 +1020,15 @@ class Pipeline:
         splitter = SentenceSplitter()
         level_task: asyncio.Task[None] | None = None
 
+        first_said = ""  # primera frase dicha: detalle para una cabecera de una palabra
+
         async def show_bubble() -> None:
             nonlocal bubble_shown
             if bubble is not None and (bubble.display or bubble.secondary):
                 bubble_shown = True
-                await self._show_bubble(bubble.display, bubble.secondary)
+                await self._show_bubble(
+                    bubble.display, bubble.secondary, spoken=final_spoken or first_said
+                )
 
         async def on_speech_start() -> None:
             nonlocal level_task
@@ -1050,10 +1055,11 @@ class Pipeline:
         final_spoken = ""
 
         def say(sentence: str) -> None:
-            nonlocal garbled, bubble
+            nonlocal garbled, bubble, first_said
             if garbled or looks_like_code(sentence) or mentions_tool(sentence, keys):
                 garbled = True
                 return
+            first_said = first_said or sentence
             if rebuild:
                 held.append(sentence)
                 return
@@ -1217,7 +1223,11 @@ class Pipeline:
         *,
         kind: BubbleKind = "response",
         expires_s: float | None = None,
+        spoken: str = "",
     ) -> None:
+        # Criterio común de los paneles (6.23): mayúscula, punto solo en frases, la línea
+        # pequeña solo si aporta y la grande con detalle (`spoken`: lo que dice la voz).
+        display, secondary = tidy(display, secondary, spoken)
         if self._bubble_timer is not None:
             self._bubble_timer.cancel()
             self._bubble_timer = None
