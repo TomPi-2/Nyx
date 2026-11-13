@@ -412,6 +412,10 @@ GROUPS: tuple[Group, ...] = (
             # Solo cuando se pide buscar: «¿quién pintó las Meninas?» lo contesta el modelo.
             r"\bbusca(?:me|lo|la)? (?:informacion|que|quien|cuando|donde|como)\b",
             r"\bbuscal[oa]\b",
+            # Lo que se busca en internet aunque no se diga (router: archivos._WEB_THING).
+            r"receta",
+            r"tutorial",
+            r"noticia",
         ),
     ),
     Group(
