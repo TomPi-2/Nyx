@@ -73,6 +73,9 @@ p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 82ch; }
 .nyx.gone { opacity: 0; transform: scale(.6); }
 @keyframes talk { from { transform: scale(1) rotate(0deg); } to { transform: scale(1.07) rotate(3deg); } }
 .gap { height: 14px; flex: none; }
+/* El hueco de los paneles ocupa todo el ancho y los centra: si se ajustase al contenido, el
+   panel largo se movía hacia un lado al crecer el texto. */
+#slot { width: 100%; display: flex; justify-content: center; }
 
 .glass {
   background: var(--tint); color: var(--text);
@@ -162,8 +165,8 @@ p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 82ch; }
   <div class="bar">
     <span class="label">Cómo aparece el texto</span>
     <div class="seg" id="reveal">
-      <button data-v="frase" class="on">Frase a frase</button>
-      <button data-v="letra">Letra a letra</button>
+      <button data-v="letra" class="on">Letra a letra</button>
+      <button data-v="frase">Frase a frase</button>
     </div>
     <span class="label">Voz del navegador</span>
     <div class="seg" id="tts">
@@ -237,7 +240,7 @@ const RECIPE = {
 };
 
 const $ = (id) => document.getElementById(id);
-const state = { kind: "explicacion", reveal: "frase", tts: "no" };
+const state = { kind: "explicacion", reveal: "letra", tts: "no" };
 let run = 0; // cada «Repetir» invalida lo anterior
 
 function seg(id, key, after) {
@@ -257,9 +260,13 @@ $("replay").addEventListener("click", play);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const words = (t) => t.trim().split(/\s+/).length;
 
-/** «Dice» una frase: con la voz del navegador si se pide (y hay una en español), si no a
- *  unos 2,8 palabras por segundo con subtítulo. Devuelve cuando acaba. */
-async function say(text, id) {
+/** Lo que se calcula que dura una frase dicha (unas 2,8 palabras por segundo). */
+const estimate = (text) => Math.max(1400, words(text) * 360);
+
+/** «Dice» una frase: con la voz del navegador si se pide (y hay una en español), si no con
+ *  subtítulo y la duración estimada. `onWord(fin)`: hasta qué letra va la voz, cuando el
+ *  navegador lo dice (no todos lo hacen). Devuelve cuando acaba. */
+async function say(text, id, onWord = () => {}) {
   $("voice").textContent = state.tts === "no" ? `«${text}»` : "";
   const synth = window.speechSynthesis;
   const es = synth && synth.getVoices().find((v) => v.lang && v.lang.startsWith("es"));
@@ -267,12 +274,50 @@ async function say(text, id) {
     await new Promise((resolve) => {
       const u = new SpeechSynthesisUtterance(text);
       u.voice = es; u.lang = es.lang; u.rate = 1.05; u.onend = resolve; u.onerror = resolve;
+      u.onboundary = (e) => {
+        if (e.name && e.name !== "word") return;
+        const len = e.charLength || (text.slice(e.charIndex).match(/^\S+/) || [""])[0].length;
+        onWord(e.charIndex + len);
+      };
       synth.speak(u);
     });
   } else {
-    await sleep(Math.max(1400, words(text) * 360));
+    await sleep(estimate(text));
   }
   if (id === run) $("voice").textContent = "";
+}
+
+/** Letra a letra al ritmo de la voz, sin ir nunca por delante de ella. Si el navegador avisa
+ *  de cada palabra, se sigue eso; si no, las letras se reparten por la duración de la frase
+ *  (en Nyx se sabe exacta: es lo que dura el audio de esa frase). Al acabar la frase, lo que
+ *  falte se completa enseguida. */
+async function speakAndType(el, text, id) {
+  let shown = 0;
+  let target = 0;
+  let boundaries = false;
+  let done = false;
+  const start = performance.now();
+  const dur = estimate(text);
+  const caret = document.createElement("span");
+  caret.className = "caret";
+  el.after(caret);
+  const typer = (async () => {
+    while (id === run && (!done || shown < text.length)) {
+      if (!boundaries && !done) target = Math.min(text.length, Math.floor(((performance.now() - start) / dur) * text.length));
+      if (done) target = text.length;
+      if (shown < target) {
+        shown = Math.min(target, shown + (done ? 4 : 1));
+        el.textContent = text.slice(0, shown);
+        if (shown % 3 === 0) follow();
+      }
+      await sleep(22);
+    }
+  })();
+  await say(text.trim(), id, (end) => { boundaries = true; target = Math.max(target, end); });
+  done = true;
+  await typer;
+  caret.remove();
+  follow();
 }
 
 function speaking(on) { $("nyx").classList.toggle("speaking", on); }
@@ -334,17 +379,6 @@ function save() {
   $("close2").addEventListener("click", () => { $("slot").innerHTML = ""; $("notepad").classList.remove("show"); });
 }
 
-async function typeInto(el, text, ms, id) {
-  // Letra a letra, repartiendo la duración de la frase entre sus letras.
-  const step = Math.max(8, ms / text.length);
-  for (let i = 1; i <= text.length; i++) {
-    if (id !== run) return;
-    el.textContent = text.slice(0, i);
-    if (i % 3 === 0) follow();
-    await sleep(step);
-  }
-}
-
 async function play() {
   const id = ++run;
   speechSynthesis?.cancel();
@@ -395,12 +429,8 @@ async function play() {
     const span = document.createElement("span");
     span.className = "s now new";
     para.appendChild(span);
-    const dur = Math.max(1400, words(sentence) * 360);
-    if (state.reveal === "letra" && state.tts === "no") {
-      const caret = document.createElement("span"); caret.className = "caret";
-      span.after(caret);
-      await Promise.all([typeInto(span, sentence + " ", dur * 0.9, id), say(sentence, id)]);
-      caret.remove();
+    if (state.reveal === "letra") {
+      await speakAndType(span, sentence + " ", id);
     } else {
       span.textContent = sentence + " ";
       follow();
