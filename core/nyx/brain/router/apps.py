@@ -11,6 +11,7 @@ from nyx.brain.router.comun import (
     _window_name,
     rule,
 )
+from nyx.index.aliases import normalize, strip_articles
 from nyx.index.model import Kind
 from nyx.index.service import SystemIndex
 from nyx.tools.open_url import to_url
@@ -41,6 +42,113 @@ def _close(m: re.Match[str], index: SystemIndex) -> Route | None:
         return _call("close", "close_app", name=f"carpeta {mf.group('f')}")
     name = _window_name(target)
     return _call("close", "close_app", name=name)
+
+
+# --- abrir por lo que se necesita (6.25): «necesito la calculadora», «vamos a jugar al lol» ---
+# Solo si el nombre coincide EXACTO con una app o un juego del equipo; si no, al LLM.
+
+# Nombres de apps de Windows que también son palabras corrientes: sin artículo no se abren
+# («necesito ayuda», «quiero música», «necesito notas»).
+_GENERIC = frozenset(
+    {
+        "ayuda", "tiempo", "musica", "fotos", "camara", "correo", "mapas", "reloj", "notas",
+        "noticias", "juegos", "tienda", "calendario", "contactos", "personas", "consejos",
+        "alarmas", "configuracion", "ajustes", "internet", "telefono", "recortes", "tiempo libre",
+    }
+)  # fmt: skip
+_WITH_ARTICLE = re.compile(r"^(?:el|la|los|las)\s")
+_FOR_TAIL = re.compile(r"\s+para\s+.+$")
+
+
+def _exact_app(raw: str, index: SystemIndex) -> str | None:
+    """Nombre de la app o el juego que se llama exactamente `raw` (texto ya limpio), o None."""
+    raw = _FOR_TAIL.sub("", raw.strip())
+    bare = strip_articles(raw)
+    if not bare or (bare in _GENERIC and not _WITH_ARTICLE.match(raw)):
+        return None
+    best = index.confident(index.resolve(raw, {Kind.APP, Kind.GAME}))
+    if best is None or best.alias != bare:
+        return None
+    return best.entry.name
+
+
+_LEAD = r"(?:tengo que|necesito|quiero|voy a|vamos a|me toca|toca|hay que|debo|me apetece)"
+
+
+@rule(
+    "open_game",
+    r"^(?:hoy\s+)?(?:vamos a|voy a|quiero|me apetece|nos echamos|echamos|toca|me toca)\s+"
+    r"(?:jugar|echar\s+(?:una|unas|otra)\s+partidas?|echar\s+un\s+rato|un\s+rato)\s+"
+    r"(?:al|a la|a los|a|de)\s+(?P<x>.+)$",
+)
+def _open_game(m: re.Match[str], index: SystemIndex) -> Route | None:
+    name = _exact_app(m.group("x"), index)
+    return _call("open_game", "open_app", name=name) if name else None
+
+
+# Tarea → apps que la hacen, por orden de preferencia (la primera instalada).
+_TASKS: tuple[tuple[re.Pattern[str], tuple[str, ...]], ...] = tuple(
+    (re.compile(rf"^{_LEAD}\s+(?:{pattern})(?:\s+para\s+.+)?$"), apps)
+    for pattern, apps in (
+        (
+            r"(?:hacer|preparar|crear|montar)\s+(?:una\s+|unas\s+)?"
+            r"(?:hojas?\s+de\s+calculo|tablas?\s+de\s+excel)",
+            ("Excel", "LibreOffice Calc"),
+        ),
+        (
+            r"(?:hacer|preparar|crear|montar)\s+(?:una\s+|unas\s+)?(?:presentacion(?:es)?|diapositivas)",
+            ("PowerPoint", "LibreOffice Impress"),
+        ),
+        (
+            r"(?:redactar|escribir|hacer|crear)\s+(?:un\s+)?(?:documento|trabajo\s+escrito|informe)",
+            ("Word", "LibreOffice Writer"),
+        ),
+        (
+            r"hacer\s+(?:unas\s+|una\s+)?(?:cuentas|operacion(?:es)?|calculos?)"
+            r"|calcular\s+(?:una\s+cosa|algo)",
+            ("Calculadora",),
+        ),
+        (
+            r"grabar\s+(?:la\s+pantalla|la\s+partida|un\s+directo)|hacer\s+(?:un\s+)?directo|streamear",
+            ("OBS Studio",),
+        ),
+        (
+            r"(?:recortar|editar|retocar)\s+(?:una\s+|la\s+|esta\s+)?(?:foto|imagen|captura)"
+            r"|dibujar(?:\s+algo)?",
+            ("Paint",),
+        ),
+    )
+)
+
+
+@rule("open_task", rf"^{_LEAD}\s+.+$")
+def _open_task(m: re.Match[str], index: SystemIndex) -> Route | None:
+    text = m.group(0)
+    for pattern, apps in _TASKS:
+        if pattern.match(text):
+            for app in apps:
+                if name := _exact_app(normalize(app), index):
+                    return _call("open_task", "open_app", name=name)
+            return None  # se entiende la tarea, pero no hay app para ella: el LLM lo explica
+    return None
+
+
+@rule("open_with", rf"^{_LEAD}\s+(?P<what>.+?)\s+con\s+(?:el\s+|la\s+)?(?P<x>.+)$")
+def _open_with(m: re.Match[str], index: SystemIndex) -> Route | None:
+    """«quiero grabar un vídeo con el OBS»: la app que se nombra (solo si existe tal cual)."""
+    name = _exact_app(m.group("x"), index)
+    return _call("open_with", "open_app", name=name) if name else None
+
+
+@rule(
+    "open_need",
+    # Las formas largas antes: «quiero usar X» no es «quiero» + «usar X».
+    r"^(?:quiero usar|quiero abrir|necesito usar|necesito abrir|necesito|me hace falta|"
+    r"me falta|quiero)\s+(?P<x>.+)$",
+)
+def _open_need(m: re.Match[str], index: SystemIndex) -> Route | None:
+    name = _exact_app(m.group("x"), index)
+    return _call("open_need", "open_app", name=name) if name else None
 
 
 # --- abrir (lo último: es el patrón más general) ---

@@ -335,3 +335,19 @@
 {"frase": "pulsa la tecla W en el Valorant", "tipo": "no_sabe"}
 {"frase": "instálame el Minecraft", "tipo": "no_sabe"}
 {"frase": "paga la factura de la luz", "tipo": "no_sabe"}
+{"frase": "me hace falta la calculadora", "tool": "open_app", "args": {"name": "Calculadora"}}
+{"frase": "necesito el Excel", "tool": "open_app", "args": {"name": "Excel"}}
+{"frase": "quiero usar el Paint", "tool": "open_app", "args": {"name": "Paint"}}
+{"frase": "necesito Spotify, por favor", "tool": "open_app", "args": {"name": "Spotify"}}
+{"frase": "voy a preparar una presentación", "tool": "open_app", "args": {"name": "PowerPoint"}}
+{"frase": "tengo que redactar un documento", "tool": "open_app", "args": {"name": "Word"}}
+{"frase": "necesito hacer unas cuentas", "tool": "open_app", "args": {"name": "Calculadora"}}
+{"frase": "quiero grabar la pantalla", "tool": "open_app", "args": {"name": "OBS Studio"}}
+{"frase": "tengo que recortar una foto", "tool": "open_app", "args": {"name": "Paint"}}
+{"frase": "me toca hacer una hoja de cálculo para clase", "tool": "open_app", "args": {"name": "Excel"}}
+{"frase": "quiero grabar un vídeo con el OBS", "tool": "open_app", "args": {"name": "OBS Studio"}}
+{"frase": "vamos a jugar al Fortnite", "tool": "open_app", "args": {"name": "Fortnite"}}
+{"frase": "me apetece echar una partida al Fortnite", "tool": "open_app", "args": {"name": "Fortnite"}}
+{"frase": "quiero jugar al Valorant", "tool": "open_app", "args": {"name": "VALORANT"}}
+{"frase": "vamos a echar unas partidas al lol", "tool": "open_app", "args": {"name": "League of Legends"}}
+{"frase": "hoy toca un rato de Rocket League", "tool": "open_app", "args": {"name": "Rocket League"}}

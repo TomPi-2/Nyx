@@ -115,6 +115,10 @@ ORDER = (
     "pending",
     "pending_cancel",
     "focus",
+    "open_game",
+    "open_task",
+    "open_with",
+    "open_need",
     "open",
 )
 
