@@ -82,7 +82,8 @@ tiene 409 frases (las 9 nuevas de la 6.28).
 | --- | --- | --- | --- | --- | --- |
 | `qwen2.5:7b` | 62 (78 %) | 377 (92 %) | 0 | 34 | 0 |
 | `nyx-r1:7b` | 70 (88 %) | 379 (93 %) | **11** | 1 | 0 |
-| `nyx-r2:7b` | **70 (88 %)** | **391 (96 %)** | **0** | 10 | 0 |
+| `nyx-r2:7b` | 70 (88 %) | 391 (96 %) | **0** | 10 | 0 |
+| `nyx-r3:7b` | **73 (91 %)** | **392 (96 %)** | 1 | 5 | 0 |
 
 (Actúa sin deber y no actúa: suma de reserva y batería. Las frases del router, 292, aciertan
 todas con los tres.)
@@ -103,7 +104,8 @@ todas con los tres.)
   archivos»: no conoce `save_note` porque no estaba al entrenar).
 - **Latencia:** primer token con mediana de 470 ms con la ronda 2 frente a 1.310 ms con
   `qwen2.5:7b`. No lo tomo como medida: la del modelo base fue la primera tras la conversión
-  (carga en frío y el procesador aún ocupado). Hay que repetirla.
+  (carga en frío y el procesador aún ocupado). **Repetida el 2026-11-13** (ver «Latencia,
+  medida igual para todos»).
 
 **Veredicto:** la ronda 2 es la primera que mejora sin actuar sin deber, pero **la regla del
 plan (sin fallos nuevos ni más coste) no se cumple del todo**: 8 fallos nuevos leves y sin medir
@@ -112,7 +114,7 @@ el usuario (`docs/REVISAR.md`). **Decidido el 2026-11-13: se adopta** (opción a
 
 Informes: `lora-6.27-ollama-{base,r1,r2}-{reserva,bateria}.md`.
 
-## Ronda 3 (en curso) · 1.000 ejemplos, mismos ajustes
+## Ronda 3 · 1.000 ejemplos, mismos ajustes (239 min, validación 0,101)
 
 - **`training/llm/fixes.py`:** 46 frases nuevas escritas a mano para lo que rompió la ronda 2
   (ninguna de la batería ni de la reserva), 41 de ellas llegan al modelo, ×3: «ponme el X» es
@@ -122,3 +124,50 @@ Informes: `lora-6.27-ollama-{base,r1,r2}-{reserva,bateria}.md`.
 - Los mensajes, con la lista de herramientas de ahora (`save_note` y la descripción corta de
   `run_powershell`, de la 6.28): la ronda 2 se entrenó sin ellas.
 - Datos de la ronda 2 en `data/r2/` y su salida en `output/r2/`.
+
+### Resultado de la ronda 3 (2026-11-13)
+
+Batería **392/409** (una más que la ronda 2) y reserva **73/80** (tres más; la reserva son
+frases que no se usan nunca para entrenar, la mejor medida de lo que generaliza). Informes:
+`lora-6.27-ollama-r3-{reserva,bateria}.md`.
+
+- **Arregla 6 de las 8 frases que rompió la ronda 2**: «está muy alto el sonido», el aviso a
+  la hora dicha, «pasa las capturas del escritorio a Imágenes», la pestaña de incógnito,
+  «ponme el Discord, porfa» y «mueve las fotos del escritorio a Imágenes». Siguen: «silencia el
+  Discord y sube la música» (llamada mal formada, Nyx la reintenta) y «pásame a la ventana del
+  Chrome». Arregla además «entra en mi correo de Gmail», «ya no hace falta que me despiertes
+  mañana», «¿qué dirección IP tiene mi ordenador?», «quita el Discord de la vista» y «esta no
+  me gusta, la siguiente». «No actúa» baja de 10 a 5.
+- **Rompe 7** que la ronda 2 acertaba. Cuatro son llamadas mal formadas que Nyx reintenta (tres
+  de ellas, solo en 1 de las 3 pasadas): `open_app` con un campo de más, `find_files` sin nombre,
+  `move_files` con «pdf» como tipo y `save_note` sin título. Las otras: «quiero escuchar música
+  en Spotify» → `open_url`; «dame una idea para cenar» → ofrece buscar en vez de contestar (1
+  de 3); y **«¿qué hora será ahora en Nueva York?» → `get_weather`**: actúa sin deber (verde e
+  inofensivo, pero la ronda 2 no lo hacía nunca).
+- **Ojo:** «apaga el wifi y bloquea el ordenador» falla con los tres modelos, pero la ronda 3
+  la convierte en **apagar** (`system_power` shutdown) donde el base y la ronda 2 bloqueaban.
+  Apagar es rojo y Nyx pide confirmación, así que no pasaría sin querer, pero es un error peor.
+
+**Veredicto:** algo mejor que la ronda 2 en conjunto, sobre todo en la reserva, pero rompe la
+regla de no actuar nunca sin deber (una vez, inofensiva) y confunde «bloquear» con «apagar».
+Decide el usuario (`docs/REVISAR.md`); mientras, Nyx sigue con `nyx-r2:7b`. Datos en `data/r3/`
+y salida en `output/r3/`.
+
+## Latencia, medida igual para todos (2026-11-13)
+
+La primera medida de la ronda 3 dio 371 → 648 → 1.228 ms (base → r2 → r3), creciendo en el
+orden de medida: Ollama dejaba cargados los modelos anteriores («Forever»), dos a la vez en la
+gráfica. Repetida con **un solo modelo cargado** (los demás descargados antes de cada uno), la
+reserva entera y en otro orden:
+
+| Modelo | Primer token, mediana | Media | Peor |
+| --- | --- | --- | --- |
+| `qwen2.5:7b` | 231 ms | 276 ms | 664 ms |
+| `nyx-r2:7b` | 350 ms | 347 ms | 588 ms |
+| `nyx-r3:7b` | 360 ms | 361 ms | 561 ms |
+
+(La r2 medida tres veces seguidas: 350, 351 y 352 ms; es estable.) Los LoRA tardan unos 120 ms
+más en el primer token, con el mismo tamaño (4,7 GB) y la misma plantilla; la causa está por
+ver (¿la mezcla de tipos de la cuantización de llama.cpp frente a la oficial?). Los tres
+quedan muy por debajo del objetivo de 1,5 s (SPEC §14). **Para las baterías: descargar los
+demás modelos antes de medir la latencia.**

@@ -12,10 +12,20 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
 
 2. ~~LoRA (6.27): ¿se adopta la ronda 2?~~ **Sí, opción a)** (2026-11-13). Tu Nyx ya usa
    `nyx-r2:7b` (`llm.model` en `settings.json`; la copia anterior, en
-   `settings.json.antes-nyx-r2`). Reinicia el núcleo para que lo coja. Ronda 3 entrenando
-   (~4 h; mientras, Nyx no puede usar la gráfica) con frases nuevas para los 8 fallos
-   (`core/training/llm/fixes.py`). Pendiente: medirla en partida (`game_bench.py`) y llevar el
-   GGUF al portátil si se usa allí.
+   `settings.json.antes-nyx-r2`). Reinicia el núcleo para que lo coja. Pendiente: medirla en
+   partida (`game_bench.py`) y llevar el GGUF al portátil si se usa allí.
+
+   **Ronda 3 (`nyx-r3:7b`, ya en Ollama): ¿se cambia a ella?** Detalle en
+   `docs/benchmarks/lora-6.27.md`, «Resultado de la ronda 3». Batería 392/409 (+1) y reserva
+   73/80 (+3); arregla 6 de los 8 fallos de la r2 y «no actúa» baja de 10 a 5. Pero rompe 7
+   (4 son llamadas mal formadas que Nyx reintenta), **actúa sin deber una vez** («¿qué hora
+   será en Nueva York?» → el tiempo; inofensivo) y en «apaga el wifi y bloquea el ordenador»
+   pide **apagar** en vez de bloquear (rojo: Nyx pediría confirmación). Mi recomendación:
+   **quedarse con la r2** hasta una ronda 4 que corrija eso, porque lo de «bloquear → apagar»
+   es justo el tipo de error que no queremos aunque esté protegido. Para cambiar: `llm.model`
+   = `nyx-r3:7b` en `settings.json`.
+   Latencia medida igual para los tres (un solo modelo cargado): base 231 ms, r2 350 ms, r3
+   360 ms de mediana hasta la primera palabra; todos muy por debajo de 1,5 s.
 
 3. ~~Buscar en internet~~ **Decidido** (2026-11-13): sin pagar ninguna API. Hecho: búsqueda en
    segundo plano con DuckDuckGo, leyendo las 2 mejores páginas (o Wikipedia si DuckDuckGo
