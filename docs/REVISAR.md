@@ -12,6 +12,13 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
    he dejado **roja siempre** (cada comando pide confirmación). Si quieres la excepción, hay
    que cambiar la SPEC primero.
 
+2. **LoRA (6.27), cuánto entrenar.** Cada ejemplo lleva el prompt y las ~42 herramientas
+   (~6.800 tokens) y la RX 7700 XT con ROCm en Windows va a ~20 s por ejemplo: 2.000 ejemplos
+   serían 12 h por pasada. He entrenado con **970 ejemplos y una pasada (~5-6 h)**, eligiendo
+   lo que más vale (paráfrasis que las reglas no cogen, herramientas inventadas y algo de
+   charla). Si el resultado promete, se puede entrenar más de noche. El LoRA se entrenó con
+   las 42 herramientas de antes de `web_search` (una herramienta de diferencia: apenas cambia).
+
 ## Qué probar
 
 1. **Color de Nyx (6.23):** Ajustes → Apariencia → un color que no sea blanco. Todo el cuadrado

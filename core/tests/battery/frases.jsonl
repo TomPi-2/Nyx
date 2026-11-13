@@ -333,7 +333,7 @@
 {"frase": "llama a mi hermano", "tipo": "no_sabe"}
 {"frase": "escribe en el chat del Fortnite gg", "tipo": "no_sabe"}
 {"frase": "pulsa la tecla W en el Valorant", "tipo": "no_sabe"}
-{"frase": "instálame el Minecraft", "tipo": "no_sabe"}
+{"frase": "instálame el Minecraft", "tool": "install_app", "args": {"action": "install"}}
 {"frase": "paga la factura de la luz", "tipo": "no_sabe"}
 {"frase": "me hace falta la calculadora", "tool": "open_app", "args": {"name": "Calculadora"}}
 {"frase": "necesito el Excel", "tool": "open_app", "args": {"name": "Excel"}}
