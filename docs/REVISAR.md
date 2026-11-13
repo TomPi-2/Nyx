@@ -12,12 +12,21 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
    he dejado **roja siempre** (cada comando pide confirmación). Si quieres la excepción, hay
    que cambiar la SPEC primero.
 
-2. **LoRA (6.27), cuánto entrenar.** Cada ejemplo lleva el prompt y las ~42 herramientas
-   (~6.800 tokens) y la RX 7700 XT con ROCm en Windows va a ~20 s por ejemplo: 2.000 ejemplos
-   serían 12 h por pasada. He entrenado con **970 ejemplos y una pasada (~5-6 h)**, eligiendo
-   lo que más vale (paráfrasis que las reglas no cogen, herramientas inventadas y algo de
-   charla). Si el resultado promete, se puede entrenar más de noche. El LoRA se entrenó con
-   las 42 herramientas de antes de `web_search` (una herramienta de diferencia: apenas cambia).
+2. **LoRA (6.27): permiso para convertirlo con llama.cpp.** Ollama 0.40 ya no importa un
+   Qwen2 ajustado por sí solo (ni `q4_K_M` desde safetensors, ni adaptadores LoRA, ni Qwen2 en
+   su importador nuevo). El único camino es pasarlo a GGUF con llama.cpp (MIT, herramienta de
+   desarrollo: no va en Nyx), y **ejecutar el script de conversión desde un clon de su
+   repositorio me lo ha bloqueado el control de permisos** de esta sesión. Mientras tanto lo
+   mido con un servidor propio (`core/training/llm/serve.py`). Para seguir, o lo ejecutas tú
+   (pasos en `core/training/llm/README.md`, «Exportar a Ollama») o me das permiso para
+   hacerlo. Lo dejo listo con la ronda que salga mejor.
+
+   **Ronda 1 medida, no se adopta** (`docs/benchmarks/lora-6.27.md`): acierta mucho más
+   (reserva 50 → 72 de 80; batería 341 → 373 de 400) pero **actúa cuando no debe** («llama a
+   mi hermano» → llamada de WhatsApp a un número inventado; «pídeme una pizza» → temporizador;
+   «gracias, Nyx» → deshacer). Ronda 2 entrenando con lo que faltaba: cuándo **no** actuar.
+   Tamaño: 970 ejemplos y una pasada (~4,5 h por ronda en la RX 7700 XT); más ejemplos o
+   pasadas, de noche si hace falta.
 
 3. **Buscar en internet (6.05).** El plan decía que eligieras tú. He hecho lo que no depende
    de esa elección: **Wikipedia** (gratis, sin clave) y **abrir la búsqueda en el navegador**.
@@ -78,3 +87,6 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
 - **Tanda 7 de reglas:** «ponte de color rosa», «esta canción no me gusta, pásala», «llévame a
   la ventana del Discord», «quítale el sonido al Chrome», «olvida el recordatorio de llamar a
   mamá», «pon algo para relajarme». Y arreglado: «búscame la foto del DNI» buscaba «l dni».
+- **«Gracias, Nyx»** se contesta sin el modelo, con variantes según el tono («¡De nada!», «Para
+  eso estoy», «¡A mandar!»…). Solo la frase suelta («vale, muchas gracias», «te lo agradezco»);
+  «no, gracias» o «gracias, ahora pon música» siguen su camino. Probar por voz y escrito.

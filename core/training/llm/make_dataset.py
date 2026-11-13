@@ -33,6 +33,8 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+from limits import WITHOUT_TOOL, WITHOUT_TOOL_SPOKEN
+from limits import rows as limit_rows
 
 from nyx.brain.base import ChatMessage
 from nyx.brain.guard import looks_like_code, mentions_tool, tool_keys
@@ -470,14 +472,40 @@ def _msg(m: ChatMessage) -> dict[str, Any]:
     return {"role": m.role, "content": m.content}
 
 
+def _balanced(rows: list[dict[str, Any]], n: int) -> list[dict[str, Any]]:
+    """Hasta `n` paráfrasis repartidas por herramienta, por turnos (en la ronda 1, por orden,
+    `window_layout` tuvo 94 ejemplos y `now_playing` 14). Dentro de cada herramienta, primero
+    las que las reglas no cogen."""
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for r in sorted(rows, key=lambda r: r["router"]):
+        groups.setdefault(r["calls"][0]["name"], []).append(r)
+    out: list[dict[str, Any]] = []
+    while len(out) < n and any(groups.values()):
+        for name in list(groups):
+            if groups[name] and len(out) < n:
+                out.append(groups[name].pop(0))
+    return out
+
+
+def _reaches_llm(text: str, index: SystemIndex) -> bool:
+    return refusal(text, index) is None and route(text, index) is None
+
+
 def stage_build(valid_share: float, maximum: int) -> None:
     """train.jsonl y valid.jsonl. Con `maximum`, se queda con lo que más vale (cada ejemplo
     lleva el prompt y las ~40 herramientas, unos 6.800 tokens: en la RX 7700 XT son ~20 s por
-    ejemplo): todas las herramientas inventadas, las paráfrasis que las reglas no cogen, algo
-    de charla y, si sobra sitio, las semillas (lo que las reglas ya resuelven vale menos)."""
+    ejemplo).
+
+    Ronda 2 (la 1 actuaba de más): las herramientas inventadas también **sin** la herramienta
+    («Aún no sé hacer eso»), las respuestas en texto de `limits.py` (lo que no se hace, datos
+    que suenan a orden, saludos), la charla y, con lo que quede, paráfrasis repartidas por
+    herramienta. Las semillas solo si sobra sitio (lo que las reglas ya resuelven vale menos).
+    """
     registry = default_registry()
     schemas = registry.schemas()
     brain = Brain(llm=None, tools=schemas)  # type: ignore[arg-type]  # solo build_messages
+    index = SystemIndex.open()
+    skip = excluded()
     start = datetime(2026, 11, 13, 8, 0)
 
     def make(text: str, assistant: dict[str, Any], tools: list[dict[str, Any]]) -> dict[str, Any]:
@@ -492,35 +520,56 @@ def stage_build(valid_share: float, maximum: int) -> None:
             "tool_calls": [{"type": "function", "function": c} for c in calls],
         }
 
+    def text_msg(content: str) -> dict[str, Any]:
+        return {"role": "assistant", "content": content}
+
     invented: list[dict[str, Any]] = []
-    for row in jsonl_read(DATA / "invented.jsonl"):
-        for _ in range(4):  # pocos ejemplos: se repiten con fechas y órdenes distintos
+    for i, row in enumerate(jsonl_read(DATA / "invented.jsonl")):
+        for _ in range(3):  # pocos ejemplos: se repiten con fechas y órdenes distintos
             tools = [*schemas, {"type": "function", "function": row["tool"]}]
             RNG.shuffle(tools)
             invented.append(make(row["text"], calls_msg(row["calls"]), tools))
+        for k in range(2):  # la misma frase sin la herramienta: no se inventa la llamada
+            spoken = WITHOUT_TOOL_SPOKEN[(i + k) % len(WITHOUT_TOOL_SPOKEN)]
+            invented.append(make(row["text"], text_msg(WITHOUT_TOOL.format(spoken)), schemas))
+    limits: list[dict[str, Any]] = []
+    for text, reply in limit_rows():
+        if normalize(text) in skip:
+            raise SystemExit(f"«{text}» está en la batería o en la reserva")
+        if _reaches_llm(text, index):  # lo que resuelven las reglas no hace falta enseñarlo
+            limits += [make(text, text_msg(reply), schemas) for _ in range(2)]
     para = [r for r in jsonl_read(DATA / "paraphrases.jsonl") if not _LEAK.search(r["text"])]
     RNG.shuffle(para)
-    para.sort(key=lambda r: r["router"])  # primero las que las reglas no cogen
-    paraphrases = [make(r["text"], calls_msg(r["calls"]), schemas) for r in para]
     # Charla: para no olvidar conversar ni llamar herramientas para todo. Son respuestas del
     # propio 7B (a veces con datos mal), así que pocas: lo que se enseña es el formato.
     chat_rows = [
         (r["text"], c) for r in jsonl_read(DATA / "chat.jsonl") if (c := clean_chat(r["reply"]))
     ]
     RNG.shuffle(chat_rows)
-    chat = [make(t, {"role": "assistant", "content": c}, schemas) for t, c in chat_rows[:MAX_CHAT]]
+    chat = [make(t, text_msg(c), schemas) for t, c in chat_rows[:MAX_CHAT]]
     seeds = [
         make(r["text"], calls_msg(r["calls"]), schemas) for r in jsonl_read(DATA / "seeds.jsonl")
     ]
     RNG.shuffle(seeds)
 
+    fixed = [*invented, *limits]
     if maximum:
-        n_chat = min(len(chat), maximum // 5)
-        n_para = min(len(paraphrases), maximum - len(invented) - n_chat)
-        n_seed = max(0, maximum - len(invented) - n_chat - n_para)
-        examples = [*invented, *chat[:n_chat], *paraphrases[:n_para], *seeds[:n_seed]]
+        n_chat = min(len(chat), maximum * 16 // 100)
+        n_para = min(len(para), max(0, maximum - len(fixed) - n_chat))
+        n_seed = max(0, maximum - len(fixed) - n_chat - n_para)
+        paraphrases = [
+            make(r["text"], calls_msg(r["calls"]), schemas) for r in _balanced(para, n_para)
+        ]
+        examples = [*fixed, *chat[:n_chat], *paraphrases, *seeds[:n_seed]]
     else:
-        examples = [*invented, *chat, *paraphrases, *seeds]
+        paraphrases = [make(r["text"], calls_msg(r["calls"]), schemas) for r in para]
+        examples = [*fixed, *chat, *paraphrases, *seeds]
+    texts = sum(1 for e in examples if not e["messages"][-1].get("tool_calls"))
+    print(
+        f"inventadas {len(invented)} · límites {len(limits)} · charla "
+        f"{len(chat) if not maximum else n_chat} · paráfrasis {len(paraphrases)} · en texto "
+        f"{texts}/{len(examples)}"
+    )
     RNG.shuffle(examples)
     n_valid = max(1, int(len(examples) * valid_share))
     jsonl_write(DATA / "valid.jsonl", examples[:n_valid])

@@ -100,8 +100,11 @@ class Model:
                     pad_token_id=self.tokenizer.eos_token_id,
                 )
             took = time.perf_counter() - t0
-        text = self.tokenizer.decode(out[0][ids["input_ids"].shape[1] :], skip_special_tokens=True)
+        new = out[0][ids["input_ids"].shape[1] :]
+        text = self.tokenizer.decode(new, skip_special_tokens=True)
         content, calls = parse(text)
+        if not calls and "<tool_call>" in text:  # llamada rota: se ve con los tokens especiales
+            print("  crudo:", [self.tokenizer.decode([i]) for i in new[:24]], flush=True)
         return content, calls, took
 
 
