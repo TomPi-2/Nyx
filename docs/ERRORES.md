@@ -14,7 +14,7 @@ Fallos vistos al usar Nyx que quedan pendientes de corregir. Se apuntan aquí pa
 | Fecha | Error | Commit |
 | --- | --- | --- |
 | 2026-11-13 | Nyx con un color puesto (interfaz): Color plano en `shaders.ts` (sin el sombreado que partía la forma en cuatro triángulos y oscurecía el borde); el movimiento no cambia. **Pendiente de que el usuario lo pruebe con colores.** | `7dc05c8` (6.23) |
-| 2026-11-13 | Paneles de respuesta (interfaz y cerebro): Criterio común en `core/nyx/brain/panel.py` para todos los paneles: mayúscula, punto solo en frases (opción A, RAE), la línea pequeña solo si aporta y la grande con la primera frase de la voz si era una palabra vacía («Sí», «Claro»). Prueba de tildes en todos los textos fijos. **Pendiente de que el usuario lo vea en uso.** | (6.23) |
+| 2026-11-13 | Paneles de respuesta (interfaz y cerebro): Criterio común en `core/nyx/brain/panel.py` para todos los paneles: mayúscula, punto solo en frases (opción A, RAE), la línea pequeña solo si aporta y la grande con la primera frase de la voz si era una palabra vacía («Sí», «Claro»). Prueba de tildes en todos los textos fijos. **Pendiente de que el usuario lo vea en uso.** | `e6c976a` (6.23) |
 | 2026-11-13 | «Arranca el Discord que voy a hablar con los colegas»: Abrir sin la explicación de detrás si así se encuentra (`router/apps.py`). | `fb37c46` (6.25) |
 | 2026-11-13 | «Abre lo del bluetooth para emparejar unos cascos»: Abrir sin «lo de» ni la explicación de detrás. | `fb37c46` (6.25) |
 | 2026-11-13 | «Cierra el dis cord» (Whisper parte la palabra): Nombres mal oídos corregidos si se parecen letra a letra (`comun._fix_typo`). | `fb37c46` (6.25) |
