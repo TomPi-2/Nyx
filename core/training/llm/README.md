@@ -63,19 +63,26 @@ el mismo prompt que Ollama (`render`) y la misma semilla. Sirve para decidir si 
 la pena; las latencias no cuentan (sin caché de prefijo ni streaming).
 
 **Exportar a Ollama.** Ollama 0.40 ya no importa este modelo por sí solo: desde safetensors
-solo cuantiza a int4/int8/nvfp4 y su importador nuevo (MLX) no admite Qwen2, y ya no acepta
-adaptadores LoRA. El camino es GGUF con llama.cpp (MIT): `export.py` deja el modelo unido en
-`output/merged` (16 bits, ~15 GB) y después:
+solo cuantiza a int4/int8/nvfp4, su importador nuevo (MLX) no admite Qwen2, ya no acepta
+adaptadores LoRA y no cuantiza un GGUF. El camino es GGUF con llama.cpp (MIT, solo para
+desarrollo; nada de esto va en Nyx). Probado el 2026-11-13 con la ronda 1:
 
 ```powershell
+.venv/Scripts/python.exe export.py   # une en output/merged (16 bits, ~15 GB) y escribe el Modelfile
+# Una vez: el conversor (en Python) y llama-quantize (release oficial para Windows, CPU).
 git clone --depth 1 https://github.com/ggml-org/llama.cpp output/llama.cpp
 uv pip install --python .venv/Scripts/python.exe gguf   # misma versión que output/llama.cpp/gguf-py
+# output/llama-bin: llama-b12360-bin-win-cpu-x64.zip de github.com/ggml-org/llama.cpp/releases,
+# comprobando su SHA-256 con el «digest» que publica la release.
 .venv/Scripts/python.exe output/llama.cpp/convert_hf_to_gguf.py output/merged --outtype f16 --outfile output/nyx-f16.gguf
-# cuantizar a Q4_K_M (como qwen2.5:7b) con llama-quantize de una release de llama.cpp:
-llama-quantize output/nyx-f16.gguf output/nyx-q4_k_m.gguf Q4_K_M
-# Modelfile: «FROM ./nyx-q4_k_m.gguf» + plantilla, sistema y parámetros de qwen2.5:7b
-ollama create nyx-qwen2.5:7b -f output/Modelfile
+output/llama-bin/llama-quantize.exe output/nyx-f16.gguf output/nyx-q4_k_m.gguf Q4_K_M   # ~1 min, 4,7 GB
+.venv/Scripts/python.exe export.py --sin-unir   # crea nyx-qwen2.5:7b y comprueba que es igual que qwen2.5:7b
 ```
+
+`export.py` copia la plantilla, el sistema y los parámetros de `qwen2.5:7b` y comprueba que
+quedan iguales byte a byte. Dos trampas encontradas: la plantilla tiene una línea `# Tools` que
+no es un comentario, y un Modelfile con saltos de línea de Windows mete retornos de carro en la
+plantilla (y en el prompt).
 
 ## Licencias (comprobadas antes de usarlas)
 
