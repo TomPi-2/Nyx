@@ -76,6 +76,7 @@ $typeNames = @(Find 'TypeExpressionAst') + @(Find 'TypeConstraintAst')
   types = @($typeNames | ForEach-Object { $_.TypeName.FullName })
   members = @(Find 'InvokeMemberExpressionAst' | ForEach-Object { $_.Member.Extent.Text })
   redirects = @(Find 'FileRedirectionAst').Count
+  assignments = @(Find 'AssignmentStatementAst').Count
   strings = @(Find 'StringConstantExpressionAst' | ForEach-Object { $_.Value })
   errors = @($errors | ForEach-Object { "$($_.Message)" })
   ok = ($null -ne $ast)
@@ -94,6 +95,7 @@ class Analysis:
     members: list[str] = field(default_factory=list)
     strings: list[str] = field(default_factory=list)
     redirects: int = 0  # «> archivo»: escribe (y machaca) un archivo
+    assignments: int = 0  # «$x = …»
     errors: list[str] = field(default_factory=list)
 
 
@@ -129,6 +131,7 @@ def analyze(code: str) -> Analysis:
         members=_as_list(data.get("members")),
         strings=_as_list(data.get("strings")),
         redirects=int(data.get("redirects") or 0),
+        assignments=int(data.get("assignments") or 0),
         errors=_as_list(data.get("errors")),
     )
 
@@ -257,6 +260,54 @@ def blocked(analysis: Analysis) -> str | None:
     return None
 
 
+# --- excepción verde: solo lectura (decidida por el usuario el 2026-11-13) ---
+# Lista cerrada: consultas del sistema que no cambian nada, y lo que solo ordena o da formato
+# a su salida. Nada que lea archivos (Get-Content, Select-String…): lo leído va al modelo, y
+# un archivo puede traer instrucciones. Nada de ForEach-Object (`% Kill` llama a un método).
+_READ_ONLY = frozenset({
+    "get-date", "get-process", "gps", "ps", "get-service", "gsv", "get-netipaddress",
+    "get-netipconfiguration", "gip", "get-netadapter", "get-dnsclientserveraddress",
+    "get-nettcpconnection", "get-psdrive", "gdr", "get-volume", "get-disk", "get-physicaldisk",
+    "get-computerinfo", "gin", "get-ciminstance", "gcim", "get-hotfix", "get-timezone",
+    "get-culture", "get-uiculture", "get-host", "get-pnpdevice", "get-printer", "get-uptime",
+    "get-location", "gl", "pwd",
+    "select-object", "select", "where-object", "where", "?", "sort-object", "sort",
+    "measure-object", "measure", "group-object", "group", "format-table", "ft", "format-list",
+    "fl", "format-wide", "fw", "out-string", "convertto-json", "convertto-csv",
+})  # fmt: skip
+# Parámetros que leen de otro equipo o escriben en un archivo: entonces, rojo.
+_NOT_READ_ONLY_PARAMS = frozenset(
+    {"computername", "cimsession", "credential", "session", "outfile", "filepath", "path",
+     "literalpath"}
+)  # fmt: skip
+# Métodos y tipos que solo calculan («[math]::Round(…)», «.ToString('N1')»).
+_SAFE_MEMBERS = frozenset({"round", "floor", "ceiling", "abs", "min", "max", "tostring"})
+_SAFE_TYPES = frozenset({
+    "math", "system.math", "int", "int32", "int64", "long", "double", "decimal", "string",
+    "datetime", "timespan",
+})  # fmt: skip
+
+
+def read_only(analysis: Analysis) -> bool:
+    """True solo si todo lo que hay en el comando es de la lista cerrada de solo lectura.
+
+    Se mira después de `blocked`; ante cualquier duda (una orden, un parámetro, un método o un
+    tipo que no está en la lista, una asignación, una redirección), False: rojo, se confirma.
+    """
+    names = [re.split(r"[\\/]", raw.strip().lower())[-1] for raw in analysis.commands]
+    return (
+        bool(names)
+        and not analysis.errors
+        and not analysis.dynamic
+        and not analysis.redirects
+        and not analysis.assignments
+        and all(n in _READ_ONLY for n in names)
+        and not any(p.lower() in _NOT_READ_ONLY_PARAMS for p in analysis.params)
+        and all(m.strip().lower() in _SAFE_MEMBERS for m in analysis.members)
+        and all(t.strip().lower() in _SAFE_TYPES for t in analysis.types)
+    )
+
+
 def run_code(code: str, timeout_s: float = RUN_TIMEOUT_S) -> tuple[int, str]:
     """Ejecuta el código en PowerShell (sin perfil ni preguntas) y devuelve (código, salida)."""
     script = "[Console]::OutputEncoding = [Text.Encoding]::UTF8\n" + code
@@ -288,11 +339,13 @@ class RunPowershellParams(Params):
 class RunPowershell(Tool[RunPowershellParams]):
     name = "run_powershell"
     description = (
-        "Ejecuta un comando de PowerShell, siempre con confirmación. Solo si ninguna otra "
-        "herramienta sirve. Ej.: «¿qué IP tengo?» (Get-NetIPAddress), «¿cuánto lleva encendido "
-        "el PC?» ((Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime)."
+        "Ejecuta un comando de PowerShell; las consultas de solo lectura van sin preguntar y "
+        "el resto, con confirmación. Solo si ninguna otra herramienta sirve. Ej.: «¿qué IP "
+        "tengo?» (Get-NetIPAddress), «¿cuánto lleva encendido el PC?» ((Get-Date) - "
+        "(Get-CimInstance Win32_OperatingSystem).LastBootUpTime)."
     )
     risk = Risk.RED
+    green_when_read_only = True  # solo lo que pasa `read_only` (lista cerrada)
     game_policy = GamePolicy.BLOCKED
     category = Category.SYSTEM
     params_model = RunPowershellParams
@@ -323,6 +376,10 @@ class RunPowershell(Tool[RunPowershellParams]):
                 summary=summary,
                 error=ToolResult.fail("Ese comando no lo ejecuto", reason),
             )
+        if read_only(analysis):
+            # Solo consulta (lista cerrada): verde, sin preguntar. Se apunta en el registro.
+            log.info("run_powershell de solo lectura: %r", params.command)
+            return Prepared(summary=summary, detail=params.command, read_only=True)
         # Lo que se confirma es el comando exacto.
         return Prepared(summary=summary, detail=params.command, risk=Risk.RED)
 

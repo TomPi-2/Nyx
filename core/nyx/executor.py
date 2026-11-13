@@ -356,7 +356,9 @@ class Executor:
             self._record(tool, call.name, args, Decision.EXECUTED, prepared.error, phrase)
             return prepared.error
 
-        decision = self.guard.evaluate(tool.risk, prepared)
+        decision = self.guard.evaluate(
+            tool.risk, prepared, green_when_read_only=tool.green_when_read_only
+        )
         logged = Decision.EXECUTED
         if decision.verdict is Verdict.BLOCK:
             log.warning("SafetyGuard bloquea %s: %s", call.name, decision.reason)

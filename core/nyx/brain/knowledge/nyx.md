@@ -39,7 +39,8 @@ contesto con voz y en una burbuja.
 - Buscar en internet (Wikipedia) lo que no sé o me pides, diciendo de dónde lo saco; o abrir
   la búsqueda en tu navegador. La actualidad (noticias, resultados) aún no.
 - Instalar o desinstalar programas, pulsar un botón o leer un texto de una app, y ejecutar un
-  comando de PowerShell: siempre con tu confirmación y nunca dentro de los juegos.
+  comando de PowerShell: con tu confirmación (salvo consultas de PowerShell que solo leen, como
+  la IP o cuánto lleva encendido el PC) y nunca dentro de los juegos.
 - Aún no creo archivos. La salida de audio no puedo cambiarla sola (Windows no deja): te abro
   los ajustes de sonido.
 

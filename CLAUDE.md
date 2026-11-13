@@ -42,6 +42,7 @@ Fase actual: **versión 0.6 — Cerebro** (fase 6a): plan en [docs/PLAN-0.6.md](
 | 2026-11-12 | Si el «no actúa» no se arregla con qwen2.5:7b, se prueba otro modelo del mismo tamaño (6.21). |
 | 2026-11-13 | Ciudad automática (6.24): sin ciudad en Ajustes, el tiempo usa la ubicación de Windows (si está activada) con la máxima precisión; las coordenadas van a Open-Meteo y a Nominatim (OpenStreetMap) para el nombre de la ciudad. Se confirmará en el primer arranque (0.9). |
 | 2026-11-13 | qwen2.5:7b se queda (otros modelos peores). El router resuelve todo lo seguro, con respuestas fijas de varias variantes; el LLM, lo ambiguo y la conversación. LoRA del 7B entrenado en el PC con ROCm (Windows → WSL2); el portátil con CUDA solo como último recurso, y nunca CUDA ni ROCm en Nyx. |
+| 2026-11-13 | `run_powershell`: excepción verde para una lista cerrada de consultas de solo lectura (SPEC §7 y §8). Permiso para usar llama.cpp (MIT) en el entrenamiento, para exportar el LoRA a GGUF. |
 | 2026-11-12 | Más adelante: personalidad que se adapta sola a la conversación (con ajustes manuales), Nyx aprende cómo habla el usuario, voz propia entrenada con una persona que ya ha aceptado, soporte en Ayuda y envío real de datos anónimos (HOJA-DE-RUTA). La gestión y documentación de extensiones, prioridad de la 0.7. |
 
 El historial completo de decisiones está en la sección 18 de `docs/SPEC.md`.

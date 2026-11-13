@@ -6,11 +6,9 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
 
 ## Decisiones pendientes
 
-1. **`run_powershell`, ¿excepción verde para órdenes de solo lectura?** El plan de la 0.6
-   (6.13) proponía que órdenes como `Get-Date` o `Get-Process` se ejecutaran sin preguntar,
-   pero la SPEC §7 dice «rojo siempre» y CLAUDE.md prohíbe bajar los niveles de seguridad. La
-   he dejado **roja siempre** (cada comando pide confirmación). Si quieres la excepción, hay
-   que cambiar la SPEC primero.
+1. ~~`run_powershell`, ¿excepción verde?~~ **Sí** (2026-11-13). Hecho: lista cerrada de consultas
+   de solo lectura sin preguntar. Probar: «¿qué IP tengo?» (sin confirmación) y «¿qué hay en
+   mi carpeta temporal con PowerShell?» (con confirmación: lee archivos).
 
 2. **LoRA (6.27).** ~~Permiso para llama.cpp~~: dado el 2026-11-13. Ruta probada: la ronda 1
    ya está en Ollama como `nyx-r1:7b` (GGUF Q4_K_M, 4,7 GB, misma plantilla y parámetros que

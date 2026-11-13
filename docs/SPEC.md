@@ -233,7 +233,7 @@ Unas 35 herramientas genéricas cubren miles de peticiones al combinarse. Cada u
 | `system_power` | Bloquear, suspender, reiniciar, apagar | Rojo (bloquear: verde) | APIs de Windows |
 | `system_info` | Batería, CPU, RAM, GPU, espacio en disco | Verde | psutil |
 | `nyx_control` | Cambiar ajustes de Nyx por voz ("modo silencio", "habla más despacio") | Verde | Settings |
-| `run_powershell` | Comodín para lo que no cubre nada más | Rojo siempre | Muestra el comando antes; lista de bloqueo con el analizador de PowerShell; si el análisis falla, no se ejecuta |
+| `run_powershell` | Comodín para lo que no cubre nada más | Rojo; verde si solo lee | Muestra el comando antes; lista de bloqueo con el analizador de PowerShell; si el análisis falla, no se ejecuta. Verde sin preguntar solo si todo el comando es de una lista cerrada de consultas (`Get-Date`, `Get-Process`, `Get-NetIPAddress`…) y de formato, sin leer archivos, sin asignaciones, redirecciones, otro equipo ni métodos salvo los de cálculo |
 | `install_app` | Instalar o desinstalar un programa | Rojo siempre | winget; confirma nombre exacto, editor e id; nunca adivina entre varios |
 | `ui_action` | Pulsar un botón, marcar una casilla o leer un texto de una app | Amarillo (leer: verde; eliminar, enviar, pagar…: rojo) | UI Automation; nunca en juegos; comprueba el control antes de tocarlo |
 | `app_action` | Acciones dentro de una app (pestañas, guardar, zoom, buscar…) | Verde | Catálogo de atajos por app e idioma (`app_catalog.py`) |
@@ -269,7 +269,7 @@ Nada destructivo se ejecuta sin confirmación, y lo que se borra va siempre a la
 | --- | --- | --- |
 | Verde | Se ejecuta sin preguntar | Abrir, crear, consultar, capturar |
 | Amarillo | Se ejecuta y muestra "Deshacer" durante 30 s (también por voz: "Nyx, deshaz") | Mover, renombrar, escribir texto, cerrar app sin cambios |
-| Rojo | Pide confirmación antes de ejecutar | Eliminar, apagar o reiniciar, cerrar con cambios sin guardar, PowerShell |
+| Rojo | Pide confirmación antes de ejecutar | Eliminar, apagar o reiniciar, cerrar con cambios sin guardar, PowerShell (salvo consultas de solo lectura de la lista cerrada) |
 
 **Confirmación:**
 
@@ -803,3 +803,4 @@ Reglas de trabajo:
 | 2026-11-13 | Tras probar qwen3:4b, granite3.3:8b y mistral:7b (todos peores), `qwen2.5:7b` se queda. Reparto nuevo: **el router resuelve todo lo seguro** (reglas a lo grande, con respuestas fijas de varias variantes por tono) y el LLM solo lo ambiguo, la conversación y las preguntas. Ajuste fino (LoRA) del 7B: se entrena en el PC (RX 7700 XT) con ROCm, probando Windows y después WSL2; el portátil con CUDA solo como último recurso y **solo como herramienta de desarrollo**. Nyx sigue sin ROCm ni CUDA y carga el resultado en Ollama con Vulkan. Tareas 6.25–6.27 de `docs/PLAN-0.6.md`. | 6, 14 |
 | 2026-11-13 | Ciudad automática (6.24): sin ciudad en Ajustes, el tiempo usa la ubicación de Windows (`Windows.Devices.Geolocation`, solo si está activada y permitida), con la máxima precisión que dé Windows (decisión del usuario). Las coordenadas van a Open-Meteo (previsión) y a Nominatim de OpenStreetMap (nombre de la ciudad, una vez por sitio). Se confirmará con el usuario en el primer arranque (0.9). | 2, 8 |
 | 2026-11-13 | Búsqueda en internet (6.05, decidido sin el usuario y pendiente de su revisión): Wikipedia (gratis, sin clave, CC BY-SA con la fuente) y abrir la búsqueda en el navegador como respaldo (`web.search_url`, Google por defecto). Lo leído va al LLM como contenido de fuera y la vuelta siguiente, sin herramientas. La actualidad con una API con clave, cuando el usuario elija proveedor. `run_powershell`, `install_app` y `ui_action` (6.13 y 6.14): `run_powershell` roja siempre (la excepción verde del plan choca con §7 y queda para el usuario). | 7, 8 |
+| 2026-11-13 | Excepción verde de `run_powershell` (decisión del usuario): las consultas de solo lectura de una lista cerrada se ejecutan sin preguntar. Comprobado con el analizador de PowerShell; ante la duda, rojo. Solo esta herramienta puede bajar así (`Tool.green_when_read_only`); en partida sigue bloqueada y en Ajustes no se puede bajar su nivel. | 7, 8 |

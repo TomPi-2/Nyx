@@ -42,8 +42,16 @@ class SafetyGuard:
     def __init__(self, paths: PathPolicy) -> None:
         self.paths = paths
 
-    def evaluate(self, tool_risk: Risk, prepared: Prepared) -> Decision:
-        risk = _max_risk(tool_risk, prepared.risk)
+    def evaluate(
+        self, tool_risk: Risk, prepared: Prepared, *, green_when_read_only: bool = False
+    ) -> Decision:
+        # El riesgo de la herramienta es el mínimo, salvo una excepción: lo que la herramienta
+        # ha comprobado que solo lee, si la herramienta lo permite (`run_powershell`). Las
+        # rutas protegidas se miran igual.
+        if green_when_read_only and prepared.read_only and prepared.risk is None:
+            risk = Risk.GREEN
+        else:
+            risk = _max_risk(tool_risk, prepared.risk)
         protected = [p for p in prepared.paths if self.paths.protected(p)]
         protected += [t for t in prepared.targets if self.paths.protected_target(t)]
         if protected:

@@ -113,6 +113,9 @@ class Prepared:
     targets: list[Path] = field(default_factory=list)  # dónde se escribe (destinos)
     count: int = 0  # elementos afectados
     risk: Risk | None = None  # más riesgo que el de la herramienta (cambios sin guardar)
+    # La herramienta ha comprobado que esto solo lee (lista cerrada, `run_powershell`): baja a
+    # verde, pero solo si la herramienta lo permite (`Tool.green_when_read_only`).
+    read_only: bool = False
     payload: Any = None
     error: ToolResult | None = None  # no se puede hacer (no encuentro la carpeta…)
 
@@ -130,6 +133,9 @@ class Tool[P: Params](ABC):
     observe: ClassVar[bool] = False
     # False: existe para los planes pero el modelo no la ve (ahorra contexto, tarea 6.18).
     llm_visible: ClassVar[bool] = True
+    # True: lo preparado con `read_only` se ejecuta en verde aunque la herramienta sea roja.
+    # Solo `run_powershell` (excepción de solo lectura, decidida por el usuario el 2026-11-13).
+    green_when_read_only: ClassVar[bool] = False
 
     # Cada herramienta redefine `run` (sencillas) o `prepare` + `execute` (las que tocan
     # archivos o ventanas: SafetyGuard revisa lo preparado antes de ejecutarlo).

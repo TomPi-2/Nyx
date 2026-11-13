@@ -15,6 +15,7 @@ from nyx.tools.run_powershell import (
     RunPowershellParams,
     analyze,
     blocked,
+    read_only,
 )
 
 HAS_POWERSHELL = sys.platform == "win32" and shutil.which("powershell.exe") is not None
@@ -111,14 +112,15 @@ async def test_analyzer_failure_never_lets_it_through(ctx: ToolContext) -> None:
 async def test_confirmation_shows_the_exact_command_and_output_is_external(
     ctx: ToolContext,
 ) -> None:
+    # Fuera de la lista de solo lectura (lista una carpeta): se confirma.
     tool = RunPowershell(
-        analyzer=lambda code: Analysis(commands=["Get-Date"]),
+        analyzer=lambda code: Analysis(commands=["Get-ChildItem"]),
         runner=lambda code: (0, "jueves, 13 de noviembre de 2026 18:00:00"),
     )
-    params = RunPowershellParams(command="Get-Date")
+    params = RunPowershellParams(command="Get-ChildItem")
     prepared = await tool.prepare(params, ctx)
-    assert prepared.error is None and prepared.risk is Risk.RED
-    assert prepared.detail == "Get-Date"  # lo que se confirma es el comando exacto
+    assert prepared.error is None and prepared.risk is Risk.RED and not prepared.read_only
+    assert prepared.detail == "Get-ChildItem"  # lo que se confirma es el comando exacto
     result = await tool.execute(params, ctx, prepared)
     assert result.ok and result.external == "jueves, 13 de noviembre de 2026 18:00:00"
     assert "13 de noviembre" not in result.message  # lo de fuera no va en el mensaje
@@ -140,3 +142,69 @@ async def test_errors_and_timeouts(ctx: ToolContext) -> None:
     params = RunPowershellParams(command="Get-Item x")
     result = await failing.execute(params, ctx, await failing.prepare(params, ctx))
     assert not result.ok and result.external == "No se encuentra la ruta"
+
+
+# --- excepción verde de solo lectura (2026-11-13) ---
+
+GREEN = [
+    "Get-Date",
+    "Get-Process | Sort-Object CPU -Descending | Select-Object -First 3",
+    "gps | sort WS -desc | select -first 5 Name, WS",
+    "Get-NetIPAddress -AddressFamily IPv4",
+    "(Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime",
+    "Get-PSDrive C",
+    "[math]::Round((Get-PSDrive C).Free / 1GB, 1)",
+    "Get-Process | Where-Object { $_.CPU -gt 10 } | Format-Table Name, CPU",
+    "Get-ComputerInfo | Select-Object OsName, OsVersion",
+]
+# No están bloqueadas, pero tampoco son de solo lectura seguro: se confirman.
+NOT_GREEN = [
+    "Get-ChildItem -Force",
+    "Get-Content notas.txt",
+    "Select-String -Path notas.txt -Pattern clave",
+    "Get-Process | % Kill",
+    "Get-Process | ForEach-Object { $_.Name }",
+    "Get-Process | Where-Object { $_.Kill() }",
+    "Get-Process -ComputerName servidor",
+    "$x = Get-Date; $x",
+    "Get-Service | Restart-Service",
+    "Get-CimInstance Win32_Process | Invoke-CimMethod -MethodName Terminate",
+    r"Get-Volume -FilePath C:\x",
+    "Get-Date | Out-File fecha.txt",
+    "notepad",
+]
+
+
+@pytest.mark.skipif(not HAS_POWERSHELL, reason="necesita PowerShell (Windows)")
+@pytest.mark.parametrize("code", GREEN)
+def test_real_parser_read_only_is_green(code: str) -> None:
+    analysis = analyze(code)
+    assert blocked(analysis) is None and read_only(analysis), code
+
+
+@pytest.mark.skipif(not HAS_POWERSHELL, reason="necesita PowerShell (Windows)")
+@pytest.mark.parametrize("code", NOT_GREEN)
+def test_real_parser_anything_else_is_not_green(code: str) -> None:
+    assert not read_only(analyze(code)), code
+
+
+def test_read_only_needs_everything_in_the_list() -> None:
+    assert read_only(Analysis(commands=["Get-Date"]))
+    assert not read_only(Analysis())  # nada que ejecutar: no se da por bueno
+    assert not read_only(Analysis(commands=["Get-Date"], dynamic=1))
+    assert not read_only(Analysis(commands=["Get-Date"], redirects=1))
+    assert not read_only(Analysis(commands=["Get-Date"], assignments=1))
+    assert not read_only(Analysis(commands=["Get-Date"], errors=["x"]))
+    assert not read_only(Analysis(commands=["Get-Date"], members=["Kill"]))
+    assert not read_only(Analysis(commands=["Get-Date"], types=["IO.File"]))
+    assert not read_only(Analysis(commands=["Get-Date"], params=["ComputerName"]))
+
+
+async def test_read_only_runs_without_confirmation(ctx: ToolContext) -> None:
+    tool = RunPowershell(
+        analyzer=lambda code: Analysis(commands=["Get-Date"]),
+        runner=lambda code: (0, "jueves"),
+    )
+    prepared = await tool.prepare(RunPowershellParams(command="Get-Date"), ctx)
+    assert prepared.error is None and prepared.read_only and prepared.risk is None
+    assert RunPowershell.green_when_read_only

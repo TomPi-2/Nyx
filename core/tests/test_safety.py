@@ -124,3 +124,17 @@ def test_action_log_write_read_prune(tmp_path: Path) -> None:
 )
 def test_yes_no_answer(text: str, value: bool | None) -> None:
     assert answer(text) is value
+
+
+def test_read_only_goes_green_only_if_the_tool_allows_it(policy: PathPolicy) -> None:
+    """Excepción verde de `run_powershell` (2026-11-13): solo con las dos cosas a la vez."""
+    guard = SafetyGuard(policy)
+    ro = Prepared("x", read_only=True)
+    assert guard.evaluate(Risk.RED, ro, green_when_read_only=True).verdict is Verdict.RUN
+    # Otra herramienta roja no baja aunque lo preparado diga «solo lectura».
+    assert guard.evaluate(Risk.RED, ro).verdict is Verdict.CONFIRM
+    # Sin «solo lectura», o con más riesgo pedido, sigue roja.
+    plain = Prepared("x")
+    assert guard.evaluate(Risk.RED, plain, green_when_read_only=True).verdict is Verdict.CONFIRM
+    raised = Prepared("x", read_only=True, risk=Risk.RED)
+    assert guard.evaluate(Risk.RED, raised, green_when_read_only=True).verdict is Verdict.CONFIRM

@@ -7,6 +7,7 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
 ### Añadido
 
 - 0.6, cerebro (`docs/PLAN-0.6.md`):
+  - PowerShell sin preguntar para lo que solo consulta (decisión del usuario): «¿qué IP tengo?» o «¿cuánto lleva encendido el PC?» se responden al momento; lo demás sigue pidiendo confirmación con el comando exacto. Solo una lista cerrada de consultas, revisada con el analizador de PowerShell; ante la duda, se pregunta.
   - 6.27 (en curso), ajuste fino del cerebro: primera ronda entrenada en la gráfica AMD del PC; acierta mucho más pero a veces actúa cuando no debe, así que no se usa todavía y se entrena una segunda ronda que enseña cuándo no actuar. «Gracias, Nyx» se contesta al momento y con variedad, sin pasar por el modelo.
   - 6.13, 6.14, 6.05 y 6.06, herramientas potentes e internet: ejecutar un comando de PowerShell (siempre con confirmación y con una lista de bloqueo que analiza el comando de verdad), instalar y desinstalar programas con winget (confirmando el nombre exacto y el editor), pulsar un botón, marcar una casilla o leer un texto de una app por su nombre, y buscar en internet (Wikipedia, con la fuente, o abrir la búsqueda en el navegador). Lo que Nyx lee de una web no puede hacer que actúe. Ninguna de estas funciona dentro de los juegos salvo buscar.
   - 6.25 (tanda 7): «ponte de color rosa», «esta canción no me gusta, pásala», «llévame a la ventana del Discord», «quítale el sonido al Chrome», «olvida el recordatorio de…», «pon algo para relajarme».
