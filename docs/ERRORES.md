@@ -16,13 +16,13 @@ Fallos vistos al usar Nyx que quedan pendientes de corregir. Se apuntan aquí pa
 
 | Fecha | Error | Commit |
 | --- | --- | --- |
-| 2026-11-14 | Panel con «Noche» (o «Partida») a cualquier respuesta: el modelo escribió una cabecera sin relación y, como la memoria corta la guarda, la copió en todas las siguientes. Ahora una cabecera corta que no comparte nada con lo dicho ni con lo pedido se cambia por la primera frase de la voz, y a la memoria va la corregida (`panel.unrelated`). | (revisión de logs) |
-| 2026-11-14 | «¿Cuál es mi IP?»: se inventaba la IP (192.168.1.100). Ahora `system_info` (`what=ip`, verde) da la IP local real por regla, sin el modelo, y la voz la lee número a número. | (revisión de logs) |
-| 2026-11-14 | «Nix, ¿quién es tu creador?» en la ventana de seguimiento se ignoraba («no iba dirigido a Nyx»): con el nombre delante, va siempre a Nyx. Y «Esto está roto. Nyx, ¿qué día es hoy?» atiende lo de después del nombre; «-Nyx.» ya no se toma por una petición. | (revisión de logs) |
-| 2026-11-14 | Con música, Whisper «oye» islandés o alemán («Þó er langsði nýx í») y Nyx contestaba a eso: una transcripción en otro idioma se ignora en el seguimiento o, si se llamó a Nyx, pide que se repita. | (revisión de logs) |
-| 2026-11-14 | Atajo aprendido de una acción dejada para después de la partida («Põ muusiga» → la web «Spotify», que luego falló): ya no se aprende hasta saber que funciona. | (revisión de logs) |
-| 2026-11-14 | «Vale, ábreme la Netflix» iba al modelo (que dijo «Aún no sé hacer eso»): el router quita «vale», «venga», «bueno»… del principio. | (revisión de logs) |
-| 2026-11-14 | Pocket TTS preguntaba a Hugging Face en cada arranque (respuesta 401): con el modelo descargado arranca sin red. | (revisión de logs) |
+| 2026-11-14 | Panel con «Noche» (o «Partida») a cualquier respuesta: el modelo escribió una cabecera sin relación y, como la memoria corta la guarda, la copió en todas las siguientes. Ahora una cabecera corta que no comparte nada con lo dicho ni con lo pedido se cambia por la primera frase de la voz, y a la memoria va la corregida (`panel.unrelated`). | `90c7984` |
+| 2026-11-14 | «¿Cuál es mi IP?»: se inventaba la IP (192.168.1.100). Ahora `system_info` (`what=ip`, verde) da la IP local real por regla, sin el modelo, y la voz la lee número a número. | `90c7984` |
+| 2026-11-14 | «Nix, ¿quién es tu creador?» en la ventana de seguimiento se ignoraba («no iba dirigido a Nyx»): con el nombre delante, va siempre a Nyx. Y «Esto está roto. Nyx, ¿qué día es hoy?» atiende lo de después del nombre; «-Nyx.» ya no se toma por una petición. | `90c7984` |
+| 2026-11-14 | Con música, Whisper «oye» islandés o alemán («Þó er langsði nýx í») y Nyx contestaba a eso: una transcripción en otro idioma se ignora en el seguimiento o, si se llamó a Nyx, pide que se repita. | `90c7984` |
+| 2026-11-14 | Atajo aprendido de una acción dejada para después de la partida («Põ muusiga» → la web «Spotify», que luego falló): ya no se aprende hasta saber que funciona. | `90c7984` |
+| 2026-11-14 | «Vale, ábreme la Netflix» iba al modelo (que dijo «Aún no sé hacer eso»): el router quita «vale», «venga», «bueno»… del principio. | `90c7984` |
+| 2026-11-14 | Pocket TTS preguntaba a Hugging Face en cada arranque (respuesta 401): con el modelo descargado arranca sin red. | `90c7984` |
 | 2026-11-13 | «Ábreme el último documento que descargué»: «último», «más reciente» o «que descargué/guardé/creé» en lo que se pide abrir pasa al LLM (buscar y abrir: dos pasos) en vez de «No encuentro…». | (6.25) |
 | 2026-11-13 | «Busca qué aplicaciones ha creado Tepnyx»: «busca» seguido de una pregunta ya no va a buscar archivos (lo decide el modelo, que tiene `web_search`); «busca en internet/Google/Wikipedia…» va directo a `web_search`. De paso, «busca el archivo del contrato» buscaba «l contrato». | (6.06) |
 | 2026-11-13 | Nyx con un color puesto (interfaz): Color plano en `shaders.ts` (sin el sombreado que partía la forma en cuatro triángulos y oscurecía el borde); el movimiento no cambia. **Pendiente de que el usuario lo pruebe con colores.** | `7dc05c8` (6.23) |
