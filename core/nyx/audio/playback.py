@@ -94,6 +94,12 @@ class Player:
             else:
                 self._idle.set()
 
+    def switch(self, device: str | None) -> None:
+        """Cambia de altavoz sin reiniciar Nyx (primer arranque: la frase siguiente ya suena
+        por el elegido). El stream solo está abierto mientras habla: se cierra y se reabre."""
+        self.clear()
+        self._device_name = device
+
     def clear(self) -> None:
         """Corta la voz al instante (interrupción o nueva petición)."""
         with self._lock:

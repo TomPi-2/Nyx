@@ -77,14 +77,19 @@
   </p>
 
   {#if !closing}
-    {#if flow.step === "mic"}
+    {#if flow.step === "welcome" && !single}
+      <p class="note">Contéstame hablando, sin decir «Nyx»: «empezar» o «saltar».</p>
+    {:else if flow.step === "mic"}
       <MicStep
         mics={flow.mics}
         mic={flow.mic}
+        speakers={flow.speakers ?? []}
+        speaker={flow.speaker ?? null}
         level={micLevel}
         heard={flow.heard}
         woke={flow.woke}
         onpick={(i) => send("mic", i)}
+        onspeaker={(i) => send("speaker", i)}
       />
     {:else if flow.step === "color"}
       <NamedSwatches

@@ -71,7 +71,7 @@ from nyx.log import new_request_id
 from nyx.safety.undo import UNDO_TTL_S
 from nyx.settings.model import ListenSettings
 from nyx.stt.base import STTEngine, STTError
-from nyx.stt.normalize import addressed_by_name, looks_foreign, normalize
+from nyx.stt.normalize import addressed_by_name, is_echo, looks_foreign, normalize
 from nyx.tools.base import GamePolicy, ToolResult
 from nyx.tools.clipboard import write_clipboard_text
 from nyx.tts.base import TTSEngine, TTSError
@@ -85,6 +85,8 @@ log = logging.getLogger(__name__)
 
 # Vocabulario para Whisper: mejora la transcripción de «Nyx» (fase 3: apps y carpetas de la caché).
 STT_PROMPT = "Nyx."
+#: Primer arranque: si no dices nada en este rato, vuelve a escuchar (mientras dure).
+SETUP_LISTEN_S = 30.0
 # Acciones del router: «pensando» solo si tardan (las rápidas no dividen la forma). Las
 # peticiones al LLM pasan a «pensando» al momento (_respond).
 THINKING_AFTER_S = 0.3
@@ -327,6 +329,12 @@ class SetupHook(Protocol):
 
     active: bool
 
+    @property
+    def prompt(self) -> str:
+        """Pista para whisper con las palabras que espera (los nombres de los colores…)."""
+        ...
+
+    def understands(self, text: str) -> bool: ...
     async def hear(self, text: str) -> bool: ...
     async def on_wake(self) -> None: ...
 
@@ -410,6 +418,7 @@ class Pipeline:
         # Primer arranque guiado (9.10): lo pone main.py; `announce` y `hush` son su voz.
         self.setup: SetupHook | None = None
         self._announcing: asyncio.Task[None] | None = None
+        self._announce_text = ""  # lo que está diciendo (para no tomar su voz por la tuya)
         if executor is not None and executor.confirm is None:
             executor.confirm = self.confirm
         self._unsubscribe = [
@@ -486,6 +495,15 @@ class Pipeline:
             )
             clip = self.capture.prebuffer(VERIFY_CLIP_S) if self.capture is not None else []
             verifies = bool(clip) and self.stt is not None
+            if self._announce_speaking():
+                # Primer arranque: Nyx está hablando y el micrófono la oye. Solo se le corta si
+                # whisper oye «Nyx» y no es lo que ella misma dice («¡Hola! Soy Nyx»).
+                if verifies and (self._barge is None or self._barge.done()):
+                    audio = np.concatenate(clip).astype(np.int16)
+                    self._barge = asyncio.create_task(
+                        self._announce_barge(audio), name="announce-barge"
+                    )
+                return
             if self.mode is Mode.BUSY and verifies:
                 # Nyx está pensando o hablando: solo se le interrumpe si whisper confirma
                 # «Nyx». Antes se cortaba al momento y, si era un falso aviso, la respuesta
@@ -514,6 +532,35 @@ class Pipeline:
         self._record_activation(ok, text, clip)
         if ok and self.mode is Mode.BUSY:
             await self.start_listening(self.wake_prebuffer_s + VERIFY_CLIP_S / 2)
+
+    async def _announce_barge(self, clip: Any) -> None:
+        """«Nyx» mientras Nyx habla en el primer arranque: corta solo si no es su propio eco.
+        No cuenta para la subida del umbral (sería su voz, no un falso aviso del detector)."""
+        assert self.stt is not None
+        spoken = self._announce_text
+        try:
+            text = await self.stt.transcribe(clip, prompt=STT_PROMPT)
+        except STTError:
+            return
+        ok = self.wake_phrase.heard(text)
+        echo = ok and is_echo(text, spoken)
+        log.info(
+            "Activación mientras Nyx habla: %r → %s",
+            text,
+            "su propia voz" if echo else "interrumpe" if ok else "se ignora",
+        )
+        if ok and not echo and self.mode is not Mode.LISTENING:
+            await self.start_listening(self.wake_prebuffer_s + VERIFY_CLIP_S / 2)
+
+    def _announce_speaking(self) -> bool:
+        task = self._announcing
+        return task is not None and not task.done()
+
+    def _stt_prompt(self) -> str:
+        """Con el primer arranque en marcha, la pista lleva las palabras del paso."""
+        if self.setup is not None and self.setup.active:
+            return self.setup.prompt
+        return STT_PROMPT
 
     async def _verify_wake(self, clip: Any) -> bool:
         """Whisper transcribe los últimos 2 s mientras el usuario sigue hablando (SPEC 4.4).
@@ -630,7 +677,7 @@ class Pipeline:
         """
         assert self.stt is not None
         try:
-            raw = await self.stt.transcribe(audio, prompt=STT_PROMPT)
+            raw = await self.stt.transcribe(audio, prompt=self._stt_prompt())
         except STTError:
             return
         listening.spec_text = raw
@@ -643,6 +690,8 @@ class Pipeline:
         text = self.wake_phrase.without(normalize(raw))
         if not text:
             return False
+        if self.setup is not None and self.setup.active:
+            return self.setup.understands(text)  # «siguiente», «coral»: no hay que esperar
         if self.router is not None and isinstance(self.router(text), Route):
             return True
         words = text.rstrip("?").split()
@@ -660,6 +709,11 @@ class Pipeline:
             for task in (listening.verify, listening.spec):
                 if task is not None:
                     task.cancel()
+            if listening.followup and self.setup is not None and self.setup.active:
+                # Primer arranque: se le sigue escuchando sin «Nyx» hasta que acabe (un
+                # «siguiente» tardío se perdía, ERRORES.md 2026-11-14).
+                await self.start_listening(followup=True, timeout_s=SETUP_LISTEN_S)
+                return
             await self._go_idle()
             return
         # Si no ha vuelto a hablar desde la última transcripción anticipada, se reutiliza.
@@ -761,7 +815,7 @@ class Pipeline:
                     await pending
                 raw = listening.spec_text
             if raw is None:
-                raw = await self.stt.transcribe(audio, prompt=STT_PROMPT)
+                raw = await self.stt.transcribe(audio, prompt=self._stt_prompt())
             # Vale si whisper oyó «Nyx» en el fragmento corto o al principio de la frase.
             verified = verify is None or await verify or self.wake_phrase.heard(raw, first_words=3)
         except STTError:
@@ -1414,6 +1468,12 @@ class Pipeline:
         self.hush()
         if self.tts is None or self.player is None:
             return
+        if self.mode is Mode.LISTENING:
+            # Se te escuchaba sin «Nyx» y se ha tocado un botón: mientras habla no se escucha,
+            # que se oiría a sí misma («Azul. Clásico y seguro.» elegiría el azul).
+            self._drop_listening()
+            self.mode = Mode.IDLE
+        self._announce_text = text
         self._announcing = asyncio.create_task(self._announce(text, listen_after), name="announce")
 
     def hush(self) -> None:

@@ -181,6 +181,11 @@ async def run(args: argparse.Namespace) -> int:
         if capture is not None:
             capture.switch(name)
 
+    def switch_output(name: str) -> None:
+        player = services.pipeline.player if services is not None else None
+        if player is not None:
+            player.switch(name)
+
     # Primer arranque guiado por Nyx (9.10): lo empieza la interfaz («setup_flow» «start»).
     flow = GuidedSetup(
         bus,
@@ -189,6 +194,8 @@ async def run(args: argparse.Namespace) -> int:
         index=lambda: services.index if services is not None else None,
         mics=lambda: audio_devices()[0],
         switch_mic=switch_mic,
+        speakers=lambda: audio_devices()[1],
+        switch_output=switch_output,
     )
     try:
         if args.demo:

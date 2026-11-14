@@ -2,7 +2,7 @@
 
 import type { FontId, NyxColorId, PanelTintId } from "$theme/palette";
 
-export const PROTOCOL_VERSION = 19;
+export const PROTOCOL_VERSION = 20;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -224,6 +224,8 @@ export type SetupFlowAction =
   | "size"
   | "size_live"
   | "mic"
+  /** v20: por dónde suena Nyx (índice de `speakers`). */
+  | "speaker"
   | "data"
   | "done"
   | "install_everything"
@@ -247,6 +249,9 @@ export interface SetupFlowState {
   tint: string;
   mics: string[];
   mic: string | null;
+  /** v20: altavoces y el elegido (null: el predeterminado de Windows). */
+  speakers: string[];
+  speaker: string | null;
   heard: boolean;
   woke: boolean;
   scan: {

@@ -22,8 +22,9 @@ from nyx.events import (
 from nyx.settings.live import apply_patch
 from nyx.settings.model import Settings
 from nyx.setup import flow as flow_module
-from nyx.setup.answers import Answer, understand
+from nyx.setup.answers import Answer, understand, vocabulary
 from nyx.setup.flow import COLOR_SAYS, NOT_UNDERSTOOD, SAY, GuidedSetup
+from nyx.stt.normalize import is_echo
 
 # --- Lo que se dice -------------------------------------------------------------------------------
 
@@ -53,11 +54,56 @@ from nyx.setup.flow import COLOR_SAYS, NOT_UNDERSTOOD, SAY, GuidedSetup
         ("mic", "hola hola probando", Answer("heard")),
         ("color", "qué hora es", None),
         ("color", "", None),
+        # Visto al probarlo (ERRORES.md, 2026-11-14).
+        ("size", "Más pequeño.", Answer("size", 80)),  # en masculino la hacía más grande
+        ("size", "Hazte más pequeño", Answer("size", 80)),
+        ("size", "mucho más pequeño", Answer("size", 60)),
+        ("size", "muchísimo más grande", Answer("size", 140)),
+        ("color", "Pónteme la cotón.", Answer("pick", "melocoton")),  # whisper se come «melo»
+        ("color", "lavenda", Answer("pick", "lavanda")),
+        ("color", "quiero el violenta", Answer("pick", "violeta")),
+        ("tint", "ciruelo", Answer("pick", "ciruela")),
+        ("color", "no me gusta", None),  # nada parecido: no se adivina
+        ("color", "vamos a ver", None),
     ],
 )
 def test_understand(step: str, text: str, expected: Answer | None) -> None:
     mics = ["Micrófono (Realtek Audio)", "Auriculares HyperX Cloud"]
     assert understand(step, text, size=100, mics=mics) == expected
+
+
+def test_finish_and_speakers() -> None:
+    assert understand("data", "¡Terminad!", data_chosen=True) == Answer("done")
+    assert understand("data", "acabamos", data_chosen=True) == Answer("done")
+    mics = ["Micrófono (Realtek Audio)"]
+    speakers = ["Altavoces (Realtek Audio)", "Cascos Arctis 7"]
+    # Con «suena», «altavoces»… es la salida; «Realtek» solo, el micrófono.
+    said = understand("mic", "que suene por los cascos", mics=mics, speakers=speakers)
+    assert said == Answer("speaker", 1)
+    said = understand("mic", "por los altavoces realtek", mics=mics, speakers=speakers)
+    assert said == Answer("speaker", 0)
+    assert understand("mic", "el realtek", mics=mics, speakers=speakers) == Answer("mic", 0)
+
+
+def test_vocabulary_hints_the_step_words() -> None:
+    assert "melocotón" in vocabulary("color") and "Siguiente" in vocabulary("color")
+    assert "océano" in vocabulary("tint")
+    assert vocabulary("mic").count("Nyx") == 1
+
+
+@pytest.mark.parametrize(
+    ("heard", "spoken", "echo"),
+    [
+        ("Hola, soy Nix.", "¡Hola! Soy Nyx. Mientras bajo lo que me falta…", True),
+        ("Claro, ahora llámame.", "¡Te oigo alto y claro! Ahora llámame: di «Nyx».", True),
+        ("Nix.", "Ahora llámame: di «Nyx».", True),
+        ("Nix.", "Ahora, mi color.", False),  # ella no lo dice: eres tú
+        ("Nyx, siguiente.", "¿Y de tamaño? Dime «más grande» o «más pequeña».", False),
+        ("Nyx, más pequeña.", "¿Y de tamaño? Dime «más grande» o «más pequeña».", True),
+    ],
+)
+def test_echo_of_her_own_voice(heard: str, spoken: str, echo: bool) -> None:
+    assert is_echo(heard, spoken) is echo
 
 
 def test_data_done_only_after_choosing() -> None:
@@ -234,21 +280,34 @@ async def test_reused_color_panel(
 # --- La canalización ------------------------------------------------------------------------------
 
 
+class Hook:
+    """El primer arranque visto desde la canalización."""
+
+    active = True
+    prompt = "Nyx. Coral, lavanda. Siguiente."
+
+    def __init__(self) -> None:
+        self.heard: list[str] = []
+        self.woke = 0
+
+    def understands(self, text: str) -> bool:
+        return understand("color", text) is not None
+
+    async def hear(self, text: str) -> bool:
+        self.heard.append(text)
+        return True
+
+    async def on_wake(self) -> None:
+        self.woke += 1
+
+
+async def _spin(times: int = 50) -> None:
+    for _ in range(times):
+        await asyncio.sleep(0)
+
+
 async def test_pipeline_gives_text_to_the_setup() -> None:
     from tests.test_pipeline import Harness
-
-    class Hook:
-        active = True
-
-        def __init__(self) -> None:
-            self.heard: list[str] = []
-
-        async def hear(self, text: str) -> bool:
-            self.heard.append(text)
-            return True
-
-        async def on_wake(self) -> None:
-            pass
 
     h = Harness()
     hook = Hook()
@@ -283,4 +342,75 @@ async def test_pipeline_announce_and_hush() -> None:
         await asyncio.sleep(0)
     assert player.faded == 1 and player.cleared == 0  # fundido, no corte seco
     assert h.p.state.value == "idle"
+    await h.p.close()
+
+
+async def test_her_own_name_does_not_wake_her() -> None:
+    """«¡Hola! Soy Nyx» por los altavoces: el micrófono la oye, pero es su eco (ERRORES.md,
+    2026-11-14: se activaba sola y se cortaba a media frase)."""
+    from tests.test_pipeline import SILENCE, WAKE, FakePlayer, Harness, n
+
+    player = FakePlayer(block=True)
+    h = Harness(player=player)
+    h.p.setup = Hook()
+    await h.feed(SILENCE, n(0.5))
+    await h.p.announce("¡Hola! Soy Nyx. Mientras bajo lo que me falta, vamos a dejarme a tu gusto.")
+    await _spin()
+    assert h.p.state.value == "speaking"
+    h.stt.clip_text = "Hola, soy Nix."
+    await h.feed(WAKE)
+    await _spin()
+    assert h.p.mode.value != "listening" and h.p.state.value == "speaking"
+    # Tú, con otra cosa: sí la corta y te escucha.
+    h.stt.clip_text = "Nyx, siguiente."
+    await h.feed(SILENCE, n(0.3))
+    await h.feed(WAKE)
+    await _spin()
+    assert h.p.mode.value == "listening"
+    await h.p.close()
+
+
+async def test_setup_keeps_listening_without_the_name() -> None:
+    from tests.test_pipeline import SILENCE, SPEECH, Harness, n
+
+    h = Harness()
+    hook = Hook()
+    h.p.setup = hook
+    prompts: list[str] = []
+    transcribe = h.stt.transcribe
+
+    async def spy(pcm: np.ndarray, prompt: str = "") -> str:
+        prompts.append(prompt)
+        return await transcribe(pcm, prompt)
+
+    h.stt.transcribe = spy  # type: ignore[method-assign]
+    await h.p.start_listening(followup=True, timeout_s=0.5)
+    await h.feed(SILENCE, n(1.5))  # nadie habla: sigue escuchando
+    assert h.p.mode.value == "listening"
+    h.stt.text = h.stt.clip_text = "Siguiente."
+    await h.feed(SPEECH, n(0.6))
+    await h.feed(SILENCE, n(0.8))
+    await h.p.wait_idle()
+    assert hook.heard == ["Siguiente."]
+    assert prompts and all(p == Hook.prompt for p in prompts)  # con los nombres del paso
+    # Sin primer arranque, la ventana de seguimiento se cierra como siempre.
+    hook.active = False
+    await h.p.start_listening(followup=True, timeout_s=0.5)
+    await h.feed(SILENCE, n(1.5))
+    assert h.p.mode.value == "idle"
+    await h.p.close()
+
+
+async def test_announce_stops_listening_to_herself() -> None:
+    """Un botón mientras se te escuchaba: al hablar deja de escuchar o se oiría a sí misma
+    («Azul. Clásico y seguro.» elegiría el azul)."""
+    from tests.test_pipeline import FakePlayer, Harness
+
+    h = Harness(player=FakePlayer(block=True))
+    h.p.setup = Hook()
+    await h.p.start_listening(followup=True, timeout_s=5.0)
+    assert h.p.mode.value == "listening"
+    await h.p.announce("Azul. Clásico y seguro.")
+    await _spin()
+    assert h.p.mode.value != "listening"
     await h.p.close()

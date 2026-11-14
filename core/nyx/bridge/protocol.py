@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 19
+PROTOCOL_VERSION = 20
 
 
 class _Msg(BaseModel):
@@ -106,6 +106,7 @@ class SetupFlowMsg(_Msg):
         "size",
         "size_live",
         "mic",
+        "speaker",  # v20: por dónde suena Nyx
         "data",
         "done",
         "install_everything",

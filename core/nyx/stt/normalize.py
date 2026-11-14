@@ -210,3 +210,30 @@ def normalize(text: str) -> str:
     if first is None:
         return text
     return text[:first] + text[first].upper() + text[first + 1 :]
+
+
+#: Parte de lo oído que tiene que estar en lo que dice Nyx para tomarlo por su propia voz.
+ECHO_SHARE = 0.6
+
+
+def _plain_words(text: str) -> list[str]:
+    plain = _strip_accents(text.lower())
+    return ["nyx" if w in WAKE_VARIANTS else w for w in _WORD.findall(plain)]
+
+
+def is_echo(heard: str, spoken: str) -> bool:
+    """¿Lo que ha oído whisper es la propia voz de Nyx saliendo por los altavoces?
+
+    Sin cancelación de eco, cuando Nyx dice su nombre («¡Hola! Soy Nyx») el micrófono la oye y
+    se activaba sola (ERRORES.md, 2026-11-14). Es eco si casi todo lo oído está en lo que está
+    diciendo; «Nyx» suelto solo si ella también lo dice.
+    """
+    said = set(_plain_words(spoken))
+    words = _plain_words(heard)
+    if not words or not said:
+        return False
+    others = [w for w in words if w != "nyx"]
+    if not others:
+        return "nyx" in said
+    hits = sum(1 for w in others if w in said)
+    return hits >= ECHO_SHARE * len(others)
