@@ -225,7 +225,7 @@ def test_without_manifest(tmp_path: Path) -> None:
     path = tmp_path / "x.nyxext"
     with zipfile.ZipFile(path, "w") as zf:
         zf.writestr("README.md", "hola")
-    with pytest.raises(PackageError, match="manifest.json"):
+    with pytest.raises(PackageError, match=r"manifest.json"):
         read_package(path)
 
 
