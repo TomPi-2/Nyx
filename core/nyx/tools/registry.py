@@ -9,15 +9,39 @@ from nyx.tools.base import Category, Tool
 
 
 class ToolRegistry:
+    """Las herramientas. Las de Nyx se registran al arrancar; las de las extensiones llegan y
+    se van en marcha (7.04), cada una con su dueño para poder quitarlas todas juntas."""
+
     def __init__(self, tools: Iterable[Tool[Any]] = ()) -> None:
         self._tools: dict[str, Tool[Any]] = {}
+        self._owner: dict[str, str] = {}  # herramienta → id de la extensión
+        #: Sube con cada cambio: quien guarde esquemas sabe que tiene que rehacerlos.
+        self.version = 0
         for tool in tools:
             self.register(tool)
 
-    def register(self, tool: Tool[Any]) -> None:
+    def register(self, tool: Tool[Any], *, owner: str | None = None) -> None:
         if tool.name in self._tools:
             raise ValueError(f"herramienta repetida: {tool.name}")
         self._tools[tool.name] = tool
+        if owner is not None:
+            self._owner[tool.name] = owner
+        self.version += 1
+
+    def unregister_owner(self, owner: str) -> list[str]:
+        """Quita las herramientas de una extensión; devuelve sus nombres."""
+        gone = [name for name, who in self._owner.items() if who == owner]
+        for name in gone:
+            del self._tools[name], self._owner[name]
+        if gone:
+            self.version += 1
+        return gone
+
+    def owner_of(self, name: str) -> str | None:
+        return self._owner.get(name)
+
+    def owners(self) -> set[str]:
+        return set(self._owner.values())
 
     def get(self, name: str) -> Tool[Any] | None:
         return self._tools.get(name)

@@ -255,6 +255,18 @@ class ExtensionStore:
             ids = sorted(self._state.extensions)
         return [found for ext_id in ids if (found := self.get(ext_id)) is not None]
 
+    def pending_manifest(self, ext_id: str) -> Manifest | None:
+        """El manifiesto de la actualización que espera a que se acepten sus permisos."""
+        with self._lock:
+            state = self._state.extensions.get(ext_id)
+            if state is None or not state.pending:
+                return None
+            try:
+                raw = (self._folder(ext_id, state.pending) / MANIFEST_NAME).read_bytes()
+                return load_manifest(raw)
+            except (OSError, ManifestError):
+                return None
+
     def active(self) -> list[Installed]:
         return [ext for ext in self.installed() if ext.active]
 

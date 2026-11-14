@@ -9,6 +9,7 @@ actúa dentro de un juego ni en Nyx.
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 
 from pydantic import Field, field_validator
 
@@ -59,6 +60,13 @@ class AppAction(Tool[AppActionParams]):
     risk = Risk.YELLOW
     game_policy = GamePolicy.BLOCKED
     category = Category.WINDOWS
+
+    def schema(self) -> dict[str, Any]:
+        # La lista de acciones, al día: también las de las extensiones instaladas (7.04).
+        out = super().schema()
+        props = out["function"]["parameters"]["properties"]
+        props["action"]["description"] = "Acción: " + ", ".join(all_actions())
+        return out
     params_model = AppActionParams
 
     async def prepare(self, params: AppActionParams, ctx: ToolContext) -> Prepared:

@@ -38,9 +38,11 @@ from nyx.events import (
     SettingsRequested,
 )
 from nyx.executor import Executor
+from nyx.ext.manager import ExtensionManager
+from nyx.ext.store import ExtensionStore
 from nyx.game.brain import GameBrain
 from nyx.game.controller import GameController
-from nyx.game.detector import GameDetector
+from nyx.game.detector import GameDetector, GameStateChanged
 from nyx.game.policy import GameGate
 from nyx.index.model import Kind
 from nyx.index.scanners.apps import start_menu_dirs
@@ -57,7 +59,7 @@ from nyx.settings.live import apply_patch
 from nyx.settings.model import Settings
 from nyx.stt.whisper_server import WhisperServer
 from nyx.tools.base import ToolContext
-from nyx.tools.registry import default_registry
+from nyx.tools.registry import ToolRegistry, default_registry
 from nyx.tts.base import TTSEngine
 from nyx.tts.piper import PiperTTS
 from nyx.tts.pocket import PocketTTS
@@ -101,6 +103,7 @@ class Services:
         self.watcher = watcher
         self.notice: asyncio.Task[None] | None = None
         self.background: set[asyncio.Task[int]] = set()
+        self.extensions: ExtensionManager | None = None
 
     async def close(self) -> None:
         if self.notice is not None:
@@ -138,6 +141,35 @@ async def _attempt[T](
         log.warning("%s no disponible: %s", name, e, exc_info=log.isEnabledFor(logging.DEBUG))
         problems.append(key)
         return None
+
+
+def _extensions(
+    bus: EventBus, registry: ToolRegistry, brain: Brain, game: GameGate, settings: Settings
+) -> ExtensionManager:
+    """Extensiones (0.7): se cargan y se quitan en marcha. Al cambiar las herramientas, selector
+    nuevo y el modelo se recalienta; nunca en partida (espera a que acabe)."""
+
+    async def apply_selector(selector: ToolSelector) -> None:
+        brain.selector = selector
+        try:
+            await brain.warmup()
+        except LLMError as e:
+            log.warning("No se pudo recalentar el modelo tras cambiar las extensiones: %s", e)
+
+    manager = ExtensionManager(
+        ExtensionStore(),
+        registry,
+        budget_chars=tools_budget(settings.llm.num_ctx),
+        apply_selector=apply_selector,
+        playing=lambda: game.active,
+    )
+
+    async def on_game(event: GameStateChanged) -> None:
+        if not event.active:
+            await manager.game_ended()
+
+    bus.subscribe(GameStateChanged, on_game)
+    return manager
 
 
 async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Services:
@@ -337,6 +369,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         reload_llm=brain.warmup,
         brain=GameBrain(game, llm, brain.warmup),
     )
+    services.extensions = _extensions(bus, registry, brain, game, settings)
     services.game_detector = GameDetector(
         bus,
         always=settings.game.always,
@@ -345,6 +378,9 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         mode=lambda: settings.game.mode,
     )
     await services.game_detector.start()
+    if services.extensions.store.installed():
+        # Solo si hay alguna: recargar recalienta el modelo con sus herramientas.
+        await services.extensions.reload()
     if index.needs_scan():
         task = asyncio.create_task(index.refresh(), name="index-scan")
         services.background.add(task)
