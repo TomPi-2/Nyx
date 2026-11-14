@@ -84,19 +84,50 @@ async def test_undo_right_after_forgets_the_shortcut(tmp_path: Path) -> None:
     await h.p.close()
 
 
-async def test_multi_step_plans_are_not_learned(tmp_path: Path) -> None:
+TWO_STEPS = [LLMToolCall("open_app", {"name": "Spotify"}), LLMToolCall("set_volume", {"level": 20})]
+
+
+async def test_multi_step_plans_are_learned_as_plans(tmp_path: Path) -> None:
+    """7.16: un plan de varios pasos que sale bien se repite sin LLM la próxima vez."""
     h = Harness()
-    executor = with_router(h, None, [ToolResult(ok=True, message="ok")])
+    executor = with_router(h, None, [ToolResult(ok=True, message="ok")] * 2)  # uno por paso
     executor.registry = default_registry()  # type: ignore[attr-defined]
     store = ShortcutStore(tmp_path / "s.db")
     h.p.shortcuts = store
-    h.llm.plans = [
-        [LLMToolCall("open_app", {"name": "Spotify"}), LLMToolCall("set_volume", {"level": 20})]
-    ]
+    h.llm.plans = [TWO_STEPS]
     await h.bus.publish(TextEntered("abre spotify y pon el volumen a 20"))
     await h.p.wait_idle()
-    assert store.all() == []
+    assert store.all() == []  # no es un atajo de un paso
+    assert len(h.llm.requests) == 1
+    executor.calls.clear()
+    await h.bus.publish(TextEntered("Abre Spotify y pon el volumen a 20."))
+    await h.p.wait_idle()
+    assert len(h.llm.requests) == 1  # la segunda vez, sin LLM
+    assert [c.name for c in executor.calls] == ["open_app", "set_volume"]
     await h.p.close()
+
+
+def test_plans_follow_the_shortcut_rules(tmp_path: Path) -> None:
+    store = ShortcutStore(tmp_path / "s.db")
+    two = [ToolCall("open_app", {"name": "Spotify"}), ToolCall("set_volume", {"level": 20})]
+    assert store.learn_plan("abre spotify y sube", two, ["green", "green"]) is not None
+    # Un paso rojo, uno que depende del momento o demasiados pasos: no.
+    red = [ToolCall("open_app", {"name": "x"}), ToolCall("move_files", {"to": "y"})]
+    assert store.learn_plan("abre x y mueve", red, ["green", "red"]) is None
+    now = [ToolCall("open_app", {"name": "x"}), ToolCall("close_app", {})]
+    assert store.learn_plan("abre x y cierra", now, ["green", "green"]) is None
+    many = [ToolCall("set_volume", {"level": i}) for i in range(5)]
+    assert store.learn_plan("sube y baja mucho", many, ["green"] * 5) is None
+    # Las esperas no se guardan (las vuelve a poner el ejecutor).
+    waits = [two[0], ToolCall("wait_for_window", {"name": "Spotify"}), two[1]]
+    assert store.learn_plan("abre spotify y baja", waits, ["green", "green", "green"])
+    assert [c.name for c in store.lookup_plan("abre spotify y baja") or []] == [
+        "open_app",
+        "set_volume",
+    ]
+    # Olvidar también olvida planes.
+    assert store.forget("abre spotify y sube") and store.lookup_plan("abre spotify y sube") is None
+    assert store.forget_all() == 0 and store.lookup_plan("abre spotify y baja") is None
 
 
 async def test_an_action_left_for_after_the_game_is_not_learned(tmp_path: Path) -> None:

@@ -11,6 +11,12 @@ No se aprende:
 - frases muy largas (no se repiten igual).
 
 En Ajustes se podrán ver y borrar (fase 5): `all()` y `forget()`.
+
+Planes de varios pasos (0.7, tarea 7.16): si el LLM resuelve una frase con 2 a 4 acciones en
+una sola vuelta y todas salen bien, se guarda el plan entero y la próxima vez se repite sin el
+LLM, con los mismos niveles de riesgo (cada paso pasa por el ejecutor igual que siempre). Las
+mismas reglas que un atajo, paso a paso: nada rojo, nada que dependa del momento. Nunca se
+aprende en partida ni de algo que se dejó para después.
 """
 
 from __future__ import annotations
@@ -29,6 +35,7 @@ from nyx.index.aliases import normalize
 from nyx.paths import local_dir
 
 MAX_WORDS = 14
+MAX_STEPS = 4  # un plan más largo no se repite igual
 # `system_power` es verde solo por «bloquear»; apagar o reiniciar son rojas al prepararlas, y
 # aquí solo se ve el riesgo de la herramienta: no se aprende ninguna.
 NEVER = {"undo", "wait_for_window", "delete_files", "system_power"}
@@ -62,6 +69,13 @@ _CLITIC = re.compile(
 _POLITE = re.compile(r"\s+(?:por favor|porfa|gracias)$|^(?:oye|venga|vale)\s+")
 
 _SCHEMA = """
+CREATE TABLE IF NOT EXISTS plans (
+    phrase TEXT PRIMARY KEY,
+    calls TEXT NOT NULL,
+    uses INTEGER NOT NULL DEFAULT 0,
+    created REAL NOT NULL,
+    last_used REAL
+);
 CREATE TABLE IF NOT EXISTS shortcuts (
     phrase TEXT PRIMARY KEY,
     tool TEXT NOT NULL,
@@ -147,11 +161,47 @@ class ShortcutStore:
     def forget(self, phrase: str) -> bool:
         with self._lock:
             cur = self._db.execute("DELETE FROM shortcuts WHERE phrase = ?", (phrase,))
-        return cur.rowcount > 0
+            plans = self._db.execute("DELETE FROM plans WHERE phrase = ?", (phrase,))
+        return cur.rowcount > 0 or plans.rowcount > 0
+
+    def learn_plan(self, text: str, calls: list[ToolCall], risks: list[str]) -> str | None:
+        """Guarda un plan de varios pasos si se puede (7.16); devuelve la frase o None.
+
+        Las esperas (`wait_for_window`) no se guardan: las vuelve a poner `with_waits`."""
+        key = phrase_key(text)
+        steps = [(c, r) for c, r in zip(calls, risks, strict=True) if c.name != "wait_for_window"]
+        if key is None or not 2 <= len(steps) <= MAX_STEPS:
+            return None
+        if not all(learnable(call, risk) for call, risk in steps):
+            return None
+        data = json.dumps(
+            [{"name": c.name, "arguments": c.arguments} for c, _ in steps], ensure_ascii=False
+        )
+        with self._lock:
+            self._db.execute(
+                "INSERT OR REPLACE INTO plans (phrase, calls, uses, created) VALUES (?, ?, 0, ?)",
+                (key, data, time.time()),
+            )
+        return key
+
+    def lookup_plan(self, text: str) -> list[ToolCall] | None:
+        key = phrase_key(text)
+        if key is None:
+            return None
+        with self._lock:
+            row = self._db.execute("SELECT calls FROM plans WHERE phrase = ?", (key,)).fetchone()
+            if row is None:
+                return None
+            self._db.execute(
+                "UPDATE plans SET uses = uses + 1, last_used = ? WHERE phrase = ?",
+                (time.time(), key),
+            )
+        return [ToolCall(step["name"], step["arguments"]) for step in json.loads(row[0])]
 
     def forget_all(self) -> int:
         """Olvida todos los atajos aprendidos (Ajustes → Cerebro, 6.24). Devuelve cuántos."""
         with self._lock:
+            self._db.execute("DELETE FROM plans")
             cur = self._db.execute("DELETE FROM shortcuts")
         return cur.rowcount
 

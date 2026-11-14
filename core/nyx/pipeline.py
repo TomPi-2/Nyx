@@ -844,6 +844,14 @@ class Pipeline:
                     Route(with_waits([learned]), "aprendido"), marks, from_voice=from_voice
                 )
                 return
+            steps = self.shortcuts.lookup_plan(text)
+            if steps is not None:
+                # 7.16: un plan que ya salió bien, sin el LLM y con los mismos riesgos.
+                log.info("Plan aprendido: %r → %s", text, [(c.name, c.arguments) for c in steps])
+                await self._act(
+                    Route(with_waits(steps), "plan aprendido"), marks, from_voice=from_voice
+                )
+                return
         hint = ""
         if isinstance(routed, Miss):
             if not routed.candidates or routed.candidates[0].score < MISS_LLM_MIN:
@@ -988,6 +996,18 @@ class Pipeline:
             self._learned_last = (key, self._clock())
             log.info("Atajo aprendido: %r → %s(%s)", key, call.name, call.arguments)
 
+    def _learn_plan(self, text: str, calls: list[ToolCall]) -> None:
+        """7.16: plan de varios pasos que ha salido bien → se repite sin LLM la próxima vez."""
+        if self.shortcuts is None or self.executor is None:
+            return
+        risks = [
+            str(tool.risk) if (tool := self.executor.registry.get(c.name)) else "red" for c in calls
+        ]
+        key = self.shortcuts.learn_plan(text, calls, risks)
+        if key is not None:
+            self._learned_last = (key, self._clock())
+            log.info("Plan aprendido: %r → %s", key, [c.name for c in calls])
+
     def _forget_recent(self) -> None:
         """Se deshizo justo después de aprender: el atajo estaba mal."""
         if self.shortcuts is None or self._learned_last is None:
@@ -1043,6 +1063,15 @@ class Pipeline:
             and not any(r.data.get("deferred") for r in results)
         ):
             self._learn(text, ToolCall(plan.calls[0].name, plan.calls[0].arguments))
+        elif (
+            self._agent.steps == 0
+            and len(plan.calls) > 1
+            and results
+            and len(results) == len(calls)
+            and all(r.ok and not r.data.get("deferred") for r in results)
+            and not self._playing()
+        ):
+            self._learn_plan(text, calls)
 
     def _should_continue(
         self,
@@ -1073,6 +1102,9 @@ class Pipeline:
         if self.executor is None:
             return frozenset()
         return tool_keys(t.name for t in self.executor.registry.all())
+
+    def _playing(self) -> bool:
+        return self.game is not None and self.game.active
 
     def _brain_off(self) -> bool:
         return self.game is not None and self.game.active and self.game.brain_off
