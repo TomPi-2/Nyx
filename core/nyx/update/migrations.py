@@ -46,7 +46,7 @@ def last_version(files: DataFiles) -> str | None:
     try:
         data = json.loads((files.local / "version.json").read_text(encoding="utf-8"))
         return str(data["version"])
-    except (OSError, ValueError, KeyError, TypeError):
+    except OSError, ValueError, KeyError, TypeError:
         return None
 
 

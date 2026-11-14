@@ -95,7 +95,7 @@ class WebSearch(Tool[WebSearchParams]):
                 hits = await self._engine.search(params.query, limit=RESULTS)
             except OfflineError:
                 return ToolResult.fail("No tengo conexión", "no puedo buscar en internet")
-            except (httpx.HTTPError, ValueError, KeyError):
+            except httpx.HTTPError, ValueError, KeyError:
                 log.warning("Fallo buscando %r", params.query, exc_info=True)
                 return ToolResult.fail("No he podido buscarlo", "prueba otra vez en un rato")
             if not hits:

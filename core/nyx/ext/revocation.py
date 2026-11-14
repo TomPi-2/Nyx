@@ -39,7 +39,7 @@ def load_cached(
         raw = (folder / "revocadas.json").read_bytes()
         sig = (folder / "revocadas.sig").read_bytes()
         return verify_revocations(raw, sig, trusted)
-    except (OSError, SignatureError, ValueError):
+    except OSError, SignatureError, ValueError:
         return None
 
 

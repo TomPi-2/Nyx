@@ -46,7 +46,7 @@ def _load(path: Path) -> list[Deferred]:
         ]
     except FileNotFoundError:
         return []
-    except (OSError, ValueError, KeyError, TypeError):
+    except OSError, ValueError, KeyError, TypeError:
         log.warning("Cola de partida dañada en %s: se descarta", path, exc_info=True)
         return []
 

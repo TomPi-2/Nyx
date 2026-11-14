@@ -54,7 +54,7 @@ def read_any(path: Path) -> Audio | None:
         with wave.open(str(path), "rb") as w:
             rate, channels, width = w.getframerate(), w.getnchannels(), w.getsampwidth()
             raw = w.readframes(w.getnframes())
-    except (wave.Error, EOFError):
+    except wave.Error, EOFError:
         return None
     if width != 2:
         return None

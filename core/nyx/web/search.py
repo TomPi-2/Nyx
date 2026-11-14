@@ -404,7 +404,7 @@ class DuckDuckGoSearch:
             wiki = WikipediaSearch(lang=host.split(".", 1)[0], transport=self._transport)
             try:
                 hit = await wiki.summary(client, title)
-            except (httpx.HTTPError, ValueError):
+            except httpx.HTTPError, ValueError:
                 hit = None
             if hit is not None:
                 return hit
@@ -430,7 +430,7 @@ class ChainSearch:
             except OfflineError:
                 offline = True
                 continue
-            except (SearchError, httpx.HTTPError, ValueError, KeyError):
+            except SearchError, httpx.HTTPError, ValueError, KeyError:
                 log.warning("Fallo buscando con %s", type(engine).__name__, exc_info=True)
                 continue
             if hits:

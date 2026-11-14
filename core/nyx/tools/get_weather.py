@@ -63,7 +63,7 @@ WMO_CODES: dict[int, str] = {
 def describe_code(code: Any) -> str:
     try:
         return WMO_CODES.get(int(code), "variable")
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return "variable"
 
 
@@ -245,7 +245,7 @@ class GetWeather(Tool[GetWeatherParams]):
                 "No tengo conexión para mirar el tiempo",
                 "comprueba tu conexión a internet",
             )
-        except (KeyError, TypeError, ValueError):
+        except KeyError, TypeError, ValueError:
             log.warning("Respuesta inesperada de Open-Meteo para %r", city, exc_info=True)
             return ToolResult.fail("No he podido leer la previsión del tiempo")
 

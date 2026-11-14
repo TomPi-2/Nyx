@@ -110,7 +110,7 @@ def scan_riot(program_data: Path | None = None) -> Iterator[Entry]:
         return
     try:
         client = json.loads(installs.read_text(encoding="utf-8")).get("rc_default")
-    except (OSError, ValueError):
+    except OSError, ValueError:
         return
     if not client:
         return
@@ -157,7 +157,7 @@ def scan_epic(program_data: Path | None = None) -> Iterator[Entry]:
     for item in manifests.glob("*.item"):
         try:
             data = json.loads(item.read_text(encoding="utf-8-sig"))
-        except (OSError, ValueError):
+        except OSError, ValueError:
             continue
         name, app = data.get("DisplayName"), data.get("AppName")
         categories = data.get("AppCategories") or []

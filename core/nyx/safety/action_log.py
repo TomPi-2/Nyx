@@ -81,7 +81,7 @@ class ActionLog:
             try:
                 if date.fromisoformat(path.stem) < limit:
                     path.unlink()
-            except (ValueError, OSError):
+            except ValueError, OSError:
                 continue
 
     def read(self, day: date | None = None) -> list[dict[str, Any]]:

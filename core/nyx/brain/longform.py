@@ -181,7 +181,7 @@ async def structure(llm: LLMEngine, question: str, external: str) -> Structured 
         async for piece in llm.stream(messages, schema=SCHEMA):
             raw += piece
         found = Structured.model_validate_json(raw)
-    except (ValidationError, json.JSONDecodeError, ValueError):
+    except ValidationError, json.JSONDecodeError, ValueError:
         log.info("Estructura no válida: %r", raw[:300])
         return None
     except Exception:

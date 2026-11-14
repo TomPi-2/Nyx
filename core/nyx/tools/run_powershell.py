@@ -373,7 +373,7 @@ class RunPowershell(Tool[RunPowershellParams]):
         summary = "Ejecutar en PowerShell"
         try:
             analysis = await asyncio.to_thread(self._analyzer, params.command)
-        except (OSError, subprocess.SubprocessError, ValueError):
+        except OSError, subprocess.SubprocessError, ValueError:
             log.warning("No se pudo analizar el comando de PowerShell", exc_info=True)
             return Prepared(
                 summary=summary,

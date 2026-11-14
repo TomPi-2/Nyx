@@ -1,9 +1,9 @@
 r"""El Python de las extensiones con código y sus carpetas (tarea 7.06).
 
 - `%LOCALAPPDATA%\Nyx\ext-runtime\python-<versión>`: el Python «embeddable» oficial (PSF-2.0,
-  firmado por la Python Software Foundation), descargado con su huella SHA-256. Es la 3.14
-  (no la 3.12 del núcleo): la 3.12 ya no publica binarios con parches. Las extensiones traen
-  sus dependencias para esta versión (`tools/lib`).
+  firmado por la Python Software Foundation), descargado con su huella SHA-256. La 3.14, como
+  el núcleo desde que se empaqueta (9.07): la 3.12 ya no publica binarios con parches. Las
+  extensiones traen sus dependencias para esta versión (`tools/lib`).
 - `%LOCALAPPDATA%\Nyx\ext-runtime\nyx_runner.py`: el programa que corre dentro (runner.py).
 - `%LOCALAPPDATA%\Nyx\ext-data\<id>`: la única carpeta en la que una extensión puede escribir.
 

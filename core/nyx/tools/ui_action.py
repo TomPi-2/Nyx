@@ -115,7 +115,7 @@ def uia(hwnd: int, wanted: str, action: Action, expect: Control | None) -> tuple
             try:
                 text = el.GetCurrentPattern(10002).QueryInterface(U.IUIAutomationValuePattern)
                 text = text.CurrentValue
-            except (comtypes.COMError, AttributeError, ValueError):
+            except comtypes.COMError, AttributeError, ValueError:
                 text = found.control.name
             return found, str(text or found.control.name)[:MAX_READ]
         if action == "toggle":

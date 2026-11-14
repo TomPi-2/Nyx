@@ -27,7 +27,7 @@ Fase actual: **versión 0.6 — Cerebro** (fase 6a): plan en [docs/PLAN-0.6.md](
 | 2026-11-09 | Dos equipos: PC con RX 7700 XT (principal y de referencia) y portátil con RTX 3070 Laptop. Las pruebas de rendimiento se hacen en ambos para fijar los requisitos mínimos. Todo por Vulkan, nada de CUDA. |
 | 2026-11-09 | La app Tauri es el proceso principal (bandeja, instancia única) y lanza el núcleo Python como proceso hijo; lo reinicia si se cae. |
 | 2026-11-09 | Interfaz: Svelte 5 + TypeScript para la UI y WebGL/Canvas directo para el orbe. |
-| 2026-11-09 | Python gestionado con `uv` (Python 3.12). |
+| 2026-11-09 | Python gestionado con `uv` (Python 3.12; desde el 2026-11-14, 3.14). |
 | 2026-11-09 | Sin cuenta. Datos de uso anónimos solo con permiso (SPEC sección 8). |
 | 2026-11-09 | Interfaz en ventanas flotantes propias, ocultas en reposo; el monitor se elige según ajustes y modo partida (SPEC sección 11). |
 | 2026-11-09 | LLM provisional `qwen2.5:7b`; Whisper large-v3-turbo q5 con Vulkan (0,17 s por frase). |
@@ -68,7 +68,7 @@ Recuérdaselo al usuario al llegar a la fase 6.
 ## Estructura
 
 ```text
-core/        Núcleo en Python 3.12 (asyncio). Un subpaquete por servicio en core/nyx/
+core/        Núcleo en Python 3.14 (asyncio). Un subpaquete por servicio en core/nyx/
   tests/     Pruebas unitarias y batería de frases
   training/  Entrenamiento del modelo de «Nyx»
 ui/          Interfaz Tauri 2 + TypeScript (overlay, ajustes, tema)

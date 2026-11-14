@@ -13,7 +13,7 @@ cada pieza, comprobado una a una. Lo que necesita una decisión está en **Pendi
   valide igual que Nyx. Al montar el kit (7.13) hay que llevarse también, con MIT, lo pequeño
   que importan del núcleo (`Risk`/`GamePolicy`, la tabla de teclas, `normalize` y la lista de
   ajustes editables) o copiarlo dentro del kit.
-- **Python de las extensiones (7.05–7.07):** el «embeddable» oficial de python.org, 3.14.10
+- **Python del núcleo (9.07) y de las extensiones (7.05–7.07):** el «embeddable» oficial de python.org, 3.14.10
   (licencia PSF-2.0, compatible con GPL; firmado por la Python Software Foundation). Se
   descarga con su huella SHA-256 (`nyx/ext/runtime.py`). `nyx/ext/runner.py`, lo que corre
   dentro, también tiene licencia MIT, como el kit. Cuando se distribuya

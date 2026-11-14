@@ -38,7 +38,7 @@ def take_over(path: Path | None = None, *, me: int | None = None) -> bool:
     closed = False
     try:
         old = int(path.read_text(encoding="ascii").strip())
-    except (OSError, ValueError):
+    except OSError, ValueError:
         old = 0
     if old and old != me and psutil.pid_exists(old):
         try:

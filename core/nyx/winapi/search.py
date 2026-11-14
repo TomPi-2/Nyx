@@ -135,7 +135,7 @@ def search(query: str, roots: list[Path], limit: int = LIMIT) -> tuple[list[Path
     found: list[Path]
     try:
         found, how = everything_search(query, limit * 3), "everything"
-    except (OSError, subprocess.SubprocessError):
+    except OSError, subprocess.SubprocessError:
         try:
             found, how = windows_search(query, roots, limit * 3), "windows"
         except OSError:

@@ -26,9 +26,9 @@ Nyx se divide en dos procesos: un núcleo en Python que escucha, piensa y actúa
 
 | Pieza | Elección | Alternativa | Notas |
 | --- | --- | --- | --- |
-| Núcleo | Python 3.12, asyncio | — | Ecosistema de voz e IA más maduro |
+| Núcleo | Python 3.14, asyncio | — | Ecosistema de voz e IA más maduro. Pasó de la 3.12 a la 3.14 al empaquetarlo (9.07): la 3.12 ya no publica binarios con parches; medido igual o algo más rápido |
 | Interfaz | Tauri 2 + Svelte 5 + TypeScript + Canvas/WebGL | PySide6 + QML | Animaciones y cristal con tecnología web; WebView2 viene con Windows 11. Tauri es el proceso principal y lanza el núcleo |
-| Entorno Python | uv | — | Instala Python 3.12 y gestiona dependencias |
+| Entorno Python | uv (desarrollo) | — | Instala Python 3.14 y gestiona dependencias. En el equipo del usuario no hace falta: el núcleo va empaquetado |
 | Efecto cristal | Motor propio en Rust: Windows.Graphics.Capture + Direct3D 11 + composición de Windows (`ui/src-tauri/src/glass`) | Tinte gris translúcido en CSS | Cristal en tiempo real con silueta líquida (sección 12). Acrylic y el pincel de fondo de Windows se probaron y se descartaron |
 | Activación | openWakeWord (ONNX) | Vosk con gramática | Modelo propio para "Nyx"; Vosk para palabras personalizadas |
 | Detección de voz (VAD) | Silero VAD (ONNX) | WebRTC VAD | Corta la grabación al dejar de hablar |
@@ -43,7 +43,7 @@ Nyx se divide en dos procesos: un núcleo en Python que escucha, piensa y actúa
 | Caché | SQLite + rapidfuzz + watchdog | — | Índice de apps, carpetas y alias; la búsqueda difusa en memoria (< 5 ms con miles de alias) sustituye a FTS5 |
 | Tiempo | Open-Meteo | — | Gratis, sin clave |
 | Nombre de la ciudad desde la ubicación | Nominatim (OpenStreetMap) | Datos ODbL | Gratis, sin clave; 1 petición por sitio, identificando la app |
-| Empaquetado | Nuitka o PyInstaller + Velopack (instalación y actualizaciones desde GitHub) | — | Un solo instalador |
+| Empaquetado | Python 3.14 «embeddable» oficial con las dependencias de `uv.lock` (con sus huellas) y el núcleo en .pyc, junto a la app (`core/scripts/package_core.py`, 9.07) + Velopack (instalación y actualizaciones desde GitHub) | Nuitka o PyInstaller (descartados: más frágiles con PyTorch, ONNX y pywin32, y el embeddable es el mismo de las extensiones) | Un solo instalador |
 
 **Requisitos de diseño del stack:**
 

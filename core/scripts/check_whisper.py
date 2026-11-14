@@ -63,7 +63,7 @@ def detect_device(server: Path, preferred: str | None = None) -> VulkanDevice | 
         out = subprocess.check_output(
             [str(server), "--help"], stderr=subprocess.STDOUT, text=True, timeout=10
         )
-    except (OSError, subprocess.SubprocessError):
+    except OSError, subprocess.SubprocessError:
         return None
     return pick_device(parse_devices(out.splitlines()), preferred)
 

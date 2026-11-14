@@ -67,7 +67,7 @@ class ShortMemory:
         user, assistant = self._turns[-1]
         try:
             spoken = str(json.loads(assistant).get("spoken", assistant))
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             spoken = assistant
         return user, spoken
 

@@ -83,7 +83,7 @@ def _from_python(line: str, names: dict[str, str]) -> LLMToolCall | None:
         if call.args:
             return None
         return LLMToolCall(name, {k.arg: _literal(k.value) for k in call.keywords if k.arg})
-    except (ValueError, TypeError, SyntaxError):
+    except ValueError, TypeError, SyntaxError:
         return None
 
 

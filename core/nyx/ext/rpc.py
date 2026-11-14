@@ -116,7 +116,7 @@ class Connection:
             try:
                 self._writer.write(data)
                 self._writer.flush()
-            except (OSError, ValueError):
+            except OSError, ValueError:
                 self._loop.call_soon_threadsafe(self.close, "la extensión dejó de leer")
                 break
         with contextlib.suppress(OSError, ValueError):
@@ -136,14 +136,14 @@ class Connection:
                     continue
                 try:
                     message = json.loads(line)
-                except (UnicodeDecodeError, json.JSONDecodeError):
+                except UnicodeDecodeError, json.JSONDecodeError:
                     reason = "mensaje que no es JSON"
                     break
                 if not isinstance(message, dict):
                     reason = "mensaje que no es un objeto"
                     break
                 self._loop.call_soon_threadsafe(self._dispatch, message)
-        except (OSError, ValueError):
+        except OSError, ValueError:
             pass
         with contextlib.suppress(RuntimeError):  # el bucle ya se cerró
             self._loop.call_soon_threadsafe(self.close, reason)

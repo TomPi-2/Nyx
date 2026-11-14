@@ -274,7 +274,7 @@ def load_settings(path: Path | None = None) -> Settings:
         if not isinstance(data, dict):
             raise ValueError("el archivo no contiene un objeto JSON")
         return Settings.model_validate(migrate(data))
-    except (OSError, ValueError, ValidationError):
+    except OSError, ValueError, ValidationError:
         log.warning("Ajustes no válidos en %s: uso los valores por defecto", path, exc_info=True)
         return Settings()
 

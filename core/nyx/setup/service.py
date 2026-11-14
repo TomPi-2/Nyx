@@ -142,7 +142,7 @@ class SetupService:
                 resp = await http.get(f"{self.settings.llm.host}/api/tags")
                 resp.raise_for_status()
                 names = sorted(str(m["name"]) for m in resp.json().get("models", []))
-        except (httpx.HTTPError, ValueError, KeyError):
+        except httpx.HTTPError, ValueError, KeyError:
             return {"running": False, "models": [], "wanted": wanted, "has_wanted": False}
         has = wanted in names or f"{wanted}:latest" in names
         return {"running": True, "models": names, "wanted": wanted, "has_wanted": has}

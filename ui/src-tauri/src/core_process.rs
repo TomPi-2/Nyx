@@ -155,9 +155,10 @@ async fn run_once(app: &AppHandle, state: &CoreState) -> Result<String, String> 
     }
 }
 
-/// Mata el núcleo con todos sus descendientes. `child` es `uv`, que lanza `nyx.exe` →
-/// `python.exe` → `whisper-server.exe`: matar solo `uv` dejaba vivo el núcleo de verdad y,
-/// tras «Reiniciar núcleo», había dos escuchando el micrófono a la vez.
+/// Mata el núcleo con todos sus descendientes. En desarrollo `child` es `uv`, que lanza
+/// `nyx.exe` → `python.exe` → `whisper-server.exe`: matar solo `uv` dejaba vivo el núcleo de
+/// verdad y, tras «Reiniciar núcleo», había dos escuchando el micrófono a la vez. Empaquetado,
+/// `python.exe` → `whisper-server.exe`.
 fn kill_tree(child: &tokio::process::Child) {
     #[cfg(windows)]
     if let Some(pid) = child.id() {
@@ -176,12 +177,19 @@ fn kill_tree(child: &tokio::process::Child) {
 
 /// Orden para lanzar el núcleo.
 ///
-/// - `NYX_CORE_EXE`: ejecutable empaquetado (fase 6).
-/// - Si no, `uv run` sobre `NYX_CORE_DIR` o la carpeta `core/` del repositorio.
+/// - `NYX_CORE_EXE`: otro ejecutable (pruebas).
+/// - El núcleo empaquetado junto a la app (9.07, `core/scripts/package_core.py`):
+///   `core\python\python.exe -I -X utf8 -m nyx`, sin `uv` (`-I`: sin variables de entorno ni
+///   la carpeta del usuario; dónde busca lo fija `python314._pth`).
+/// - Si no, `uv run` sobre `NYX_CORE_DIR` o la carpeta `core/` del repositorio (desarrollo).
 /// - `NYX_DEMO=1` añade `--demo` (recorre los estados sin voz) en compilaciones de depuración.
 fn core_command() -> Command {
     let mut cmd = if let Ok(exe) = std::env::var("NYX_CORE_EXE") {
         Command::new(exe)
+    } else if let Some(python) = packaged_python() {
+        let mut c = Command::new(python);
+        c.args(["-I", "-X", "utf8", "-m", "nyx"]);
+        c
     } else {
         let dir = std::env::var("NYX_CORE_DIR")
             .map(PathBuf::from)
@@ -195,4 +203,11 @@ fn core_command() -> Command {
         cmd.arg("--demo");
     }
     cmd
+}
+
+/// El Python del núcleo empaquetado, si la app se ha instalado con él al lado.
+fn packaged_python() -> Option<PathBuf> {
+    let exe = std::env::current_exe().ok()?;
+    let python = exe.parent()?.join("core").join("python").join("python.exe");
+    python.is_file().then_some(python)
 }

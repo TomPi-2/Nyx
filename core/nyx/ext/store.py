@@ -254,7 +254,7 @@ class ExtensionStore:
             folder = self._folder(ext_id, state.version)
             try:
                 manifest = load_manifest((folder / MANIFEST_NAME).read_bytes())
-            except (OSError, ManifestError):
+            except OSError, ManifestError:
                 log.warning("Extensión %s dañada en disco: se ignora", ext_id)
                 return None
             return Installed(manifest, folder, state.model_copy())
@@ -273,7 +273,7 @@ class ExtensionStore:
             try:
                 raw = (self._folder(ext_id, state.pending) / MANIFEST_NAME).read_bytes()
                 return load_manifest(raw)
-            except (OSError, ManifestError):
+            except OSError, ManifestError:
                 return None
 
     def active(self) -> list[Installed]:

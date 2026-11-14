@@ -212,7 +212,7 @@ class UIBridge:
         try:
             raw = await asyncio.wait_for(conn.recv(), AUTH_TIMEOUT_S)
             hello = client_adapter.validate_json(raw)
-        except (TimeoutError, ValidationError, ConnectionClosed):
+        except TimeoutError, ValidationError, ConnectionClosed:
             await conn.close(CLOSE_UNAUTHORIZED, "hello requerido")
             return False
         if not isinstance(hello, Hello) or not hmac.compare_digest(

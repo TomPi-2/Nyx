@@ -87,6 +87,15 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
 15. ~~Primer arranque guiado por Nyx (9.10)~~ **Aprobado** (2026-11-14), con el plan de
     construcción (`docs/PLAN-0.9.md` §1b) y el paso del núcleo a Python 3.14 al empaquetarlo
     (9.07). **Hecha la 9.10a** (ver «Qué probar», punto 12).
+16. **Núcleo empaquetado (9.07), hecho sin ti el 2026-11-14.** El núcleo ya va en Python 3.14
+    (también tu `core\.venv`: `uv run` lo usa sin más) y se empaqueta con su propio Python.
+    Para que lo decidas o lo sepas:
+    - **Ocupa 1.010 MB**, casi todo PyTorch (lo necesita la voz de Pocket TTS). Se podría
+      bajar (PyTorch recortado o la voz en ONNX), pero no lo he tocado: ¿lo miro más adelante?
+    - El código del núcleo va como .pyc **y** .py (GPL: el código tiene que poder verse). Si
+      prefieres solo .pyc en el instalador, se cambia en una línea.
+    - Descarté Nuitka y PyInstaller (la SPEC los nombraba): con PyTorch, ONNX y pywin32 dan
+      más guerra, y el Python embeddable es el mismo de las extensiones. Ya está en la SPEC.
 
 ## Qué probar
 

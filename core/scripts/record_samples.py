@@ -136,7 +136,7 @@ async def continuous(rec: Recorder) -> None:
             save(folder / f"{stamp}.wav", chunk)
             total += len(chunk) * FRAME_S
             print(f"  {total / 60:.0f} min grabados")
-    except (asyncio.CancelledError, KeyboardInterrupt):
+    except asyncio.CancelledError, KeyboardInterrupt:
         if rec.sink:
             save(folder / f"{datetime.now():%Y%m%d-%H%M%S}.wav", rec.sink)
             total += len(rec.sink) * FRAME_S

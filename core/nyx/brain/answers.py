@@ -427,7 +427,7 @@ class Answers:
         index = self._rng.choice(choices)
         try:
             text = options[index](data)
-        except (KeyError, TypeError, ValueError):
+        except KeyError, TypeError, ValueError:
             return None  # faltan datos: mejor el mensaje de la herramienta
         self._last[key] = index
         return text

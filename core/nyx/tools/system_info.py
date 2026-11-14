@@ -163,7 +163,7 @@ def _top(ps: Any, interval: float) -> ToolResult:
                 continue
             p.cpu_percent(None)
             procs.append((p, _clean_proc_name(raw_name)))
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+        except psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess:
             continue
 
     if not procs:
@@ -180,7 +180,7 @@ def _top(ps: Any, interval: float) -> ToolResult:
             cpu = float(p.cpu_percent(None) or 0.0) / cpus
             mem_info = p.info.get("memory_info") or p.memory_info()
             rss = int(getattr(mem_info, "rss", 0) or 0)
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+        except psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess:
             continue
         cpu_by_name[name] = cpu_by_name.get(name, 0.0) + cpu
         ram_by_name[name] = ram_by_name.get(name, 0) + rss

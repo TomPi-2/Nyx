@@ -134,7 +134,7 @@ class InstallApp(Tool[InstallAppParams]):
         )
         try:
             _, out = await asyncio.to_thread(self._run, lookup)
-        except (OSError, subprocess.TimeoutExpired):
+        except OSError, subprocess.TimeoutExpired:
             log.warning("winget no responde", exc_info=True)
             return Prepared(
                 summary=verb,
@@ -160,7 +160,7 @@ class InstallApp(Tool[InstallAppParams]):
                     self._run, ["show", "--id", found.id, "-e", *_AGREE]
                 )
                 editor = publisher(shown)
-            except (OSError, subprocess.TimeoutExpired):
+            except OSError, subprocess.TimeoutExpired:
                 editor = ""
         detail = " · ".join(p for p in (editor, found.id, found.version) if p)
         return Prepared(summary=f"{verb} {found.name}", detail=detail, risk=Risk.RED, payload=found)

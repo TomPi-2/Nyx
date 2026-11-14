@@ -107,7 +107,7 @@ class ActivationLog:
         try:
             data = json.loads(self.state.read_text(encoding="utf-8"))
             return min(MAX_OFFSET, max(0.0, float(data.get("ajuste_umbral", 0.0))))
-        except (OSError, ValueError, TypeError):
+        except OSError, ValueError, TypeError:
             return 0.0
 
     def _write(self, entry: dict[str, object]) -> None:

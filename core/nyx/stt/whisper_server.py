@@ -145,7 +145,7 @@ class WhisperServer:
                 creationflags=flags,
             )
             out, _ = await asyncio.wait_for(proc.communicate(), timeout=10.0)
-        except (OSError, TimeoutError):
+        except OSError, TimeoutError:
             return []
         return parse_devices(out.decode("utf-8", errors="replace").splitlines())
 

@@ -134,7 +134,7 @@ class Brain:
             async for chunk in self.llm.stream(messages, schema=GROUPS_SCHEMA):
                 raw += chunk
             picked = [str(g) for g in json.loads(raw)["grupos"]][:3]
-        except (LLMError, ValueError, KeyError, TypeError):
+        except LLMError, ValueError, KeyError, TypeError:
             log.warning("Índice de grupos: sin respuesta válida para %r: %r", text, raw[:80])
             return []
         log.info("Índice de grupos: %r → %s", text, picked)
@@ -172,7 +172,7 @@ class Brain:
         *,
         continuing: bool = False,
         tools_off: bool = False,
-    ) -> AsyncGenerator[ReplyEvent | ReplyDone | ToolPlan, None]:
+    ) -> AsyncGenerator[ReplyEvent | ReplyDone | ToolPlan]:
         """`extra`: contexto de esta petición (ventana activa, candidatos si no se encontró…).
 
         `continuing`: es otra vuelta de la misma petición (bucle de agente): el turno de la
@@ -279,6 +279,6 @@ class Brain:
             async for chunk in self.llm.stream(messages, schema=ADDRESSED_SCHEMA):
                 raw += chunk
             return bool(json.loads(raw)["para_nyx"])
-        except (LLMError, ValueError, KeyError, TypeError):
+        except LLMError, ValueError, KeyError, TypeError:
             log.warning("No se pudo clasificar el seguimiento %r: %r", text, raw[:80])
             return True

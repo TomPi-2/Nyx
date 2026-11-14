@@ -55,7 +55,7 @@ async def windows_position(timeout_s: float = POSITION_TIMEOUT_S) -> tuple[float
         position = await asyncio.wait_for(locator.get_geoposition_async(), timeout_s)
         point = position.coordinate.point.position
         return float(point.latitude), float(point.longitude)
-    except (OSError, TimeoutError, ImportError, AttributeError):
+    except OSError, TimeoutError, ImportError, AttributeError:
         log.info("No se pudo leer la ubicación de Windows", exc_info=True)
         return None
 
@@ -88,7 +88,7 @@ async def reverse_city(
             )
             reply.raise_for_status()
             return city_from_address(reply.json().get("address") or {})
-    except (httpx.HTTPError, ValueError, AttributeError):
+    except httpx.HTTPError, ValueError, AttributeError:
         log.info("Nominatim no ha dado el nombre de la ciudad", exc_info=True)
         return None
 

@@ -78,7 +78,7 @@ class Result:
 def is_admin() -> bool:
     try:
         return bool(ctypes.windll.shell32.IsUserAnAdmin())
-    except (AttributeError, OSError):
+    except AttributeError, OSError:
         return False
 
 
