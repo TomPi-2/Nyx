@@ -58,6 +58,22 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
 8. ~~¿Quién ha creado a Nyx?~~ **Tepnyx** (2026-11-14). Hecho, junto con todo Tepnyx (ver
    «Qué probar», 10).
 
+9. **0.7, aislamiento de las extensiones con código (7.05): necesito tu permiso.** Para medir
+   qué aísla de verdad (token de baja integridad o AppContainer) tengo que descargar el Python
+   «embeddable» oficial de python.org y ejecutarlo encerrado, intentando leer tus Documentos y
+   abrir la red. El modo automático no me deja descargar y ejecutar un programa de internet sin
+   que lo digas. Si te parece bien, dime «adelante con la 7.05» (o añade el permiso). Mientras,
+   las extensiones con código no se ejecutan (no hay host todavía); lo demás de la 0.7 sí está.
+   Según la documentación de Windows, la baja integridad no impide leer tus archivos ni la red;
+   AppContainer sí. Mi propuesta, si las medidas lo confirman: AppContainer sin red.
+
+10. **0.7, firma (7.08), decidido por mí:** Ed25519; la clave privada de Tepnyx en
+    `%APPDATA%\Tepnyx\keys\` del PC que firma (nunca en git); sin firma, solo en modo
+    desarrollador con la etiqueta «sin revisar»; lista de revocación firmada, una vez al día y
+    solo si tienes alguna extensión firmada. **Para crear tu clave** (solo tú, una vez, y guarda
+    copia): desde `core/`, `uv run python scripts/sign_extension.py --nueva-clave tepnyx-1`, y
+    pega la línea que enseña en `TRUSTED_KEYS` (`core/nyx/ext/signing.py`). ¿Te vale así?
+
 ## Qué probar
 
 Probado y bien (2026-11-13): color de Nyx (6.23), ciudad automática (6.24) y falsas
