@@ -78,6 +78,12 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
     molestar» de forma oficial, y las formas no oficiales pueden romperse con cualquier
     actualización. El modo abrirá la página de Configuración y te dirá qué tocar. ¿Te vale?
 
+13. **0.7, licencia del kit de extensiones (7.12):** decidiste que el kit sea MIT, pero la
+    validación de manifiestos y paquetes vive en el núcleo (GPL-3.0). Como eres el autor, puedes
+    publicar esos módulos (`core/nyx/ext/manifest.py`, `content.py`, `signing.py`) también con
+    MIT para que el kit los use sin problema. ¿Lo hago así? Mientras, hay una herramienta
+    provisional en el núcleo: `uv run python scripts/nyx_ext.py new|validate|pack`.
+
 ## Qué probar
 
 Probado y bien (2026-11-13): color de Nyx (6.23), ciudad automática (6.24) y falsas
