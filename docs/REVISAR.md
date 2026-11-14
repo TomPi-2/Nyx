@@ -74,6 +74,10 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
     copia): desde `core/`, `uv run python scripts/sign_extension.py --nueva-clave tepnyx-1`, y
     pega la línea que enseña en `TRUSTED_KEYS` (`core/nyx/ext/signing.py`). ¿Te vale así?
 
+12. **0.7, modo Noche (7.10), decidido por mí:** Windows no deja activar la luz nocturna ni «No
+    molestar» de forma oficial, y las formas no oficiales pueden romperse con cualquier
+    actualización. El modo abrirá la página de Configuración y te dirá qué tocar. ¿Te vale?
+
 ## Qué probar
 
 Probado y bien (2026-11-13): color de Nyx (6.23), ciudad automática (6.24) y falsas
