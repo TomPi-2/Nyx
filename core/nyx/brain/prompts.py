@@ -133,6 +133,27 @@ Ejemplos:
 - «No sé, lo que tú quieras» → false
 Responde solo con el JSON."""
 
+# Índice de grupos de último recurso (7.15): una llamada corta, como `addressed`.
+GROUPS_INDEX = (
+    "Eres el selector de herramientas de Nyx, un asistente de voz para Windows. Te doy una "
+    "petición y una lista de grupos de herramientas, uno por línea («nombre: de qué va»). "
+    "Responde con los nombres de los grupos que harían falta para atenderla (como mucho 3), "
+    "o con una lista vacía si es charla o una pregunta que se contesta sin herramientas."
+)
+GROUPS_SCHEMA = {
+    "type": "object",
+    "properties": {"grupos": {"type": "array", "items": {"type": "string"}}},
+    "required": ["grupos"],
+}
+
+
+def groups_messages(text: str, lines: list[str]) -> list[ChatMessage]:
+    return [
+        ChatMessage("system", GROUPS_INDEX),
+        ChatMessage("user", "Grupos:\n" + "\n".join(lines) + f"\n\nPetición: «{text}»"),
+    ]
+
+
 ADDRESSED_SCHEMA = {
     "type": "object",
     "properties": {"para_nyx": {"type": "boolean"}},

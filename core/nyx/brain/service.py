@@ -19,8 +19,10 @@ from nyx.brain.memory import ShortMemory
 from nyx.brain.panel import unrelated
 from nyx.brain.prompts import (
     ADDRESSED_SCHEMA,
+    GROUPS_SCHEMA,
     TOOLS_HINT,
     addressed_messages,
+    groups_messages,
     system_message,
     user_message,
 )
@@ -109,13 +111,34 @@ class Brain:
         # Avisar al modelo de que la petición se resuelve con herramientas (6.21). Medido con
         # qwen2.5:7b: no le hace consultar más (259 frente a 262/337); queda para otros modelos.
         self.tools_hint = tools_hint
+        # Índice de grupos de último recurso (7.15); `battery.py --sin-indice` lo apaga.
+        self.use_index = True
         # Se elige al arrancar para no romper la caché del prefijo de Ollama (6.15).
         self._system = system_message(tone)
 
-    def tools_for(self, text: str, *, keep: bool = False) -> list[dict[str, Any]]:
+    def tools_for(
+        self, text: str, *, keep: bool = False, picked: Sequence[str] = ()
+    ) -> list[dict[str, Any]]:
         if self.selector is None:
             return self.tools
-        return self.selector.select(text, keep=keep)
+        return self.selector.select(text, keep=keep, picked=picked)
+
+    async def pick_groups(self, text: str) -> list[str]:
+        """Índice de último recurso (7.15): qué grupos hacen falta, si las herramientas no
+        caben y la frase no da pistas. Una llamada corta aparte (~250 ms); si falla, ninguno."""
+        if not self.use_index or self.selector is None or not self.selector.needs_index(text):
+            return []
+        raw = ""
+        try:
+            messages = groups_messages(text, self.selector.index_lines())
+            async for chunk in self.llm.stream(messages, schema=GROUPS_SCHEMA):
+                raw += chunk
+            picked = [str(g) for g in json.loads(raw)["grupos"]][:3]
+        except (LLMError, ValueError, KeyError, TypeError):
+            log.warning("Índice de grupos: sin respuesta válida para %r: %r", text, raw[:80])
+            return []
+        log.info("Índice de grupos: %r → %s", text, picked)
+        return picked
 
     def _needs_tools(self, text: str) -> bool:
         """¿La frase toca un tema que solo saben o hacen las herramientas?"""
@@ -159,7 +182,8 @@ class Brain:
         Nyx actúe; solo se cuenta)."""
         parser = TextReplyParser()
         calls: list[LLMToolCall] = []
-        tools = [] if tools_off else self.tools_for(text, keep=continuing)
+        picked = [] if tools_off or continuing else await self.pick_groups(text)
+        tools = [] if tools_off else self.tools_for(text, keep=continuing, picked=picked)
         if not continuing and self.tools_hint and self._needs_tools(text):
             extra = f"{extra}\n{TOOLS_HINT}" if extra else TOOLS_HINT
         # Una llamada escrita como texto a una herramienta que no estaba en la lista también

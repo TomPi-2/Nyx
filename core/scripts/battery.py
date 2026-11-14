@@ -238,6 +238,11 @@ async def main() -> int:
     )
     parser.add_argument("--modelo", default=None, help="otro modelo de Ollama (6.21)")
     parser.add_argument(
+        "--sin-indice",
+        action="store_true",
+        help="sin el índice de grupos de último recurso (7.15; solo cuenta si no caben)",
+    )
+    parser.add_argument(
         "--host",
         default=None,
         help="otro servidor con la API de Ollama (6.27: training/llm/serve.py compara el "
@@ -305,6 +310,7 @@ async def main() -> int:
         how += f" Orden al azar (semilla {args.mezclar})."
     index = SystemIndex.open()
     brain.tools_hint = args.con_aviso
+    brain.use_index = not args.sin_indice
     if not args.sin_reencaminar:
         brain.reroute = lambda text: written_command(text, index)  # como en Nyx (6.21)
     await brain.warmup()

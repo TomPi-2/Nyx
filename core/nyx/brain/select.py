@@ -18,6 +18,11 @@ Por eso la lista solo se recorta cuando no cabe:
    el que lleve más tiempo sin usarse. Una frase sin pistas no cambia nada.
 
 En el bucle de agente (otra vuelta de la misma petición) la lista no cambia.
+
+3. **Índice de último recurso** (0.7, tarea 7.15; antes 6.20c): si no caben y la frase no trae
+   ninguna pista, el cerebro pregunta al modelo en una llamada corta qué grupos hacen falta, con
+   una línea por grupo (`index_lines`), y se los pasa a `select(picked=…)`. Solo entonces: con
+   todo en la lista (lo de siempre hoy) no se pregunta nada.
 """
 
 from __future__ import annotations
@@ -108,13 +113,28 @@ class ToolSelector:
     def _size(self, groups: Sequence[str]) -> int:
         return self._fixed_chars + sum(self._sizes.get(g, 0) for g in groups)
 
-    def select(self, text: str, *, keep: bool = False) -> list[dict[str, Any]]:
-        """Herramientas para esta petición. `keep`: otra vuelta de la misma petición."""
+    def needs_index(self, text: str) -> bool:
+        """¿Hay que preguntar al modelo por los grupos? (no caben y la frase no da pistas)"""
+        # «Hola» o «gracias» no necesitan herramientas: no se gasta una llamada en ellas.
+        return not self.all_fit and not self.groups_for(text) and len(normalize(text).split()) > 2
+
+    def index_lines(self) -> list[str]:
+        """Una línea por grupo («nombre: de qué va») para que el modelo elija."""
+        return [f"{g.name}: {g.about}" for g in self.groups]
+
+    def select(
+        self, text: str, *, keep: bool = False, picked: Sequence[str] = ()
+    ) -> list[dict[str, Any]]:
+        """Herramientas para esta petición. `keep`: otra vuelta de la misma petición.
+        `picked`: grupos elegidos con el índice de último recurso (7.15)."""
         if self.all_fit:
             return self._everything
         if keep:
             return self.tools_for(self.current)
-        wanted = self.groups_for(text)
+        wanted = (
+            self.groups_for(text)
+            or tuple(g for g in picked if g in self._by_name)[: self.max_groups]
+        )
         self._clock += 1
         for name in wanted:
             self._used[name] = self._clock

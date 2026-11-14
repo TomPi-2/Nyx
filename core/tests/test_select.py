@@ -214,3 +214,47 @@ def test_two_hundred_extension_tools_do_not_grow_the_prompt() -> None:
             big.groups_for(text)
     per_call_ms = (time.perf_counter() - t0) * 1000 / (20 * len(texts))
     assert per_call_ms < 5
+
+
+# --- índice de último recurso (7.15) ---
+
+
+def test_the_index_is_only_asked_when_nothing_fits_and_there_is_no_clue() -> None:
+    every = ToolSelector(default_registry())
+    assert every.all_fit and not every.needs_index("necesito organizar mi trabajo de hoy")
+    sel = ToolSelector(default_registry(), budget_chars=TIGHT)
+    assert sel.needs_index("necesito organizar mi trabajo de hoy")
+    assert not sel.needs_index("ponme una alarma a las ocho")  # hay pistas: grupo por palabras
+    assert not sel.needs_index("hola Nyx")  # charla corta: sin gastar una llamada
+    lines = sel.index_lines()
+    assert len(lines) == len(sel.groups) and all(": " in line for line in lines)
+
+
+def test_picked_groups_are_used_when_there_is_no_clue() -> None:
+    sel = ToolSelector(default_registry(), budget_chars=TIGHT)
+    tools = names(
+        sel.select("necesito organizar mi trabajo de hoy", picked=["alarmas", "inventado"])
+    )
+    assert "set_alarm" in tools and sel.current == ("alarmas",)
+    # Con pistas mandan las palabras, no lo elegido.
+    sel.select("sube el volumen", picked=["alarmas"])
+    assert "musica" in sel.current or "set_volume" in names(sel.tools_for(sel.current))
+
+
+async def test_brain_asks_the_index_in_a_short_call() -> None:
+    from nyx.brain.service import Brain
+
+    class IndexLLM:
+        def __init__(self) -> None:
+            self.asked: list[str] = []
+
+        async def stream(self, messages: Any, *, schema: Any = None) -> Any:
+            self.asked.append(messages[-1].content)
+            yield '{"grupos": ["alarmas", "clima"]}'
+
+    llm = IndexLLM()
+    brain = Brain(llm, selector=ToolSelector(default_registry(), budget_chars=TIGHT))  # type: ignore[arg-type]
+    assert await brain.pick_groups("necesito organizar mi trabajo de hoy") == ["alarmas", "clima"]
+    assert "Petición: «necesito organizar mi trabajo de hoy»" in llm.asked[0]
+    brain.use_index = False
+    assert await brain.pick_groups("necesito organizar mi trabajo de hoy") == []
