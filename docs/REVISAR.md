@@ -55,9 +55,8 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
 
 7. ~~Plan de la 0.7~~ **Aprobado** (2026-11-13): se empieza al cerrar la 0.6.
 
-8. **¿Qué contesta Nyx a «¿quién te ha creado?»?** Ahora no lo sabe («Soy Nyx, tu asistente
-   personal…»). Propuesta: «Me ha hecho Tepnyx» (sin tu nombre, que la app será pública). Dime
-   la frase y la pongo en su conocimiento (`brain/knowledge/nyx.md`).
+8. ~~¿Quién ha creado a Nyx?~~ **Tepnyx** (2026-11-14). Hecho, junto con todo Tepnyx (ver
+   «Qué probar», 10).
 
 ## Qué probar
 
@@ -101,6 +100,12 @@ activaciones (6.22).
    - «Vale, ábreme Netflix» lo abre.
    - Nyx aprendió un atajo de una frase mal oída: «po muusiga» → abrir la web «Spotify» (que no
      existe). Bórralo en Ajustes → Cerebro → Atajos aprendidos («Olvidar»).
+
+10. **Tepnyx** (reinicia el núcleo y en Ajustes → Caché, «Volver a escanear», para que conozca
+    las páginas): «¿quién te ha creado?» (dice «Me ha creado Tepnyx»), «¿qué es Decider Bot?»,
+    «¿qué apps tiene Tepnyx?», «abre la ruleta de sí o no», «abre Tepnyx Premium», «¿dónde
+    cambio tu voz?» (Ajustes en Voz). Decider y Sorty son apps del móvil: en el PC Nyx abre su
+    página. Si echas en falta alguna pantalla o página, dímela.
 
 ## Hecho en esta tanda
 

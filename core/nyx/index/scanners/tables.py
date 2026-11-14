@@ -85,6 +85,50 @@ WEBSITES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("https://www.tiktok.com", "TikTok", ("tik tok",)),
 )
 
+# Las páginas de tepnyx.com (en español; rutas en tepnyx_website/src/lib/routes.ts). Nyx las
+# conoce y las explica con `brain/knowledge/tepnyx.md`: mantener las dos cosas a la vez.
+_T = "https://tepnyx.com"
+TEPNYX_PAGES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    (f"{_T}/", "Tepnyx", ("web de tepnyx", "pagina de tepnyx", "tepnix", "tep nyx", "tepnyx com")),
+    (f"{_T}/decider", "Decider", ("decider de tepnyx", "mis sorteos", "mis sorteos de decider")),
+    (
+        f"{_T}/decider/app/new",
+        "Crear un sorteo en Decider",
+        ("nuevo sorteo en decider", "crear sorteo", "crear un sorteo", "nuevo sorteo"),
+    ),
+    (
+        f"{_T}/decider/mobile",
+        "Decider para el móvil",
+        ("app de decider", "decider movil", "decider app", "descargar decider"),
+    ),
+    (f"{_T}/decider-bot", "Decider Bot", ("bot de decider", "bot de discord de tepnyx")),
+    (f"{_T}/decider-live", "Decider Live", ("alertas de decider", "alertas de tepnyx")),
+    (f"{_T}/ruleta", "Ruleta de Tepnyx", ("ruleta", "ruleta online", "la ruleta")),
+    (f"{_T}/ruleta/si-o-no", "Ruleta de sí o no", ("ruleta si o no", "ruleta del si o no")),
+    (f"{_T}/ruleta/numeros", "Ruleta de números", ("ruleta de numeros", "numero al azar")),
+    (f"{_T}/ruleta/letras", "Ruleta de letras", ("ruleta del abecedario", "letra al azar")),
+    (f"{_T}/ruleta/paises", "Ruleta de países", ("ruleta de banderas", "pais al azar")),
+    (f"{_T}/ruleta/nombres", "Ruleta de nombres", ("nombre al azar",)),
+    (f"{_T}/ruleta/sorteos", "Ruleta para sorteos", ("ruleta de sorteos",)),
+    (f"{_T}/ruleta/obs", "Ruleta para OBS", ("ruleta de obs", "ruleta para directos")),
+    (f"{_T}/tirada", "Tirada", ("tirada de tepnyx", "juego de la ruleta")),
+    (f"{_T}/podio", "Podio", ("podio de tepnyx", "juego de paises", "juego de banderas")),
+    (f"{_T}/sorty", "Sorty", ("sorty de tepnyx", "sorti")),
+    (f"{_T}/premium", "Tepnyx Premium", ("premium de tepnyx", "premium de decider")),
+    (f"{_T}/faq", "Preguntas frecuentes de Tepnyx", ("faq de tepnyx", "ayuda de tepnyx")),
+    (f"{_T}/contact", "Contacto de Tepnyx", ("contactar con tepnyx", "contacto de tepnyx")),
+    (
+        f"{_T}/configuration",
+        "Mi cuenta de Tepnyx",
+        ("cuenta de tepnyx", "configuracion de tepnyx", "mi cuenta de decider"),
+    ),
+    (f"{_T}/login", "Iniciar sesión en Tepnyx", ("login de tepnyx", "entrar en tepnyx")),
+    (f"{_T}/creators", "Creadores de Tepnyx", ("pagina de creadores de tepnyx",)),
+    (f"{_T}/privacy", "Privacidad de Tepnyx", ("politica de privacidad de tepnyx",)),
+    (f"{_T}/terms", "Términos de Tepnyx", ("terminos y condiciones de tepnyx",)),
+    (f"{_T}/cookies", "Cookies de Tepnyx", ("politica de cookies de tepnyx",)),
+)
+
 
 def scan_settings() -> list[Entry]:
     return [
@@ -110,5 +154,5 @@ def scan_websites() -> list[Entry]:
             source="websites",
             aliases=generate(name, extra),
         )
-        for url, name, extra in WEBSITES
+        for url, name, extra in (*WEBSITES, *TEPNYX_PAGES)
     ]

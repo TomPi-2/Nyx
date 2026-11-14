@@ -240,7 +240,7 @@ Unas 35 herramientas genéricas cubren miles de peticiones al combinarse. Cada u
 | `app_action` | Acciones dentro de una app (pestañas, guardar, zoom, buscar…) | Verde | Catálogo de atajos por app e idioma (`app_catalog.py`) |
 | `now_playing`, `stopwatch`, `audio_output` | Qué suena, cronómetro, salida de audio | Verde | SMTC; en memoria; ajustes de sonido |
 | `list_alarms`, `cancel_alarm` | Ver y quitar alarmas y temporizadores | Verde | Planificador propio |
-| `nyx_info`, `pending` | Lo que Nyx sabe de sí misma; lo pendiente para después de la partida | Verde | `knowledge/nyx.md`; cola diferida |
+| `nyx_info`, `pending` | Lo que Nyx sabe de sí misma y de Tepnyx (quién la ha creado, sus apps y su web); lo pendiente para después de la partida | Verde | `knowledge/nyx.md` y `knowledge/tepnyx.md`; cola diferida |
 | `undo` | Deshacer lo último (30 s) | Verde | Registro de deshacer |
 
 **Cómo se resuelven los ejemplos del usuario:**

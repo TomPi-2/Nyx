@@ -2,7 +2,7 @@
 
 import pytest
 
-from nyx.tools.nyx_info import find, sections
+from nyx.tools.nyx_info import VERBATIM, find, sections
 
 
 def test_every_section_has_text() -> None:
@@ -10,7 +10,9 @@ def test_every_section_has_text() -> None:
     assert {"quien soy", "que se hacer", "modo partida", "ajustes", "lo que nunca hago"} <= set(
         known
     )
-    assert all(len(text) > 80 for text in known.values())
+    # Lo que se dice tal cual es corto a propósito («Me ha creado Tepnyx.»).
+    assert all(len(text) > 80 for title, text in known.items() if title != VERBATIM)
+    assert {"tepnyx", "decider", "sorty", "web de tepnyx", "pantallas"} <= set(known)
 
 
 @pytest.mark.parametrize(

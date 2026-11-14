@@ -124,6 +124,85 @@ def _self(m: re.Match[str], __: SystemIndex) -> Route:
     return _call("self", "nyx_info", topic=m.group(0))
 
 
+# --- Tepnyx (2026-11-14): quién ha creado a Nyx y qué son sus apps ---
+
+
+@rule(
+    "creator",
+    # «¿Quién te ha creado?» contesta «Tepnyx» siempre (el 7B decía «Soy Nyx, tu asistente»).
+    r"^(?:(?:y\s+)?(?:dime|sabes)\s+)?(?:"
+    r"quien\s+te\s+(?:ha\s+)?(?:creado|hecho|programado|desarrollado|disenado|inventado|creo|hizo|"
+    r"programo|desarrollo|diseno|invento)"
+    r"|quien\s+(?:es|fue)\s+tu\s+(?:creador|creadora|desarrollador|desarrolladora|autor|padre|madre"
+    r"|programador|programadora|dueno|duena)"
+    r"|(?:que|cual\s+es\s+la)\s+empresa\s+(?:te\s+(?:ha\s+)?(?:hecho|creado|hizo|creo)|hay\s+detras"
+    r"(?:\s+de\s+ti)?)|de\s+que\s+empresa\s+eres|quien\s+(?:esta|hay)\s+detras\s+de\s+ti"
+    r"|quien\s+te\s+ha\s+traido\s+al\s+mundo"
+    r")$",
+)
+def _creator(_: re.Match[str], __: SystemIndex) -> Route:
+    return _call("creator", "nyx_info", topic="quien me ha creado")
+
+
+_TEPNYX_THINGS = (
+    r"tepnyx|tepnix|decider(?:\s+bot|\s+live)?|sorty|sorti|tirada|podio"
+    r"|(?:la\s+)?ruleta\s+de\s+tepnyx"
+)
+
+
+@rule(
+    "tepnyx_info",
+    r"^(?:(?:dime|explicame|cuentame|sabes)\s+)?(?:"
+    rf"que\s+es\s+(?:el\s+|la\s+)?(?P<a>{_TEPNYX_THINGS})"
+    rf"|(?:hablame|que\s+sabes)\s+de\s+(?:el\s+|la\s+)?(?P<b>{_TEPNYX_THINGS})"
+    r"|que\s+(?:apps|aplicaciones|productos|cosas)\s+(?:tiene|hace|ha\s+hecho)\s+(?P<c>tepnyx|tepnix)"
+    rf"|(?:para\s+que\s+sirve|como\s+funciona)\s+(?:el\s+|la\s+)?(?P<d>{_TEPNYX_THINGS})"
+    r")$",
+)
+def _tepnyx_info(m: re.Match[str], __: SystemIndex) -> Route:
+    what = next(g for g in (m.group("a"), m.group("b"), m.group("c"), m.group("d")) if g)
+    return _call("tepnyx_info", "nyx_info", topic=what)
+
+
+# «¿Dónde cambio tu voz?»: el ajuste de Nyx, abierto en su sección (las pantallas de Nyx).
+_WHERE_PART = {
+    **_NYX_PART,
+    "microfono": "voz",
+    "altavoces": "voz",
+    "velocidad": "voz",
+    "monitor": "apariencia",
+    "cristal": "apariencia",
+    "paneles": "apariencia",
+    "sensibilidad": "activacion",
+    "atajos de teclado": "activacion",
+    "atajos": "cerebro",
+    "atajos aprendidos": "cerebro",
+    "modelo": "cerebro",
+    "cerebro": "cerebro",
+    "ciudad": "general",
+    "modo partida": "partida",
+    "datos": "privacidad",
+    "registro": "privacidad",
+}
+
+
+@rule(
+    "nyx_where",
+    r"^(?:donde|como)\s+(?:se\s+)?(?:cambio|cambia|pongo|pone|configuro|configura|elijo|elige"
+    r"|ajusto|ajusta|quito|quita|activo|activa|desactivo|desactiva|veo|ve|borro|borra)\s+"
+    r"(?:(?:tu|tus|el|la|los|las)\s+)?"
+    rf"(?P<what>{'|'.join(sorted(_WHERE_PART, key=len, reverse=True))})"
+    rf"(?P<own>\s+de\s+(?:{_NYX}))?$",
+)
+def _nyx_where(m: re.Match[str], __: SystemIndex) -> Route | None:
+    text = m.group(0)
+    # Tiene que ser de Nyx: «tu voz», «la voz de Nyx». «¿Dónde cambio el micrófono?» a secas
+    # puede ser el de Windows: lo decide el modelo.
+    if not m.group("own") and not re.search(r"\s(?:tu|tus)\s", f" {text} "):
+        return None
+    return _call("nyx_where", "open_nyx_settings", section=_WHERE_PART[m.group("what")])
+
+
 # --- lo pendiente para después de la partida ---
 
 
