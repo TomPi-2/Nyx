@@ -91,15 +91,15 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
     "product": …}` y la compra se demostrará con una licencia firmada que Nyx comprueba sin red
     (ya previsto). Queda para la 1.1: si la compra incluye las versiones mayores futuras.
 
-15. **Primer arranque guiado por Nyx (9.10): prototipo rehecho, ¿te gusta?** Abre
-    `docs/prototipos/instalador.html` y pulsa «Ir al primer arranque». El instalador se recoge
-    en un panel de descargas arriba a la derecha y Nyx aparece con un panel por paso: su
-    color, su tamaño, el color de los paneles, el micrófono, el escaneo (prueba a marcar
-    Everything en «Opciones» y sin marcar) y los datos anónimos. Nyx comenta cada cambio y se
-    ve al momento. Al acabar, prueba «Nyx, quiero cambiarte el color» (el mismo panel,
-    reutilizado). El acceso directo y Everything están en «Opciones», apagados.
-    **Una sugerencia:** el micrófono primero, así el resto podrías contestarlo hablando
-    («ponte azul»). Lo he dejado en tu orden; dime si lo cambio.
+15. **Primer arranque guiado por Nyx (9.10): tercera versión del prototipo.** Abre
+    `docs/prototipos/instalador.html` y pulsa «Ir al primer arranque». Cambiado tras tu
+    revisión del 2026-11-14: el micrófono va primero; colores y tintes con el nombre a la
+    vista y la elegida marcada con el anillo de Ajustes; si pasas de paso mientras Nyx habla,
+    se calla en un instante y empieza con el siguiente; deslizador propio con una etiqueta del
+    tamaño mientras arrastras; etiquetas propias al pasar el ratón. Para probar la voz, escribe
+    en «Hablarle» lo que le dirías («ponte coral», «más grande», «siguiente», «atrás», «no»).
+    En la app, las etiquetas nativas que había (nombres de los colores en Apariencia y el botón
+    de cerrar de la bienvenida) ya son propias (`ui/src/lib/tooltip.ts`).
 
 ## Qué probar
 

@@ -45,12 +45,36 @@
     cursor: pointer;
   }
 
+  /* El tirador crece un poco al pasar el ratón y algo más al arrastrarlo (con muelle). */
   input::-webkit-slider-thumb {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
     background: var(--text);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.32);
     appearance: none;
+    transition:
+      transform 200ms cubic-bezier(0.3, 1.6, 0.5, 1),
+      box-shadow 200ms ease;
+  }
+
+  input:hover::-webkit-slider-thumb {
+    transform: scale(1.1);
+  }
+
+  input:active::-webkit-slider-thumb {
+    transform: scale(1.22);
+  }
+
+  input:focus-visible::-webkit-slider-thumb {
+    box-shadow:
+      0 0 0 4px var(--control),
+      0 2px 8px rgba(0, 0, 0, 0.32);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    input::-webkit-slider-thumb {
+      transition: none;
+    }
   }
 </style>

@@ -1,8 +1,11 @@
 <!--
   Elegir un color entre opciones fijas (Ajustes → Apariencia). Muestras redondeadas, sin
-  bordes; la elegida se marca con un anillo de separación (sombra, no borde).
+  bordes; la elegida se marca con un anillo de separación (sombra, no borde). El nombre sale
+  en una etiqueta propia al pasar el ratón (lib/tooltip.ts), no en la nativa de Windows.
 -->
 <script lang="ts" generics="T extends string">
+  import { tooltip } from "$lib/tooltip";
+
   interface Props {
     options: { value: T; label: string; color: string }[];
     value: T;
@@ -18,7 +21,7 @@
       role="radio"
       aria-checked={value === option.value}
       aria-label={option.label}
-      title={option.label}
+      use:tooltip={option.label}
       class:on={value === option.value}
       style:background={option.color}
       onclick={() => value !== option.value && onchange?.(option.value)}

@@ -20,6 +20,7 @@
   import Toggle from "$lib/controls/Toggle.svelte";
   import { glass, glassFromSettings, glassPoke, glassShape } from "$lib/glass";
   import { POP_IN_MS, pop, popOutDone } from "$lib/motion";
+  import { tooltip } from "$lib/tooltip";
   import { SHAPE_PAD } from "$overlay/shape/nyxShape";
   import { applyAppearance } from "$theme/apply";
   import { NYX_COLORS, PANEL_TINTS, type NyxColorId, type PanelTintId } from "$theme/palette";
@@ -199,7 +200,7 @@
         <span class="dot" class:on={i === index} class:done={i < index}></span>
       {/each}
     </div>
-    <button class="round" aria-label="Más tarde" title="Más tarde" onclick={() => close()}>
+    <button class="round" aria-label="Más tarde" use:tooltip={"Más tarde"} onclick={() => close()}>
       <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
         <path
           d="M3 3l6 6M9 3l-6 6"

@@ -17,7 +17,7 @@
   --text-3: rgba(235, 235, 245, 0.34); --control: rgba(118, 118, 128, 0.26);
   --control-hi: rgba(160, 160, 170, 0.42); --active: rgba(229, 229, 234, 0.92);
   --on-active: #1c1c1e; --raised: rgba(58, 58, 60, 0.45); --tint: rgba(28, 28, 30, 0.55);
-  --fill: rgba(235, 235, 245, 0.85); --nyx: #f5f5f7;
+  --fill: rgba(235, 235, 245, 0.85); --nyx: #f5f5f7; --tip-bg: rgba(44, 44, 46, 0.82);
   --chrome: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
   color-scheme: dark;
@@ -27,7 +27,7 @@
   --text-3: rgba(60, 60, 67, 0.36); --control: rgba(118, 118, 128, 0.14);
   --control-hi: rgba(118, 118, 128, 0.28); --active: rgba(72, 72, 74, 0.92);
   --on-active: #f5f5f7; --raised: rgba(255, 255, 255, 0.55); --tint: rgba(242, 242, 247, 0.66);
-  --fill: rgba(60, 60, 67, 0.75); --nyx: #3a3a3c;
+  --fill: rgba(60, 60, 67, 0.75); --nyx: #3a3a3c; --tip-bg: rgba(255, 255, 255, 0.86);
   color-scheme: light;
 }
 * { box-sizing: border-box; }
@@ -164,7 +164,7 @@ p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 96ch; }
   transition: top .35s cubic-bezier(.3,1.4,.5,1), background-color .4s ease;
 }
 .flow.in { animation: panelin .5s cubic-bezier(.3,1.5,.5,1) both; }
-.flow.out { animation: panelout .3s ease-in both; }
+.flow.out { animation: panelout .18s ease-in both; }
 @keyframes panelin { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 @keyframes panelout { 0% { transform: scale(1); opacity: 1; } 35% { transform: scale(1.04); opacity: 1; } 100% { transform: scale(0); opacity: 0; } }
 .say { font-size: 15px; line-height: 1.45; min-height: 2.9em; }
@@ -172,13 +172,44 @@ p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 96ch; }
 @keyframes caret { 50% { opacity: 0; } }
 .note { font-size: 12px; color: var(--text-2); }
 .foot { display: flex; gap: 8px; align-items: center; }
-.swatches { display: flex; flex-wrap: wrap; gap: 9px; }
-.sw { width: 30px; height: 30px; border-radius: 50%; border: 0; cursor: pointer; padding: 0; display: grid; place-items: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,.25); transition: transform .2s cubic-bezier(.3,1.6,.5,1); }
-.sw:hover { transform: scale(1.12); }
-.sw.on { transform: scale(1.2); }
-.sw.on::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--dot); }
-.slider { width: 100%; accent-color: var(--text); }
+/* Las muestras, como en Ajustes → Apariencia (lib/controls/Swatches.svelte): cuadradas y
+   redondeadas, sin bordes, y la elegida con un anillo separado por un hueco. Aquí el anillo es un
+   contorno con separación para que el hueco deje ver el cristal. Con el nombre siempre visible,
+   para poder elegir por voz («ponte coral»). */
+.swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px 4px; }
+.swatches.tints { grid-template-columns: repeat(4, 1fr); }
+.sw { display: grid; justify-items: center; gap: 7px; border: 0; padding: 0; background: none; font: inherit; color: var(--text-2); cursor: pointer; }
+.sw i { width: 34px; height: 34px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  outline: 2px solid transparent; outline-offset: 3px; transition: transform .14s ease, outline-color .2s ease; }
+.sw:hover i { transform: scale(1.08); }
+.sw span { font-size: 11.5px; line-height: 1.2; text-align: center; transition: color .2s ease; }
+.sw.on i { outline-color: var(--active); }
+.sw.on span { color: var(--text); font-weight: 600; }
+.sw:focus-visible { outline: none; }
+.sw:focus-visible i { outline-color: var(--control-hi); }
+/* Deslizador como el de Ajustes (lib/controls/Slider.svelte): pista redondeada, la parte hecha
+   rellena y un tirador redondo que crece al tocarlo. Nada del aspecto del navegador. */
+.slider { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 6px; margin: 12px 0 4px; border-radius: 999px;
+  background: linear-gradient(90deg, var(--active) 0 var(--p), var(--control) var(--p) 100%); outline: none; cursor: pointer; }
+.slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 22px; height: 22px; border-radius: 50%; border: 0;
+  background: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,.32); transition: transform .2s cubic-bezier(.3,1.6,.5,1), box-shadow .2s; }
+.slider::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,.32); }
+.slider:hover::-webkit-slider-thumb { transform: scale(1.1); }
+.slider:active::-webkit-slider-thumb { transform: scale(1.22); }
+.slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--control-hi), 0 2px 8px rgba(0,0,0,.32); }
+.scale { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-3); }
+/* Etiqueta propia al pasar el ratón (nunca la nativa de Windows): cristal, redondeada, sin
+   bordes, y entra con el mismo muelle que los paneles. Una sola para toda la ventana. */
+.tip { position: fixed; z-index: 50; left: 0; top: 0; pointer-events: none; padding: 6px 11px; border-radius: 11px;
+  font-size: 12px; line-height: 1.3; white-space: nowrap; color: var(--text); background: var(--tip-bg);
+  backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: 0 8px 24px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08);
+  opacity: 0; scale: .85; transition: opacity .12s ease, scale .24s cubic-bezier(.3,1.6,.5,1); }
+.tip.on { opacity: 1; scale: 1; }
+.say.hushed { opacity: .45; transition: opacity .15s ease; }
+.voice { flex: 1 1 320px; max-width: 520px; border: 0; border-radius: 999px; padding: 9px 16px; font: inherit; font-size: 13px;
+  background: var(--control); color: var(--text); outline: none; }
+.voice::placeholder { color: var(--text-3); }
 .pills { display: flex; flex-wrap: wrap; gap: 6px; }
 .pill { border: 0; border-radius: 999px; padding: 7px 13px; font: inherit; font-size: 12.5px; cursor: pointer; background: var(--control); color: var(--text); }
 .pill.on { background: var(--active); color: var(--on-active); }
@@ -232,6 +263,10 @@ p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 96ch; }
       <button data-v="color">«Nyx, quiero cambiarte el color»</button>
       <button data-v="boot">«Nyx listo» al encender</button>
     </div>
+  </div>
+  <div class="bar">
+    <span class="label">Hablarle</span>
+    <input class="voice" id="voice" placeholder="Escribe lo que le dirías y pulsa Intro: «coral», «más grande», «siguiente», «atrás»…">
   </div>
   <p class="explain" id="explain"></p>
 
@@ -293,17 +328,17 @@ const MICS = ["Micrófono (Realtek Audio)", "Auriculares HyperX Cloud", "Cámara
 const S = { readyMode: "onda", everything: false, shortcut: false, netCut: false, color: 0, size: 100, tint: 0, mic: 0, data: null };
 let timer = null, phase = "welcome"; // welcome · install · setup · after
 let step = 0, stepsDone = false, downloaded = false, brainReady = false, final = false;
-let typing = null, cleanup = null, timers = [];
+let typing = null, cleanup = null, timers = [], stepTimers = [], current = null;
 const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+// Lo que pertenece a un paso (reacciones, escaneo, prueba del micrófono) se cancela al cambiar
+// de paso: nunca se oye en el siguiente lo que iba a decir en el anterior.
+const soon = (fn, ms) => stepTimers.push(setTimeout(fn, ms));
+const cancelStep = () => { stepTimers.forEach(clearTimeout); stepTimers = []; };
 
 // --- Aspecto: color de Nyx, tamaño y tinte, aplicados al momento ---------------------------
 const isDark = () => document.documentElement.dataset.theme !== "light";
 const tintCss = (i) => `rgba(${TINTS[i][isDark() ? 1 : 2]}, ${isDark() ? 0.55 : 0.66})`;
 const solidTint = (i) => `rgb(${TINTS[i][isDark() ? 1 : 2]})`;
-function luminance(hex) {
-  const n = parseInt(hex.slice(1), 16);
-  return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
-}
 const NYX_TOP = 28;
 // El panel, a 14 px de lo más lejos que puede llegar la forma (≈ 1,1 veces su tamaño).
 const panelTop = () => NYX_TOP + Math.round(S.size * 1.1) + 14;
@@ -342,10 +377,54 @@ function restartAnim(el, cls) {
   void el.offsetWidth;
   el.classList.add(cls);
 }
+// Cambia el gesto de Nyx. Al quitarlo, vuelve a su forma desde donde estaba (sin saltos).
 function mood(m) {
+  const cs = getComputedStyle(nyxEl), from = { scale: cs.scale, rotate: cs.rotate };
   nyxEl.classList.remove("talk", "listen", "think", "happy");
-  if (m) { void nyxEl.offsetWidth; nyxEl.classList.add(m); }
+  if (m) { void nyxEl.offsetWidth; nyxEl.classList.add(m); return; }
+  const moved = (from.scale !== "none" && from.scale !== "1") || (from.rotate !== "none" && from.rotate !== "0deg");
+  if (moved) nyxEl.animate([from, { scale: "1", rotate: "0deg" }], { duration: 160, easing: "cubic-bezier(.2,.8,.4,1)" });
 }
+
+// --- Etiquetas propias (en vez del «title» nativo) -----------------------------------------
+const tipEl = document.createElement("div");
+tipEl.className = "tip";
+tipEl.setAttribute("role", "tooltip");
+document.body.appendChild(tipEl);
+let tipFor = null, tipTimer = null;
+// Encima del elemento (o debajo si no cabe), centrada en x y sin salirse de la ventana.
+function showTip(el, text, x) {
+  tipFor = el;
+  tipEl.textContent = text;
+  const r = el.getBoundingClientRect(), w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+  const cx = x ?? r.left + r.width / 2;
+  let top = r.top - h - 8;
+  const below = top < 6;
+  if (below) top = r.bottom + 8;
+  const left = Math.min(Math.max(cx - w / 2, 6), innerWidth - w - 6);
+  tipEl.style.left = `${left}px`;
+  tipEl.style.top = `${top}px`;
+  tipEl.style.transformOrigin = `${cx - left}px ${below ? "0" : "100%"}`;
+  tipEl.classList.add("on");
+}
+function hideTip(el) {
+  clearTimeout(tipTimer);
+  if (el && el !== tipFor) return;
+  tipFor = null;
+  tipEl.classList.remove("on");
+}
+document.addEventListener("pointerover", (e) => {
+  const el = e.target.closest?.("[data-tip]");
+  if (!el || el === tipFor) return;
+  clearTimeout(tipTimer);
+  tipTimer = setTimeout(() => showTip(el, el.dataset.tip), 450);
+});
+document.addEventListener("pointerout", (e) => {
+  const el = e.target.closest?.("[data-tip]");
+  if (el && !el.contains(e.relatedTarget)) hideTip(el);
+});
+document.addEventListener("pointerdown", (e) => { if (!e.target.closest?.(".slider")) hideTip(); }, true);
+addEventListener("scroll", () => hideTip(), true);
 
 const EXPLAIN = {
   welcome: "<b>Bienvenida.</b> Nyx respira despacio. «Instalar» lo hace todo con lo recomendado; «Opciones» enseña qué se instala, la carpeta, Everything y el acceso directo. Sin administrador: va a tu carpeta de usuario.",
@@ -354,11 +433,11 @@ const EXPLAIN = {
   install: "<b>Instalando.</b> Primero la app y el oído y la voz (con eso empieza el primer arranque) y luego Ollama y el cerebro. Cada descarga se comprueba (SHA-256) y, si se corta, sigue donde iba. La pantalla se pinta una vez y solo cambian los números: los ticks no parpadean.",
   cut: "<b>Sin red.</b> La descarga se pausa sola y se dice qué pasa. Al volver la conexión sigue donde iba, sin empezar de cero.",
   handoff: "<b>Empieza el primer arranque.</b> El instalador se recoge en un panel pequeño arriba a la derecha (lo que queda por bajar) y Nyx aparece en su sitio. No es un asistente en una ventana: es Nyx configurándose contigo, con paneles hechos para esto.",
-  welcomeStep: "<b>Hola.</b> Nyx habla (la voz ya está instalada) y el texto se escribe al ritmo de la voz. «Saltar» deja todo como está. Lo que no toques se queda como está.",
-  color: "<b>Su color.</b> Al tocar uno, Nyx se lo pone al momento y lo comenta. Este mismo panel sirve después: si le dices «Nyx, quiero cambiarte el color», sale él en vez de abrir Ajustes (pruébalo al terminar con «Nyx, quiero cambiarte el color» de arriba).",
-  size: "<b>Su tamaño.</b> Nyx cambia mientras arrastras y el panel baja o sube para dejar siempre 14 px con lo más lejos que llega su forma.",
-  tint: "<b>El color de los paneles.</b> Cambian este panel y el de descargas a la vez. La letra, el monitor y el cristal siguen en Ajustes → Apariencia.",
-  mic: "<b>El oído.</b> Elige el micrófono y mira la barra con tu voz (simulada o con tu micrófono de verdad). Después, la prueba de decir «Nyx». Mientras escucha, la forma de Nyx late.",
+  welcomeStep: "<b>Hola.</b> Nyx habla (la voz ya está instalada) y el texto se escribe al ritmo de la voz. «Saltar» deja todo como está. Si pasas de paso mientras habla, se calla en un instante (la voz baja en 0,15 s) y empieza con el siguiente.",
+  color: "<b>Su color.</b> Cada muestra lleva su nombre para poder decirlo («ponte coral»; pruébalo en «Hablarle», arriba). La elegida se marca como en Ajustes, con un anillo. Nyx se lo pone al momento y lo comenta. Este panel sirve después: «Nyx, quiero cambiarte el color» lo saca en vez de abrir Ajustes.",
+  size: "<b>Su tamaño.</b> Deslizador propio, como el de Ajustes; mientras arrastras, una etiqueta encima dice el tamaño. También se dice: «más grande», «más pequeña», «120», «el de siempre». El panel se mueve para dejar siempre 14 px con lo más lejos que llega su forma.",
+  tint: "<b>El color de los paneles.</b> Con nombres, para decirlo. Cambian este panel y el de descargas a la vez. La letra, el monitor y el cristal siguen en Ajustes → Apariencia.",
+  mic: "<b>El oído, lo primero.</b> Así todo lo demás se puede contestar hablando. Elige el micrófono y mira la barra con tu voz (simulada o con tu micrófono de verdad); después, la prueba de decir «Nyx». Mientras escucha, la forma de Nyx late.",
   scan: "<b>Tu equipo.</b> Nyx busca programas, juegos, carpetas y webs para abrirlos por su nombre, y ya sabe si en el instalador se marcó Everything. Si no, ofrece instalarlo aquí (o más tarde, en Ajustes → Caché).",
   data: "<b>Datos anónimos.</b> Ninguna opción viene marcada: hay que elegir. Se dice qué se envía y qué nunca.",
   waiting: "<b>Configurada antes que el cerebro.</b> Nyx se retira y el panel de descargas sigue arriba a la derecha. Cuando el cerebro está listo, vuelve, lo dice y sale la onda.",
@@ -500,7 +579,7 @@ function handoff() {
 function dlView() {
   const lines = brainParts().map((p) => `<div class="line"><span>${p.what}</span>
     <div class="track"><div class="done idle" id="dl-bar-${p.id}"></div></div><span class="state" id="dl-state-${p.id}"></span></div>`).join("");
-  return `<div class="head">${nyx(0, "small")}<div><div class="what" id="dl-title">Bajando mi cerebro</div><div class="sub" id="dl-sub"></div></div></div>${lines}`;
+  return `<div class="head"><span style="display:flex" data-tip="Lo que llevo de mi cerebro">${nyx(0, "small")}</span><div><div class="what" id="dl-title">Bajando mi cerebro</div><div class="sub" id="dl-sub"></div></div></div>${lines}`;
 }
 function updateDl() {
   if (!$("#dl-sub")) return;
@@ -537,10 +616,13 @@ function warmBrain() {
 // --- Los pasos ----------------------------------------------------------------------------
 // Cada paso: lo que dice Nyx, su panel (hecho para esto) y lo que pasa al tocarlo.
 const SCAN = [["Programas", 84], ["Juegos (Steam, Epic, Riot)", 12], ["Carpetas", 31], ["Webs frecuentes", 24]];
-const colorSwatches = () => `<div class="swatches">${NYX_COLORS.map(([n, c], i) =>
-  `<button class="sw ${i === S.color ? "on" : ""}" title="${n}" aria-label="${n}" style="background:${c};--dot:${luminance(c) > 0.55 ? "rgba(0,0,0,.5)" : "#fff"}" onclick="pickColor(${i})"></button>`).join("")}</div>`;
-const tintSwatches = () => `<div class="swatches">${TINTS.map((t, i) =>
-  `<button class="sw ${i === S.tint ? "on" : ""}" title="${t[0]}" aria-label="${t[0]}" style="background:${solidTint(i)};--dot:${isDark() ? "#fff" : "rgba(0,0,0,.5)"}" onclick="pickTint(${i})"></button>`).join("")}</div>`;
+const swatch = (on, name, bg, fn) =>
+  `<button class="sw ${on ? "on" : ""}" role="radio" aria-checked="${on}" onclick="${fn}"><i style="background:${bg}"></i><span>${name}</span></button>`;
+const colorSwatches = () => `<div class="swatches" role="radiogroup" aria-label="Color de Nyx">${NYX_COLORS.map(([n, c], i) =>
+  swatch(i === S.color, n, c, `pickColor(${i})`)).join("")}</div>`;
+const tintSwatches = () => `<div class="swatches tints" role="radiogroup" aria-label="Color de los paneles">${TINTS.map((t, i) =>
+  swatch(i === S.tint, t[0], solidTint(i), `pickTint(${i})`)).join("")}</div>`;
+const sizePct = () => ((S.size - 60) / 120) * 100;
 const STEPS = [
   {
     key: "welcomeStep",
@@ -549,29 +631,31 @@ const STEPS = [
     foot: () => `<button class="btn link" onclick="skipAll()">Saltar</button><span class="spacer"></span><button class="btn primary" onclick="go(1)">Empezar</button>`,
   },
   {
+    key: "mic",
+    say: "Primero, el oído: así lo demás me lo puedes decir hablando. ¿Qué micrófono uso? Habla un poco y mira cómo se mueve la barra.",
+    body: () => `<div class="pills">${MICS.map((m, i) => `<button class="pill ${i === S.mic ? "on" : ""}" onclick="pickMic(${i})">${m}</button>`).join("")}</div>
+      <div class="meterbar"><i id="level"></i></div>
+      <div class="foot"><button class="btn small" onclick="speak()">Simular voz</button><button class="btn link small" data-tip="Usa el micrófono de verdad (el navegador te pedirá permiso)" onclick="realMic()">Con mi micrófono</button>
+      <span class="spacer"></span><button class="btn small" id="wake" style="visibility:hidden" onclick="wake()">Decir «Nyx»</button></div>`,
+    enter: startMeter,
+  },
+  {
     key: "color",
-    say: "Primero, mi color. Toca uno y me lo pruebo.",
-    body: () => `${colorSwatches()}<div class="note" id="choice">Color: <b>${NYX_COLORS[S.color][0]}</b></div>`,
+    say: "Ahora, mi color. Dime cuál, por ejemplo «ponte coral», o tócalo.",
+    body: () => colorSwatches(),
   },
   {
     key: "size",
-    say: "¿Y de tamaño? Arrastra y me ajusto al momento.",
-    body: () => `<input class="slider" type="range" min="60" max="180" step="10" value="${S.size}" oninput="sizeLive(this.value)" onchange="sizeDone(this.value)">
+    say: "¿Y de tamaño? Dime «más grande» o «más pequeña», o arrastra.",
+    body: () => `<div><input class="slider" id="size" type="range" min="60" max="180" step="10" value="${S.size}" aria-label="Tamaño de Nyx"
+        style="--p:${sizePct()}%" oninput="sizeLive(this.value)" onchange="sizeDone(this.value)">
+      <div class="scale"><span>Más pequeña</span><span>Más grande</span></div></div>
       <div class="note" id="choice">Tamaño: <b>${S.size} px</b> · el de siempre es 100</div>`,
   },
   {
     key: "tint",
-    say: "Ahora el color de mis paneles, como este en el que te hablo. Elige uno.",
-    body: () => `${tintSwatches()}<div class="note" id="choice">Paneles: <b>${TINTS[S.tint][0]}</b> · la letra, el monitor y el cristal, en Ajustes → Apariencia</div>`,
-  },
-  {
-    key: "mic",
-    say: "Vamos con el oído. ¿Qué micrófono uso? Habla un poco y mira cómo se mueve la barra.",
-    body: () => `<div class="pills">${MICS.map((m, i) => `<button class="pill ${i === S.mic ? "on" : ""}" onclick="pickMic(${i})">${m}</button>`).join("")}</div>
-      <div class="meterbar"><i id="level"></i></div>
-      <div class="foot"><button class="btn small" onclick="speak()">Simular voz</button><button class="btn link small" onclick="realMic()">Con mi micrófono</button>
-      <span class="spacer"></span><button class="btn small" id="wake" style="visibility:hidden" onclick="wake()">Decir «Nyx»</button></div>`,
-    enter: startMeter,
+    say: "Ahora el color de mis paneles, como este en el que te hablo. Dime cuál o tócalo.",
+    body: () => `${tintSwatches()}<div class="note">La letra, el monitor y el cristal, en Ajustes → Apariencia.</div>`,
   },
   {
     key: "scan",
@@ -587,7 +671,7 @@ const STEPS = [
       <div class="row"><div class="what">Se envía</div><ul><li>Qué herramientas fallan</li><li>Cuánto tardo en responder</li><li>Versión de Nyx y de Windows</li><li>Modelo de gráfica</li></ul></div>
       <div class="row"><div class="what">Nunca</div><ul><li>Lo que dices o escribes</li><li>Tus archivos</li><li>Qué programas o webs abres</li><li>Nada que te identifique</li></ul></div></div>
       <div class="foot" id="data-choice"><span class="spacer"></span><button class="btn ${S.data === false ? "primary" : ""}" onclick="pickData(false)">No, gracias</button><button class="btn ${S.data === true ? "primary" : ""}" onclick="pickData(true)">Sí, ayudo</button></div>`,
-    foot: () => `${dots(6, 7)}<span class="spacer"></span><button class="btn" onclick="go(5)">Atrás</button><button class="btn primary" id="next" ${S.data === null ? "disabled" : ""} onclick="endSteps()">Terminar</button>`,
+    foot: () => `${dots(STEPS.length - 1, STEPS.length)}<span class="spacer"></span><button class="btn" onclick="go(${STEPS.length - 2})">Atrás</button><button class="btn primary" id="next" ${S.data === null ? "disabled" : ""} onclick="endSteps()">Terminar</button>`,
   },
 ];
 
@@ -599,9 +683,10 @@ function panelHtml(s, i, foot) {
 }
 // Nyx dice algo: el texto se escribe al ritmo de la voz y la forma «habla» mientras.
 function say(text, then) {
-  clearInterval(typing);
+  hush();
   const el = $("#say");
   if (!el) return;
+  el.classList.remove("hushed");
   let n = 0;
   mood("talk");
   typing = setInterval(() => {
@@ -609,34 +694,53 @@ function say(text, then) {
     el.innerHTML = `${text.slice(0, n)}<span class="caret"></span>`;
     if (n >= text.length) {
       clearInterval(typing);
+      typing = null;
       el.textContent = text;
       mood(null);
       if (then) then();
     }
   }, 24);
 }
-function react(text, then) {
+// Nyx se calla: en Nyx, la voz baja a cero en 150 ms (un fundido, sin corte seco); aquí el
+// texto se apaga un poco y la forma vuelve a su sitio desde donde estaba.
+function hush() {
+  if (!typing) return;
   clearInterval(typing);
-  mood("happy");
-  later(() => say(text, then), 300);
+  typing = null;
+  const el = $("#say");
+  if (el) { el.querySelector(".caret")?.remove(); el.classList.add("hushed"); }
+  mood(null);
 }
-// Un panel sale, el siguiente entra (creciendo desde el centro con un pequeño rebote).
+// Reacciona (un saltito) y lo comenta. Una reacción nueva sustituye a la que iba a decir.
+let reactTimer = null;
+function react(text, then) {
+  hush();
+  clearTimeout(reactTimer);
+  mood("happy");
+  reactTimer = setTimeout(() => say(text, then), 300);
+  stepTimers.push(reactTimer);
+}
+// Un panel sale y el siguiente entra (creciendo desde el centro con un pequeño rebote). Entre
+// pasos la salida es corta y Nyx empieza a hablar en cuanto el panel nuevo asoma.
 function panelIn(html, then) {
   if (cleanup) { cleanup(); cleanup = null; }
   const enter = () => {
     flow.innerHTML = html;
     flow.style.top = `${panelTop()}px`;
     restartAnim(flow, "in");
-    if (then) later(then, 220);
+    if (then) then();
   };
   if (flow.classList.contains("in")) {
     restartAnim(flow, "out");
-    later(enter, 300);
+    later(enter, 180);
   } else enter();
 }
 function showStep(i) {
+  hush();
+  cancelStep();
   step = i;
   const s = STEPS[i];
+  current = s.key;
   explain.innerHTML = EXPLAIN[s.key];
   panelIn(panelHtml(s, i), () => {
     say(s.say);
@@ -648,20 +752,31 @@ function go(i) {
 }
 
 // Color, tamaño y tinte: se aplican al momento y Nyx lo comenta.
+function markSwatch(i) {
+  flow.querySelectorAll(".sw").forEach((b, k) => { b.classList.toggle("on", k === i); b.setAttribute("aria-checked", k === i); });
+}
 function pickColor(i) {
   S.color = i;
   applyLook();
-  flow.querySelectorAll(".sw").forEach((b, k) => b.classList.toggle("on", k === i));
-  $("#choice").innerHTML = `Color: <b>${NYX_COLORS[i][0]}</b>`;
+  markSwatch(i);
   react(NYX_COLORS[i][2]);
 }
 function sizeLive(v) {
   S.size = +v;
   applyLook();
+  const el = $("#size");
+  if (!el) return;
+  el.value = S.size;
+  el.style.setProperty("--p", `${sizePct()}%`);
   $("#choice").innerHTML = `Tamaño: <b>${S.size} px</b> · el de siempre es 100`;
+  // Mientras se arrastra, la etiqueta propia va encima del tirador con el tamaño.
+  const r = el.getBoundingClientRect();
+  showTip(el, `${S.size} px`, r.left + 11 + (sizePct() / 100) * (r.width - 22));
 }
 function sizeDone(v) {
   sizeLive(v);
+  const el = $("#size");
+  later(() => hideTip(el), 700);
   const s = S.size;
   react(s <= 70 ? "Así de pequeña casi ni se me ve. Pero me vale."
     : s < 100 ? "Discreta. Bien."
@@ -672,8 +787,7 @@ function sizeDone(v) {
 function pickTint(i) {
   S.tint = i;
   applyLook();
-  flow.querySelectorAll(".sw").forEach((b, k) => b.classList.toggle("on", k === i));
-  $("#choice").innerHTML = `Paneles: <b>${TINTS[i][0]}</b> · la letra, el monitor y el cristal, en Ajustes → Apariencia`;
+  markSwatch(i);
   react(TINTS[i][3]);
 }
 
@@ -701,12 +815,15 @@ function startMeter() {
 }
 function onHeard() {
   heard = true;
-  react("¡Te oigo alto y claro! Ahora llámame: di «Nyx».", () => { const w = $("#wake"); if (w) w.style.visibility = "visible"; });
+  const w = $("#wake");
+  if (w) w.style.visibility = "visible";
+  react("¡Te oigo alto y claro! Ahora llámame: di «Nyx».");
 }
 function speak() {
+  hush();
   speaking = true;
   mood("listen");
-  later(() => { speaking = false; if (!heard) onHeard(); else mood(null); }, 1800);
+  soon(() => { speaking = false; if (!heard) onHeard(); else mood(null); }, 1800);
 }
 async function realMic() {
   try {
@@ -726,20 +843,21 @@ function pickMic(i) {
   react(`Vale, te escucho por «${MICS[i]}».`);
 }
 function wake() {
+  hush();
   mood("listen");
-  later(() => react("¡Aquí estoy! Me activo bien con tu voz."), 800);
+  soon(() => react("¡Aquí estoy! Me activo bien con tu voz. Desde ahora puedes contestarme hablando: «siguiente», «atrás» o lo que elijas."), 800);
 }
 
 // Escaneo del equipo: los números suben y Nyx comenta lo que encuentra.
 function startScan() {
   const t0 = 2200; // empieza mientras Nyx termina de hablar
-  later(() => mood("think"), t0);
+  soon(() => mood("think"), t0);
   SCAN.forEach(([, n], i) => {
     const el = () => $(`#scan-${i}`);
-    for (let k = 1; k <= 8; k++) later(() => setState(el(), `${k}`, `${Math.round((n * k) / 8)}`), t0 + i * 500 + k * 70);
-    later(() => setState(el(), "fin", `${n} ${tick(`scan-${i}`)}`), t0 + i * 500 + 640);
+    for (let k = 1; k <= 8; k++) soon(() => setState(el(), `${k}`, `${Math.round((n * k) / 8)}`), t0 + i * 500 + k * 70);
+    soon(() => setState(el(), "fin", `${n} ${tick(`scan-${i}`)}`), t0 + i * 500 + 640);
   });
-  later(() => {
+  soon(() => {
     if (!$("#files-hint")) return;
     filesRow();
     react(S.everything
@@ -761,7 +879,7 @@ function filesRow() {
 function installEverything() {
   $("#files-state").textContent = "Instalando…";
   $("#files-hint").textContent = "Windows te pedirá permiso una vez";
-  later(() => {
+  soon(() => {
     S.everything = true;
     filesRow();
     react("Hecho: ahora encuentro cualquier archivo al momento.");
@@ -781,6 +899,8 @@ function skipAll() {
 }
 function endSteps() {
   stepsDone = true;
+  current = null;
+  cancelStep();
   if (brainReady) return finish();
   explain.innerHTML = EXPLAIN.waiting;
   panelIn(`<div class="say" id="say"></div>`, () =>
@@ -812,12 +932,79 @@ function colorAgain() {
   explain.innerHTML = EXPLAIN.colorAgain;
   applyLook();
   nyxEl.classList.add("show");
-  later(() => panelIn(panelHtml(STEPS[1], 1, `<span class="spacer"></span><button class="btn primary" onclick="colorDone()">Listo</button>`),
-    () => say("¿De qué color me quieres? Toca uno y me lo pruebo.")), 300);
+  current = "colorAgain";
+  const i = STEPS.findIndex((s) => s.key === "color");
+  later(() => panelIn(panelHtml(STEPS[i], i, `<span class="spacer"></span><button class="btn primary" onclick="colorDone()">Listo</button>`),
+    () => say("¿De qué color me quieres? Dímelo o tócalo y me lo pruebo.")), 300);
 }
 function colorDone() {
+  current = null;
   react("¡Me encanta cómo he quedado!", () => later(() => { restartAnim(flow, "out"); nyxEl.classList.remove("show"); }, 1200));
 }
+
+// --- Hablarle (simula la voz: en Nyx lo entiende el router, sin el cerebro) ----------------
+const norm = (t) => t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[«»"'.,;:!¡?¿]/g, " ").replace(/\s+/g, " ").trim();
+const words = (t) => ` ${t} `;
+const hasAny = (t, list) => list.some((w) => words(t).includes(` ${w} `));
+// El nombre más largo que aparezca en la frase («azul cielo» antes que «azul»).
+function findName(t, names) {
+  const order = names.map((n, i) => [norm(n), i]).sort((a, b) => b[0].length - a[0].length);
+  const hit = order.find(([n]) => words(t).includes(` ${n} `));
+  return hit ? hit[1] : -1;
+}
+function setSize(v) {
+  sizeDone(Math.min(180, Math.max(60, Math.round(v / 10) * 10)));
+}
+function understand(t) {
+  const key = current;
+  if (key === "color" || key === "colorAgain") {
+    const i = findName(t, NYX_COLORS.map((c) => c[0]));
+    if (i >= 0) return pickColor(i), true;
+    if (key === "colorAgain" && hasAny(t, ["listo", "vale", "ya", "asi"])) return colorDone(), true;
+  }
+  if (key === "tint") {
+    const i = findName(t, TINTS.map((c) => c[0]));
+    if (i >= 0) return pickTint(i), true;
+  }
+  if (key === "size") {
+    const n = t.match(/\d+/);
+    if (n) return setSize(+n[0]), true;
+    if (t.includes("de siempre") || hasAny(t, ["normal"])) return setSize(100), true;
+    if (t.includes("mucho mas grande")) return setSize(S.size + 40), true;
+    if (t.includes("mas grande") || hasAny(t, ["grande", "agrandate"])) return setSize(S.size + 20), true;
+    if (t.includes("mucho mas pequena")) return setSize(S.size - 40), true;
+    if (t.includes("mas pequena") || hasAny(t, ["pequena", "chica", "encogete"])) return setSize(S.size - 20), true;
+  }
+  if (key === "data" && hasAny(t, ["si", "vale", "claro"]) && S.data === null) return pickData(true), true;
+  if (key === "data" && hasAny(t, ["no", "nunca"])) return pickData(false), true;
+  if (key === "data" && hasAny(t, ["terminar", "termina", "listo", "siguiente", "vale"]) && S.data !== null) return endSteps(), true;
+  if (key === "mic") {
+    const i = findName(t, ["Realtek", "Auriculares", "Cámara"]);
+    if (i >= 0) return pickMic(i), true;
+  }
+  if (key === "welcomeStep" && hasAny(t, ["saltar", "salta", "luego"])) return skipAll(), true;
+  if (key && key !== "colorAgain" && hasAny(t, ["siguiente", "vale", "listo", "empezar", "empieza", "adelante", "sigue", "continua"])) return go(step + 1), true;
+  if (key && key !== "colorAgain" && hasAny(t, ["atras", "anterior", "vuelve"])) return go(step - 1), true;
+  if (key === "mic") return hasAny(t, ["nyx", "nix"]) ? wake() : speak(), true;
+  return false;
+}
+function hear(raw) {
+  const t = norm(raw);
+  if (!t) return;
+  if (!current || !nyxEl.classList.contains("show")) {
+    explain.innerHTML = "<b>Nyx no te escucha ahora.</b> Pulsa «Ir al primer arranque» (o, al terminar, «Nyx, quiero cambiarte el color») y pruébalo con ella en pantalla.";
+    return;
+  }
+  // Al oírte se calla al momento y te escucha; luego hace lo que le has dicho.
+  hush();
+  mood("listen");
+  soon(() => { mood(null); if (!understand(t)) react("Perdona, eso no lo he entendido. Puedes decirlo de otra forma o tocarlo."); }, 450);
+}
+$("#voice").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  hear(e.target.value);
+  e.target.value = "";
+});
 
 // La onda: un anillo por monitor, con el mismo reloj y el centro en coordenadas comunes, para
 // que se vea como una sola que pasa de uno a otro (como haría una ventana por monitor en Nyx).
@@ -843,8 +1030,9 @@ function ready() {
 }
 
 function restart() {
-  clearInterval(timer); clearInterval(typing);
+  clearInterval(timer); clearInterval(typing); typing = null;
   timers.forEach(clearTimeout); timers = [];
+  cancelStep(); hideTip(); current = null;
   if (cleanup) { cleanup(); cleanup = null; }
   timer = null; phase = "welcome"; step = 0; stepsDone = downloaded = brainReady = final = false;
   S.netCut = false; S.data = null;
@@ -861,8 +1049,8 @@ document.querySelectorAll(".seg").forEach((seg) => seg.addEventListener("click",
   if (seg.id === "theme") {
     document.documentElement.dataset.theme = v;
     applyLook();
-    const sw = flow.querySelector(".swatches");
-    if (sw && step === 3) sw.outerHTML = tintSwatches();
+    const sw = flow.querySelector(".swatches.tints");
+    if (sw) sw.outerHTML = tintSwatches();
   }
   if (seg.id === "ready") S.readyMode = v;
   if (seg.id === "tools") {
