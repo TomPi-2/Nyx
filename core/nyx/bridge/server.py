@@ -49,6 +49,8 @@ from nyx.bridge.protocol import (
     TalkKeyMsg,
     TextInput,
     ToolInfo,
+    UpdateApplyMsg,
+    UpdateMsg,
     VoiceInfo,
     Welcome,
     _Msg,
@@ -79,6 +81,8 @@ from nyx.events import (
     StateChanged,
     TalkKey,
     TextEntered,
+    UpdateApply,
+    UpdateOffered,
 )
 from nyx.game.detector import GameStateChanged
 
@@ -151,6 +155,7 @@ class UIBridge:
             bus.subscribe(SetupResult, self._on_setup_result),
             bus.subscribe(SetupFlowChanged, self._on_setup_flow),
             bus.subscribe(NyxReady, self._on_ready),
+            bus.subscribe(UpdateApply, self._on_update_apply),
         ]
 
     @property
@@ -248,6 +253,8 @@ class UIBridge:
             await self._bus.publish(SetupFlowRequested(msg.action, msg.value))
         elif isinstance(msg, ExtMsg):
             await self._bus.publish(ExtRequested(msg.action, msg.id, msg.path))
+        elif isinstance(msg, UpdateMsg):
+            await self._bus.publish(UpdateOffered(msg.version))
 
     async def broadcast(self, msg: _Msg) -> None:
         if not self._clients:
@@ -328,6 +335,9 @@ class UIBridge:
         await self.broadcast(
             SetupResultMsg(action=event.action, ok=event.ok, message=event.message)
         )
+
+    async def _on_update_apply(self, event: UpdateApply) -> None:
+        await self.broadcast(UpdateApplyMsg(version=event.version))
 
     async def _on_ready(self, _: NyxReady) -> None:
         await self.broadcast(NyxReadyMsg())

@@ -26,7 +26,7 @@ from typing import Any
 from nyx.bridge.protocol import PROTOCOL_VERSION, GlassInfo, ToolInfo, VoiceInfo
 from nyx.bridge.server import UIBridge
 from nyx.bus import EventBus
-from nyx.events import NyxReady, TextEntered
+from nyx.events import BubbleShown, NyxReady, TextEntered
 from nyx.log import setup_logging
 from nyx.models import MODELS, download_all
 from nyx.paths import logs_dir
@@ -37,6 +37,7 @@ from nyx.settings.live import SettingsService
 from nyx.setup.flow import GuidedSetup
 from nyx.setup.service import SetupService
 from nyx.tts.voices import VOICES
+from nyx.update.coordinator import UpdateCoordinator
 from nyx.winjob import kill_children_on_exit
 
 log = logging.getLogger("nyx")
@@ -111,12 +112,14 @@ async def run(args: argparse.Namespace) -> int:
     kill_children_on_exit()
     asyncio.get_running_loop().set_exception_handler(_quiet_connection_reset)
     token = args.token or os.environ.get("NYX_TOKEN") or secrets.token_urlsafe(32)
+    updated_from: str | None = None
     if not args.demo:
         # Versión nueva: copia de los datos y migraciones antes de leerlos (SPEC §15, 9.05).
         from nyx import __version__
         from nyx.update.migrations import migrate
 
         outcome = migrate(__version__)
+        updated_from = outcome.updated_from
         if outcome.restored:
             log.error(
                 "No se pudieron poner al día los datos (%s): sigo con los de antes", outcome.error
@@ -166,6 +169,7 @@ async def run(args: argparse.Namespace) -> int:
 
     tasks: list[asyncio.Task[None]] = []
     services: Services | None = None
+    updates: UpdateCoordinator | None = None
     # Asistente y Ajustes → Cerebro, Caché, Ayuda y Privacidad. La caché y los atajos
     # aprendidos existen cuando los servicios están en marcha.
     setup = SetupService(
@@ -211,6 +215,12 @@ async def run(args: argparse.Namespace) -> int:
                 # Lista: la interfaz lo enseña con la onda o lo elegido en Apariencia (9.04).
                 # En el primer arranque lo dice la configuración guiada al acabar.
                 await bus.publish(NyxReady())
+                if updated_from is not None:
+                    await bus.publish(
+                        BubbleShown(display=f"Actualizada a la {__version__}", secondary="")
+                    )
+            # Actualizaciones (9.06): la app avisa al descargarla; aquí se decide cuándo.
+            updates = UpdateCoordinator(bus, settings, services.update_gate)
             tasks.append(asyncio.create_task(services.pipeline.run(), name="pipeline"))
             if args.ask:
                 await bus.publish(TextEntered(args.ask))
@@ -224,6 +234,8 @@ async def run(args: argparse.Namespace) -> int:
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
+        if updates is not None:
+            updates.close()
         if services is not None:
             await services.close()
         settings_service.close()

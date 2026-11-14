@@ -71,6 +71,13 @@ def test_first_run_just_remembers(files: DataFiles) -> None:
     assert last_version(files) == "1.0.0"
 
 
+def test_says_where_it_was_updated_from(files: DataFiles) -> None:
+    """9.06: «Actualizada a la 1.1.0» al arrancar la versión nueva (y solo entonces)."""
+    assert migrate("1.0.0", files, []).updated_from is None
+    assert migrate("1.1.0", files, []).updated_from == "1.0.0"
+    assert migrate("1.1.0", files, []).updated_from is None
+
+
 def test_migrations_in_order_and_only_the_new_ones(files: DataFiles) -> None:
     done: list[str] = []
     migrations = [

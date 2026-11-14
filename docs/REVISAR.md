@@ -97,6 +97,17 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
     - Descarté Nuitka y PyInstaller (la SPEC los nombraba): con PyTorch, ONNX y pywin32 dan
       más guerra, y el Python embeddable es el mismo de las extensiones. Ya está en la SPEC.
 
+17. **Actualizaciones (9.06), hecho sin ti el 2026-11-14.** Lo que no he podido o no he
+    querido decidir solo:
+    - **Vuelta atrás automática** (SPEC §15, paso 6): Velopack no la trae. Propuesta: antes de
+      aplicar, guardar el paquete de la versión actual; si la nueva no arranca en 60 s o el
+      núcleo se cae 3 veces seguidas, reaplicarlo y avisar. ¿Lo hago?
+    - **«Más tarde»** vuelve a preguntar a las 4 h y, si cierras Nyx o apagas antes, se
+      aplica al volver a abrirla (no justo al apagar: Windows no da tiempo de forma fiable).
+    - **«Solo avisar»** tiene el botón [Actualizar]; falta decirlo por voz («Nyx,
+      actualízate»). ¿Lo añado?
+    - Probarlo de verdad necesita el repositorio público y una Release firmada (9.09).
+
 ## Qué probar
 
 Probado y bien (2026-11-13): color de Nyx (6.23), ciudad automática (6.24) y falsas

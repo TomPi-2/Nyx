@@ -235,6 +235,10 @@
       case "nyx_ready":
         ready();
         break;
+      case "update_apply":
+        // El núcleo ha elegido el momento (9.06): la app lo para y Velopack cambia de versión.
+        void invoke("update_apply").catch((err) => console.warn("Actualización:", err));
+        break;
       case "open_settings":
         // «Abre tus ajustes»: solo esta ventana lo hace (todas reciben el mensaje).
         void invoke("settings_open", { section: msg.section });
@@ -246,6 +250,8 @@
     if (msg.type === "settings") {
       monitor = msg.data.appearance.monitor;
       altMonitor = msg.data.game.alt_monitor;
+      // Canal de actualizaciones (Ajustes → General): la app empieza a mirar al saberlo.
+      void invoke("update_configure", { channel: msg.data.updates.channel });
     }
   }
 
@@ -268,6 +274,10 @@
       inputOpen = e.payload.open;
     });
     const offReady = getCurrentWebviewWindow().listen(READY_TEST_EVENT, () => ready());
+    // Versión nueva descargada (updater.rs): el núcleo decide cuándo aplicarla.
+    const offUpdate = getCurrentWebviewWindow().listen<{ version: string }>("update://ready", (e) =>
+      connection.send({ type: "update", action: "ready", version: e.payload.version }),
+    );
     // Atajo de hablar (Win+Alt+H): llega del proceso principal y se reenvía al núcleo.
     const offTalk = listen<boolean>("hotkey://talk", (event) => {
       connection.send({ type: "talk", pressed: event.payload });
@@ -278,6 +288,7 @@
       void offMove.then((off) => off());
       void offInput.then((off) => off());
       void offReady.then((off) => off());
+      void offUpdate.then((off) => off());
     };
   });
 </script>

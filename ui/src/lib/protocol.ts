@@ -2,7 +2,7 @@
 
 import type { FontId, NyxColorId, PanelTintId } from "$theme/palette";
 
-export const PROTOCOL_VERSION = 20;
+export const PROTOCOL_VERSION = 21;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -279,7 +279,9 @@ export type ClientMessage =
   /** v18: Ajustes → Extensiones (7.11). */
   | { type: "ext"; action: ExtAction; id?: string; path?: string }
   /** v19 */
-  | { type: "setup_flow"; action: SetupFlowAction; value?: string | number | boolean | null };
+  | { type: "setup_flow"; action: SetupFlowAction; value?: string | number | boolean | null }
+  /** v21: la app (Velopack) ha descargado una versión nueva (9.06). */
+  | { type: "update"; action: "ready"; version: string };
 
 export type ServerMessage =
   | {
@@ -369,7 +371,9 @@ export type ServerMessage =
   /** v19 */
   | { type: "setup_flow_state"; state: SetupFlowState }
   /** v20: Nyx está lista (al arrancar o al acabar el primer arranque): la onda (9.04). */
-  | { type: "nyx_ready" };
+  | { type: "nyx_ready" }
+  /** v21: aplicar ya la actualización descargada (la app para el núcleo y reinicia; 9.06). */
+  | { type: "update_apply"; version: string };
 
 /** Secciones de la ventana de Ajustes (ui/src/settings/Settings.svelte). */
 export type SettingsSection =

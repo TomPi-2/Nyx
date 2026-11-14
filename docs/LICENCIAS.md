@@ -56,6 +56,9 @@ Apache-2.0 y MPL-2.0 son compatibles con GPL-3.0 (en el sentido de distribuirlas
 - **Rust (262 crates para Windows, `cargo metadata`):** MIT o Apache-2.0 casi todas; además
   Unicode-3.0, Zlib, BSD-3-Clause, Unlicense/MIT, BSL-1.0, CC0 y **MPL-2.0** (`cssparser`,
   `selectors`, `dtoa-short`, `option-ext`, de WebView/Tauri; compatible). Ninguna GPL salvo Nyx.
+  Con Velopack (9.06, **MIT**) entran 24 más: MIT, Apache-2.0, ISC, BSD-3-Clause y
+  `webpki-roots` (los certificados raíz de Mozilla, **CDLA-Permissive-2.0**, permisiva y
+  compatible: hay que citarla en los créditos).
 
 ## Modelos
 

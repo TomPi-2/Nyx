@@ -60,6 +60,8 @@ class Outcome:
     applied: tuple[str, ...] = ()
     restored: bool = False
     error: str = ""
+    #: Se viene de esta versión (más antigua): Nyx dice «Actualizada a la …» al arrancar.
+    updated_from: str | None = None
 
 
 def migrate(
@@ -84,7 +86,7 @@ def migrate(
     pending = [m for m in migrations if old < parse_version(m.since) <= new]
     if not pending:
         _remember(files, current)
-        return Outcome()
+        return Outcome(updated_from=before)
     backup = make_backup(before, files)
     applied: list[str] = []
     for migration in sorted(pending, key=lambda m: parse_version(m.since)):
@@ -93,9 +95,11 @@ def migrate(
         except Exception as e:  # cualquier fallo: los datos de antes
             log.exception("Migración «%s» fallida: se restaura la copia", migration.what)
             restore(backup)
-            return Outcome(tuple(applied), restored=True, error=f"{migration.what}: {e}")
+            return Outcome(
+                tuple(applied), restored=True, error=f"{migration.what}: {e}", updated_from=before
+            )
         applied.append(migration.what)
         log.info("Migración aplicada: %s", migration.what)
     _remember(files, current)
     prune(files)
-    return Outcome(tuple(applied))
+    return Outcome(tuple(applied), updated_from=before)

@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 20
+PROTOCOL_VERSION = 21
 
 
 class _Msg(BaseModel):
@@ -115,6 +115,14 @@ class SetupFlowMsg(_Msg):
     value: str | int | bool | None = None
 
 
+class UpdateMsg(_Msg):
+    """v21: la app (Velopack) ha descargado una versión nueva (9.06)."""
+
+    type: Literal["update"] = "update"
+    action: Literal["ready"]
+    version: str = Field(min_length=1, max_length=40, pattern=r"^[0-9A-Za-z.+-]+$")
+
+
 ClientMessage = Annotated[
     Hello
     | TextInput
@@ -124,7 +132,8 @@ ClientMessage = Annotated[
     | SettingsSetMsg
     | SetupMsg
     | SetupFlowMsg
-    | ExtMsg,
+    | ExtMsg
+    | UpdateMsg,
     Field(discriminator="type"),
 ]
 client_adapter: TypeAdapter[ClientMessage] = TypeAdapter(ClientMessage)
@@ -332,6 +341,13 @@ class SetupFlowStateMsg(_Msg):
     state: dict[str, Any]
 
 
+class UpdateApplyMsg(_Msg):
+    """v21: el núcleo pide a la app que aplique la actualización ya (para y reinicia)."""
+
+    type: Literal["update_apply"] = "update_apply"
+    version: str
+
+
 class NyxReadyMsg(_Msg):
     """v20: Nyx está lista; la interfaz enseña la onda (9.04) o lo elegido en Apariencia."""
 
@@ -355,7 +371,8 @@ ServerMessage = Annotated[
     | MicLevelMsg
     | SetupResultMsg
     | SetupFlowStateMsg
-    | NyxReadyMsg,
+    | NyxReadyMsg
+    | UpdateApplyMsg,
     Field(discriminator="type"),
 ]
 server_adapter: TypeAdapter[ServerMessage] = TypeAdapter(ServerMessage)

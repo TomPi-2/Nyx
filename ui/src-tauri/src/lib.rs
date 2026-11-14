@@ -8,6 +8,7 @@ mod island;
 mod monitors;
 mod settings_window;
 mod tray;
+mod updater;
 mod wave;
 mod welcome_window;
 mod win32;
@@ -48,6 +49,8 @@ pub fn run() {
             welcome_window::welcome_open,
             welcome_window::open_folder,
             wave::wave_play,
+            updater::update_configure,
+            updater::update_apply,
             wave::wave_done,
         ])
         .setup(|app| {
@@ -55,6 +58,7 @@ pub fn run() {
             // Antes que las ventanas: el motor de cristal (no toca la GPU hasta que se usa).
             glass::init(handle);
             core_process::start(handle);
+            updater::init(handle);
             island::create(handle)?;
             input::create(handle)?;
             hotkeys::register(handle);

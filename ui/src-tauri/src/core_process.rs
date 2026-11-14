@@ -5,6 +5,7 @@
 
 use std::path::PathBuf;
 use std::process::Stdio;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -29,6 +30,9 @@ pub struct CoreEndpoint {
 pub struct CoreState {
     endpoint: Mutex<Option<CoreEndpoint>>,
     restart: Notify,
+    /// Parar del todo (para actualizar, 9.06): no se vuelve a lanzar.
+    stopping: AtomicBool,
+    stopped: Notify,
 }
 
 #[derive(Deserialize)]
@@ -46,6 +50,16 @@ pub fn start(app: &AppHandle) {
 /// Pide reiniciar el núcleo (menú de la bandeja).
 pub fn restart(app: &AppHandle) {
     app.state::<Arc<CoreState>>().restart.notify_one();
+}
+
+/// Para el núcleo y no lo vuelve a lanzar (antes de aplicar una actualización, 9.06). Espera a
+/// que termine, como mucho 10 s.
+pub async fn stop(app: &AppHandle) {
+    let state = app.state::<Arc<CoreState>>().inner().clone();
+    state.stopping.store(true, Ordering::SeqCst);
+    let stopped = state.stopped.notified();
+    state.restart.notify_one();
+    let _ = tokio::time::timeout(Duration::from_secs(10), stopped).await;
 }
 
 /// Ajustes → «Reiniciar ahora» (y Ayuda → Reiniciar Nyx): lo mismo que la bandeja.
@@ -71,6 +85,10 @@ async fn supervise(app: AppHandle, state: Arc<CoreState>) {
             *endpoint = None;
         }
         let _ = app.emit("core://down", ());
+        if state.stopping.load(Ordering::SeqCst) {
+            state.stopped.notify_waiters();
+            return;
+        }
 
         failures = if started.elapsed() > HEALTHY_AFTER {
             1
@@ -98,6 +116,8 @@ async fn run_once(app: &AppHandle, state: &CoreState) -> Result<String, String> 
     );
     let mut cmd = core_command();
     cmd.env("NYX_TOKEN", &token)
+        // La versión del núcleo es la de la app (la de Velopack): una sola fuente (9.06).
+        .env("NYX_APP_VERSION", app.package_info().version.to_string())
         // El núcleo vigila este PID para salir si Nyx muere (no lee stdin: con PyTorch se
         // colgaba). stdin sigue abierto como respaldo.
         .env("NYX_PARENT_PID", std::process::id().to_string())

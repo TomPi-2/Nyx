@@ -241,6 +241,20 @@ class SetupFlowChanged:
 
 
 @dataclass(frozen=True, slots=True)
+class UpdateOffered:
+    """La app (Velopack) ha descargado una versión nueva y está lista para aplicarla (9.06)."""
+
+    version: str
+
+
+@dataclass(frozen=True, slots=True)
+class UpdateApply:
+    """El núcleo ha decidido aplicarla ya: la app para el núcleo y cambia de versión."""
+
+    version: str
+
+
+@dataclass(frozen=True, slots=True)
 class NyxReady:
     """Nyx está lista (al arrancar, o al acabar el primer arranque y las descargas): la
     interfaz lo enseña según «Al estar lista» (onda, Nyx aparece y desaparece, o nada)."""
