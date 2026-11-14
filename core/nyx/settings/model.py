@@ -188,6 +188,12 @@ class WebSettings(_Section):
     search_url: str = Field(default="https://www.google.com/search?q={q}", max_length=300)
 
 
+class ExtensionSettings(_Section):
+    """Extensiones (0.7): el modo desarrollador deja instalar paquetes sin firmar (7.08)."""
+
+    dev_mode: bool = False
+
+
 class UpdateSettings(_Section):
     """Actualizaciones (SPEC §15; tarea 9.05)."""
 
@@ -220,6 +226,7 @@ class Settings(BaseModel):
     privacy: PrivacySettings = Field(default_factory=PrivacySettings)
     web: WebSettings = Field(default_factory=WebSettings)
     updates: UpdateSettings = Field(default_factory=UpdateSettings)
+    extensions: ExtensionSettings = Field(default_factory=ExtensionSettings)
 
 
 def settings_path() -> Path:

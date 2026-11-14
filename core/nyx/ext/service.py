@@ -1,0 +1,100 @@
+"""Ajustes → Extensiones, la parte del núcleo (tarea 7.11).
+
+Atiende lo que pide la ventana (`ExtRequested`) y contesta siempre con el estado completo
+(`ExtStatusChanged`): las instaladas, si está el modo desarrollador y, al elegir un paquete,
+lo que trae antes de instalarlo (nombre, autor, permisos y si lo firma Tepnyx).
+
+Instalar exige la firma de Tepnyx salvo con el modo desarrollador (`extensions.dev_mode`); en
+ese caso queda «sin revisar». Instalar solo se hace después de enseñar los permisos (la
+ventana manda `install` cuando el usuario ha pulsado «Instalar» en la vista de `inspect`).
+"""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+from dataclasses import asdict
+from pathlib import Path
+from typing import Any
+
+from nyx.bus import EventBus
+from nyx.events import ExtRequested, ExtStatusChanged
+from nyx.ext.manager import ExtensionManager
+from nyx.ext.signing import SignatureError, verify_package
+from nyx.ext.store import PACKAGE_SUFFIX, PackageError, read_package
+from nyx.settings.model import Settings
+
+log = logging.getLogger(__name__)
+
+
+class ExtensionsService:
+    def __init__(self, bus: EventBus, manager: ExtensionManager, settings: Settings) -> None:
+        self.bus = bus
+        self.manager = manager
+        self.settings = settings
+        self._unsubscribe = bus.subscribe(ExtRequested, self._on_request)
+
+    def close(self) -> None:
+        self._unsubscribe()
+
+    async def _on_request(self, req: ExtRequested) -> None:
+        inspect: dict[str, Any] | None = None
+        error: str | None = None
+        try:
+            if req.action == "inspect":
+                inspect = await asyncio.to_thread(self._inspect, Path(req.path))
+            elif req.action == "install":
+                await self._install(Path(req.path))
+            elif req.action == "accept":
+                await self.manager.accept_permissions(req.ext_id)
+            elif req.action in ("enable", "disable"):
+                await self.manager.set_enabled(req.ext_id, req.action == "enable")
+            elif req.action == "uninstall":
+                await self.manager.uninstall(req.ext_id)
+        except (PackageError, OSError) as e:
+            log.info("Extensiones (%s): %s", req.action, e)
+            error = str(e)
+        await self.publish(inspect=inspect, error=error)
+
+    async def publish(
+        self, *, inspect: dict[str, Any] | None = None, error: str | None = None
+    ) -> None:
+        items = [asdict(s) for s in await asyncio.to_thread(self.manager.status)]
+        await self.bus.publish(
+            ExtStatusChanged(items, self.settings.extensions.dev_mode, inspect, error)
+        )
+
+    def _package(self, path: Path) -> Path:
+        if path.suffix.lower() != PACKAGE_SUFFIX or not path.is_file():
+            raise PackageError(f"elige un archivo {PACKAGE_SUFFIX}")
+        return path
+
+    def _inspect(self, path: Path) -> dict[str, Any]:
+        """Lo que trae un paquete, sin instalar nada (ni ejecutar)."""
+        manifest, members = read_package(self._package(path))
+        try:
+            verify_package(path, [m for _, m in members], self.manager.store.trusted)
+            signed = True
+        except SignatureError:
+            signed = False
+        current = self.manager.store.get(manifest.id)
+        return {
+            "path": str(path),
+            "id": manifest.id,
+            "name": manifest.name,
+            "author": manifest.author,
+            "version": manifest.version,
+            "description": manifest.description,
+            "kinds": list(manifest.kinds),
+            "permissions": list(manifest.permissions),
+            "signed": signed,
+            "installable": signed or self.settings.extensions.dev_mode,
+            "installed_version": current.manifest.version if current else None,
+        }
+
+    async def _install(self, path: Path) -> None:
+        info = await asyncio.to_thread(self._inspect, path)
+        if not info["installable"]:
+            raise PackageError("no está firmada por Tepnyx: solo con el modo desarrollador")
+        # El usuario ya ha visto los permisos (vista de `inspect`): se aceptan al instalar.
+        await self.manager.install(path, accept=True, dev=not info["signed"])

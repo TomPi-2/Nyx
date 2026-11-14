@@ -40,6 +40,7 @@ from nyx.events import (
 from nyx.executor import Executor
 from nyx.ext import revocation
 from nyx.ext.manager import ExtensionManager
+from nyx.ext.service import ExtensionsService
 from nyx.ext.store import ExtensionStore
 from nyx.game.brain import GameBrain
 from nyx.game.controller import GameController
@@ -106,12 +107,15 @@ class Services:
         self.notice: asyncio.Task[None] | None = None
         self.background: set[asyncio.Task[Any]] = set()
         self.extensions: ExtensionManager | None = None
+        self.extensions_service: ExtensionsService | None = None
         # ¿Buen momento para actualizar? (SPEC §15; lo pregunta la app con Velopack, 9.06)
         self.update_gate = UpdateGate()
 
     async def close(self) -> None:
         if self.notice is not None:
             self.notice.cancel()
+        if self.extensions_service is not None:
+            self.extensions_service.close()
         if self.alarms_start is not None:
             self.alarms_start.cancel()
         if self.alarms is not None:
@@ -390,6 +394,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         brain=GameBrain(game, llm, brain.warmup),
     )
     services.extensions = _extensions(bus, registry, brain, game, settings)
+    services.extensions_service = ExtensionsService(bus, services.extensions, settings)
     services.update_gate.add("pipeline", pipeline.busy)
     services.update_gate.add("game", lambda: "hay una partida" if game.active else None)
     services.update_gate.add(

@@ -24,6 +24,8 @@ from nyx.bridge.protocol import (
     ActionMsg,
     BubbleHideMsg,
     BubbleMsg,
+    ExtensionsMsg,
+    ExtMsg,
     GameMsg,
     GlassInfo,
     Hello,
@@ -55,6 +57,8 @@ from nyx.events import (
     AudioLevel,
     BubbleHidden,
     BubbleShown,
+    ExtRequested,
+    ExtStatusChanged,
     MicLevelChanged,
     NyxState,
     OpenSettingsWindow,
@@ -134,6 +138,7 @@ class UIBridge:
             bus.subscribe(SettingsChanged, self._on_settings),
             bus.subscribe(OpenSettingsWindow, self._on_open_settings),
             bus.subscribe(SetupStatusChanged, self._on_setup_status),
+            bus.subscribe(ExtStatusChanged, self._on_ext_status),
             bus.subscribe(SetupProgress, self._on_setup_progress),
             bus.subscribe(MicLevelChanged, self._on_mic_level),
             bus.subscribe(SetupResult, self._on_setup_result),
@@ -228,6 +233,8 @@ class UIBridge:
             await self._bus.publish(SettingsRequested(dict(msg.patch)))
         elif isinstance(msg, SetupMsg):
             await self._bus.publish(SetupRequested(msg.action, msg.arg))
+        elif isinstance(msg, ExtMsg):
+            await self._bus.publish(ExtRequested(msg.action, msg.id, msg.path))
 
     async def broadcast(self, msg: _Msg) -> None:
         if not self._clients:
@@ -278,6 +285,13 @@ class UIBridge:
         except ValidationError:
             msg = OpenSettingsMsg()
         await self.broadcast(msg)
+
+    async def _on_ext_status(self, event: ExtStatusChanged) -> None:
+        await self.broadcast(
+            ExtensionsMsg(
+                items=event.items, dev_mode=event.dev_mode, inspect=event.inspect, error=event.error
+            )
+        )
 
     async def _on_setup_status(self, event: SetupStatusChanged) -> None:
         await self.broadcast(SetupStatusMsg(status=event.status))

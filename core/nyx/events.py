@@ -176,6 +176,29 @@ class SetupRequested:
     arg: str = ""
 
 
+ExtAction = Literal["list", "inspect", "install", "accept", "enable", "disable", "uninstall"]
+
+
+@dataclass(frozen=True, slots=True)
+class ExtRequested:
+    """Ajustes → Extensiones pide algo (0.7, tarea 7.11)."""
+
+    action: ExtAction
+    ext_id: str = ""
+    path: str = ""  # el .nyxext elegido (inspect, install)
+
+
+@dataclass(frozen=True, slots=True)
+class ExtStatusChanged:
+    """Las extensiones instaladas, el modo desarrollador y, si se pidió, lo que trae un
+    paquete antes de instalarlo (`inspect`)."""
+
+    items: list[dict[str, Any]]
+    dev_mode: bool
+    inspect: dict[str, Any] | None = None
+    error: str | None = None
+
+
 @dataclass(frozen=True, slots=True)
 class SetupStatusChanged:
     """Estado completo: modelos, Ollama, whisper, caché, atajos aprendidos y grabaciones."""

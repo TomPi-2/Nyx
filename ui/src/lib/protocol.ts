@@ -59,6 +59,8 @@ export interface NyxSettings {
   general: { city: string };
   /** v18: actualizaciones (SPEC §15; tarea 9.05). */
   updates: { mode: "preguntar" | "automatico" | "avisar"; channel: "estable" | "beta" };
+  /** v18: modo desarrollador de las extensiones (7.08). */
+  extensions: { dev_mode: boolean };
   appearance: {
     indicator_size: number;
     glass: GlassInfo;
@@ -102,6 +104,42 @@ export interface NyxSettings {
     alt_monitor: string | null;
   };
   [section: string]: unknown;
+}
+
+/** v18: Ajustes → Extensiones (core/nyx/ext/service.py y manager.py). */
+export type ExtAction =
+  "list" | "inspect" | "install" | "accept" | "enable" | "disable" | "uninstall";
+
+export interface ExtStatus {
+  id: string;
+  name: string;
+  version: string;
+  author: string;
+  description: string;
+  enabled: boolean;
+  active: boolean;
+  /** Instalada sin firma con el modo desarrollador: «Sin revisar». */
+  dev: boolean;
+  /** Permisos con su forma exacta (net:localhost:4455, files:read:documentos…). */
+  permissions: string[];
+  /** Los que pide una actualización y aún no se han aceptado. */
+  pending_permissions: string[];
+  problems: string[];
+}
+
+/** Lo que trae un paquete antes de instalarlo. */
+export interface ExtInspect {
+  path: string;
+  id: string;
+  name: string;
+  author: string;
+  version: string;
+  description: string;
+  kinds: string[];
+  permissions: string[];
+  signed: boolean;
+  installable: boolean;
+  installed_version: string | null;
 }
 
 /** v18: cómo avisa Nyx de que está lista (al encender el PC y al instalarse). */
@@ -183,7 +221,9 @@ export type ClientMessage =
   | { type: "settings_get" }
   | { type: "settings_set"; patch: SettingsPatch }
   /** v12 */
-  | { type: "setup"; action: SetupAction; arg?: string };
+  | { type: "setup"; action: SetupAction; arg?: string }
+  /** v18: Ajustes → Extensiones (7.11). */
+  | { type: "ext"; action: ExtAction; id?: string; path?: string };
 
 export type ServerMessage =
   | {
@@ -252,6 +292,13 @@ export type ServerMessage =
   | { type: "open_settings"; section: SettingsSection | null }
   /** v12: asistente y Ajustes → Cerebro, Caché, Ayuda y Privacidad. */
   | { type: "setup_status"; status: SetupStatus }
+  | {
+      type: "extensions";
+      items: ExtStatus[];
+      dev_mode: boolean;
+      inspect: ExtInspect | null;
+      error: string | null;
+    }
   | {
       type: "setup_progress";
       key: string;

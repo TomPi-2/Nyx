@@ -214,6 +214,11 @@ class ExtensionStore:
         self._lock = threading.RLock()
         self._state = self._load_state()
 
+    @property
+    def trusted(self) -> dict[str, str] | None:
+        """Las claves públicas con las que se comprueban las firmas (None: las de Tepnyx)."""
+        return self._trusted
+
     # --- estado ---
 
     def _load_state(self) -> StoreState:

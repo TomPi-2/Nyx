@@ -64,6 +64,15 @@ class SettingsSetMsg(_Msg):
     patch: dict[str, Any]
 
 
+class ExtMsg(_Msg):
+    """v18: Ajustes → Extensiones pide algo (7.11)."""
+
+    type: Literal["ext"] = "ext"
+    action: Literal["list", "inspect", "install", "accept", "enable", "disable", "uninstall"]
+    id: str = Field(default="", max_length=100)
+    path: str = Field(default="", max_length=1024)
+
+
 class SetupMsg(_Msg):
     """v12: asistente y Ajustes → Cerebro, Caché, Ayuda y Privacidad (nyx/setup/service.py)."""
 
@@ -85,7 +94,14 @@ class SetupMsg(_Msg):
 
 
 ClientMessage = Annotated[
-    Hello | TextInput | TalkKeyMsg | ActionMsg | SettingsGetMsg | SettingsSetMsg | SetupMsg,
+    Hello
+    | TextInput
+    | TalkKeyMsg
+    | ActionMsg
+    | SettingsGetMsg
+    | SettingsSetMsg
+    | SetupMsg
+    | ExtMsg,
     Field(discriminator="type"),
 ]
 client_adapter: TypeAdapter[ClientMessage] = TypeAdapter(ClientMessage)
@@ -241,6 +257,16 @@ class OpenSettingsMsg(_Msg):
     ) = None
 
 
+class ExtensionsMsg(_Msg):
+    """v18: Ajustes → Extensiones (7.11): las instaladas y lo que trae un paquete."""
+
+    type: Literal["extensions"] = "extensions"
+    items: list[dict[str, Any]]
+    dev_mode: bool
+    inspect: dict[str, Any] | None = None
+    error: str | None = None
+
+
 class SetupStatusMsg(_Msg):
     """v12: modelos, Ollama, whisper, caché, atajos aprendidos y grabaciones."""
 
@@ -288,6 +314,7 @@ ServerMessage = Annotated[
     | SettingsMsg
     | OpenSettingsMsg
     | SetupStatusMsg
+    | ExtensionsMsg
     | SetupProgressMsg
     | MicLevelMsg
     | SetupResultMsg,
