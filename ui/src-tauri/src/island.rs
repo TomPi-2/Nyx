@@ -2,12 +2,14 @@
 //! Nunca toman el foco y se ocultan del todo en reposo, para no quedarse encima de un juego
 //! cuando no hace falta (SPEC sección 11).
 //!
-//! Son dos (decisión 2026-11-10):
+//! Son tres (las dos primeras, decisión 2026-11-10):
 //! - `island`: la forma de Nyx. No captura la pantalla, así que sale siempre en capturas y
 //!   directos.
 //! - `panels`: los paneles (respuesta, confirmación, deshacer, aviso) sobre el motor de
 //!   cristal, debajo de la forma con un hueco fijo. En Alto y Medio el motor la excluye de
 //!   las capturas (si no, el cristal se vería a sí mismo).
+//! - `downloads`: el panel de descargas del primer arranque (9.10), arriba a la derecha del
+//!   mismo monitor que Nyx.
 //!
 //! Un solo coordinador decide el monitor para las dos, así siempre van juntas. Si hay que
 //! cambiar de monitor estando visibles y la animación está activada, les avisa
@@ -30,7 +32,10 @@ use crate::win32::{self, MonitorArea};
 
 pub const LABEL: &str = "island";
 pub const PANELS: &str = "panels";
-const OVERLAYS: [&str; 2] = [LABEL, PANELS];
+pub const DOWNLOADS: &str = "downloads";
+const OVERLAYS: [&str; 3] = [LABEL, PANELS, DOWNLOADS];
+/// Margen del panel de descargas con el borde derecho del monitor (px CSS).
+const RIGHT_MARGIN: f64 = 16.0;
 /// Tamaño inicial; cada página pide el suyo (island_set_size).
 const WIDTH: f64 = 600.0;
 const HEIGHT: f64 = 300.0;
@@ -59,6 +64,8 @@ struct Geometry {
     width: f64,
     height: f64,
     top: f64,
+    /// Arriba a la derecha (el panel de descargas) en vez de arriba en el centro.
+    right: bool,
 }
 
 impl Default for Geometry {
@@ -67,6 +74,7 @@ impl Default for Geometry {
             width: WIDTH,
             height: HEIGHT,
             top: 0.0,
+            right: false,
         }
     }
 }
@@ -137,6 +145,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
     app.manage(Overlays::default());
     create_overlay(app, LABEL, "island")?;
     create_overlay(app, PANELS, "panels")?;
+    create_overlay(app, DOWNLOADS, "descargas")?;
     tauri::async_runtime::spawn(follow(app.clone()));
     Ok(())
 }
@@ -271,7 +280,11 @@ fn show<R: Runtime>(window: &WebviewWindow<R>, state: &OverlayState, area: Monit
 
 fn place<R: Runtime>(window: &WebviewWindow<R>, state: &OverlayState, area: MonitorArea) {
     let g = state.geometry.lock().map(|g| *g).unwrap_or_default();
-    place_top_center_at(window, area, g.width, g.height, g.top);
+    if g.right {
+        place_top_right_at(window, area, g.width, g.height, g.top);
+    } else {
+        place_top_center_at(window, area, g.width, g.height, g.top);
+    }
 }
 
 /// Un solo coordinador para las dos ventanas: decide el monitor y las mueve juntas.
@@ -343,6 +356,7 @@ pub fn island_set_size<R: Runtime>(
     width: f64,
     height: f64,
     top: Option<f64>,
+    right: Option<bool>,
 ) {
     let Some(state) = overlays.get(window.label()) else {
         return;
@@ -352,6 +366,7 @@ pub fn island_set_size<R: Runtime>(
             width: width.clamp(120.0, 1200.0),
             height: height.clamp(80.0, 1000.0),
             top: top.unwrap_or(0.0).clamp(0.0, 800.0),
+            right: right.unwrap_or(false),
         };
     }
     if state.shown.load(Ordering::Relaxed)
@@ -387,6 +402,24 @@ pub fn place_top_center_at<R: Runtime>(
     let width = (width * m.scale).round() as i32;
     let height = (height * m.scale).round() as i32;
     let x = m.left + (m.width - width) / 2;
+    let y = m.top + (top * m.scale).round() as i32;
+    win32::place_topmost(hwnd, x, y, width, height);
+}
+
+/// Arriba a la derecha de un monitor, con un margen (el panel de descargas del primer arranque).
+pub fn place_top_right_at<R: Runtime>(
+    window: &WebviewWindow<R>,
+    m: MonitorArea,
+    width: f64,
+    height: f64,
+    top: f64,
+) {
+    let Some(hwnd) = win32::hwnd(window) else {
+        return;
+    };
+    let width = (width * m.scale).round() as i32;
+    let height = (height * m.scale).round() as i32;
+    let x = m.left + m.width - width - (RIGHT_MARGIN * m.scale).round() as i32;
     let y = m.top + (top * m.scale).round() as i32;
     win32::place_topmost(hwnd, x, y, width, height);
 }

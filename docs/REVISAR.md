@@ -86,8 +86,7 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
 
 15. ~~Primer arranque guiado por Nyx (9.10)~~ **Aprobado** (2026-11-14), con el plan de
     construcción (`docs/PLAN-0.9.md` §1b) y el paso del núcleo a Python 3.14 al empaquetarlo
-    (9.07). En marcha la 9.10a: el núcleo ya está (pasos, respuestas habladas, fundido de la
-    voz, protocolo v19); falta la interfaz.
+    (9.07). **Hecha la 9.10a** (ver «Qué probar», punto 12).
 
 ## Qué probar
 
@@ -137,6 +136,13 @@ activaciones (6.22).
     «¿qué apps tiene Tepnyx?», «abre la ruleta de sí o no», «abre Tepnyx Premium», «¿dónde
     cambio tu voz?» (Ajustes en Voz). Decider y Sorty son apps del móvil: en el PC Nyx abre su
     página. Si echas en falta alguna pantalla o página, dímela.
+
+12. **Primer arranque guiado de verdad (9.10a)** (reinicia la app entera: protocolo v19).
+    Ajustes → Ayuda → Primer arranque → «Repetir». Nyx aparece, te habla y saca debajo un panel
+    por paso: micrófono (habla y luego di «Nyx»; desde ahí puedes contestar sin «Nyx»), color
+    («ponte coral»), tamaño («más grande» o arrastrando), paneles, escaneo y datos. Prueba a
+    pulsar «Siguiente» mientras habla: debe callarse en un instante. Cambia tu color y tamaño
+    de verdad (lo puedes volver a poner luego). El panel de descargas solo sale si falta algo.
 
 11. **Prototipos para tu visto bueno** (ábrelos en el navegador):
     - `docs/prototipos/instalador.html`: el instalador entero y la onda de «Nyx listo» cruzando

@@ -12,7 +12,16 @@
   import { connectCore, type CoreConnection } from "$lib/core";
   import { applyAppearance } from "$theme/apply";
   import { DEFAULT_GLASS, edgeLevelToPx, glass, glassFromSettings } from "$lib/glass";
-  import type { ActionButton, BubbleKind, LongSection, ServerMessage } from "$lib/protocol";
+  import type {
+    ActionButton,
+    BubbleKind,
+    LongSection,
+    NyxState,
+    ServerMessage,
+    SetupFlowAction,
+    SetupFlowState,
+  } from "$lib/protocol";
+  import SetupPanel from "../setup/SetupPanel.svelte";
   import AlertPanel from "./panels/AlertPanel.svelte";
   import ConfirmPanel from "./panels/ConfirmPanel.svelte";
   import LongPanel, { type Chunk } from "./panels/LongPanel.svelte";
@@ -49,6 +58,10 @@
   const LONG_AREA_HEIGHT = 520;
   /** El panel largo se cierra solo tras 2 minutos sin tocarlo (con el puntero encima, no). */
   const LONG_IDLE_MS = 120_000;
+  /** El panel del primer arranque, con los 19 colores, mide más. */
+  const SETUP_AREA_HEIGHT = 560;
+  /** Tras la despedida del primer arranque, el panel se queda este rato antes de irse. */
+  const SETUP_LINGER_MS = 2500;
 
   interface Bubble {
     id: number;
@@ -93,7 +106,31 @@
   // «Desactivado»: nada en partida. «Solo voz»: el coordinador de monitores (monitors.rs) la
   // lleva a otro monitor o no la muestra en ninguno.
   const hiddenForGame = $derived(game.active && game.mode === "off");
-  const visible = $derived(connected && !hiddenForGame && bubble !== null);
+
+  // Primer arranque guiado (9.10): mientras dura, su panel va en lugar de las burbujas. Al
+  // terminar se queda con la despedida hasta que Nyx acaba de hablar.
+  let flow = $state<SetupFlowState | null>(null);
+  let status = $state<NyxState>("idle");
+  let micLevel = $state(0);
+  let lingering = $state(false);
+  let lingerTimer: ReturnType<typeof setTimeout> | undefined;
+  function onFlow(next: SetupFlowState) {
+    if (flow?.active && !next.active) lingering = true;
+    if (next.active) lingering = false;
+    flow = next;
+  }
+  $effect(() => {
+    clearTimeout(lingerTimer);
+    if (lingering && status !== "speaking") {
+      lingerTimer = setTimeout(() => (lingering = false), SETUP_LINGER_MS);
+    }
+  });
+  const setupOn = $derived(flow !== null && (flow.active || lingering));
+  function sendFlow(action: SetupFlowAction, value?: string | number | boolean | null) {
+    core?.send({ type: "setup_flow", action, value: value ?? null });
+  }
+
+  const visible = $derived(connected && !hiddenForGame && (bubble !== null || setupOn));
 
   // Con Nyx, debajo de la forma con el hueco fijo (contando la ondulación del borde); sin
   // Nyx, arriba del todo. La ventana empieza en el borde superior y cubre los dos sitios.
@@ -123,7 +160,7 @@
       // Cabe en cualquier sitio: bajo Nyx o bajo el campo de texto con 6 líneas.
       height:
         Math.max(lowered, raisedTop(size) + INPUT_MAX_HEIGHT + PANEL_GAP + edgePx) +
-        (bubble?.kind === "long" ? LONG_AREA_HEIGHT : AREA_HEIGHT) +
+        (setupOn ? SETUP_AREA_HEIGHT : bubble?.kind === "long" ? LONG_AREA_HEIGHT : AREA_HEIGHT) +
         PAD,
       top: 0,
     });
@@ -148,6 +185,7 @@
     void bubble;
     void visible;
     void target;
+    void flow;
     requestAnimationFrame(updateHitRects);
     // Tras la animación de entrada o el cambio de sitio.
     const timer = setTimeout(updateHitRects, Math.max(POP_IN_MS, PANEL_MOVE_MS) + 50);
@@ -279,6 +317,16 @@
       case "bubble_hide":
         hide();
         break;
+      case "state":
+        status = msg.state;
+        break;
+      case "mic_level":
+        micLevel = msg.rms;
+        break;
+      case "setup_flow_state":
+        onFlow(msg.state);
+        glass.follow(POP_IN_MS + 80);
+        break;
       case "game":
         game = { active: msg.active, mode: msg.mode, monitor: msg.monitor ?? "" };
         // En partida el cristal pasa a Bajo sin excepción (nunca se captura con un juego).
@@ -330,7 +378,17 @@
   style:--move="{PANEL_MOVE_MS}ms"
   bind:this={slot}
 >
-  {#if bubble}
+  {#if setupOn && flow}
+    <div class="pop pop-in">
+      <SetupPanel
+        {flow}
+        speaking={status === "speaking"}
+        {micLevel}
+        closing={!flow.active}
+        send={sendFlow}
+      />
+    </div>
+  {:else if bubble}
     {#key bubble.id}
       <!-- Aparece y se va como la forma de Nyx (lib/motion.ts): cristal y texto a la vez. -->
       <div class="pop" class:pop-in={!leaving} class:pop-out={leaving}>

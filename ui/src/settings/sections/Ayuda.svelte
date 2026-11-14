@@ -1,4 +1,4 @@
-<!-- Ajustes → Ayuda (SPEC sección 13): reiniciar Nyx, repetir el asistente y los registros. -->
+<!-- Ajustes → Ayuda (SPEC sección 13): reiniciar Nyx, repetir el primer arranque y los registros. -->
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -7,10 +7,9 @@
   import Row from "$lib/controls/Row.svelte";
   import { settings } from "../store.svelte";
 
-  /** El asistente va solo: Ajustes se cierra y vuelve a abrirse aquí al terminarlo. */
-  async function repeatWelcome() {
-    await invoke("welcome_open", { returnTo: "ayuda" });
-    void getCurrentWindow().close();
+  /** El primer arranque lo guía Nyx en persona (9.10): Ajustes se cierra para dejarle sitio. */
+  function repeatWelcome() {
+    if (settings.startGuidedSetup()) void getCurrentWindow().close();
   }
 </script>
 
@@ -24,10 +23,10 @@
     </Button>
   </Row>
   <Row
-    label="Asistente de bienvenida"
-    hint="Vuelve a pasar por los pasos del primer arranque: modelos, micrófono, Nyx y tu equipo."
+    label="Primer arranque"
+    hint="Nyx te vuelve a guiar: micrófono, su color y tamaño, los paneles, tu equipo y los datos anónimos."
   >
-    <Button onclick={() => void repeatWelcome()}>Repetir</Button>
+    <Button onclick={repeatWelcome}>Repetir</Button>
   </Row>
 </Card>
 

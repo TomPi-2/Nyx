@@ -8,7 +8,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { emitTo, listen } from "@tauri-apps/api/event";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-  import { connectCore } from "$lib/core";
+  import { connectCore, type CoreConnection } from "$lib/core";
   import { MOVE_EVENT, MOVE_IN_MS, type MovePhase } from "$lib/motion";
   import type { MonitorSettings, NyxState, ServerMessage } from "$lib/protocol";
   import Indicator from "./shape/Indicator.svelte";
@@ -67,7 +67,18 @@
 
   const active = $derived(status !== "idle" && status !== "muted");
 
-  const shown = $derived(connected && !hiddenForGame && active);
+  // Primer arranque guiado (9.10): Nyx se queda a la vista todo el rato, aunque no hable.
+  let setupOn = $state(false);
+  let setupLinger = $state(false);
+  let setupTimer: ReturnType<typeof setTimeout> | undefined;
+  $effect(() => {
+    clearTimeout(setupTimer);
+    if (setupLinger && status !== "speaking") {
+      setupTimer = setTimeout(() => (setupLinger = false), 2500);
+    }
+  });
+
+  const shown = $derived(connected && !hiddenForGame && (active || setupOn || setupLinger));
 
   // Sin Nyx, el panel sube a ocupar su sitio (panels/layout.ts). Esta ventana es la única que
   // sabe si la forma está a la vista (incluido el «pensando» mínimo y la animación de salida),
@@ -78,6 +89,14 @@
   /** El campo de texto está abierto (en el sitio de Nyx si no está): también hay que esperar. */
   let inputOpen = false;
   let waitPanel = $state(false);
+  // En reposo la forma se va; en el primer arranque se queda esperando (como al confirmar).
+  const shapeStatus = $derived<NyxState>(
+    hiddenForGame || waitPanel
+      ? "idle"
+      : status === "idle" && (setupOn || setupLinger)
+        ? "confirm"
+        : status,
+  );
   let waitTimer: ReturnType<typeof setTimeout> | undefined;
   let wanted = false;
 
@@ -157,12 +176,16 @@
       case "welcome":
         size = msg.indicator_size ?? 100;
         color = msg.nyx_color ?? "blanco";
-        // Primera vez: el asistente de bienvenida (una vez por sesión; si se cierra sin
-        // terminar, vuelve a salir la próxima vez que se abra Nyx).
+        // Primera vez: el primer arranque guiado por Nyx (9.10; una vez por sesión; si se
+        // cierra sin terminar, vuelve a salir la próxima vez que se abra Nyx).
         if (msg.onboarding_done === false && !welcomeAsked) {
           welcomeAsked = true;
-          void invoke("welcome_open");
+          core?.send({ type: "setup_flow", action: "start" });
         }
+        break;
+      case "setup_flow_state":
+        if (setupOn && !msg.state.active) setupLinger = true;
+        setupOn = msg.state.active;
         break;
       case "settings":
         // Cambiado en Ajustes → Apariencia: se ve al momento.
@@ -183,6 +206,8 @@
     }
   }
 
+  let core: CoreConnection | undefined;
+
   onMount(() => {
     const connection = connectCore(handle, (ok) => {
       connected = ok;
@@ -190,6 +215,7 @@
       // Los ajustes de monitor no van en «welcome»: se piden (la respuesta llega a todas).
       if (ok) connection.send({ type: "settings_get" });
     });
+    core = connection;
     const offMove = getCurrentWebviewWindow().listen<MovePhase>(MOVE_EVENT, (e) => {
       clearTimeout(movingTimer);
       moving = e.payload;
@@ -218,7 +244,7 @@
   style:top="{SHAPE_TOP}px"
 >
   <Indicator
-    status={hiddenForGame || waitPanel ? "idle" : status}
+    status={shapeStatus}
     {level}
     {size}
     {backdrop}

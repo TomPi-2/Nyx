@@ -199,6 +199,7 @@ async def run(args: argparse.Namespace) -> int:
             voice = not (args.no_voice or args.ask)
             services = await build_services(bus, settings, voice=voice)
             services.pipeline.setup = flow
+            flow.speaker_ready.set()
             tasks.append(asyncio.create_task(services.pipeline.run(), name="pipeline"))
             if args.ask:
                 await bus.publish(TextEntered(args.ask))

@@ -1,6 +1,7 @@
 <!--
   Deslizador con tirador circular (SPEC sección 13). `oninput` llega mientras se arrastra
-  (para ver el cambio al momento) y `onchange` al soltar (para guardar).
+  (para ver el cambio al momento) y `onchange` al soltar (para guardar). Con `bubble`, mientras
+  se arrastra sale encima del tirador una etiqueta con el valor (estilo de lib/tooltip.ts).
 -->
 <script lang="ts">
   interface Props {
@@ -11,25 +12,50 @@
     label?: string;
     oninput?: (value: number) => void;
     onchange?: (value: number) => void;
+    bubble?: (value: number) => string;
   }
-  let { value, min, max, step = 1, label, oninput, onchange }: Props = $props();
+  let { value, min, max, step = 1, label, oninput, onchange, bubble }: Props = $props();
 
   const percent = $derived(((value - min) / (max - min)) * 100);
+  let dragging = $state(false);
 </script>
 
-<input
-  type="range"
-  {min}
-  {max}
-  {step}
-  {value}
-  aria-label={label}
-  style:--p="{percent}%"
-  oninput={(e) => oninput?.(Number(e.currentTarget.value))}
-  onchange={(e) => onchange?.(Number(e.currentTarget.value))}
-/>
+<div class="slider" data-hit style:--p="{percent}%" style:--f={percent / 100}>
+  <input
+    type="range"
+    {min}
+    {max}
+    {step}
+    {value}
+    aria-label={label}
+    onpointerdown={() => (dragging = true)}
+    onpointerup={() => (dragging = false)}
+    onblur={() => (dragging = false)}
+    oninput={(e) => oninput?.(Number(e.currentTarget.value))}
+    onchange={(e) => {
+      dragging = false;
+      onchange?.(Number(e.currentTarget.value));
+    }}
+  />
+  {#if bubble}
+    <span class="bubble nyx-tooltip" class:on={dragging} aria-hidden="true">{bubble(value)}</span>
+  {/if}
+</div>
 
 <style>
+  .slider {
+    position: relative;
+  }
+
+  /* Encima del centro del tirador (22 px): 11 px + la parte recorrida del resto. */
+  .bubble {
+    position: absolute;
+    left: calc(11px + (100% - 22px) * var(--f));
+    top: -26px;
+    translate: -50% 0;
+    transform-origin: 50% 100%;
+  }
+
   input {
     width: 100%;
     height: 6px;

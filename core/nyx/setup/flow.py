@@ -50,6 +50,8 @@ Mode = Literal["first_run", "color", "size", "tint"]
 HEARD_LEVEL = 0.25
 #: Cuánto espera a que hables tras hacerte una pregunta, una vez probado el micrófono.
 LISTEN_AFTER_S = 8.0
+#: La interfaz pide empezar en cuanto conecta, antes de que la voz esté cargada: se espera.
+SPEAKER_WAIT_S = 60.0
 
 
 class Speaker(Protocol):
@@ -176,6 +178,8 @@ class GuidedSetup:
         self.downloading = False
         self.finished = False
         self._nyx_state = NyxState.IDLE
+        # main.py lo marca cuando la canalización (la voz) está lista.
+        self.speaker_ready = asyncio.Event()
         self._tasks: set[asyncio.Task[None]] = set()
         self._unsubscribe = [
             bus.subscribe(SetupFlowRequested, self._on_request),
@@ -203,6 +207,7 @@ class GuidedSetup:
         self.active = True
         self.finished = False
         self.step = 0
+        await self._wait_speaker()
         if mode == "first_run":
             self.heard = self.woke = False
             self.usage = None
@@ -212,6 +217,11 @@ class GuidedSetup:
             await self.bus.publish(SetupRequested("download"))  # lo que falte (voz, cerebro)
         log.info("Primer arranque guiado: %s", mode)
         await self._enter()
+
+    async def _wait_speaker(self) -> None:
+        if self._speaker() is None:
+            with contextlib.suppress(TimeoutError):
+                await asyncio.wait_for(self.speaker_ready.wait(), SPEAKER_WAIT_S)
 
     async def _finish(self) -> None:
         await self._mic_test(False)
@@ -267,7 +277,8 @@ class GuidedSetup:
         action, value = event.action, event.value
         if action == "start":
             mode = value if value in ("color", "size", "tint") else "first_run"
-            await self.start(mode)  # type: ignore[arg-type]
+            # Aparte: puede esperar a que la voz esté lista sin parar los demás mensajes.
+            self._spawn(self.start(mode))  # type: ignore[arg-type]
             return
         if not self.active:
             return

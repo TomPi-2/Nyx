@@ -88,6 +88,11 @@ class SettingsStore {
     return this.core?.send({ type: "setup", action, arg }) ?? false;
   }
 
+  /** Primer arranque guiado por Nyx (9.10), otra vez desde Ajustes → Ayuda. */
+  startGuidedSetup(): boolean {
+    return this.core?.send({ type: "setup_flow", action: "start" }) ?? false;
+  }
+
   /** Reinicia el núcleo para aplicar lo que lo necesita (bandeja → Reiniciar núcleo). */
   async restartCore(): Promise<void> {
     if (this.restarting) return;
