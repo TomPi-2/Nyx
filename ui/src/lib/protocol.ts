@@ -2,7 +2,7 @@
 
 import type { FontId, NyxColorId, PanelTintId } from "$theme/palette";
 
-export const PROTOCOL_VERSION = 18;
+export const PROTOCOL_VERSION = 19;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -214,6 +214,54 @@ export interface SetupStatus {
 export type SettingsPatch = { [K in keyof NyxSettings]?: Partial<NyxSettings[K]> };
 
 /** Interfaz → núcleo (después del hello). */
+/** v19: primer arranque guiado por Nyx (9.10; core/nyx/setup/flow.py). */
+export type SetupFlowAction =
+  | "start"
+  | "next"
+  | "back"
+  | "skip"
+  | "pick"
+  | "size"
+  | "size_live"
+  | "mic"
+  | "data"
+  | "done"
+  | "install_everything"
+  | "close";
+
+export type SetupFlowStep = "welcome" | "mic" | "color" | "size" | "tint" | "scan" | "data";
+
+/** Estado entero del primer arranque guiado (GuidedSetup.snapshot). */
+export interface SetupFlowState {
+  active: boolean;
+  finished: boolean;
+  /** «first_run» o un panel suelto reutilizado por voz (9.11). */
+  mode: "first_run" | "color" | "size" | "tint";
+  step: SetupFlowStep;
+  index: number;
+  total: number;
+  /** Lo último que ha dicho Nyx (se escribe en el panel mientras suena). */
+  say: string;
+  color: string;
+  size: number;
+  tint: string;
+  mics: string[];
+  mic: string | null;
+  heard: boolean;
+  woke: boolean;
+  scan: {
+    running: boolean;
+    apps?: number;
+    games?: number;
+    folders?: number;
+    game?: string | null;
+  } | null;
+  everything: { installed?: boolean; running?: boolean; cli?: boolean };
+  installing_everything: boolean;
+  usage: boolean | null;
+  downloading: boolean;
+}
+
 export type ClientMessage =
   | { type: "text"; text: string }
   | { type: "talk"; pressed: boolean }
@@ -224,7 +272,9 @@ export type ClientMessage =
   /** v12 */
   | { type: "setup"; action: SetupAction; arg?: string }
   /** v18: Ajustes → Extensiones (7.11). */
-  | { type: "ext"; action: ExtAction; id?: string; path?: string };
+  | { type: "ext"; action: ExtAction; id?: string; path?: string }
+  /** v19 */
+  | { type: "setup_flow"; action: SetupFlowAction; value?: string | number | boolean | null };
 
 export type ServerMessage =
   | {
@@ -310,7 +360,9 @@ export type ServerMessage =
       error: string | null;
     }
   | { type: "mic_level"; rms: number }
-  | { type: "setup_result"; action: string; ok: boolean; message: string | null };
+  | { type: "setup_result"; action: string; ok: boolean; message: string | null }
+  /** v19 */
+  | { type: "setup_flow_state"; state: SetupFlowState };
 
 /** Secciones de la ventana de Ajustes (ui/src/settings/Settings.svelte). */
 export type SettingsSection =

@@ -44,7 +44,7 @@
 el visto bueno. Lo demás necesita descargar herramientas (Velopack `vpk`, Python oficial), una
 Release publicada o probar en los dos equipos.
 
-## 1b. Plan de construcción (propuesto el 2026-11-14, pendiente del visto bueno)
+## 1b. Plan de construcción (aprobado por el usuario el 2026-11-14)
 
 Prototipo aprobado; esto es el orden y los archivos para construirlo de verdad. Primero lo
 que se prueba en el PC sin instalador (el primer arranque dentro de la app) y al final lo que
@@ -75,8 +75,9 @@ necesita una Release.
    `routes/onda/`), mismo reloj, coordenadas del escritorio virtual; al acabar el primer
    arranque y al encender si está elegida.
 4. **9.07 Empaquetado del núcleo** con el Python embeddable (sin `uv` en el equipo del
-   usuario). **Pregunta:** la 3.12 ya no publica binarios con parches; propongo pasar el núcleo
-   a la 3.14 aquí (comprobar que todas las dependencias tienen ruedas para ella y medir).
+   usuario). **Decidido por el usuario (2026-11-14):** el núcleo pasa a Python 3.14 aquí (la
+   3.12 ya no publica binarios con parches); antes, comprobar que todas las dependencias
+   tienen ruedas para ella y medir.
 5. **9.06 Velopack en la app** (`vpk`, MIT) y **9.08 instalador** (`installer/`, app Tauri
    pequeña con las pantallas aprobadas: bienvenida, licencia, opciones con Everything y acceso
    directo apagados, instalación de la app y la voz; luego abre Nyx con `--primer-arranque` y

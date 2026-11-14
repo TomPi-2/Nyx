@@ -226,6 +226,21 @@ class MicLevelChanged:
 
 
 @dataclass(frozen=True, slots=True)
+class SetupFlowRequested:
+    """Primer arranque guiado (9.10): lo que se toca en su panel («next», «pick»…)."""
+
+    action: str
+    value: str | int | bool | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class SetupFlowChanged:
+    """Primer arranque guiado: su estado entero, para el panel (setup/flow.py)."""
+
+    state: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
 class SetupResult:
     action: str
     ok: bool

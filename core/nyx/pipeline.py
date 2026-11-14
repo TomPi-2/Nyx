@@ -308,13 +308,27 @@ class _Speech:
         if self._announcing:
             await asyncio.gather(*self._announcing, return_exceptions=True)
 
-    async def abort(self) -> None:
+    async def abort(self, *, fade: bool = False) -> None:
+        """Para de hablar. `fade`: con un fundido de 150 ms en vez de cortar en seco."""
         self._task.cancel()
         for task in self._announcing:
             task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await self._task
-        self._player.clear()
+        if fade:
+            self._player.fade_out()
+        else:
+            self._player.clear()
+
+
+class SetupHook(Protocol):
+    """El primer arranque guiado (setup/flow.py): mientras está en marcha, lo que se oye o
+    se escribe es para él, no para el router ni el cerebro."""
+
+    active: bool
+
+    async def hear(self, text: str) -> bool: ...
+    async def on_wake(self) -> None: ...
 
 
 class Pipeline:
@@ -393,6 +407,9 @@ class Pipeline:
         self._long: LongAnswer | None = None
         self._long_open = False
         self._offer_until = 0.0
+        # Primer arranque guiado (9.10): lo pone main.py; `announce` y `hush` son su voz.
+        self.setup: SetupHook | None = None
+        self._announcing: asyncio.Task[None] | None = None
         if executor is not None and executor.confirm is None:
             executor.confirm = self.confirm
         self._unsubscribe = [
@@ -542,15 +559,20 @@ class Pipeline:
         followup: bool = False,
         manual: bool = False,
         show: bool = True,
+        timeout_s: float | None = None,
     ) -> None:
         """`show=False`: se graba ya, pero el indicador espera a que whisper confirme «Nyx»
-        (el detector propio salta más a menudo y whisper descarta casi todo)."""
+        (el detector propio salta más a menudo y whisper descarta casi todo). `timeout_s`:
+        cuánto espera a que se empiece a hablar (por defecto, el de los ajustes)."""
+        self.hush()  # si Nyx estaba diciendo algo del primer arranque, se calla al oírte
         self._drop_listening()
         await self._cancel_request()
         if self.vad is not None:
             self.vad.reset()
         frames = self.capture.prebuffer(prebuffer_s) if self.capture and prebuffer_s else []
         timeout = self.listen.followup_s if followup else self.listen.start_timeout_s
+        if timeout_s is not None:
+            timeout = timeout_s
         self._listening = _Listening(
             endpointer=Endpointer(
                 silence_ms=self.listen.silence_ms,
@@ -756,6 +778,15 @@ class Pipeline:
             log.info("Activación descartada: whisper no ha oído «Nyx»")
             await self._go_idle()
             return
+        if self.setup is not None and self.setup.active:
+            # Primer arranque guiado: «Nyx» es la prueba de la activación y lo demás, una
+            # respuesta a lo que ha preguntado (sin router ni cerebro).
+            if verify is not None or self.wake_phrase.heard(raw, first_words=3):
+                await self.setup.on_wake()
+            await self._go_idle()
+            if text and not looks_foreign(text):
+                await self.setup.hear(text)
+            return
         if not text:
             await self._go_idle()
             return
@@ -791,6 +822,10 @@ class Pipeline:
         """Router rápido primero (acciones sin LLM); si no encaja, el LLM."""
         marks.phrase = text
         self._agent = AgentRun()
+        if self.setup is not None and self.setup.active:
+            await self._go_idle()
+            await self.setup.hear(text)
+            return
         if self.ringer is not None and self.ringer.swallow(text):
             # «Nyx, para» con la alarma sonando: es para ella, no para la música.
             await self.ringer.stop()
@@ -1370,6 +1405,51 @@ class Pipeline:
             await self.start_listening(followup=True)
         else:
             await self._go_idle()
+
+    # --- primer arranque guiado (9.10) ---
+
+    async def announce(self, text: str, *, listen_after: float = 0.0) -> None:
+        """Nyx dice `text` sin esperar a que acabe; `hush()` la calla con un fundido. Con
+        `listen_after` (segundos), al acabar escucha la respuesta sin que haya que decir «Nyx»."""
+        self.hush()
+        if self.tts is None or self.player is None:
+            return
+        self._announcing = asyncio.create_task(self._announce(text, listen_after), name="announce")
+
+    def hush(self) -> None:
+        task = self._announcing
+        if task is not None and not task.done() and task is not asyncio.current_task():
+            task.cancel()
+
+    async def _announce(self, text: str, listen_after: float) -> None:
+        assert self.tts is not None and self.player is not None
+
+        async def started() -> None:
+            await self._set_state(NyxState.SPEAKING)
+
+        speech = _Speech(self.tts, self.player, started)
+        levels = asyncio.create_task(self._speaking_levels())
+        splitter = SentenceSplitter()
+        try:
+            for sentence in splitter.feed(text):
+                speech.say(sentence)
+            if (rest := splitter.flush()) is not None:
+                speech.say(rest)
+            await speech.finish()
+        except asyncio.CancelledError:
+            await speech.abort(fade=True)
+            raise
+        finally:
+            levels.cancel()
+            if self.state is NyxState.SPEAKING and self.mode is not Mode.LISTENING:
+                await self._set_state(NyxState.IDLE)
+        if (
+            listen_after > 0
+            and self.voice_enabled
+            and self.capture is not None
+            and self.mode is Mode.IDLE
+        ):
+            await self.start_listening(followup=True, timeout_s=listen_after)
 
     async def _speaking_levels(self) -> None:
         assert self.player is not None

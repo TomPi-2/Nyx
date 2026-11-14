@@ -72,6 +72,13 @@ class AudioCapture:
                 self._stream.close()
             self._stream = None
 
+    def switch(self, device: str | None) -> None:
+        """Cambia de micrófono sin parar Nyx (primer arranque: el elegido se usa ya)."""
+        self.stop()
+        self._device_name = device
+        self._ring.clear()
+        self.start()
+
     def _callback(self, indata: Any, frames: int, _time: Any, status: Any) -> None:
         if status:
             log.debug("Micrófono: %s", status)

@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 18
+PROTOCOL_VERSION = 19
 
 
 class _Msg(BaseModel):
@@ -93,6 +93,27 @@ class SetupMsg(_Msg):
     arg: str = Field(default="", max_length=500)
 
 
+class SetupFlowMsg(_Msg):
+    """v19: primer arranque guiado (9.10): lo que se toca en su panel."""
+
+    type: Literal["setup_flow"] = "setup_flow"
+    action: Literal[
+        "start",
+        "next",
+        "back",
+        "skip",
+        "pick",
+        "size",
+        "size_live",
+        "mic",
+        "data",
+        "done",
+        "install_everything",
+        "close",
+    ]
+    value: str | int | bool | None = None
+
+
 ClientMessage = Annotated[
     Hello
     | TextInput
@@ -101,6 +122,7 @@ ClientMessage = Annotated[
     | SettingsGetMsg
     | SettingsSetMsg
     | SetupMsg
+    | SetupFlowMsg
     | ExtMsg,
     Field(discriminator="type"),
 ]
@@ -302,6 +324,13 @@ class SetupResultMsg(_Msg):
     message: str | None = None
 
 
+class SetupFlowStateMsg(_Msg):
+    """v19: estado del primer arranque guiado (paso, lo elegido, lo que dice Nyx…)."""
+
+    type: Literal["setup_flow_state"] = "setup_flow_state"
+    state: dict[str, Any]
+
+
 ServerMessage = Annotated[
     Welcome
     | StateMsg
@@ -317,7 +346,8 @@ ServerMessage = Annotated[
     | ExtensionsMsg
     | SetupProgressMsg
     | MicLevelMsg
-    | SetupResultMsg,
+    | SetupResultMsg
+    | SetupFlowStateMsg,
     Field(discriminator="type"),
 ]
 server_adapter: TypeAdapter[ServerMessage] = TypeAdapter(ServerMessage)

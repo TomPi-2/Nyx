@@ -84,10 +84,10 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
     "product": …}` y la compra se demostrará con una licencia firmada que Nyx comprueba sin red
     (ya previsto). Queda para la 1.1: si la compra incluye las versiones mayores futuras.
 
-15. ~~Primer arranque guiado por Nyx (9.10)~~ **Aprobado** (2026-11-14: «me encanta»), junto
-    con el instalador. El plan de construcción (orden y archivos) está en `docs/PLAN-0.9.md`
-    §1b: **¿le das el visto bueno?** Una pregunta dentro: pasar el núcleo a Python 3.14 en la
-    9.07 (la 3.12 ya no tiene binarios con parches para empaquetarla).
+15. ~~Primer arranque guiado por Nyx (9.10)~~ **Aprobado** (2026-11-14), con el plan de
+    construcción (`docs/PLAN-0.9.md` §1b) y el paso del núcleo a Python 3.14 al empaquetarlo
+    (9.07). En marcha la 9.10a: el núcleo ya está (pasos, respuestas habladas, fundido de la
+    voz, protocolo v19); falta la interfaz.
 
 ## Qué probar
 

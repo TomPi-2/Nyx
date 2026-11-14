@@ -34,6 +34,7 @@ from nyx.services import Services, whisper_server_path
 from nyx.services import build as build_services
 from nyx.settings import load_settings
 from nyx.settings.live import SettingsService
+from nyx.setup.flow import GuidedSetup
 from nyx.setup.service import SetupService
 from nyx.tts.voices import VOICES
 from nyx.winjob import kill_children_on_exit
@@ -174,6 +175,21 @@ async def run(args: argparse.Namespace) -> int:
         shortcuts=lambda: services.pipeline.shortcuts if services is not None else None,
         whisper_server=lambda: whisper_server_path(settings),
     )
+
+    def switch_mic(name: str) -> None:
+        capture = services.pipeline.capture if services is not None else None
+        if capture is not None:
+            capture.switch(name)
+
+    # Primer arranque guiado por Nyx (9.10): lo empieza la interfaz («setup_flow» «start»).
+    flow = GuidedSetup(
+        bus,
+        settings,
+        speaker=lambda: services.pipeline if services is not None else None,
+        index=lambda: services.index if services is not None else None,
+        mics=lambda: audio_devices()[0],
+        switch_mic=switch_mic,
+    )
     try:
         if args.demo:
             from nyx.demo import run_demo
@@ -182,6 +198,7 @@ async def run(args: argparse.Namespace) -> int:
         else:
             voice = not (args.no_voice or args.ask)
             services = await build_services(bus, settings, voice=voice)
+            services.pipeline.setup = flow
             tasks.append(asyncio.create_task(services.pipeline.run(), name="pipeline"))
             if args.ask:
                 await bus.publish(TextEntered(args.ask))
@@ -198,6 +215,7 @@ async def run(args: argparse.Namespace) -> int:
         if services is not None:
             await services.close()
         settings_service.close()
+        await flow.close()
         await setup.close()
         await bridge.stop()
     return 0

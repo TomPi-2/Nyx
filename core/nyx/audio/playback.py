@@ -68,6 +68,32 @@ class Player:
         """Abre el dispositivo de salida por adelantado (tarda ~100 ms) mientras se sintetiza."""
         self._ensure_stream()
 
+    def fade_out(self, ms: float = 150.0) -> None:
+        """Calla la voz con un fundido corto (sin el chasquido de cortar en seco) y tira lo
+        que quede. Lo usa el primer arranque al pasar de paso mientras Nyx habla."""
+        with self._lock:
+            if not self._chunks:
+                return
+            # Lo que iba a sonar en los próximos `ms`, bajando hasta 0; lo demás se tira. Lo
+            # que se encole después (la frase siguiente) suena entero tras el fundido.
+            need = max(1, int(self.sample_rate * ms / 1000))
+            parts: list[Samples] = []
+            for i, chunk in enumerate(self._chunks):
+                start = self._offset if i == 0 else 0
+                part = chunk[start : start + need]
+                parts.append(part)
+                need -= int(part.shape[0])
+                if need <= 0:
+                    break
+            tail = np.concatenate(parts) if parts else np.zeros(0, dtype=np.float32)
+            tail = tail * np.linspace(1.0, 0.0, tail.shape[0], dtype=np.float32)
+            self._chunks.clear()
+            self._offset = 0
+            if tail.size:
+                self._chunks.append(tail.astype(np.float32, copy=False))
+            else:
+                self._idle.set()
+
     def clear(self) -> None:
         """Corta la voz al instante (interrupción o nueva petición)."""
         with self._lock:

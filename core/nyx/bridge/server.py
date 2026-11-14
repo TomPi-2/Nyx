@@ -38,6 +38,8 @@ from nyx.bridge.protocol import (
     SettingsGetMsg,
     SettingsMsg,
     SettingsSetMsg,
+    SetupFlowMsg,
+    SetupFlowStateMsg,
     SetupMsg,
     SetupProgressMsg,
     SetupResultMsg,
@@ -66,6 +68,8 @@ from nyx.events import (
     ReadingAppended,
     SettingsChanged,
     SettingsRequested,
+    SetupFlowChanged,
+    SetupFlowRequested,
     SetupProgress,
     SetupRequested,
     SetupResult,
@@ -119,6 +123,7 @@ class UIBridge:
             **(look or {}),
         }
         self._game: GameMsg | None = None
+        self._setup_flow: SetupFlowStateMsg | None = None
         self._bus = bus
         self._token = token
         self._host = host
@@ -142,6 +147,7 @@ class UIBridge:
             bus.subscribe(SetupProgress, self._on_setup_progress),
             bus.subscribe(MicLevelChanged, self._on_mic_level),
             bus.subscribe(SetupResult, self._on_setup_result),
+            bus.subscribe(SetupFlowChanged, self._on_setup_flow),
         ]
 
     @property
@@ -189,6 +195,8 @@ class UIBridge:
             await conn.send(StateMsg(state=self._state).model_dump_json())
             if self._game is not None:  # una ventana que se abre a mitad de partida
                 await conn.send(self._game.model_dump_json())
+            if self._setup_flow is not None:  # el panel del primer arranque, si va por la mitad
+                await conn.send(self._setup_flow.model_dump_json())
             async for raw in conn:
                 await self._dispatch(raw)
         except ConnectionClosed:
@@ -233,6 +241,8 @@ class UIBridge:
             await self._bus.publish(SettingsRequested(dict(msg.patch)))
         elif isinstance(msg, SetupMsg):
             await self._bus.publish(SetupRequested(msg.action, msg.arg))
+        elif isinstance(msg, SetupFlowMsg):
+            await self._bus.publish(SetupFlowRequested(msg.action, msg.value))
         elif isinstance(msg, ExtMsg):
             await self._bus.publish(ExtRequested(msg.action, msg.id, msg.path))
 
@@ -315,6 +325,10 @@ class UIBridge:
         await self.broadcast(
             SetupResultMsg(action=event.action, ok=event.ok, message=event.message)
         )
+
+    async def _on_setup_flow(self, event: SetupFlowChanged) -> None:
+        self._setup_flow = SetupFlowStateMsg(state=event.state)
+        await self.broadcast(self._setup_flow)
 
     async def _on_settings(self, event: SettingsChanged) -> None:
         # Las ventanas que se abran después reciben ya los valores nuevos en «welcome».
