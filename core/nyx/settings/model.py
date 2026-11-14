@@ -142,6 +142,9 @@ class AppearanceSettings(_Section):
     nyx_color: NyxColor = "blanco"
     panel_tint: PanelTint = "gris"
     monitor: MonitorSettings = Field(default_factory=MonitorSettings)
+    # 0.9 (tarea 9.03): cómo avisa Nyx de que está lista al encender el PC y al instalarse. En
+    # partida, con «reducir movimiento» o con el cristal en Bajo, siempre «nyx» (el cuadrado).
+    ready_indicator: Literal["onda", "nyx", "nada"] = "onda"
 
 
 class GameSettings(_Section):

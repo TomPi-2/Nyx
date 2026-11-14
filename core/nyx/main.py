@@ -131,6 +131,7 @@ async def run(args: argparse.Namespace) -> int:
             "font": settings.appearance.font,
             "nyx_color": settings.appearance.nyx_color,
             "panel_tint": settings.appearance.panel_tint,
+            "ready_indicator": settings.appearance.ready_indicator,
         },
         onboarding_done=settings.onboarding.done or args.demo,
     )

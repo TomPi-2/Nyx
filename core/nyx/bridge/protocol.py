@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 17
+PROTOCOL_VERSION = 18
 
 
 class _Msg(BaseModel):
@@ -115,6 +115,8 @@ class Welcome(_Msg):
     panel_tint: str = "gris"
     # v12: si no se ha pasado aún por el asistente de primer arranque, la isla lo abre.
     onboarding_done: bool = True
+    # v18: aviso de «Nyx listo» (Apariencia; tarea 9.03): onda, nyx (el cuadrado) o nada.
+    ready_indicator: str = "onda"
 
 
 class StateMsg(_Msg):

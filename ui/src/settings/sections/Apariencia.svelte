@@ -19,7 +19,7 @@
   } from "$theme/palette";
   import { onMount } from "svelte";
   import Select from "$lib/controls/Select.svelte";
-  import type { MonitorSettings } from "$lib/protocol";
+  import type { MonitorSettings, ReadyIndicator } from "$lib/protocol";
   import { monitors } from "../monitors.svelte";
   import { settings } from "../store.svelte";
 
@@ -68,6 +68,12 @@
   function setGlass(patch: Partial<GlassInfo>, debounce = false) {
     settings.set({ appearance: { glass: { ...glass!, ...patch } } }, debounce);
   }
+  const READY: { value: ReadyIndicator; label: string }[] = [
+    { value: "onda", label: "Onda" },
+    { value: "nyx", label: "Nyx aparece" },
+    { value: "nada", label: "Nada" },
+  ];
+
   const FOLLOW: { value: MonitorSettings["follow"]; label: string }[] = [
     { value: "cursor", label: "Sigue al ratón" },
     { value: "fixed", label: "Siempre en uno" },
@@ -155,6 +161,25 @@
         />
       </Row>
     </div>
+  </Card>
+
+  <Card title="Al estar lista">
+    <Row
+      label="Aviso de que Nyx está lista"
+      hint={data.appearance.ready_indicator === "onda"
+        ? "Al encender el PC, una onda de cristal sale de Nyx y cruza tus monitores. En partida o con el cristal en Bajo, Nyx aparece y desaparece."
+        : data.appearance.ready_indicator === "nyx"
+          ? "Al encender el PC, Nyx aparece un momento y se va."
+          : "Sin aviso: Nyx está lista sin decir nada."}
+      stacked
+    >
+      <Segmented
+        label="Aviso de que Nyx está lista"
+        options={READY}
+        value={data.appearance.ready_indicator}
+        onchange={(ready_indicator) => settings.set({ appearance: { ready_indicator } })}
+      />
+    </Row>
   </Card>
 
   <Card title="Texto">

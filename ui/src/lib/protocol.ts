@@ -2,7 +2,7 @@
 
 import type { FontId, NyxColorId, PanelTintId } from "$theme/palette";
 
-export const PROTOCOL_VERSION = 17;
+export const PROTOCOL_VERSION = 18;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -66,6 +66,8 @@ export interface NyxSettings {
     panel_tint: PanelTintId;
     /** v11: en qué monitor aparece Nyx. */
     monitor: MonitorSettings;
+    /** v18: aviso de «Nyx listo» (tarea 9.03). */
+    ready_indicator: ReadyIndicator;
   };
   responses: { speak_typed: boolean; tone: ResponseTone };
   wake: {
@@ -99,6 +101,9 @@ export interface NyxSettings {
   };
   [section: string]: unknown;
 }
+
+/** v18: cómo avisa Nyx de que está lista (al encender el PC y al instalarse). */
+export type ReadyIndicator = "onda" | "nyx" | "nada";
 
 /** v11: en qué monitor aparece Nyx (SPEC sección 11). */
 export interface MonitorSettings {
@@ -193,6 +198,8 @@ export type ServerMessage =
       panel_tint: PanelTintId;
       /** v12: si es false, la isla abre el asistente de primer arranque. */
       onboarding_done: boolean;
+      /** v18 */
+      ready_indicator: ReadyIndicator;
     }
   | { type: "state"; state: NyxState }
   | { type: "level"; rms: number }

@@ -107,7 +107,13 @@ class UIBridge:
         self.voices = list(voices)
         self.onboarding_done = onboarding_done
         # v10: fuente, color de Nyx y tinte de los paneles (Ajustes → Apariencia).
-        self.look = {"font": "segoe", "nyx_color": "blanco", "panel_tint": "gris", **(look or {})}
+        self.look = {
+            "font": "segoe",
+            "nyx_color": "blanco",
+            "panel_tint": "gris",
+            "ready_indicator": "onda",
+            **(look or {}),
+        }
         self._game: GameMsg | None = None
         self._bus = bus
         self._token = token
@@ -171,6 +177,7 @@ class UIBridge:
                     font=self.look["font"],
                     nyx_color=self.look["nyx_color"],
                     panel_tint=self.look["panel_tint"],
+                    ready_indicator=self.look["ready_indicator"],
                     onboarding_done=self.onboarding_done,
                 ).model_dump_json()
             )
