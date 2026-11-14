@@ -208,3 +208,4 @@ nueva de extensiones y modos), `CHANGELOG.md` y `CLAUDE.md` (siguiente: 0.8).
 
 | Tarea | Agente | Commit | Notas para la revisión | Revisado |
 | --- | --- | --- | --- | --- |
+| 7.01 | Claude | (este commit) | `nyx/ext/manifest.py`: manifiesto estricto (pydantic, `extra=forbid`, JSON validado tal cual). Id `autor.nombre`, SemVer de cualquier número de cifras, rango `nyx_api` (API 1.0), tipos sin repetir (sin `widget`: 1.1), permisos con su forma exacta y su riesgo mínimo (`files:` solo carpetas conocidas por nombre, nunca rutas; `ui:widget` y `screen` se rechazan diciendo cuándo llegan), `game_policy` y `groups` solo con herramientas, licencia (`paid` necesita producto), `homepage` solo https. Sin código no hay permisos. pytest 37 nuevas. | |
