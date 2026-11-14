@@ -673,7 +673,7 @@ Nyx se actualiza solo desde GitHub Releases con Velopack: descarga en segundo pl
 5. Al aplicar: los servicios se detienen de forma ordenada, se cambia de versión y Nyx vuelve a arrancar. La isla muestra "Actualizado a 1.4" con las novedades en una línea.
 6. **Vuelta atrás automática:** si la nueva versión no está lista en 60 s o se cae 3 veces seguidas, Velopack vuelve a la anterior y Nyx avisa.
 
-**Antes de cada actualización:** copia de seguridad de ajustes y bases de datos, y migraciones versionadas que se aplican al arrancar la nueva versión (si una migración falla, se restaura la copia).
+**Antes de cada actualización:** copia de seguridad de ajustes y bases de datos, y migraciones versionadas que se aplican al arrancar la nueva versión (si una migración falla, se restaura la copia). Hecho en la 0.9 (tarea 9.05, `core/nyx/update/`): la copia va a `%LOCALAPPDATA%\Nyx\copias\` (ajustes, estado de las extensiones, cola de la partida y las bases de alarmas y atajos, con la copia coherente de SQLite; se guardan las tres últimas), la última versión usada en `version.json`, y el «buen momento» lo da `UpdateGate` (sin petición en curso, sin botones de confirmar o deshacer, sin partida ni cola pendiente). El ajuste (Preguntar · Automático · Solo avisar; canal estable o beta) está en Ajustes → General.
 
 **Números de versión** (decisión 2026-11-11): SemVer, `vMAYOR.MENOR.PARCHE`, y cada parte puede tener las cifras que haga falta, sin ceros delante (v1.0.0, v4.2.86, v1.142.245, v23.45.132). Se compara número a número, nunca como texto (v1.10.0 es posterior a v1.9.0); Velopack ya lo hace así. Todavía no se pone la versión en el código ni en git: se hará al preparar la distribución (0.9).
 

@@ -15,6 +15,7 @@ import logging
 import shutil
 import sqlite3
 from collections.abc import Callable
+from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -80,7 +81,9 @@ def make_backup(
             dst = folder / "local" / db.name
             dst.parent.mkdir(exist_ok=True)
             # La copia de SQLite incluye lo que esté en el WAL: coherente aunque esté abierta.
-            with sqlite3.connect(db) as source, sqlite3.connect(dst) as target:
+            # `with sqlite3.connect()` no cierra la conexión: `closing` sí (en Windows, una
+            # base abierta no se puede mover luego a la papelera).
+            with closing(sqlite3.connect(db)) as source, closing(sqlite3.connect(dst)) as target:
                 source.backup(target)
             copied[str(dst.relative_to(folder))] = str(db)
     (folder / INFO).write_text(
@@ -109,9 +112,10 @@ def restore(folder: Path) -> list[Path]:
     return done
 
 
-def prune(files: DataFiles | None = None, trash: Callable[[Path], None] = _trash) -> None:
+def prune(files: DataFiles | None = None, trash: Callable[[Path], None] | None = None) -> None:
     """Deja las `KEEP` copias más nuevas; las demás, a la papelera."""
     files = files or DataFiles.default()
+    trash = trash or _trash
     if not files.backups.exists():
         return
     copies = sorted(p for p in files.backups.iterdir() if (p / INFO).exists())
