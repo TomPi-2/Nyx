@@ -91,15 +91,15 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
     "product": …}` y la compra se demostrará con una licencia firmada que Nyx comprueba sin red
     (ya previsto). Queda para la 1.1: si la compra incluye las versiones mayores futuras.
 
-15. **Instalador: acceso directo y primer arranque** (cambiado en el prototipo, mira el 11):
-    - Acceso directo en el escritorio: **opción en «Opciones», apagada por defecto** (siempre
-      en el menú Inicio). Nyx vive en la bandeja y se llama con la voz o Win+Alt+H; Microsoft
-      recomienda no poner accesos en el escritorio sin preguntar.
-      ¿Prefieres que salga encendida o en la pantalla final?
-    - Primer arranque: **empieza en cuanto están el oído y la voz** (lo segundo que se
-      descarga), mientras el cerebro sigue bajando. Es una conversación guiada (micrófono,
-      «Nyx», ciudad, datos anónimos), así que no necesita el cerebro, y no esperas sin hacer
-      nada. Al acabar el cerebro, «¡Lista!» y la onda.
+15. **Primer arranque guiado por Nyx (9.10): prototipo rehecho, ¿te gusta?** Abre
+    `docs/prototipos/instalador.html` y pulsa «Ir al primer arranque». El instalador se recoge
+    en un panel de descargas arriba a la derecha y Nyx aparece con un panel por paso: su
+    color, su tamaño, el color de los paneles, el micrófono, el escaneo (prueba a marcar
+    Everything en «Opciones» y sin marcar) y los datos anónimos. Nyx comenta cada cambio y se
+    ve al momento. Al acabar, prueba «Nyx, quiero cambiarte el color» (el mismo panel,
+    reutilizado). El acceso directo y Everything están en «Opciones», apagados.
+    **Una sugerencia:** el micrófono primero, así el resto podrías contestarlo hablando
+    («ponte azul»). Lo he dejado en tu orden; dime si lo cambio.
 
 ## Qué probar
 

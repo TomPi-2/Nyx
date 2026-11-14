@@ -1,16 +1,16 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Instalador de Nyx</title>
+<title>Instalador y primer arranque</title>
 <style>
 /*
- * Prototipo de las tareas 9.01 y 9.02 (2026-11-14, propuesta de Claude): el instalador propio y
- * la onda de «Nyx listo». Mismo estilo que Ajustes (SPEC §12: grises, translúcido, todo
- * redondeado, sin bordes). El cristal se imita con backdrop-filter; en Nyx lo dibuja el motor
- * de cristal. La onda de verdad deforma lo que hay detrás (ruta B del motor); aquí se imita con
- * un anillo que refracta con blur y brillo.
+ * Prototipo de las tareas 9.01, 9.02 y 9.10 (propuesta de Claude, revisada con el usuario el
+ * 2026-11-14): el instalador propio, el primer arranque guiado por Nyx y la onda de «Nyx listo».
+ * Mismo estilo que Ajustes (SPEC §12: grises, translúcido, todo redondeado, sin bordes). El
+ * cristal se imita con backdrop-filter; en Nyx lo dibuja el motor de cristal. La onda de verdad
+ * deforma lo que hay detrás (ruta B del motor); aquí se imita con un anillo que refracta.
  */
 :root {
   --page: #0f0f11; --text: #f5f5f7; --text-2: rgba(235, 235, 245, 0.62);
@@ -30,29 +30,21 @@
   --fill: rgba(60, 60, 67, 0.75); --nyx: #3a3a3c;
   color-scheme: light;
 }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    --page: #f2f2f4; --text: #1c1c1e; --text-2: rgba(60, 60, 67, 0.64);
-    --text-3: rgba(60, 60, 67, 0.36); --control: rgba(118, 118, 128, 0.14);
-    --control-hi: rgba(118, 118, 128, 0.28); --active: rgba(72, 72, 74, 0.92);
-    --on-active: #f5f5f7; --raised: rgba(255, 255, 255, 0.55); --tint: rgba(242, 242, 247, 0.66);
-    --fill: rgba(60, 60, 67, 0.75); --nyx: #3a3a3c; color-scheme: light;
-  }
-}
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--page); color: var(--text); font-family: var(--chrome); }
-main { max-width: 1240px; margin: 0 auto; padding: 28px 16px 64px; display: grid; gap: 20px; }
+main { max-width: 1480px; margin: 0 auto; padding: 28px 16px 64px; display: grid; gap: 20px; }
 h1 { font: 600 30px/1.1 var(--display); margin: 0; }
-p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 86ch; }
+p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 96ch; }
 .bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
 .bar .label { font-size: 13px; color: var(--text-2); }
 .seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 999px; background: var(--control); }
 .seg button { border: 0; border-radius: 999px; padding: 7px 14px; background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer; }
 .seg button.on { background: var(--active); color: var(--on-active); }
-.explain { font-size: 13px; line-height: 1.55; color: var(--text-2); max-width: 100ch; min-height: 3em; }
+.explain { font-size: 13px; line-height: 1.55; color: var(--text-2); max-width: 110ch; min-height: 4.6em; margin: 0; }
 .explain b { color: var(--text); font-weight: 600; }
 
-/* Dos monitores de distinto tamaño, uno al lado del otro: la onda los cruza como uno solo. */
+/* Dos monitores de distinto tamaño, uno al lado del otro: la onda los cruza como uno solo. El
+   principal va a tamaño real (los paneles y Nyx miden lo que medirían). */
 .desks { display: flex; gap: 18px; align-items: flex-end; overflow-x: auto; padding-bottom: 6px; }
 .desk {
   position: relative; overflow: hidden; border-radius: 22px; flex: none;
@@ -61,7 +53,7 @@ p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 86ch; }
     radial-gradient(45% 55% at 88% 20%, #3a7bff 0, transparent 70%),
     radial-gradient(50% 60% at 55% 100%, #22c08a 0, transparent 70%), #2a1d4a;
 }
-.desk.a { width: 760px; height: 470px; }
+.desk.a { width: 1000px; height: 620px; }
 .desk.b { width: 400px; height: 320px; background:
   radial-gradient(60% 70% at 30% 20%, #3c4157 0, transparent 70%),
   radial-gradient(50% 60% at 80% 80%, #a3487a 0, transparent 70%), #151826; }
@@ -77,22 +69,29 @@ p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 86ch; }
   background: var(--tint); color: var(--text);
   backdrop-filter: blur(22px) saturate(1.15); -webkit-backdrop-filter: blur(22px) saturate(1.15);
   border-radius: 28px; box-shadow: 0 18px 50px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.10);
+  transition: background-color .4s ease;
 }
 
 /* El instalador: una sola ventana sin bordes, centrada en el monitor principal. */
 .setup {
   position: absolute; left: 50%; top: 50%; width: 440px; transform: translate(-50%, -50%);
-  padding: 26px 28px 22px; display: grid; gap: 16px; transition: transform .6s cubic-bezier(.4,0,.2,1), opacity .4s;
+  padding: 26px 28px 22px; display: grid; gap: 16px; transition: transform .6s cubic-bezier(.4,0,.2,1), opacity .45s;
 }
-.setup.closing { transform: translate(-50%, -50%) scale(.2); opacity: 0; }
+.setup.gone { opacity: 0; pointer-events: none; }
+/* Al pasar al primer arranque, el instalador se encoge hacia arriba a la derecha y allí queda
+   el panel de descargas. */
+.setup.to-corner { transform: translate(calc(-50% + 340px), calc(-50% - 250px)) scale(.3); opacity: 0; pointer-events: none; }
 .head { display: flex; gap: 14px; align-items: center; }
 .title { font: 600 22px/1.15 var(--display); }
 .sub { font-size: 13px; color: var(--text-2); line-height: 1.45; }
 .actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
-.actions .spacer { flex: 1; }
-.btn { border: 0; border-radius: 999px; padding: 9px 18px; font: inherit; font-size: 14px; cursor: pointer; background: var(--control); color: var(--text); }
+.actions .spacer, .spacer { flex: 1; }
+.btn { border: 0; border-radius: 999px; padding: 9px 18px; font: inherit; font-size: 14px; cursor: pointer; background: var(--control); color: var(--text); transition: transform .15s, opacity .2s; white-space: nowrap; }
+.btn:active { transform: scale(.96); }
+.btn[disabled] { opacity: .4; cursor: default; }
 .btn.primary { background: var(--active); color: var(--on-active); font-weight: 600; }
 .btn.link { background: transparent; color: var(--text-2); padding: 9px 6px; }
+.btn.small { padding: 6px 12px; font-size: 12.5px; }
 .rows { display: grid; gap: 6px; }
 .row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 16px; background: var(--raised); font-size: 13px; }
 .row .grow { flex: 1; min-width: 0; }
@@ -107,12 +106,13 @@ p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 86ch; }
 /* La forma de Nyx se llena como un vaso con el progreso total (y respira mientras espera). */
 .nyx { position: relative; width: 58px; height: 58px; border-radius: 24px; flex: none; overflow: hidden;
   background: var(--control); box-shadow: 0 10px 30px rgba(0,0,0,.25); }
-.nyx .level { position: absolute; left: -20%; right: -20%; bottom: 0; height: var(--p, 0%); background: var(--nyx);
-  transition: height .4s ease; }
+.nyx.small { width: 30px; height: 30px; border-radius: 12px; box-shadow: none; }
+.nyx .level { position: absolute; left: -20%; right: -20%; bottom: 0; height: var(--p, 0%); background: var(--nyx-c, var(--nyx));
+  transition: height .4s ease, background-color .4s; }
 .nyx .level::before { content: ""; position: absolute; left: 0; right: 0; top: -6px; height: 12px; border-radius: 45%;
-  background: var(--nyx); animation: slosh 2.4s ease-in-out infinite; }
+  background: inherit; animation: slosh 2.4s ease-in-out infinite; }
 @keyframes slosh { 0%,100% { transform: translateX(-8%) rotate(-3deg); } 50% { transform: translateX(8%) rotate(3deg); } }
-.nyx.full { background: var(--nyx); }
+.nyx.full { background: var(--nyx-c, var(--nyx)); }
 .nyx.breathe { animation: breathe 3s ease-in-out infinite; }
 @keyframes breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 .nyx.warm { animation: warm 1s ease-in-out infinite alternate; }
@@ -125,30 +125,82 @@ p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 86ch; }
   background-size: 60px 100%; background-repeat: no-repeat; animation: shine 1.4s linear infinite; }
 .track .done.idle { animation: none; background-image: none; }
 @keyframes shine { from { background-position: -60px 0; } to { background-position: 260px 0; } }
-.state { font-size: 12px; color: var(--text-2); min-width: 84px; text-align: right; font-variant-numeric: tabular-nums; }
+.state { font-size: 12px; color: var(--text-2); min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
 .tick { display: inline-block; width: 18px; height: 18px; border-radius: 50%; background: var(--active); color: var(--on-active);
   font-size: 12px; line-height: 18px; text-align: center; animation: popin .4s cubic-bezier(.3,1.6,.5,1); }
 @keyframes popin { from { transform: scale(0); } to { transform: scale(1); } }
-.tick.still { animation: none; }
-/* Primer arranque: la conversación arriba y lo que queda de descarga abajo, en pequeño. */
-.say { padding: 12px 16px; border-radius: 18px; background: var(--raised); font-size: 14px; line-height: 1.45; }
-.meter { height: 6px; border-radius: 999px; background: var(--control); overflow: hidden; }
-.meter i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--fill); animation: talkmeter 1.1s ease-in-out infinite; }
-@keyframes talkmeter { 0%,100% { width: 12%; } 30% { width: 70%; } 60% { width: 35%; } }
-.mini { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-2); }
-.mini .track { flex: 1; margin: 0; }
 .step-in { animation: stepin .45s cubic-bezier(.3,1.2,.5,1) both; }
 @keyframes stepin { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-.dots { display: flex; gap: 6px; justify-content: center; }
-.dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--control-hi); }
-.dots i.on { background: var(--text); width: 18px; border-radius: 999px; transition: width .3s; }
+.dots { display: flex; gap: 6px; justify-content: center; align-items: center; }
+.dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--control-hi); transition: width .3s; }
+.dots i.on { background: var(--text); width: 18px; border-radius: 999px; }
 
-/* Nyx en su sitio (arriba en el centro) y la onda. */
-.corner-nyx { position: absolute; left: 50%; top: 22px; width: 56px; height: 56px; margin-left: -28px; border-radius: 23px;
-  background: var(--nyx); opacity: 0; transform: scale(.4); transition: transform .5s cubic-bezier(.3,1.6,.5,1), opacity .3s; }
-.corner-nyx.show { opacity: 1; transform: scale(1); }
+/* --- Primer arranque --------------------------------------------------------------------- */
+
+/* Nyx en su sitio (arriba en el centro), al tamaño elegido y con su color. */
+.nyx-live {
+  position: absolute; left: 50%; top: 28px; z-index: 3;
+  width: var(--s, 100px); height: var(--s, 100px); margin-left: calc(var(--s, 100px) / -2);
+  border-radius: 31%; background: var(--nyx-c, #fff); box-shadow: 0 14px 36px rgba(0,0,0,.30);
+  opacity: 0; transform: scale(0); pointer-events: none;
+  transition: width .35s cubic-bezier(.3,1.4,.5,1), height .35s cubic-bezier(.3,1.4,.5,1), margin-left .35s cubic-bezier(.3,1.4,.5,1),
+    background-color .45s ease, transform .55s cubic-bezier(.3,1.6,.5,1), opacity .25s;
+}
+.nyx-live.show { opacity: 1; transform: scale(1); }
+.nyx-live.talk { animation: talk .3s ease-in-out infinite alternate; }
+@keyframes talk { from { scale: 1; } to { scale: 1.05; } }
+.nyx-live.listen { animation: listen 1.1s ease-in-out infinite; }
+@keyframes listen { 0%,100% { scale: 1; } 50% { scale: 1.1; } }
+.nyx-live.think { animation: think 1.4s ease-in-out infinite; }
+@keyframes think { 0%,100% { rotate: 0deg; } 25% { rotate: 8deg; } 75% { rotate: -8deg; } }
+.nyx-live.happy { animation: happy .6s cubic-bezier(.3,1.6,.5,1); }
+@keyframes happy { 0% { scale: 1; } 40% { scale: 1.16; rotate: -7deg; } 100% { scale: 1; rotate: 0deg; } }
+
+/* Los paneles del primer arranque: debajo de Nyx, a 14 px de lo más lejos que llega su forma. */
+.flow {
+  position: absolute; left: 50%; width: 400px; margin-left: -200px; z-index: 2;
+  padding: 18px 20px 16px; display: grid; gap: 14px; border-radius: 26px;
+  transform-origin: 50% 0; transform: scale(0); opacity: 0;
+  transition: top .35s cubic-bezier(.3,1.4,.5,1), background-color .4s ease;
+}
+.flow.in { animation: panelin .5s cubic-bezier(.3,1.5,.5,1) both; }
+.flow.out { animation: panelout .3s ease-in both; }
+@keyframes panelin { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes panelout { 0% { transform: scale(1); opacity: 1; } 35% { transform: scale(1.04); opacity: 1; } 100% { transform: scale(0); opacity: 0; } }
+.say { font-size: 15px; line-height: 1.45; min-height: 2.9em; }
+.say .caret { display: inline-block; width: 2px; height: 1em; margin-left: 1px; vertical-align: -2px; background: var(--text-2); animation: caret .8s steps(1) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+.note { font-size: 12px; color: var(--text-2); }
+.foot { display: flex; gap: 8px; align-items: center; }
+.swatches { display: flex; flex-wrap: wrap; gap: 9px; }
+.sw { width: 30px; height: 30px; border-radius: 50%; border: 0; cursor: pointer; padding: 0; display: grid; place-items: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25); transition: transform .2s cubic-bezier(.3,1.6,.5,1); }
+.sw:hover { transform: scale(1.12); }
+.sw.on { transform: scale(1.2); }
+.sw.on::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--dot); }
+.slider { width: 100%; accent-color: var(--text); }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { border: 0; border-radius: 999px; padding: 7px 13px; font: inherit; font-size: 12.5px; cursor: pointer; background: var(--control); color: var(--text); }
+.pill.on { background: var(--active); color: var(--on-active); }
+.meterbar { height: 8px; border-radius: 999px; background: var(--control); overflow: hidden; }
+.meterbar i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--nyx-c, var(--fill)); transition: width .08s linear; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cols .row { display: block; }
+.cols ul { margin: 6px 0 0; padding-left: 16px; color: var(--text-2); font-size: 12px; line-height: 1.5; }
+
+/* El panel de descargas, arriba a la derecha mientras dura el primer arranque. */
+.dl { position: absolute; top: 16px; right: 16px; width: 270px; padding: 14px 16px; display: grid; gap: 10px; z-index: 2;
+  border-radius: 22px; transform-origin: 100% 0; transform: scale(0); opacity: 0; }
+.dl.in { animation: panelin .5s cubic-bezier(.3,1.5,.5,1) both; }
+.dl.out { animation: panelout .3s ease-in both; }
+.dl .head { gap: 10px; }
+.dl .what { font-weight: 600; font-size: 13px; }
+.dl .line { display: grid; grid-template-columns: 58px 1fr 52px; gap: 8px; align-items: center; font-size: 12px; color: var(--text-2); }
+.dl .line .track { margin: 0; }
+.dl .line .state { min-width: 0; }
+
 .wave {
-  position: absolute; border-radius: 50%; pointer-events: none; width: 0; height: 0;
+  position: absolute; border-radius: 50%; pointer-events: none; width: 0; height: 0; z-index: 4;
   backdrop-filter: blur(3px) brightness(1.25) saturate(1.3); -webkit-backdrop-filter: blur(3px) brightness(1.25) saturate(1.3);
   -webkit-mask: radial-gradient(closest-side, transparent 78%, #000 88%, #000 92%, transparent 100%);
   mask: radial-gradient(closest-side, transparent 78%, #000 88%, #000 92%, transparent 100%);
@@ -158,25 +210,36 @@ p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 86ch; }
 </head>
 <body>
 <main>
-  <h1>Instalador de Nyx</h1>
-  <p class="lead">Propuesta para las tareas 9.01 y 9.02. Una ventana sin bordes con el estilo de Ajustes: bienvenida,
-    licencia, qué se instala, la instalación con progreso real y la preparación del cerebro y la voz. Mientras se
-    instala, <b>la forma de Nyx se llena</b> como un vaso con el progreso total. Al acabar, el panel se recoge en Nyx y
-    <b>una onda de cristal sale de él y cruza los dos monitores</b> como si fueran uno.</p>
+  <h1>Instalador y primer arranque</h1>
+  <p class="lead">Propuesta para las tareas 9.01, 9.02 y 9.10. El instalador es una ventana sin bordes con el estilo de
+    Ajustes; mientras instala, <b>la forma de Nyx se llena</b> con el progreso. En cuanto están la app y el oído y la
+    voz, el instalador se recoge en un <b>panel de descargas arriba a la derecha</b> y <b>Nyx aparece en su sitio</b>
+    para configurarse contigo: te pregunta, comenta lo que eliges y cada cambio se ve al momento en ella y en sus
+    paneles. Al acabar, <b>una onda de cristal</b> sale de Nyx y cruza los dos monitores.</p>
 
   <div class="bar">
     <span class="label">Tema</span>
     <div class="seg" id="theme"><button data-v="dark" class="on">Oscuro</button><button data-v="light">Claro</button></div>
     <span class="label">Al acabar</span>
     <div class="seg" id="ready"><button data-v="onda" class="on">Onda</button><button data-v="nyx">Nyx aparece y desaparece</button><button data-v="nada">Nada</button></div>
+  </div>
+  <div class="bar">
     <span class="label">Probar</span>
-    <div class="seg" id="tools"><button data-v="restart">Empezar de nuevo</button><button data-v="cut">Cortar la red</button><button data-v="boot">«Nyx listo» al encender</button></div>
+    <div class="seg" id="tools">
+      <button data-v="restart">Empezar de nuevo</button>
+      <button data-v="quick">Ir al primer arranque</button>
+      <button data-v="cut">Cortar la red</button>
+      <button data-v="color">«Nyx, quiero cambiarte el color»</button>
+      <button data-v="boot">«Nyx listo» al encender</button>
+    </div>
   </div>
   <p class="explain" id="explain"></p>
 
   <div class="desks" id="desks">
-    <div class="desk a" id="mon1"><span class="mon-label">Monitor 1 (principal)</span>
-      <div class="corner-nyx" id="corner"></div>
+    <div class="desk a" id="mon1"><span class="mon-label">Monitor 1 (principal, a tamaño real)</span>
+      <div class="nyx-live" id="nyx"></div>
+      <div class="flow glass" id="flow"></div>
+      <div class="dl glass" id="dl"></div>
       <div class="setup glass" id="setup"></div>
     </div>
     <div class="desk b" id="mon2"><span class="mon-label">Monitor 2</span></div>
@@ -184,63 +247,150 @@ p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 86ch; }
 </main>
 
 <script>
-// Prototipo: todo es de mentira (descargas simuladas). Los textos son los que irían.
+// Prototipo: todo es de mentira (descargas, escaneo, micrófono simulado). Los textos son los que irían.
 const $ = (s) => document.querySelector(s);
-const setup = $("#setup");
-const explain = $("#explain");
-let readyMode = "onda";
-let timer = null;
-let netCut = false;
+const setup = $("#setup"), explain = $("#explain"), desk = $("#mon1");
+const nyxEl = $("#nyx"), flow = $("#flow"), dl = $("#dl");
 
-const PARTS = [
-  { id: "app", what: "Nyx", hint: "La app y su núcleo", mb: 210 },
-  { id: "voz", what: "Oído y voz", hint: "Whisper y la voz de Nyx", mb: 1460 },
-  { id: "ollama", what: "Ollama", hint: "Lo que hace funcionar mi cerebro (no lo tienes)", mb: 980 },
-  { id: "brain", what: "Cerebro", hint: "Nyx 7B, para tu Radeon RX 7700 XT", mb: 4700 },
+const NYX_COLORS = [
+  ["Blanco", "#ffffff", "El de siempre. Limpio y elegante."],
+  ["Perla", "#ebe8e2", "Perla: casi blanco, pero con un punto cálido."],
+  ["Arena", "#ead7b7", "Arena. Tranquila, como una tarde de playa."],
+  ["Melocotón", "#ffcaa9", "Melocotón… me siento dulce."],
+  ["Coral", "#ff8f80", "¡Coral! Me da energía."],
+  ["Rojo", "#e5484d", "Rojo. Atrevida, me gusta."],
+  ["Rosa", "#ffb6c9", "Rosa suave. Muy amable."],
+  ["Fucsia", "#f277b6", "¡Fucsia! Imposible no verme."],
+  ["Lavanda", "#cbbcff", "Lavanda: calma total."],
+  ["Violeta", "#a184ff", "Violeta. Un poco misteriosa."],
+  ["Azul cielo", "#a3d5ff", "Azul cielo, como un día despejado."],
+  ["Azul", "#5a93ff", "Azul. Clásico y seguro."],
+  ["Turquesa", "#62d8d1", "Turquesa: fresca como el mar."],
+  ["Menta", "#a5e9c6", "Menta. Me siento recién estrenada."],
+  ["Verde", "#62c78f", "Verde. Todo en marcha."],
+  ["Lima", "#d8f17f", "¡Lima! Con chispa."],
+  ["Amarillo", "#ffe383", "Amarillo: alegría pura."],
+  ["Ámbar", "#ffb84d", "Ámbar, cálida como una lámpara."],
+  ["Grafito", "#4a4a4f", "Grafito: discreta, casi una sombra."],
 ];
-const TOTAL = PARTS.reduce((a, p) => a + p.mb, 0);
-const done = Object.fromEntries(PARTS.map((p) => [p.id, 0]));
-const popped = new Set(); // los ticks que ya han salido: no se vuelven a animar
-let phase = "install"; // "install" → "talk" (primer arranque) → "warm"
-let talkStep = 0, talkDone = false, downloaded = false;
+// Tintes de los paneles: [nombre, oscuro (rgb), claro (rgb), comentario de Nyx].
+const TINTS = [
+  ["Gris", "28,28,30", "242,242,247", "Gris, el de siempre: va con todo."],
+  ["Grafito", "18,18,22", "225,225,230", "Grafito: más oscuro, más serio."],
+  ["Azul noche", "20,28,52", "226,234,250", "Azul noche. Elegante."],
+  ["Océano", "14,44,58", "222,240,246", "Océano: profundo."],
+  ["Bosque", "18,42,30", "224,242,230", "Bosque. Me relaja."],
+  ["Salvia", "40,48,38", "234,240,228", "Salvia, suave y natural."],
+  ["Ciruela", "44,24,52", "240,228,246", "Ciruela: con personalidad."],
+  ["Vino", "54,20,30", "248,228,232", "Vino. Con clase."],
+  ["Rosa", "60,30,44", "252,232,240", "Rosa: cálido y cercano."],
+  ["Arena", "52,44,30", "246,238,224", "Arena, luminoso."],
+  ["Cobre", "58,34,22", "250,234,222", "Cobre: cálido como el ámbar."],
+  ["Lavanda", "38,34,64", "236,232,252", "Lavanda, a juego con la calma."],
+];
+const MICS = ["Micrófono (Realtek Audio)", "Auriculares HyperX Cloud", "Cámara web C920"];
 
-function tick(key) {
-  const fresh = !popped.has(key);
-  popped.add(key);
-  return `<span class="tick${fresh ? "" : " still"}">✓</span>`;
+const S = { readyMode: "onda", everything: false, shortcut: false, netCut: false, color: 0, size: 100, tint: 0, mic: 0, data: null };
+let timer = null, phase = "welcome"; // welcome · install · setup · after
+let step = 0, stepsDone = false, downloaded = false, brainReady = false, final = false;
+let typing = null, cleanup = null, timers = [];
+const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+
+// --- Aspecto: color de Nyx, tamaño y tinte, aplicados al momento ---------------------------
+const isDark = () => document.documentElement.dataset.theme !== "light";
+const tintCss = (i) => `rgba(${TINTS[i][isDark() ? 1 : 2]}, ${isDark() ? 0.55 : 0.66})`;
+const solidTint = (i) => `rgb(${TINTS[i][isDark() ? 1 : 2]})`;
+function luminance(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+}
+const NYX_TOP = 28;
+// El panel, a 14 px de lo más lejos que puede llegar la forma (≈ 1,1 veces su tamaño).
+const panelTop = () => NYX_TOP + Math.round(S.size * 1.1) + 14;
+function applyLook() {
+  desk.style.setProperty("--nyx-c", NYX_COLORS[S.color][1]);
+  desk.style.setProperty("--tint", tintCss(S.tint));
+  nyxEl.style.setProperty("--s", `${S.size}px`);
+  flow.style.top = `${panelTop()}px`;
 }
 
-const EXPLAIN = {
-  welcome: "<b>Bienvenida.</b> Nyx respira despacio. «Instalar» lo hace todo con lo recomendado; «Opciones» enseña la carpeta y qué se instala. Sin administrador: va a tu carpeta de usuario.",
-  license: "<b>Licencia.</b> Nyx es software libre: no hay que «aceptar» nada para usarlo, solo se explica en tres líneas con un enlace al texto completo.",
-  options: "<b>Qué se instala.</b> Cada parte con su tamaño y el espacio libre. El cerebro se elige por la gráfica (como el asistente de ahora). Si falta Ollama, se instala el oficial en silencio. Nyx siempre va al menú Inicio; el acceso directo en el escritorio es opcional y está apagado: vive en la bandeja y se la llama con la voz o con Win + Alt + H.",
-  talk: "<b>Primer arranque.</b> En cuanto están el oído y la voz, Nyx empieza a hablar contigo mientras baja el cerebro: micrófono, su nombre, tu ciudad y los datos anónimos. Es una conversación guiada (no necesita el cerebro), así que no esperas sin hacer nada. La descarga sigue abajo, en pequeño; si acaba antes, Nyx espera a que terminéis y luego se prepara.",
-  install: "<b>Instalando.</b> Primero la app y lo de la voz (con eso empieza el primer arranque) y el cerebro al final. La forma de Nyx se llena con el total; cada parte tiene su barra líquida con un brillo que avanza. Cada descarga se comprueba (SHA-256) y, si se corta, sigue donde iba.",
-  cut: "<b>Sin red.</b> La descarga se pausa sola, Nyx deja de llenarse y se dice qué pasa. Al volver la conexión sigue donde iba, sin empezar de cero.",
-  warm: "<b>Preparando.</b> Se carga el cerebro en la gráfica y se hace una transcripción de prueba, para que tu primera frase no tarde. Nyx «piensa» moviéndose un poco.",
-  done: "<b>Listo.</b> El panel se recoge en Nyx, que sube a su sitio, y sale la onda (o lo que elijas en «Al acabar»). La onda deforma lo que hay detrás y cruza al otro monitor siguiendo cómo los tienes colocados en Windows.",
-  boot: "<b>Al encender el PC.</b> Cuando Nyx está listo, la misma onda sale de su sitio (sin instalador). Se puede cambiar por «Nyx aparece y desaparece» o «Nada» en Apariencia. En partida, con «reducir movimiento» o con el cristal en Bajo, siempre el cuadrado.",
-};
-
-function dots(n) {
-  return `<div class="dots">${[0, 1, 2, 3, 4].map((i) => `<i class="${i === n ? "on" : ""}"></i>`).join("")}</div>`;
+// --- Utilidades ---------------------------------------------------------------------------
+function dots(n, total = 5) {
+  return `<div class="dots">${Array.from({ length: total }, (_, i) => `<i class="${i === n ? "on" : ""}"></i>`).join("")}</div>`;
 }
 function nyx(p, cls = "") {
   return `<div class="nyx ${cls}" style="--p:${p}%"><div class="level"></div></div>`;
 }
+const popped = new Set();
+function tick(key) {
+  const fresh = !popped.has(key);
+  popped.add(key);
+  return `<span class="tick" style="${fresh ? "" : "animation:none"}">✓</span>`;
+}
+// Cambia un texto solo si es otro (un tick puesto otra vez volvería a saltar).
+function setState(el, key, html) {
+  if (!el || el.dataset.state === key) return;
+  el.dataset.state = key;
+  el.innerHTML = html;
+}
 function show(html, key) {
   setup.innerHTML = `<div class="step-in" style="display:grid;gap:16px">${html}</div>`;
-  explain.innerHTML = EXPLAIN[key];
+  if (key) explain.innerHTML = EXPLAIN[key];
+}
+function restartAnim(el, cls) {
+  el.classList.remove("in", "out", cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+}
+function mood(m) {
+  nyxEl.classList.remove("talk", "listen", "think", "happy");
+  if (m) { void nyxEl.offsetWidth; nyxEl.classList.add(m); }
 }
 
+const EXPLAIN = {
+  welcome: "<b>Bienvenida.</b> Nyx respira despacio. «Instalar» lo hace todo con lo recomendado; «Opciones» enseña qué se instala, la carpeta, Everything y el acceso directo. Sin administrador: va a tu carpeta de usuario.",
+  license: "<b>Licencia.</b> Nyx es software libre: no hay que «aceptar» nada para usarlo, solo se explica en tres líneas con un enlace al texto completo.",
+  options: "<b>Qué se instala.</b> Cada parte con su tamaño y el espacio libre. El cerebro se elige por la gráfica. Si falta Ollama, se instala el oficial en silencio. <b>Everything</b> (buscar archivos en todo el disco al instante) es opcional y está apagado: pide permiso de administrador una vez. <b>Acceso directo en el escritorio</b>: opcional y apagado; Nyx siempre va al menú Inicio y vive en la bandeja.",
+  install: "<b>Instalando.</b> Primero la app y el oído y la voz (con eso empieza el primer arranque) y luego Ollama y el cerebro. Cada descarga se comprueba (SHA-256) y, si se corta, sigue donde iba. La pantalla se pinta una vez y solo cambian los números: los ticks no parpadean.",
+  cut: "<b>Sin red.</b> La descarga se pausa sola y se dice qué pasa. Al volver la conexión sigue donde iba, sin empezar de cero.",
+  handoff: "<b>Empieza el primer arranque.</b> El instalador se recoge en un panel pequeño arriba a la derecha (lo que queda por bajar) y Nyx aparece en su sitio. No es un asistente en una ventana: es Nyx configurándose contigo, con paneles hechos para esto.",
+  welcomeStep: "<b>Hola.</b> Nyx habla (la voz ya está instalada) y el texto se escribe al ritmo de la voz. «Saltar» deja todo como está. Lo que no toques se queda como está.",
+  color: "<b>Su color.</b> Al tocar uno, Nyx se lo pone al momento y lo comenta. Este mismo panel sirve después: si le dices «Nyx, quiero cambiarte el color», sale él en vez de abrir Ajustes (pruébalo al terminar con «Nyx, quiero cambiarte el color» de arriba).",
+  size: "<b>Su tamaño.</b> Nyx cambia mientras arrastras y el panel baja o sube para dejar siempre 14 px con lo más lejos que llega su forma.",
+  tint: "<b>El color de los paneles.</b> Cambian este panel y el de descargas a la vez. La letra, el monitor y el cristal siguen en Ajustes → Apariencia.",
+  mic: "<b>El oído.</b> Elige el micrófono y mira la barra con tu voz (simulada o con tu micrófono de verdad). Después, la prueba de decir «Nyx». Mientras escucha, la forma de Nyx late.",
+  scan: "<b>Tu equipo.</b> Nyx busca programas, juegos, carpetas y webs para abrirlos por su nombre, y ya sabe si en el instalador se marcó Everything. Si no, ofrece instalarlo aquí (o más tarde, en Ajustes → Caché).",
+  data: "<b>Datos anónimos.</b> Ninguna opción viene marcada: hay que elegir. Se dice qué se envía y qué nunca.",
+  waiting: "<b>Configurada antes que el cerebro.</b> Nyx se retira y el panel de descargas sigue arriba a la derecha. Cuando el cerebro está listo, vuelve, lo dice y sale la onda.",
+  brain: "<b>El cerebro ya está.</b> Se carga en la gráfica y se prueba en el propio panel de descargas, sin interrumpir; luego el panel se va. Nyx sigue contigo con los pasos que queden.",
+  done: "<b>¡Lista!</b> Nyx lo dice y sale la onda (o lo elegido en «Al acabar»). La onda deforma lo que hay detrás y cruza al otro monitor siguiendo cómo los tienes colocados en Windows. Después, en reposo, no queda ninguna ventana.",
+  colorAgain: "<b>Panel reutilizado.</b> «Nyx, quiero cambiarte el color» abre el mismo panel del primer arranque junto a Nyx, en vez de Ajustes. Igual con su tamaño o el color de los paneles.",
+  boot: "<b>Al encender el PC.</b> Cuando Nyx está lista, la misma onda sale de su sitio (sin instalador). Se puede cambiar por «Nyx aparece y desaparece» o «Nada» en Apariencia. En partida, con «reducir movimiento» o con el cristal en Bajo, nunca la onda.",
+};
+
+// --- Instalador ---------------------------------------------------------------------------
+const ALL_PARTS = {
+  app: { id: "app", what: "Nyx", hint: "La app y su núcleo", mb: 210 },
+  voz: { id: "voz", what: "Oído y voz", hint: "Whisper y la voz de Nyx", mb: 1460 },
+  everything: { id: "everything", what: "Everything", hint: "Buscar archivos en todo el disco (voidtools, gratis)", mb: 2 },
+  ollama: { id: "ollama", what: "Ollama", hint: "Lo que hace funcionar mi cerebro (no lo tienes)", mb: 980 },
+  brain: { id: "brain", what: "Cerebro", hint: "Nyx 7B, para tu Radeon RX 7700 XT", mb: 4700 },
+};
+const parts = () => ["app", "voz", ...(S.everything ? ["everything"] : []), "ollama", "brain"].map((k) => ALL_PARTS[k]);
+const first = () => parts().filter((p) => p.id !== "ollama" && p.id !== "brain"); // lo que necesita el primer arranque
+const brainParts = () => [ALL_PARTS.ollama, ALL_PARTS.brain];
+const done = { app: 0, voz: 0, everything: 0, ollama: 0, brain: 0 };
+const total = (list) => list.reduce((a, p) => a + p.mb, 0);
+const got = (list) => list.reduce((a, p) => a + done[p.id], 0);
+const gb = (mb) => `${(mb / 1000).toFixed(1).replace(".", ",")} GB`;
+
 function welcome() {
-  clearInterval(timer);
   show(`
     <div class="head">${nyx(100, "full breathe")}<div><div class="title">Hola, soy Nyx</div>
     <div class="sub">Tu asistente de voz para Windows. Funciono en tu PC, gratis y sin cuenta.</div></div></div>
-    <div class="sub">Voy a instalarme con lo recomendado para tu equipo. Tardo unos minutos, según tu conexión.</div>
+    <div class="sub">Voy a instalarme con lo recomendado para tu equipo. En cuanto pueda hablar, te pregunto cómo me quieres mientras termino.</div>
     <div class="actions"><button class="btn link" onclick="options()">Opciones</button><span class="spacer"></span>
-    <button class="btn primary" onclick="license()">Instalar</button></div>${dots(0)}`, "welcome");
+    <button class="btn primary" onclick="license()">Instalar</button></div>${dots(0, 3)}`, "welcome");
 }
 function license() {
   show(`
@@ -251,174 +401,433 @@ function license() {
       <div class="row"><div class="grow">Si lo compartes cambiado, con la misma licencia (GPL-3.0).</div></div>
     </div>
     <div class="actions"><button class="btn link">Leer la licencia</button><span class="spacer"></span>
-    <button class="btn" onclick="welcome()">Atrás</button><button class="btn primary" onclick="install()">Continuar</button></div>${dots(1)}`, "license");
+    <button class="btn" onclick="welcome()">Atrás</button><button class="btn primary" onclick="install()">Continuar</button></div>${dots(1, 3)}`, "license");
 }
 function options() {
-  const rows = PARTS.map((p) => `<div class="row"><div class="grow"><div class="what">${p.what}</div><div class="hint">${p.hint}</div></div><span class="size">${(p.mb / 1000).toFixed(1).replace(".", ",")} GB</span></div>`).join("");
+  const rows = ["app", "voz", "ollama", "brain"].map((k) => ALL_PARTS[k])
+    .map((p) => `<div class="row"><div class="grow"><div class="what">${p.what}</div><div class="hint">${p.hint}</div></div><span class="size">${gb(p.mb)}</span></div>`).join("");
+  const toggle = (key) => `<div class="toggle ${S[key] ? "on" : ""}" onclick="S.${key}=!S.${key};this.classList.toggle('on')"></div>`;
   show(`
     <div class="title">Qué se instala</div>
     <div class="rows">${rows}
-      <div class="row"><div class="grow"><div class="what">Carpeta</div><div class="hint">C:\\Users\\…\\AppData\\Local\\Nyx</div></div><button class="btn">Cambiar</button></div>
+      <div class="row"><div class="grow"><div class="what">Buscar en todo el disco (Everything)</div><div class="hint">Gratis, de voidtools. Pide permiso de administrador una vez</div></div>${toggle("everything")}</div>
       <div class="row"><div class="grow"><div class="what">Arrancar con Windows</div><div class="hint">Para que esté lista al encender</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-      <div class="row"><div class="grow"><div class="what">Acceso directo en el escritorio</div><div class="hint">Siempre estoy en el menú Inicio y en la bandeja</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+      <div class="row"><div class="grow"><div class="what">Acceso directo en el escritorio</div><div class="hint">Siempre estoy en el menú Inicio y en la bandeja</div></div>${toggle("shortcut")}</div>
+      <div class="row"><div class="grow"><div class="what">Carpeta</div><div class="hint">C:\\Users\\…\\AppData\\Local\\Nyx</div></div><button class="btn small">Cambiar</button></div>
     </div>
-    <div class="sub">Necesito ${(TOTAL / 1000).toFixed(1).replace(".", ",")} GB · tienes 312 GB libres en C:</div>
+    <div class="sub">Necesito ${gb(total(parts()))} · tienes 312 GB libres en C:</div>
     <div class="actions"><button class="btn" onclick="welcome()">Atrás</button><span class="spacer"></span>
-    <button class="btn primary" onclick="license()">Instalar</button></div>${dots(1)}`, "options");
+    <button class="btn primary" onclick="license()">Instalar</button></div>${dots(1, 3)}`, "options");
 }
 
 function installView() {
-  const rows = PARTS.map((p) => `<div class="row"><div class="grow"><div class="what">${p.what}</div><div class="hint">${p.hint}</div>
+  const rows = parts().map((p) => `<div class="row"><div class="grow"><div class="what">${p.what}</div><div class="hint">${p.hint}</div>
       <div class="track"><div class="done idle" id="bar-${p.id}"></div></div></div>
       <span class="state" id="state-${p.id}"></span></div>`).join("");
   return `<div class="head">${nyx(0)}<div><div class="title">Instalando</div><div class="sub" id="install-sub"></div></div></div>
     <div class="rows">${rows}</div>
-    <div class="actions"><span class="spacer"></span><button class="btn" id="pause" onclick="netCut=!netCut;render()"></button></div>${dots(2)}`;
+    <div class="actions"><span class="spacer"></span><button class="btn" id="pause" onclick="S.netCut=!S.netCut;render()"></button></div>${dots(2, 3)}`;
 }
-// Cambia un texto solo si es otro (un tick puesto otra vez volvería a saltar).
-function setState(el, key, html) {
-  if (el.dataset.state === key) return;
-  el.dataset.state = key;
-  el.innerHTML = html;
+function barState(p, prefix) {
+  const d = done[p.id], fin = d >= p.mb, pp = (d / p.mb) * 100;
+  const bar = $(`#${prefix}bar-${p.id}`);
+  if (!bar) return;
+  bar.style.setProperty("--p", `${pp}%`);
+  bar.classList.toggle("idle", fin || S.netCut || d === 0);
+  const key = fin ? "fin" : d > 0 ? (S.netCut ? "pausa" : `${Math.round(pp)}`) : "espera";
+  setState($(`#${prefix}state-${p.id}`), key,
+    fin ? tick(`${prefix}${p.id}`) : d > 0 ? (S.netCut ? "En pausa" : `${Math.round(pp)} %`) : "En espera");
 }
 function updateInstall() {
-  const total = PARTS.reduce((a, p) => a + done[p.id], 0);
-  const pct = Math.round((total / TOTAL) * 100);
-  for (const p of PARTS) {
-    const d = done[p.id], fin = d >= p.mb, pp = (d / p.mb) * 100;
-    const bar = $(`#bar-${p.id}`);
-    if (!bar) return;
-    bar.style.setProperty("--p", `${pp}%`);
-    bar.classList.toggle("idle", fin || netCut || d === 0);
-    const key = fin ? "fin" : d > 0 ? (netCut ? "pausa" : `${Math.round(pp)}`) : "espera";
-    const html = fin ? tick(`dl-${p.id}`) : d > 0 ? (netCut ? "En pausa" : `${Math.round(pp)} %`) : "En espera";
-    setState($(`#state-${p.id}`), key, html);
-  }
-  const left = Math.max(1, Math.round(((TOTAL - total) / 55) / 60));
-  $("#install-sub").textContent = netCut ? "Se ha cortado la conexión. Sigo donde iba en cuanto vuelva." : `${pct} % · quedan unos ${left} min`;
-  $("#pause").textContent = netCut ? "Reintentar ya" : "Pausar";
+  if (!$("#install-sub")) return;
+  parts().forEach((p) => barState(p, ""));
+  const pct = Math.round((got(parts()) / total(parts())) * 100);
+  const left = Math.max(1, Math.round((total(parts()) - got(parts())) / 55 / 60));
+  $("#install-sub").textContent = S.netCut ? "Se ha cortado la conexión. Sigo donde iba en cuanto vuelva." : `${pct} % · quedan unos ${left} min`;
+  $("#pause").textContent = S.netCut ? "Reintentar ya" : "Pausar";
   setup.querySelector(".nyx").style.setProperty("--p", `${pct}%`);
 }
 function render() {
-  if (phase === "talk") return mini();
-  if (!$("#install-sub")) setup.innerHTML = `<div class="step-in" style="display:grid;gap:16px">${installView()}</div>`;
-  updateInstall();
-  explain.innerHTML = EXPLAIN[netCut ? "cut" : "install"];
+  if (phase === "install") updateInstall();
+  else updateDl();
+  if (S.netCut) explain.innerHTML = EXPLAIN.cut;
 }
-function install() {
-  PARTS.forEach((p) => (done[p.id] = 0));
+function install(quick = false) {
+  Object.keys(done).forEach((k) => (done[k] = 0));
+  if (quick) first().forEach((p) => (done[p.id] = p.mb - 1));
   popped.clear();
-  netCut = false;
-  phase = "install"; talkStep = 0; talkDone = false; downloaded = false;
+  S.netCut = false;
+  phase = "install";
   show(installView(), "install");
   updateInstall();
   clearInterval(timer);
   timer = setInterval(() => {
-    if (netCut) return render();
-    const next = PARTS.find((p) => done[p.id] < p.mb);
+    if (S.netCut) return render();
+    const next = parts().find((p) => done[p.id] < p.mb);
     if (!next) {
       clearInterval(timer);
       downloaded = true;
-      return phase === "talk" && !talkDone ? mini() : warm();
+      return warmBrain();
     }
-    done[next.id] = Math.min(next.mb, done[next.id] + next.mb / (next.id === "brain" ? 34 : 12));
-    // Con la app y el oído y la voz listos, empieza el primer arranque.
-    if (phase === "install" && done.app >= PARTS[0].mb && done.voz >= PARTS[1].mb) return talk();
+    // Durante la instalación va rápido (es una demostración); el cerebro, más despacio, para
+    // que dé tiempo a ver los dos casos: acabar la configuración antes o después que él.
+    const steps = phase === "install" ? 12 : next.id === "brain" ? 380 : 60;
+    done[next.id] = Math.min(next.mb, done[next.id] + next.mb / steps);
+    if (phase === "install" && first().every((p) => done[p.id] >= p.mb)) {
+      updateInstall();
+      return handoff();
+    }
     render();
   }, 120);
 }
 
-// --- Primer arranque: conversación guiada mientras baja el cerebro ---
-const TALK = [
-  { nyx: "¡Hola! Ya te oigo y puedo hablar. Mientras bajo mi cerebro, vamos a dejarlo todo a tu gusto.", act: ["Vale"] },
-  { nyx: "Prueba el micrófono: dime algo, lo que quieras.", meter: true, act: ["Simular que hablas"] },
-  { nyx: "Ahora llámame: di «Nyx».", act: ["Decir «Nyx»"] },
-  { nyx: "Por la ubicación de Windows, creo que estás en Madrid. ¿La uso para el tiempo?", act: ["Sí", "Otra ciudad"] },
-  { nyx: "¿Me dejas enviar datos de uso anónimos? Nunca lo que dices ni tus archivos.", act: ["Sí", "No"] },
+// --- Del instalador al primer arranque -----------------------------------------------------
+function handoff() {
+  phase = "setup";
+  explain.innerHTML = EXPLAIN.handoff;
+  later(() => setup.classList.add("to-corner"), 500);
+  later(() => {
+    dl.innerHTML = dlView();
+    restartAnim(dl, "in");
+    updateDl();
+  }, 900);
+  later(() => {
+    applyLook();
+    nyxEl.classList.add("show");
+  }, 1200);
+  later(() => showStep(0), 1800);
+}
+function dlView() {
+  const lines = brainParts().map((p) => `<div class="line"><span>${p.what}</span>
+    <div class="track"><div class="done idle" id="dl-bar-${p.id}"></div></div><span class="state" id="dl-state-${p.id}"></span></div>`).join("");
+  return `<div class="head">${nyx(0, "small")}<div><div class="what" id="dl-title">Bajando mi cerebro</div><div class="sub" id="dl-sub"></div></div></div>${lines}`;
+}
+function updateDl() {
+  if (!$("#dl-sub")) return;
+  brainParts().forEach((p) => barState(p, "dl-"));
+  const pct = Math.round((got(brainParts()) / total(brainParts())) * 100);
+  dl.querySelector(".nyx").style.setProperty("--p", `${pct}%`);
+  if (downloaded) return;
+  const left = Math.max(1, Math.round((total(brainParts()) - got(brainParts())) / 55 / 60));
+  const key = S.netCut ? "pausa" : `${pct}-${left}`;
+  setState($("#dl-sub"), key, S.netCut
+    ? 'Sin conexión: sigo cuando vuelva. <button class="btn link small" onclick="S.netCut=false;updateDl()">Reintentar</button>'
+    : `${pct} % · unos ${left} min`);
+}
+// El cerebro se carga y se prueba en el propio panel de descargas, sin cortar la configuración.
+function warmBrain() {
+  if (phase === "install") return;
+  const sub = $("#dl-sub"), title = $("#dl-title"), shape = dl.querySelector(".nyx");
+  const steps = ["Cargando en tu gráfica…", "Haciendo una prueba…"];
+  title.textContent = "Preparando mi cerebro";
+  shape.classList.add("warm");
+  steps.forEach((s, i) => later(() => (sub.textContent = s), i * 1300));
+  later(() => {
+    shape.classList.remove("warm");
+    shape.classList.add("full");
+    title.textContent = "Cerebro listo";
+    sub.innerHTML = `${tick("dl-ready")} ya puedo pensar`;
+    brainReady = true;
+    if (stepsDone) return later(finish, 900);
+    if (phase === "setup") explain.innerHTML = EXPLAIN.brain;
+    later(() => restartAnim(dl, "out"), 2600);
+  }, steps.length * 1300);
+}
+
+// --- Los pasos ----------------------------------------------------------------------------
+// Cada paso: lo que dice Nyx, su panel (hecho para esto) y lo que pasa al tocarlo.
+const SCAN = [["Programas", 84], ["Juegos (Steam, Epic, Riot)", 12], ["Carpetas", 31], ["Webs frecuentes", 24]];
+const colorSwatches = () => `<div class="swatches">${NYX_COLORS.map(([n, c], i) =>
+  `<button class="sw ${i === S.color ? "on" : ""}" title="${n}" aria-label="${n}" style="background:${c};--dot:${luminance(c) > 0.55 ? "rgba(0,0,0,.5)" : "#fff"}" onclick="pickColor(${i})"></button>`).join("")}</div>`;
+const tintSwatches = () => `<div class="swatches">${TINTS.map((t, i) =>
+  `<button class="sw ${i === S.tint ? "on" : ""}" title="${t[0]}" aria-label="${t[0]}" style="background:${solidTint(i)};--dot:${isDark() ? "#fff" : "rgba(0,0,0,.5)"}" onclick="pickTint(${i})"></button>`).join("")}</div>`;
+const STEPS = [
+  {
+    key: "welcomeStep",
+    say: "¡Hola! Soy Nyx. Mientras bajo mi cerebro (míralo arriba a la derecha), vamos a dejarme a tu gusto. Son seis pasos y todo se puede cambiar luego.",
+    body: () => "",
+    foot: () => `<button class="btn link" onclick="skipAll()">Saltar</button><span class="spacer"></span><button class="btn primary" onclick="go(1)">Empezar</button>`,
+  },
+  {
+    key: "color",
+    say: "Primero, mi color. Toca uno y me lo pruebo.",
+    body: () => `${colorSwatches()}<div class="note" id="choice">Color: <b>${NYX_COLORS[S.color][0]}</b></div>`,
+  },
+  {
+    key: "size",
+    say: "¿Y de tamaño? Arrastra y me ajusto al momento.",
+    body: () => `<input class="slider" type="range" min="60" max="180" step="10" value="${S.size}" oninput="sizeLive(this.value)" onchange="sizeDone(this.value)">
+      <div class="note" id="choice">Tamaño: <b>${S.size} px</b> · el de siempre es 100</div>`,
+  },
+  {
+    key: "tint",
+    say: "Ahora el color de mis paneles, como este en el que te hablo. Elige uno.",
+    body: () => `${tintSwatches()}<div class="note" id="choice">Paneles: <b>${TINTS[S.tint][0]}</b> · la letra, el monitor y el cristal, en Ajustes → Apariencia</div>`,
+  },
+  {
+    key: "mic",
+    say: "Vamos con el oído. ¿Qué micrófono uso? Habla un poco y mira cómo se mueve la barra.",
+    body: () => `<div class="pills">${MICS.map((m, i) => `<button class="pill ${i === S.mic ? "on" : ""}" onclick="pickMic(${i})">${m}</button>`).join("")}</div>
+      <div class="meterbar"><i id="level"></i></div>
+      <div class="foot"><button class="btn small" onclick="speak()">Simular voz</button><button class="btn link small" onclick="realMic()">Con mi micrófono</button>
+      <span class="spacer"></span><button class="btn small" id="wake" style="visibility:hidden" onclick="wake()">Decir «Nyx»</button></div>`,
+    enter: startMeter,
+  },
+  {
+    key: "scan",
+    say: "Ahora miro qué tienes instalado, para abrirlo cuando me lo pidas. No sale nada de tu PC.",
+    body: () => `<div class="rows">${SCAN.map((r, i) => `<div class="row"><div class="grow">${r[0]}</div><span class="state" id="scan-${i}">…</span></div>`).join("")}
+      <div class="row"><div class="grow"><div class="what">Archivos</div><div class="hint" id="files-hint">…</div></div><span class="state" id="files-state"></span></div></div>`,
+    enter: startScan,
+  },
+  {
+    key: "data",
+    say: "Última pregunta: ¿me dejas enviar datos de uso anónimos para mejorar? Tú decides; no cambia nada de lo que hago.",
+    body: () => `<div class="cols">
+      <div class="row"><div class="what">Se envía</div><ul><li>Qué herramientas fallan</li><li>Cuánto tardo en responder</li><li>Versión de Nyx y de Windows</li><li>Modelo de gráfica</li></ul></div>
+      <div class="row"><div class="what">Nunca</div><ul><li>Lo que dices o escribes</li><li>Tus archivos</li><li>Qué programas o webs abres</li><li>Nada que te identifique</li></ul></div></div>
+      <div class="foot" id="data-choice"><span class="spacer"></span><button class="btn ${S.data === false ? "primary" : ""}" onclick="pickData(false)">No, gracias</button><button class="btn ${S.data === true ? "primary" : ""}" onclick="pickData(true)">Sí, ayudo</button></div>`,
+    foot: () => `${dots(6, 7)}<span class="spacer"></span><button class="btn" onclick="go(5)">Atrás</button><button class="btn primary" id="next" ${S.data === null ? "disabled" : ""} onclick="endSteps()">Terminar</button>`,
+  },
 ];
-function remaining() {
-  const total = PARTS.reduce((a, p) => a + done[p.id], 0);
-  return Math.round((total / TOTAL) * 100);
+
+function defaultFoot(i) {
+  return `${dots(i, STEPS.length)}<span class="spacer"></span><button class="btn" onclick="go(${i - 1})">Atrás</button><button class="btn primary" onclick="go(${i + 1})">Siguiente</button>`;
 }
-function talkView() {
-  const step = TALK[talkStep];
-  const body = talkDone
-    ? `<div class="say">Ya está. Termino de bajar mi cerebro y me preparo; no tardo.</div>`
-    : `<div class="say">${step.nyx}</div>${step.meter ? '<div class="meter"><i></i></div>' : ""}
-       <div class="actions"><span class="spacer"></span>${step.act
-         .map((a, i) => `<button class="btn${i === 0 ? " primary" : ""}" onclick="talkNext()">${a}</button>`)
-         .join("")}</div>`;
-  return `<div class="head">${nyx(remaining(), "breathe")}<div><div class="title">Conociéndonos</div>
-    <div class="sub">${talkDone ? "Casi lista" : `Paso ${talkStep + 1} de ${TALK.length}`}</div></div></div>
-    ${body}
-    <div class="mini"><span>Cerebro</span><div class="track"><div class="done" id="mini-done"></div></div><span id="mini-state"></span></div>${dots(2)}`;
+function panelHtml(s, i, foot) {
+  return `<div class="say" id="say"></div>${s.body()}<div class="foot">${foot ?? (s.foot ? s.foot() : defaultFoot(i))}</div>`;
 }
-// Solo se tocan la barra pequeña y el nivel de Nyx: los botones no se repintan mientras baja.
-function mini() {
-  const brain = PARTS.filter((p) => p.id === "ollama" || p.id === "brain");
-  const d = brain.reduce((a, p) => a + done[p.id], 0), mb = brain.reduce((a, p) => a + p.mb, 0);
-  const bar = $("#mini-done"), st = $("#mini-state"), level = setup.querySelector(".nyx");
-  if (!bar) return;
-  bar.style.setProperty("--p", `${(d / mb) * 100}%`);
-  bar.classList.toggle("idle", netCut || d >= mb);
-  const key = d >= mb ? "fin" : netCut ? "pausa" : `${Math.round((d / mb) * 100)}`;
-  setState(st, key, key === "fin" ? tick("mini") : netCut
-    ? 'En pausa · <button class="btn link" onclick="netCut=false;mini()">Reintentar</button>'
-    : `${key} %`);
-  level.style.setProperty("--p", `${remaining()}%`);
-  explain.innerHTML = EXPLAIN[netCut ? "cut" : "talk"];
+// Nyx dice algo: el texto se escribe al ritmo de la voz y la forma «habla» mientras.
+function say(text, then) {
+  clearInterval(typing);
+  const el = $("#say");
+  if (!el) return;
+  let n = 0;
+  mood("talk");
+  typing = setInterval(() => {
+    n += 1;
+    el.innerHTML = `${text.slice(0, n)}<span class="caret"></span>`;
+    if (n >= text.length) {
+      clearInterval(typing);
+      el.textContent = text;
+      mood(null);
+      if (then) then();
+    }
+  }, 24);
 }
-function talk() {
-  phase = "talk";
-  show(talkView(), "talk");
-  mini();
+function react(text, then) {
+  clearInterval(typing);
+  mood("happy");
+  later(() => say(text, then), 300);
 }
-function talkNext() {
-  if (talkStep < TALK.length - 1) talkStep += 1;
-  else talkDone = true;
-  if (talkDone && downloaded) return warm();
-  setup.innerHTML = `<div class="step-in" style="display:grid;gap:16px">${talkView()}</div>`;
-  mini();
-}
-function warm() {
-  phase = "warm";
-  const steps = ["Cargando el cerebro en tu gráfica", "Probando el oído", "Probando la voz"];
-  let i = 0;
-  show(`<div class="head">${nyx(100, "full warm")}<div><div class="title">Preparándome</div>
-    <div class="sub" id="warm-sub"></div></div></div>
-    <div class="rows">${steps.map((s, k) => `<div class="row"><div class="grow">${s}</div><span class="state" id="warm-${k}"></span></div>`).join("")}</div>${dots(3)}`, "warm");
-  const update = () => {
-    $("#warm-sub").textContent = `${steps[i]}…`;
-    steps.forEach((_, k) => setState($(`#warm-${k}`), k < i ? "fin" : k === i ? "ahora" : "", k < i ? tick(`warm-${k}`) : k === i ? "Ahora" : ""));
+// Un panel sale, el siguiente entra (creciendo desde el centro con un pequeño rebote).
+function panelIn(html, then) {
+  if (cleanup) { cleanup(); cleanup = null; }
+  const enter = () => {
+    flow.innerHTML = html;
+    flow.style.top = `${panelTop()}px`;
+    restartAnim(flow, "in");
+    if (then) later(then, 220);
   };
-  update();
-  clearInterval(timer);
-  timer = setInterval(() => { i += 1; if (i >= steps.length) { clearInterval(timer); return finish(); } update(); }, 1100);
+  if (flow.classList.contains("in")) {
+    restartAnim(flow, "out");
+    later(enter, 300);
+  } else enter();
+}
+function showStep(i) {
+  step = i;
+  const s = STEPS[i];
+  explain.innerHTML = EXPLAIN[s.key];
+  panelIn(panelHtml(s, i), () => {
+    say(s.say);
+    if (s.enter) cleanup = s.enter() || null;
+  });
+}
+function go(i) {
+  if (i >= 0 && i < STEPS.length) showStep(i);
+}
+
+// Color, tamaño y tinte: se aplican al momento y Nyx lo comenta.
+function pickColor(i) {
+  S.color = i;
+  applyLook();
+  flow.querySelectorAll(".sw").forEach((b, k) => b.classList.toggle("on", k === i));
+  $("#choice").innerHTML = `Color: <b>${NYX_COLORS[i][0]}</b>`;
+  react(NYX_COLORS[i][2]);
+}
+function sizeLive(v) {
+  S.size = +v;
+  applyLook();
+  $("#choice").innerHTML = `Tamaño: <b>${S.size} px</b> · el de siempre es 100`;
+}
+function sizeDone(v) {
+  sizeLive(v);
+  const s = S.size;
+  react(s <= 70 ? "Así de pequeña casi ni se me ve. Pero me vale."
+    : s < 100 ? "Discreta. Bien."
+    : s === 100 ? "Mi tamaño de siempre."
+    : s <= 130 ? "Un poco más grande: así me ves mejor."
+    : "¡Qué grande me siento! Ojo, que así tapo más.");
+}
+function pickTint(i) {
+  S.tint = i;
+  applyLook();
+  flow.querySelectorAll(".sw").forEach((b, k) => b.classList.toggle("on", k === i));
+  $("#choice").innerHTML = `Paneles: <b>${TINTS[i][0]}</b> · la letra, el monitor y el cristal, en Ajustes → Apariencia`;
+  react(TINTS[i][3]);
+}
+
+// Micrófono: barra en directo (simulada o real) y la prueba de «Nyx».
+let level = 0.04, speaking = false, heard = false, stream = null, analyser = null;
+function startMeter() {
+  heard = false;
+  const t = setInterval(() => {
+    let v;
+    if (analyser) {
+      const buf = new Uint8Array(analyser.fftSize);
+      analyser.getByteTimeDomainData(buf);
+      v = Math.min(1, Math.sqrt(buf.reduce((a, x) => a + ((x - 128) / 128) ** 2, 0) / buf.length) * 4);
+    } else v = speaking ? 0.35 + Math.random() * 0.55 : 0.02 + Math.random() * 0.05;
+    level = level * 0.5 + v * 0.5;
+    const el = $("#level");
+    if (el) el.style.width = `${Math.round(level * 100)}%`;
+    if (analyser && level > 0.25 && !heard) onHeard();
+  }, 80);
+  return () => {
+    clearInterval(t);
+    if (stream) stream.getTracks().forEach((tr) => tr.stop());
+    stream = null; analyser = null; speaking = false;
+  };
+}
+function onHeard() {
+  heard = true;
+  react("¡Te oigo alto y claro! Ahora llámame: di «Nyx».", () => { const w = $("#wake"); if (w) w.style.visibility = "visible"; });
+}
+function speak() {
+  speaking = true;
+  mood("listen");
+  later(() => { speaking = false; if (!heard) onHeard(); else mood(null); }, 1800);
+}
+async function realMic() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const ctx = new AudioContext();
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    ctx.createMediaStreamSource(stream).connect(analyser);
+    say("Te escucho. Di algo, lo que quieras.", () => mood("listen"));
+  } catch {
+    say("Aquí no puedo usar tu micrófono; prueba con «Simular voz».");
+  }
+}
+function pickMic(i) {
+  S.mic = i;
+  flow.querySelectorAll(".pill").forEach((b, k) => b.classList.toggle("on", k === i));
+  react(`Vale, te escucho por «${MICS[i]}».`);
+}
+function wake() {
+  mood("listen");
+  later(() => react("¡Aquí estoy! Me activo bien con tu voz."), 800);
+}
+
+// Escaneo del equipo: los números suben y Nyx comenta lo que encuentra.
+function startScan() {
+  const t0 = 2200; // empieza mientras Nyx termina de hablar
+  later(() => mood("think"), t0);
+  SCAN.forEach(([, n], i) => {
+    const el = () => $(`#scan-${i}`);
+    for (let k = 1; k <= 8; k++) later(() => setState(el(), `${k}`, `${Math.round((n * k) / 8)}`), t0 + i * 500 + k * 70);
+    later(() => setState(el(), "fin", `${n} ${tick(`scan-${i}`)}`), t0 + i * 500 + 640);
+  });
+  later(() => {
+    if (!$("#files-hint")) return;
+    filesRow();
+    react(S.everything
+      ? "Listo: 84 programas y 12 juegos. Con Everything encuentro cualquier archivo del disco al instante. Por cierto, veo Rocket League: ¿partida luego?"
+      : "Listo: 84 programas y 12 juegos. Los archivos los busco con el índice de Windows; si quieres buscar en todo el disco al instante, puedo instalar Everything.");
+  }, t0 + SCAN.length * 500 + 700);
+}
+function filesRow() {
+  const hint = $("#files-hint"), st = $("#files-state");
+  if (!hint) return;
+  if (S.everything) {
+    hint.textContent = "Everything: instalado y en marcha";
+    st.innerHTML = tick("files");
+  } else {
+    hint.textContent = "Con el índice de Windows (tus carpetas)";
+    st.innerHTML = '<button class="btn small" onclick="installEverything()">Instalar Everything</button>';
+  }
+}
+function installEverything() {
+  $("#files-state").textContent = "Instalando…";
+  $("#files-hint").textContent = "Windows te pedirá permiso una vez";
+  later(() => {
+    S.everything = true;
+    filesRow();
+    react("Hecho: ahora encuentro cualquier archivo al momento.");
+  }, 1600);
+}
+
+function pickData(yes) {
+  S.data = yes;
+  $("#data-choice").querySelectorAll(".btn").forEach((b, k) => b.classList.toggle("primary", (k === 1) === yes));
+  $("#next").disabled = false;
+  react(yes ? "¡Gracias! Así mejoro más rápido." : "Sin problema: nada sale de tu PC.");
+}
+
+// --- Final ----------------------------------------------------------------------------------
+function skipAll() {
+  react("Vale, me quedo como estoy. Todo se cambia luego en Ajustes.", () => later(endSteps, 900));
+}
+function endSteps() {
+  stepsDone = true;
+  if (brainReady) return finish();
+  explain.innerHTML = EXPLAIN.waiting;
+  panelIn(`<div class="say" id="say"></div>`, () =>
+    say("¡Ya está todo! Termino de bajar mi cerebro (arriba a la derecha) y te aviso. Puedes seguir con lo tuyo.", () => later(() => {
+      restartAnim(flow, "out");
+      nyxEl.classList.remove("show");
+    }, 2200)));
 }
 function finish() {
-  show(`<div class="head">${nyx(100, "full")}<div><div class="title">¡Lista!</div>
-    <div class="sub">Llámame diciendo «Nyx», o con Win + Alt + H.</div></div></div>${dots(4)}`, "done");
-  setTimeout(() => {
-    setup.classList.add("closing");
-    setTimeout(() => { $("#corner").classList.add("show"); ready(); }, 450);
-  }, 1300);
+  if (final) return;
+  final = true;
+  phase = "after";
+  explain.innerHTML = EXPLAIN.done;
+  nyxEl.classList.add("show");
+  if (dl.classList.contains("in")) restartAnim(dl, "out");
+  later(() => panelIn(`<div class="say" id="say"></div>`, () =>
+    say("¡Lista! Llámame diciendo «Nyx» o con Win + Alt + H.", () => {
+      ready();
+      later(() => { restartAnim(flow, "out"); nyxEl.classList.remove("show"); }, 2600);
+    })), 500);
+}
+
+// «Nyx, quiero cambiarte el color»: el mismo panel, fuera del primer arranque.
+function colorAgain() {
+  if (phase !== "after") {
+    explain.innerHTML = "<b>Primero termina el primer arranque</b> (o «Ir al primer arranque» y «Saltar»): esto enseña el panel reutilizado con Nyx ya en uso.";
+    return;
+  }
+  explain.innerHTML = EXPLAIN.colorAgain;
+  applyLook();
+  nyxEl.classList.add("show");
+  later(() => panelIn(panelHtml(STEPS[1], 1, `<span class="spacer"></span><button class="btn primary" onclick="colorDone()">Listo</button>`),
+    () => say("¿De qué color me quieres? Toca uno y me lo pruebo.")), 300);
+}
+function colorDone() {
+  react("¡Me encanta cómo he quedado!", () => later(() => { restartAnim(flow, "out"); nyxEl.classList.remove("show"); }, 1200));
 }
 
 // La onda: un anillo por monitor, con el mismo reloj y el centro en coordenadas comunes, para
 // que se vea como una sola que pasa de uno a otro (como haría una ventana por monitor en Nyx).
 function ready() {
-  const corner = $("#corner");
-  if (readyMode === "nada") return;
-  if (readyMode === "nyx") {
-    corner.classList.add("show");
-    setTimeout(() => corner.classList.remove("show"), 1400);
-    return;
-  }
-  const origin = corner.getBoundingClientRect();
+  if (S.readyMode === "nada") return;
+  if (S.readyMode === "nyx") { mood("happy"); return; }
+  const origin = nyxEl.getBoundingClientRect();
   const cx = origin.left + origin.width / 2, cy = origin.top + origin.height / 2;
-  const mons = [$("#mon1"), $("#mon2")];
-  const rings = mons.map((m) => { const w = document.createElement("div"); w.className = "wave"; m.appendChild(w); return [m, w]; });
-  const t0 = performance.now(), dur = 1700, maxR = 1500;
+  const rings = [$("#mon1"), $("#mon2")].map((m) => { const w = document.createElement("div"); w.className = "wave"; m.appendChild(w); return [m, w]; });
+  const t0 = performance.now(), dur = 1700, maxR = 1700;
   function frame(t) {
     const k = Math.min(1, (t - t0) / dur), ease = 1 - Math.pow(1 - k, 3), r = maxR * ease;
     for (const [m, w] of rings) {
@@ -431,31 +840,45 @@ function ready() {
     if (k < 1) requestAnimationFrame(frame); else rings.forEach(([, w]) => w.remove());
   }
   requestAnimationFrame(frame);
-  setTimeout(() => corner.classList.remove("show"), 2200);
 }
 
 function restart() {
-  clearInterval(timer);
-  timer = null;
-  phase = "install";
-  setup.classList.remove("closing");
-  $("#corner").classList.remove("show");
+  clearInterval(timer); clearInterval(typing);
+  timers.forEach(clearTimeout); timers = [];
+  if (cleanup) { cleanup(); cleanup = null; }
+  timer = null; phase = "welcome"; step = 0; stepsDone = downloaded = brainReady = final = false;
+  S.netCut = false; S.data = null;
+  setup.classList.remove("to-corner", "gone");
+  [flow, dl].forEach((el) => el.classList.remove("in", "out"));
+  nyxEl.classList.remove("show");
+  mood(null);
   welcome();
 }
 
 document.querySelectorAll(".seg").forEach((seg) => seg.addEventListener("click", (e) => {
   const b = e.target.closest("button"); if (!b) return;
   const v = b.dataset.v;
-  if (seg.id === "theme") { document.documentElement.dataset.theme = v; }
-  if (seg.id === "ready") { readyMode = v; }
+  if (seg.id === "theme") {
+    document.documentElement.dataset.theme = v;
+    applyLook();
+    const sw = flow.querySelector(".swatches");
+    if (sw && step === 3) sw.outerHTML = tintSwatches();
+  }
+  if (seg.id === "ready") S.readyMode = v;
   if (seg.id === "tools") {
     if (v === "restart") restart();
-    if (v === "cut") { if (phase === "warm") return; if (!timer) install(); netCut = true; render(); }
-    if (v === "boot") { clearInterval(timer); setup.classList.add("closing"); explain.innerHTML = EXPLAIN.boot; $("#corner").classList.add("show"); setTimeout(ready, 400); }
+    if (v === "quick") { restart(); install(true); }
+    if (v === "cut") { if (phase === "welcome") install(); if (!downloaded) { S.netCut = true; render(); } }
+    if (v === "color") colorAgain();
+    if (v === "boot") {
+      applyLook(); setup.classList.add("gone"); explain.innerHTML = EXPLAIN.boot;
+      nyxEl.classList.add("show"); later(ready, 500); later(() => nyxEl.classList.remove("show"), 2600);
+    }
     return;
   }
   seg.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
 }));
+applyLook();
 welcome();
 </script>
 </body>
