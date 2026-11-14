@@ -188,6 +188,14 @@ class WebSettings(_Section):
     search_url: str = Field(default="https://www.google.com/search?q={q}", max_length=300)
 
 
+class UpdateSettings(_Section):
+    """Actualizaciones (SPEC §15; tarea 9.05)."""
+
+    # Preguntar (por defecto), aplicar sola con el PC sin usar, o solo avisar.
+    mode: Literal["preguntar", "automatico", "avisar"] = "preguntar"
+    channel: Literal["estable", "beta"] = "estable"
+
+
 class PrivacySettings(_Section):
     """Privacidad (SPEC sección 8). Desactivado por defecto: solo con permiso explícito."""
 
@@ -211,6 +219,7 @@ class Settings(BaseModel):
     onboarding: OnboardingSettings = Field(default_factory=OnboardingSettings)
     privacy: PrivacySettings = Field(default_factory=PrivacySettings)
     web: WebSettings = Field(default_factory=WebSettings)
+    updates: UpdateSettings = Field(default_factory=UpdateSettings)
 
 
 def settings_path() -> Path:

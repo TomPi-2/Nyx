@@ -57,6 +57,8 @@ export type ResponseTone = "cercano" | "neutro" | "divertido";
  */
 export interface NyxSettings {
   general: { city: string };
+  /** v18: actualizaciones (SPEC §15; tarea 9.05). */
+  updates: { mode: "preguntar" | "automatico" | "avisar"; channel: "estable" | "beta" };
   appearance: {
     indicator_size: number;
     glass: GlassInfo;

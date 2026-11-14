@@ -23,7 +23,6 @@ import sys
 import threading
 from typing import Any
 
-from nyx import __version__
 from nyx.bridge.protocol import PROTOCOL_VERSION, GlassInfo, ToolInfo, VoiceInfo
 from nyx.bridge.server import UIBridge
 from nyx.bus import EventBus
@@ -111,6 +110,16 @@ async def run(args: argparse.Namespace) -> int:
     kill_children_on_exit()
     asyncio.get_running_loop().set_exception_handler(_quiet_connection_reset)
     token = args.token or os.environ.get("NYX_TOKEN") or secrets.token_urlsafe(32)
+    if not args.demo:
+        # Versión nueva: copia de los datos y migraciones antes de leerlos (SPEC §15, 9.05).
+        from nyx import __version__
+        from nyx.update.migrations import migrate
+
+        outcome = migrate(__version__)
+        if outcome.restored:
+            log.error(
+                "No se pudieron poner al día los datos (%s): sigo con los de antes", outcome.error
+            )
     settings = load_settings()
     if args.parent_pipe and not args.demo:
         # Lanzado por la app: nunca dos núcleos escuchando el micrófono a la vez.

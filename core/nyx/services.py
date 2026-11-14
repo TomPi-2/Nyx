@@ -65,6 +65,7 @@ from nyx.tts.base import TTSEngine
 from nyx.tts.piper import PiperTTS
 from nyx.tts.pocket import PocketTTS
 from nyx.tts.voices import Engine, voice_for
+from nyx.update.moment import UpdateGate
 from nyx.wake.activations import ActivationLog
 from nyx.wake.base import WakeWordEngine
 from nyx.wake.custom import WakePhrase, validate, vosk_vocabulary
@@ -105,6 +106,8 @@ class Services:
         self.notice: asyncio.Task[None] | None = None
         self.background: set[asyncio.Task[Any]] = set()
         self.extensions: ExtensionManager | None = None
+        # ¿Buen momento para actualizar? (SPEC §15; lo pregunta la app con Velopack, 9.06)
+        self.update_gate = UpdateGate()
 
     async def close(self) -> None:
         if self.notice is not None:
@@ -387,6 +390,11 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         brain=GameBrain(game, llm, brain.warmup),
     )
     services.extensions = _extensions(bus, registry, brain, game, settings)
+    services.update_gate.add("pipeline", pipeline.busy)
+    services.update_gate.add("game", lambda: "hay una partida" if game.active else None)
+    services.update_gate.add(
+        "pending", lambda: "hay cosas pendientes para después de la partida" if game.queue else None
+    )
     services.game_detector = GameDetector(
         bus,
         always=settings.game.always,

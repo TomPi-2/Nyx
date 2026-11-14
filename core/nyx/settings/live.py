@@ -52,6 +52,7 @@ EDITABLE: tuple[str, ...] = (
     "onboarding.",
     "privacy.",
     "web.",
+    "updates.",
 )
 #: Lo que solo se lee al arrancar: cambiarlo pide reiniciar Nyx.
 NEEDS_RESTART: tuple[str, ...] = (

@@ -428,6 +428,14 @@ class Pipeline:
         if self.player is not None:
             self.player.close()
 
+    def busy(self) -> str | None:
+        """Por qué no es buen momento para reiniciar (actualizar), o None (SPEC §15)."""
+        if self.state is not NyxState.IDLE:
+            return "Nyx está atendiendo una petición"
+        if self._actions:
+            return "hay una confirmación o un deshacer en pantalla"
+        return None
+
     async def wait_idle(self) -> None:
         """Espera a que termine la petición en curso (útil en pruebas y en --ask)."""
         while self._request is not None and not self._request.done():

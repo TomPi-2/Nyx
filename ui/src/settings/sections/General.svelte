@@ -1,11 +1,29 @@
-<!-- Ajustes → General (SPEC sección 13): ubicación para el tiempo. -->
+<!-- Ajustes → General (SPEC sección 13): ubicación para el tiempo y actualizaciones (§15). -->
 <script lang="ts">
   import Card from "$lib/controls/Card.svelte";
   import Row from "$lib/controls/Row.svelte";
+  import Segmented from "$lib/controls/Segmented.svelte";
   import TextField from "$lib/controls/TextField.svelte";
+  import type { NyxSettings } from "$lib/protocol";
   import { settings } from "../store.svelte";
 
   const data = $derived(settings.data);
+
+  type Updates = NyxSettings["updates"];
+  const MODES: { value: Updates["mode"]; label: string }[] = [
+    { value: "preguntar", label: "Preguntar" },
+    { value: "automatico", label: "Automático" },
+    { value: "avisar", label: "Solo avisar" },
+  ];
+  const CHANNELS: { value: Updates["channel"]; label: string }[] = [
+    { value: "estable", label: "Estable" },
+    { value: "beta", label: "Beta" },
+  ];
+  const MODE_HINT: Record<Updates["mode"], string> = {
+    preguntar: "Cuando haya una versión nueva te pregunto si me reinicio (unos 10 s).",
+    automatico: "Me actualizo sola cuando lleves un rato sin usar el PC, y te aviso al terminar.",
+    avisar: "Solo te digo que hay una versión nueva; no me actualizo hasta que me lo pidas.",
+  };
 </script>
 
 {#if data}
@@ -21,6 +39,34 @@
         value={data.general.city}
         maxLength={100}
         onchange={(city) => settings.set({ general: { city } })}
+      />
+    </Row>
+  </Card>
+
+  <Card
+    title="Actualizaciones"
+    note="Nunca me actualizo en mitad de una partida, mientras te respondo o con algo pendiente de confirmar. Antes de cambiar de versión guardo una copia de tus ajustes."
+  >
+    <Row label="Cuando haya una versión nueva" hint={MODE_HINT[data.updates.mode]} stacked>
+      <Segmented
+        label="Cuando haya una versión nueva"
+        options={MODES}
+        value={data.updates.mode}
+        onchange={(mode) => settings.set({ updates: { mode } })}
+      />
+    </Row>
+    <Row
+      label="Canal"
+      hint={data.updates.channel === "beta"
+        ? "Las novedades antes que nadie, con algún fallo de más."
+        : "Solo versiones probadas."}
+      stacked
+    >
+      <Segmented
+        label="Canal de actualizaciones"
+        options={CHANNELS}
+        value={data.updates.channel}
+        onchange={(channel) => settings.set({ updates: { channel } })}
       />
     </Row>
   </Card>
