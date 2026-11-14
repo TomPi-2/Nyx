@@ -12,6 +12,9 @@ dice por qué). El catálogo de `app_action` es la primera extensión de este ti
   nunca niveles de seguridad, políticas del modo partida, privacidad, red ni el cerebro.
 - `knowledge/*.md`: textos que Nyx consulta; llegan al modelo marcados como externos.
 - `personality.json`: tono base y frases propias para las respuestas fijas.
+- `shape/`: una forma de Nyx (GLSL ES 1.00 con los uniforms fijos de
+  `docs/extensiones/formas.md`; tarea 7.09). Aquí se valida el texto; compilarla y medirla lo
+  hace la interfaz, que vuelve a la forma de siempre si falla.
 """
 
 from __future__ import annotations
@@ -33,6 +36,13 @@ MAX_JSON_BYTES = 256 * 1024
 MAX_KNOWLEDGE_FILES = 40
 MAX_KNOWLEDGE_BYTES = 64 * 1024
 MAX_PRESETS = 20
+MAX_SHADER_BYTES = 32 * 1024
+# Lo que un shader de forma no puede usar: otra versión de GLSL, extensiones, uniforms o
+# texturas propias (solo los de Nyx) y bucles sin límite fijo.
+_SHADER_FORBIDDEN = re.compile(
+    r"#\s*(?:version|extension|include|pragma)\b|\b(?:uniform|sampler2D|samplerCube|texture2D"
+    r"|textureCube|texture|while|do)\b"
+)
 
 _ACTION_ID = r"^[a-z][a-z0-9_]{1,40}$"
 _PROCESS = re.compile(r"^[a-z0-9][a-z0-9_. -]{0,60}\.exe$")
@@ -195,6 +205,32 @@ class Personality(BaseModel):
         return phrases
 
 
+class ShapeSpec(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    name: Label
+    box: float = Field(default=1.0, ge=0.5, le=1.25)  # caja máxima, en veces el tamaño
+
+
+@dataclass(frozen=True, slots=True)
+class Shape:
+    name: str
+    box: float
+    source: str  # el GLSL, sin el preámbulo que pone Nyx
+
+
+def check_shader(source: str) -> str:
+    """El shader si cumple el contrato; si no, `ContentError` con el motivo."""
+    if len(source.encode("utf-8")) > MAX_SHADER_BYTES:
+        raise ContentError("shape.glsl: demasiado grande")
+    code = re.sub(r"//[^\n]*|/\*.*?\*/", " ", source, flags=re.DOTALL)  # sin comentarios
+    if m := _SHADER_FORBIDDEN.search(code):
+        raise ContentError(f"shape.glsl: no se puede usar «{m.group(0).strip()}»")
+    if not re.search(r"\bvoid\s+main\s*\(", code):
+        raise ContentError("shape.glsl: falta main()")
+    return source
+
+
 @dataclass(slots=True)
 class ExtContent:
     """Lo que trae una extensión sin código, ya validado."""
@@ -203,6 +239,7 @@ class ExtContent:
     presets: dict[str, Preset] = field(default_factory=dict)
     knowledge: dict[str, str] = field(default_factory=dict)  # título → texto
     personality: Personality | None = None
+    shape: Shape | None = None
     problems: list[str] = field(default_factory=list)
 
 
@@ -291,6 +328,17 @@ def load_content(manifest: Manifest, folder: Path) -> ExtContent:
             out.personality = _validate(Personality, data, "personality.json")
 
         attempt("personalidad", personality)
+    if "shape" in manifest.kinds:
+
+        def shape() -> None:
+            spec = _validate(ShapeSpec, _read_json(folder / "shape" / "shape.json"), "shape.json")
+            raw = (folder / "shape" / "shape.glsl").read_bytes()
+            if len(raw) > MAX_SHADER_BYTES:
+                raise ContentError("shape.glsl: demasiado grande")
+            source = check_shader(raw.decode("utf-8", errors="strict"))
+            out.shape = Shape(spec.name, spec.box, source)
+
+        attempt("forma", shape)
     return out
 
 

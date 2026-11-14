@@ -165,3 +165,53 @@ def test_one_bad_file_does_not_sink_the_rest(tmp_path: Path) -> None:
     content = load_content(*ext(tmp_path, ["actions", "knowledge"], files))
     assert content.profiles == [] and content.knowledge == {"prueba uno": "Texto."}
     assert len(content.problems) == 1 and "JSON" in content.problems[0]
+
+
+# --- formas de Nyx (7.09) ---
+
+CIRCLE = """
+void main() {
+  vec2 p = gl_FragCoord.xy - nyx_resolution * 0.5;  // ejemplo de docs/extensiones/formas.md
+  float d = length(p) - nyx_size * 0.42 * nyx_appear;
+  float a = clamp(0.5 - d, 0.0, 1.0);
+  for (int i = 0; i < 4; i++) { a *= 1.0; }
+  gl_FragColor = vec4(nyx_color * a, a);
+}
+"""
+
+
+def test_a_shape(tmp_path: Path) -> None:
+    files = {"shape/shape.json": {"name": "Círculo", "box": 1.1}, "shape/shape.glsl": CIRCLE}
+    content = load_content(*ext(tmp_path, ["shape"], files))
+    assert content.problems == []
+    assert content.shape is not None and content.shape.box == 1.1 and "main" in content.shape.source
+
+
+@pytest.mark.parametrize(
+    ("glsl", "why"),
+    [
+        ("#version 300 es\nvoid main() {}", "#version"),
+        ("#extension GL_OES_standard_derivatives : enable\nvoid main() {}", "#extension"),
+        ("uniform sampler2D robado;\nvoid main() {}", "uniform"),
+        ("void main() { while (true) {} }", "while"),
+        ("void main() { do { } while (false); }", "do"),
+        ("void main() { gl_FragColor = texture2D(x, vec2(0.0)); }", "texture2D"),
+        ("float f() { return 1.0; }", "main"),
+    ],
+)
+def test_bad_shapes(tmp_path: Path, glsl: str, why: str) -> None:
+    files = {"shape/shape.json": {"name": "Mala"}, "shape/shape.glsl": glsl}
+    content = load_content(*ext(tmp_path, ["shape"], files))
+    assert content.shape is None and why in content.problems[0]
+
+
+def test_comments_do_not_count(tmp_path: Path) -> None:
+    glsl = "// while (true) aquí no pasa nada\n/* uniform */\nvoid main() { gl_FragColor = vec4(0.0); }"
+    files = {"shape/shape.json": {"name": "Comentada"}, "shape/shape.glsl": glsl}
+    assert load_content(*ext(tmp_path, ["shape"], files)).shape is not None
+
+
+@pytest.mark.parametrize("box", [0.2, 2.0])
+def test_the_box_has_limits(tmp_path: Path, box: float) -> None:
+    files = {"shape/shape.json": {"name": "Grande", "box": box}, "shape/shape.glsl": CIRCLE}
+    assert load_content(*ext(tmp_path, ["shape"], files)).shape is None
