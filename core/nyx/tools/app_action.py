@@ -13,7 +13,7 @@ import asyncio
 from pydantic import Field, field_validator
 
 from nyx.index.model import Kind
-from nyx.tools.app_catalog import ALL_ACTIONS, profile_for, windows_language
+from nyx.tools.app_catalog import ALL_ACTIONS, all_actions, profile_for, windows_language
 from nyx.tools.base import (
     Category,
     GamePolicy,
@@ -40,8 +40,9 @@ class AppActionParams(Params):
     @field_validator("action")
     @classmethod
     def known(cls, value: str) -> str:
-        if value not in ALL_ACTIONS:
-            raise ValueError(f"acción desconocida; usa una de: {', '.join(ALL_ACTIONS)}")
+        known = all_actions()  # también las de las extensiones instaladas
+        if value not in known:
+            raise ValueError(f"acción desconocida; usa una de: {', '.join(known)}")
         return value
 
 

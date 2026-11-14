@@ -1,0 +1,15 @@
+{
+  "id": "tepnyx.apps",
+  "name": "Acciones de apps",
+  "version": "1.0.0",
+  "author": "Tepnyx",
+  "description": "Atajos dentro de las apps más usadas (navegadores, Bloc de notas, Spotify, Discord, Explorador, VS Code, Word y Excel) para app_action.",
+  "nyx_api": ">=1.0 <2.0",
+  "kinds": [
+    "actions"
+  ],
+  "license": {
+    "type": "free",
+    "spdx": "GPL-3.0-only"
+  }
+}

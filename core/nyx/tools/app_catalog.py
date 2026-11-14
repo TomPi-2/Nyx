@@ -1,5 +1,9 @@
 """Acciones dentro de las apps: qué atajo pulsar para cada cosa (fase 3c).
 
+Desde la 0.7 (tarea 7.03) los atajos están en JSON, como una extensión más: los de Nyx en
+`nyx/ext/builtin/tepnyx.apps/actions.json` y los de las extensiones instaladas se añaden con
+`set_extension_profiles`.
+
 Los atajos cambian con el idioma de la app: en el Bloc de notas y en Office en español,
 «nuevo» es Ctrl+U y «guardar» Ctrl+G (en inglés, Ctrl+N y Ctrl+S). Por eso cada acción puede
 tener variantes por idioma («es», «en»); se elige según el idioma de Windows.
@@ -25,10 +29,6 @@ class AppAction:
         return self.keys.get(language) or self.keys.get("*") or self.keys["en"]
 
 
-def _a(label: str, keys: str | dict[str, str], *, background: bool = False) -> AppAction:
-    return AppAction(label, {"*": keys} if isinstance(keys, str) else keys, background)
-
-
 @dataclass(frozen=True, slots=True)
 class AppProfile:
     name: str
@@ -37,163 +37,52 @@ class AppProfile:
     names: tuple[str, ...] = ()  # cómo se le llama (normalizado): «chrome», «edge»…
 
 
-_BROWSER = {
-    "new_tab": _a("Nueva pestaña", "ctrl+t"),
-    "close_tab": _a("Cerrar pestaña", "ctrl+w"),
-    "reopen_tab": _a("Reabrir pestaña cerrada", "ctrl+shift+t"),
-    "next_tab": _a("Pestaña siguiente", "ctrl+tab"),
-    "previous_tab": _a("Pestaña anterior", "ctrl+shift+tab"),
-    "new_window": _a("Nueva ventana", "ctrl+n"),
-    "incognito": _a("Ventana de incógnito", "ctrl+shift+n"),
-    "back": _a("Atrás", "alt+left"),
-    "forward": _a("Adelante", "alt+right"),
-    "reload": _a("Recargar", "f5"),
-    "history": _a("Historial", "ctrl+h"),
-    "downloads": _a("Descargas", "ctrl+j"),
-    "bookmark": _a("Guardar en marcadores", "ctrl+d"),
-    "find": _a("Buscar en la página", "ctrl+f"),
-    "zoom_in": _a("Ampliar", "ctrl+plus"),
-    "zoom_out": _a("Reducir", "ctrl+minus"),
-    "zoom_reset": _a("Zoom normal", "ctrl+0"),
-    "fullscreen": _a("Pantalla completa", "f11"),
-}
+def _builtin_profiles() -> tuple[AppProfile, ...]:
+    """El catálogo de Nyx, que es una extensión integrada en JSON (7.03:
+    `nyx/ext/builtin/tepnyx.apps/actions.json`). Si no valida, es un error de Nyx: que falle."""
+    from nyx.ext.content import builtin_dir, load_content
+    from nyx.ext.manifest import load_manifest
 
-PROFILES: tuple[AppProfile, ...] = (
-    AppProfile(
-        "Bloc de notas",
-        frozenset({"notepad.exe"}),
-        {
-            "new_tab": _a("Nueva nota", {"es": "ctrl+u", "en": "ctrl+n"}),
-            "close_tab": _a("Cerrar nota", "ctrl+w"),
-            "save": _a("Guardar", {"es": "ctrl+g", "en": "ctrl+s"}),
-            "save_as": _a("Guardar como", {"es": "ctrl+shift+g", "en": "ctrl+shift+s"}),
-            "find": _a("Buscar", {"es": "ctrl+b", "en": "ctrl+f"}),
-            "print": _a("Imprimir", "ctrl+p"),
-            "zoom_in": _a("Ampliar", "ctrl+plus"),
-            "zoom_out": _a("Reducir", "ctrl+minus"),
-        },
-        names=("bloc de notas", "notepad"),
-    ),
-    AppProfile(
-        "Navegador",
-        frozenset(
-            {"chrome.exe", "msedge.exe", "opera.exe", "brave.exe", "vivaldi.exe", "opera_gx.exe"}
-        ),
-        _BROWSER,
-        names=(
-            "google chrome",
-            "chrome",
-            "microsoft edge",
-            "edge",
-            "opera",
-            "opera gx",
-            "operaje x",
-            "opera g x",
-            "operagx",
-            "brave",
-            "vivaldi",
-            "navegador",
-        ),
-    ),
-    AppProfile(
-        "Firefox",
-        frozenset({"firefox.exe"}),
-        {**_BROWSER, "incognito": _a("Ventana privada", "ctrl+shift+p")},
-        names=("firefox", "mozilla firefox"),
-    ),
-    AppProfile(
-        "Spotify",
-        frozenset({"spotify.exe"}),
-        {
-            "volume_up": _a("Subir volumen", "ctrl+up", background=True),
-            "volume_down": _a("Bajar volumen", "ctrl+down", background=True),
-            "shuffle": _a("Aleatorio", "ctrl+s", background=True),
-            "repeat": _a("Repetir", "ctrl+r", background=True),
-            "like": _a("Me gusta", "alt+shift+b", background=True),
-            "search": _a("Buscar", "ctrl+k"),
-        },
-        names=("spotify",),
-    ),
-    AppProfile(
-        "Discord",
-        frozenset({"discord.exe", "discordptb.exe", "discordcanary.exe"}),
-        {
-            "toggle_mute": _a("Micrófono", "ctrl+shift+m", background=True),
-            "toggle_deafen": _a("Ensordecer", "ctrl+shift+d", background=True),
-            "quick_switcher": _a("Buscar canal o persona", "ctrl+k"),
-            "search": _a("Buscar mensajes", "ctrl+f"),
-            "answer_call": _a("Contestar llamada", "ctrl+enter"),
-            "mark_read": _a("Marcar como leído", "esc", background=True),
-        },
-        names=("discord", "discord ptb", "discord canary"),
-    ),
-    AppProfile(
-        "Explorador de archivos",
-        frozenset({"explorer.exe"}),
-        {
-            "new_tab": _a("Nueva pestaña", "ctrl+t"),
-            "close_tab": _a("Cerrar pestaña", "ctrl+w"),
-            "new_window": _a("Nueva ventana", "ctrl+n"),
-            "back": _a("Atrás", "alt+left"),
-            "forward": _a("Adelante", "alt+right"),
-            "up": _a("Carpeta superior", "alt+up"),
-            "reload": _a("Actualizar", "f5"),
-            "search": _a("Buscar", "ctrl+e"),
-        },
-        names=("explorador de archivos", "explorador"),
-    ),
-    AppProfile(
-        "Visual Studio Code",
-        frozenset({"code.exe"}),
-        {
-            "command_palette": _a("Paleta de comandos", "ctrl+shift+p"),
-            "quick_open": _a("Abrir archivo", "ctrl+p"),
-            "new_tab": _a("Archivo nuevo", "ctrl+n"),
-            "close_tab": _a("Cerrar pestaña", "ctrl+w"),
-            "save": _a("Guardar", "ctrl+s"),
-            "toggle_sidebar": _a("Barra lateral", "ctrl+b"),
-            "find": _a("Buscar", "ctrl+f"),
-        },
-        names=("visual studio code", "vscode", "vs code"),
-    ),
-    AppProfile(
-        "Word",
-        frozenset({"winword.exe"}),
-        {
-            "new_tab": _a("Documento nuevo", {"es": "ctrl+u", "en": "ctrl+n"}),
-            "save": _a("Guardar", {"es": "ctrl+g", "en": "ctrl+s"}),
-            "print": _a("Imprimir", "ctrl+p"),
-            "find": _a("Buscar", {"es": "ctrl+b", "en": "ctrl+f"}),
-        },
-        names=("word", "microsoft word"),
-    ),
-    AppProfile(
-        "Excel",
-        frozenset({"excel.exe"}),
-        {
-            "new_tab": _a("Libro nuevo", {"es": "ctrl+u", "en": "ctrl+n"}),
-            "save": _a("Guardar", {"es": "ctrl+g", "en": "ctrl+s"}),
-            "print": _a("Imprimir", "ctrl+p"),
-            "find": _a("Buscar", {"es": "ctrl+b", "en": "ctrl+f"}),
-        },
-        names=("excel", "microsoft excel"),
-    ),
-)
+    folder = builtin_dir() / "tepnyx.apps"
+    content = load_content(load_manifest((folder / "manifest.json").read_bytes()), folder)
+    if content.problems:
+        raise RuntimeError(f"Catálogo de apps no válido: {content.problems}")
+    return tuple(content.profiles)
 
-ALL_ACTIONS = sorted({a for p in PROFILES for a in p.actions})
+
+PROFILES: tuple[AppProfile, ...] = _builtin_profiles()
+# Las de las extensiones instaladas (7.03/7.04): se añaden y se quitan en caliente.
+_EXTRA: list[AppProfile] = []
+
+
+def set_extension_profiles(profiles: list[AppProfile]) -> None:
+    """Sustituye las acciones que vienen de extensiones (las de Nyx van siempre primero)."""
+    _EXTRA[:] = profiles
+
+
+def profiles() -> tuple[AppProfile, ...]:
+    return (*PROFILES, *_EXTRA)
+
+
+def all_actions() -> list[str]:
+    return sorted({a for p in profiles() for a in p.actions})
+
+
+ALL_ACTIONS = all_actions()
 
 
 def profile_for(process: str | None, name: str | None = None) -> AppProfile | None:
     """El perfil por ejecutable o, si no se sabe (apps de la Store), por nombre."""
+    every = profiles()
     if process:
-        found = next((p for p in PROFILES if process.lower() in p.processes), None)
+        found = next((p for p in every if process.lower() in p.processes), None)
         if found is not None:
             return found
     if name:
         from nyx.index.aliases import normalize
 
         wanted = normalize(name)
-        return next((p for p in PROFILES if wanted in p.names), None)
+        return next((p for p in every if wanted in p.names), None)
     return None
 
 

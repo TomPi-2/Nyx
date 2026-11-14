@@ -1,0 +1,484 @@
+{
+  "apps": [
+    {
+      "name": "Bloc de notas",
+      "processes": [
+        "notepad.exe"
+      ],
+      "names": [
+        "bloc de notas",
+        "notepad"
+      ],
+      "actions": {
+        "new_tab": {
+          "label": "Nueva nota",
+          "keys": {
+            "es": "ctrl+u",
+            "en": "ctrl+n"
+          }
+        },
+        "close_tab": {
+          "label": "Cerrar nota",
+          "keys": "ctrl+w"
+        },
+        "save": {
+          "label": "Guardar",
+          "keys": {
+            "es": "ctrl+g",
+            "en": "ctrl+s"
+          }
+        },
+        "save_as": {
+          "label": "Guardar como",
+          "keys": {
+            "es": "ctrl+shift+g",
+            "en": "ctrl+shift+s"
+          }
+        },
+        "find": {
+          "label": "Buscar",
+          "keys": {
+            "es": "ctrl+b",
+            "en": "ctrl+f"
+          }
+        },
+        "print": {
+          "label": "Imprimir",
+          "keys": "ctrl+p"
+        },
+        "zoom_in": {
+          "label": "Ampliar",
+          "keys": "ctrl+plus"
+        },
+        "zoom_out": {
+          "label": "Reducir",
+          "keys": "ctrl+minus"
+        }
+      }
+    },
+    {
+      "name": "Navegador",
+      "processes": [
+        "brave.exe",
+        "chrome.exe",
+        "msedge.exe",
+        "opera.exe",
+        "opera_gx.exe",
+        "vivaldi.exe"
+      ],
+      "names": [
+        "google chrome",
+        "chrome",
+        "microsoft edge",
+        "edge",
+        "opera",
+        "opera gx",
+        "operaje x",
+        "opera g x",
+        "operagx",
+        "brave",
+        "vivaldi",
+        "navegador"
+      ],
+      "actions": {
+        "new_tab": {
+          "label": "Nueva pestaña",
+          "keys": "ctrl+t"
+        },
+        "close_tab": {
+          "label": "Cerrar pestaña",
+          "keys": "ctrl+w"
+        },
+        "reopen_tab": {
+          "label": "Reabrir pestaña cerrada",
+          "keys": "ctrl+shift+t"
+        },
+        "next_tab": {
+          "label": "Pestaña siguiente",
+          "keys": "ctrl+tab"
+        },
+        "previous_tab": {
+          "label": "Pestaña anterior",
+          "keys": "ctrl+shift+tab"
+        },
+        "new_window": {
+          "label": "Nueva ventana",
+          "keys": "ctrl+n"
+        },
+        "incognito": {
+          "label": "Ventana de incógnito",
+          "keys": "ctrl+shift+n"
+        },
+        "back": {
+          "label": "Atrás",
+          "keys": "alt+left"
+        },
+        "forward": {
+          "label": "Adelante",
+          "keys": "alt+right"
+        },
+        "reload": {
+          "label": "Recargar",
+          "keys": "f5"
+        },
+        "history": {
+          "label": "Historial",
+          "keys": "ctrl+h"
+        },
+        "downloads": {
+          "label": "Descargas",
+          "keys": "ctrl+j"
+        },
+        "bookmark": {
+          "label": "Guardar en marcadores",
+          "keys": "ctrl+d"
+        },
+        "find": {
+          "label": "Buscar en la página",
+          "keys": "ctrl+f"
+        },
+        "zoom_in": {
+          "label": "Ampliar",
+          "keys": "ctrl+plus"
+        },
+        "zoom_out": {
+          "label": "Reducir",
+          "keys": "ctrl+minus"
+        },
+        "zoom_reset": {
+          "label": "Zoom normal",
+          "keys": "ctrl+0"
+        },
+        "fullscreen": {
+          "label": "Pantalla completa",
+          "keys": "f11"
+        }
+      }
+    },
+    {
+      "name": "Firefox",
+      "processes": [
+        "firefox.exe"
+      ],
+      "names": [
+        "firefox",
+        "mozilla firefox"
+      ],
+      "actions": {
+        "new_tab": {
+          "label": "Nueva pestaña",
+          "keys": "ctrl+t"
+        },
+        "close_tab": {
+          "label": "Cerrar pestaña",
+          "keys": "ctrl+w"
+        },
+        "reopen_tab": {
+          "label": "Reabrir pestaña cerrada",
+          "keys": "ctrl+shift+t"
+        },
+        "next_tab": {
+          "label": "Pestaña siguiente",
+          "keys": "ctrl+tab"
+        },
+        "previous_tab": {
+          "label": "Pestaña anterior",
+          "keys": "ctrl+shift+tab"
+        },
+        "new_window": {
+          "label": "Nueva ventana",
+          "keys": "ctrl+n"
+        },
+        "incognito": {
+          "label": "Ventana privada",
+          "keys": "ctrl+shift+p"
+        },
+        "back": {
+          "label": "Atrás",
+          "keys": "alt+left"
+        },
+        "forward": {
+          "label": "Adelante",
+          "keys": "alt+right"
+        },
+        "reload": {
+          "label": "Recargar",
+          "keys": "f5"
+        },
+        "history": {
+          "label": "Historial",
+          "keys": "ctrl+h"
+        },
+        "downloads": {
+          "label": "Descargas",
+          "keys": "ctrl+j"
+        },
+        "bookmark": {
+          "label": "Guardar en marcadores",
+          "keys": "ctrl+d"
+        },
+        "find": {
+          "label": "Buscar en la página",
+          "keys": "ctrl+f"
+        },
+        "zoom_in": {
+          "label": "Ampliar",
+          "keys": "ctrl+plus"
+        },
+        "zoom_out": {
+          "label": "Reducir",
+          "keys": "ctrl+minus"
+        },
+        "zoom_reset": {
+          "label": "Zoom normal",
+          "keys": "ctrl+0"
+        },
+        "fullscreen": {
+          "label": "Pantalla completa",
+          "keys": "f11"
+        }
+      }
+    },
+    {
+      "name": "Spotify",
+      "processes": [
+        "spotify.exe"
+      ],
+      "names": [
+        "spotify"
+      ],
+      "actions": {
+        "volume_up": {
+          "label": "Subir volumen",
+          "keys": "ctrl+up",
+          "background": true
+        },
+        "volume_down": {
+          "label": "Bajar volumen",
+          "keys": "ctrl+down",
+          "background": true
+        },
+        "shuffle": {
+          "label": "Aleatorio",
+          "keys": "ctrl+s",
+          "background": true
+        },
+        "repeat": {
+          "label": "Repetir",
+          "keys": "ctrl+r",
+          "background": true
+        },
+        "like": {
+          "label": "Me gusta",
+          "keys": "alt+shift+b",
+          "background": true
+        },
+        "search": {
+          "label": "Buscar",
+          "keys": "ctrl+k"
+        }
+      }
+    },
+    {
+      "name": "Discord",
+      "processes": [
+        "discord.exe",
+        "discordcanary.exe",
+        "discordptb.exe"
+      ],
+      "names": [
+        "discord",
+        "discord ptb",
+        "discord canary"
+      ],
+      "actions": {
+        "toggle_mute": {
+          "label": "Micrófono",
+          "keys": "ctrl+shift+m",
+          "background": true
+        },
+        "toggle_deafen": {
+          "label": "Ensordecer",
+          "keys": "ctrl+shift+d",
+          "background": true
+        },
+        "quick_switcher": {
+          "label": "Buscar canal o persona",
+          "keys": "ctrl+k"
+        },
+        "search": {
+          "label": "Buscar mensajes",
+          "keys": "ctrl+f"
+        },
+        "answer_call": {
+          "label": "Contestar llamada",
+          "keys": "ctrl+enter"
+        },
+        "mark_read": {
+          "label": "Marcar como leído",
+          "keys": "esc",
+          "background": true
+        }
+      }
+    },
+    {
+      "name": "Explorador de archivos",
+      "processes": [
+        "explorer.exe"
+      ],
+      "names": [
+        "explorador de archivos",
+        "explorador"
+      ],
+      "actions": {
+        "new_tab": {
+          "label": "Nueva pestaña",
+          "keys": "ctrl+t"
+        },
+        "close_tab": {
+          "label": "Cerrar pestaña",
+          "keys": "ctrl+w"
+        },
+        "new_window": {
+          "label": "Nueva ventana",
+          "keys": "ctrl+n"
+        },
+        "back": {
+          "label": "Atrás",
+          "keys": "alt+left"
+        },
+        "forward": {
+          "label": "Adelante",
+          "keys": "alt+right"
+        },
+        "up": {
+          "label": "Carpeta superior",
+          "keys": "alt+up"
+        },
+        "reload": {
+          "label": "Actualizar",
+          "keys": "f5"
+        },
+        "search": {
+          "label": "Buscar",
+          "keys": "ctrl+e"
+        }
+      }
+    },
+    {
+      "name": "Visual Studio Code",
+      "processes": [
+        "code.exe"
+      ],
+      "names": [
+        "visual studio code",
+        "vscode",
+        "vs code"
+      ],
+      "actions": {
+        "command_palette": {
+          "label": "Paleta de comandos",
+          "keys": "ctrl+shift+p"
+        },
+        "quick_open": {
+          "label": "Abrir archivo",
+          "keys": "ctrl+p"
+        },
+        "new_tab": {
+          "label": "Archivo nuevo",
+          "keys": "ctrl+n"
+        },
+        "close_tab": {
+          "label": "Cerrar pestaña",
+          "keys": "ctrl+w"
+        },
+        "save": {
+          "label": "Guardar",
+          "keys": "ctrl+s"
+        },
+        "toggle_sidebar": {
+          "label": "Barra lateral",
+          "keys": "ctrl+b"
+        },
+        "find": {
+          "label": "Buscar",
+          "keys": "ctrl+f"
+        }
+      }
+    },
+    {
+      "name": "Word",
+      "processes": [
+        "winword.exe"
+      ],
+      "names": [
+        "word",
+        "microsoft word"
+      ],
+      "actions": {
+        "new_tab": {
+          "label": "Documento nuevo",
+          "keys": {
+            "es": "ctrl+u",
+            "en": "ctrl+n"
+          }
+        },
+        "save": {
+          "label": "Guardar",
+          "keys": {
+            "es": "ctrl+g",
+            "en": "ctrl+s"
+          }
+        },
+        "print": {
+          "label": "Imprimir",
+          "keys": "ctrl+p"
+        },
+        "find": {
+          "label": "Buscar",
+          "keys": {
+            "es": "ctrl+b",
+            "en": "ctrl+f"
+          }
+        }
+      }
+    },
+    {
+      "name": "Excel",
+      "processes": [
+        "excel.exe"
+      ],
+      "names": [
+        "excel",
+        "microsoft excel"
+      ],
+      "actions": {
+        "new_tab": {
+          "label": "Libro nuevo",
+          "keys": {
+            "es": "ctrl+u",
+            "en": "ctrl+n"
+          }
+        },
+        "save": {
+          "label": "Guardar",
+          "keys": {
+            "es": "ctrl+g",
+            "en": "ctrl+s"
+          }
+        },
+        "print": {
+          "label": "Imprimir",
+          "keys": "ctrl+p"
+        },
+        "find": {
+          "label": "Buscar",
+          "keys": {
+            "es": "ctrl+b",
+            "en": "ctrl+f"
+          }
+        }
+      }
+    }
+  ]
+}
