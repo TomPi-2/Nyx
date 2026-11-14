@@ -331,9 +331,9 @@ Ejemplo de manifiesto:
 - **Sin código** (acciones, modos, preajustes, conocimiento, personalidad, formas): Nyx los lee y los valida contra un esquema. No ejecutan nada.
 - **Con código** (herramientas): cada extensión corre en **su propio proceso Python**, con:
   - un Python incluido con Nyx y sus dependencias dentro del paquete (sin `pip` al instalar);
-  - un token de Windows de baja integridad o AppContainer (a investigar cuál encaja mejor), para que el propio Windows le impida leer los archivos del usuario o abrir la red por su cuenta;
+  - un AppContainer sin capacidades y su propio escritorio (medido en la 7.05 y aprobado el 2026-11-14; la baja integridad no bastaba), para que el propio Windows le impida leer los archivos del usuario, ver la pantalla o abrir la red por su cuenta;
   - un objeto de trabajo de Windows (como `winjob.py`) con límites de CPU y memoria; en partida, prioridad mínima;
-  - comunicación con Nyx por una tubería con nombre (JSON-RPC). Todo lo que quiera hacer (abrir una URL, leer un archivo, conectar a OBS, guardar una clave) se lo pide a Nyx, que comprueba el permiso.
+  - comunicación con Nyx por su entrada y salida estándar (JSON-RPC, una línea por mensaje; antes «tubería con nombre», cambiado el 2026-11-14: nadie más puede conectarse). Todo lo que quiera hacer (abrir una URL, leer un archivo, conectar a OBS, guardar una clave) se lo pide a Nyx, que comprueba el permiso.
 - Si una extensión se cae, se reinicia; si se cae 3 veces seguidas, se desactiva y se avisa. Nyx sigue funcionando.
 - Más adelante se puede añadir WebAssembly (wasmtime, Apache 2.0) como segundo motor, aún más aislado y para cualquier lenguaje. No hace falta para la 1.0.
 

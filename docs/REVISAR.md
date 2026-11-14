@@ -58,19 +58,12 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
 8. ~~¿Quién ha creado a Nyx?~~ **Tepnyx** (2026-11-14). Hecho, junto con todo Tepnyx (ver
    «Qué probar», 10).
 
-9. **0.7, aislamiento (7.05): medido, ¿te vale la propuesta?** (permiso dado el 2026-11-14).
-   Informe completo en `docs/benchmarks/aislamiento-7.05.md`. En corto:
-   - Baja integridad no sirve: lee tus archivos y sale a internet.
-   - AppContainer sin capacidades no lee ni escribe tus archivos y no tiene red ni portapapeles,
-     y Python va igual de rápido (22 ms, 14 MB). Pero en tu escritorio **puede copiar la
-     pantalla**: con un escritorio aparte creado por Nyx (como hace Chromium), ya no.
-   - Queda que puede leer partes del registro que Windows abre a todas las apps (por ejemplo la
-     lista de documentos recientes), sin red para sacarlo. LPAC lo cerraría, pero no arrancó
-     Python a la primera; lo investigo en la 7.06.
-   - **Propuesta:** AppContainer + escritorio aparte + objeto de trabajo (1 proceso, 512 MB, CPU
-     con tope duro, menos aún en partida). **Un cambio sobre HOJA-DE-RUTA §4.4:** hablar con Nyx
-     por la entrada y salida estándar en vez de una tubería con nombre (nadie más puede
-     conectarse y no hay que dar permisos a la tubería). ¿Sigo así con la 7.06?
+9. ~~0.7, aislamiento (7.05)~~ **Aprobado** (2026-11-14). Hecha la 7.06: cada extensión con
+   código corre en su AppContainer, en su escritorio y con límites, y habla con Nyx por su
+   entrada y salida. Probado con una extensión que intenta leer tus archivos, conectarse,
+   lanzar `cmd`, ver variables y pasarse de memoria: no puede. **Decidido por mí (a
+   confirmar):** el Python de las extensiones es el 3.14.10 (la 3.12, la del núcleo, ya no
+   publica binarios con parches); las extensiones traen sus dependencias para esa versión.
 
 10. ~~Firma (7.08)~~ **Confirmada** (2026-11-14). Tu clave `tepnyx-1` ya está en `TRUSTED_KEYS`
     (venía sin el id; corregido y comprobado que casa con tu clave privada). La privada está
@@ -91,15 +84,10 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
     "product": …}` y la compra se demostrará con una licencia firmada que Nyx comprueba sin red
     (ya previsto). Queda para la 1.1: si la compra incluye las versiones mayores futuras.
 
-15. **Primer arranque guiado por Nyx (9.10): tercera versión del prototipo.** Abre
-    `docs/prototipos/instalador.html` y pulsa «Ir al primer arranque». Cambiado tras tu
-    revisión del 2026-11-14: el micrófono va primero; colores y tintes con el nombre a la
-    vista y la elegida marcada con el anillo de Ajustes; si pasas de paso mientras Nyx habla,
-    se calla en un instante y empieza con el siguiente; deslizador propio con una etiqueta del
-    tamaño mientras arrastras; etiquetas propias al pasar el ratón. Para probar la voz, escribe
-    en «Hablarle» lo que le dirías («ponte coral», «más grande», «siguiente», «atrás», «no»).
-    En la app, las etiquetas nativas que había (nombres de los colores en Apariencia y el botón
-    de cerrar de la bienvenida) ya son propias (`ui/src/lib/tooltip.ts`).
+15. ~~Primer arranque guiado por Nyx (9.10)~~ **Aprobado** (2026-11-14: «me encanta»), junto
+    con el instalador. El plan de construcción (orden y archivos) está en `docs/PLAN-0.9.md`
+    §1b: **¿le das el visto bueno?** Una pregunta dentro: pasar el núcleo a Python 3.14 en la
+    9.07 (la 3.12 ya no tiene binarios con parches para empaquetarla).
 
 ## Qué probar
 

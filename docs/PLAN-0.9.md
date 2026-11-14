@@ -36,13 +36,53 @@
 | 9.06 | **Actualizaciones, parte de la app**: Velopack en la app Tauri (crate `velopack`, MIT: comprobar al arrancar y cada 6 h, descargar con prioridad baja, aplicar cuando el núcleo dice que es buen momento, avisos en la isla y vuelta atrás). | Probar con una versión de verdad (necesita el repositorio público y una Release) |
 | 9.07 | **Empaquetado del núcleo** sin `uv` en el equipo del usuario: Python «embeddable» oficial + dependencias instaladas al construir (como prevé la 7.05 para las extensiones) o Nuitka/PyInstaller. Medir tamaño y arranque. | Permiso para descargar el Python oficial (ver 7.05) |
 | 9.08 | **Instalador real** (`installer/`, app Tauri pequeña, sin administrador, en `%LOCALAPPDATA%`): lanza Velopack en silencio, Ollama oficial si falta, descarga de modelos con SHA-256 y reanudación, calentamiento y la onda. Tras 9.01, 9.06 y 9.07. | Probarlo en el PC y el portátil |
-| 9.10 | **Primer arranque guiado por Nyx** (decisión del usuario, 2026-11-14; SPEC §13): el instalador se recoge en un panel de descargas arriba a la derecha y Nyx configura con paneles propios, empezando por el micrófono para poder contestar hablando, su color, su tamaño y el tinte (con los nombres visibles), el escaneo (con Everything si se marcó en el instalador) y los datos anónimos, con cambios al instante y comentarios. Sustituye al asistente actual. Tras el visto bueno del prototipo. | Verlo y aprobarlo; probarlo |
+| 9.10 | **Primer arranque guiado por Nyx** (decisión del usuario, 2026-11-14; SPEC §13): el instalador se recoge en un panel de descargas arriba a la derecha y Nyx configura con paneles propios, empezando por el micrófono para poder contestar hablando, su color, su tamaño y el tinte (con los nombres visibles), el escaneo (con Everything si se marcó en el instalador) y los datos anónimos, con cambios al instante y comentarios. Sustituye al asistente actual. Prototipo aprobado el 2026-11-14. | Probarlo |
 | 9.11 | **Paneles de ajuste por voz**: «Nyx, quiero cambiarte el color» (o el tamaño, o el color de los paneles) saca el mismo panel del primer arranque junto a Nyx en vez de abrir Ajustes. Router y herramienta nueva. | Probarlo |
 | 9.09 | **Publicación** (GitHub Actions): etiqueta `v…` → compilar, empaquetar con Velopack, firmar (SignPath) y subir a Releases. | El repositorio público («publícalo») y SignPath |
 
 **Sin el usuario se puede hacer:** 9.01, 9.02 (prototipos), 9.03 y 9.05; preparar 9.04 tras
 el visto bueno. Lo demás necesita descargar herramientas (Velopack `vpk`, Python oficial), una
 Release publicada o probar en los dos equipos.
+
+## 1b. Plan de construcción (propuesto el 2026-11-14, pendiente del visto bueno)
+
+Prototipo aprobado; esto es el orden y los archivos para construirlo de verdad. Primero lo
+que se prueba en el PC sin instalador (el primer arranque dentro de la app) y al final lo que
+necesita una Release.
+
+1. **9.10a Primer arranque en la app** (sin instalador: se lanza con `nyx --primer-arranque`
+   o desde Ajustes → Ayuda, y sale solo la primera vez).
+   - Núcleo: `nyx/setup/flow.py` (los pasos en el orden aprobado: bienvenida, micrófono, color,
+     tamaño, tinte, escaneo, datos; textos con variantes; avanzar, volver, saltar, callarse al
+     pasar de paso con un fundido de 150 ms en `nyx/tts`), `nyx/setup/answers.py` (entender
+     las respuestas habladas: colores y tintes por su nombre, «más grande», «120», «siguiente»,
+     «atrás», «sí/no»; lo usa también la 9.11) y `nyx/setup/downloads.py` (lo que falte: voz,
+     Ollama oficial en silencio y el cerebro con `/api/pull`, con progreso, reanudación y
+     SHA-256; luego cargar y probar el cerebro). Ajuste `first_run_done`.
+   - Protocolo v19 (`protocol.py` y `protocol.ts` a la vez): `setup_step`, `setup_choice`,
+     `setup_downloads`, `setup_done`.
+   - Interfaz: `ui/src/setup/` con un panel por paso (`Welcome`, `Mic`, `Color`, `Size`,
+     `Tint`, `Scan`, `Data`) dentro de la ventana de paneles de siempre, bajo Nyx;
+     `lib/controls/NamedSwatches.svelte` (muestras con nombre y el anillo de Ajustes);
+     `routes/descargas/+page.svelte` (el panel de descargas arriba a la derecha) y su ventana
+     en `src-tauri` (`setup.rs`). El asistente de ahora (`onboarding/`) queda como respaldo
+     hasta que esto funcione y luego se quita.
+   - Pruebas: `tests/test_setup_flow.py`, `tests/test_setup_answers.py`.
+2. **9.11 Paneles por voz**: regla del router y herramienta `nyx_panel` («quiero cambiarte el
+   color», «hazte más grande», «cambia el color de los paneles») que saca el mismo panel junto
+   a Nyx; con `answers.py`.
+3. **9.04 Onda real**: una ventana transparente por monitor (`src-tauri/src/wave.rs` y
+   `routes/onda/`), mismo reloj, coordenadas del escritorio virtual; al acabar el primer
+   arranque y al encender si está elegida.
+4. **9.07 Empaquetado del núcleo** con el Python embeddable (sin `uv` en el equipo del
+   usuario). **Pregunta:** la 3.12 ya no publica binarios con parches; propongo pasar el núcleo
+   a la 3.14 aquí (comprobar que todas las dependencias tienen ruedas para ella y medir).
+5. **9.06 Velopack en la app** (`vpk`, MIT) y **9.08 instalador** (`installer/`, app Tauri
+   pequeña con las pantallas aprobadas: bienvenida, licencia, opciones con Everything y acceso
+   directo apagados, instalación de la app y la voz; luego abre Nyx con `--primer-arranque` y
+   se recoge hacia la esquina, donde aparece el panel de descargas de la app). Probar en el PC
+   y el portátil.
+6. **9.09 Publicación**, cuando el repositorio sea público.
 
 ## 2. Gestión de extensiones (0.7, tarea 7.11)
 
@@ -54,6 +94,6 @@ activar, desinstalar, actualizar, modo desarrollador y la etiqueta «sin revisar
 
 | Tarea | Agente | Commit | Notas para la revisión | Revisado |
 | --- | --- | --- | --- | --- |
-| 9.01 y 9.02 (prototipo) | Claude | `843cf45` | `docs/prototipos/instalador.html`: bienvenida (Nyx respira), licencia libre explicada en tres líneas (sin «aceptar»), qué se instala con tamaños y espacio libre, instalación con barras líquidas y la forma de Nyx que se llena con el total, corte de red (pausa y sigue donde iba), preparación (cerebro en la gráfica, oído, voz) y final: el panel se recoge en Nyx y sale la onda, que cruza dos monitores de distinto tamaño con el mismo reloj. Alternativas «Nyx aparece y desaparece» y «Nada», y la onda al encender el PC. **Visto por el usuario (2026-11-14): le gusta.** Corregido: el tick parpadeaba (cada repintado, cada 120 ms, volvía a animar el tick, el brillo de las barras y el oleaje: ahora la pantalla se pinta una vez y solo cambian los números); acceso directo en el escritorio, opción apagada en «Opciones»; el primer arranque (conversación guiada) empieza en cuanto están la app y el oído y la voz, que bajan antes que Ollama y el cerebro. **Rehecho tras su segunda revisión (2026-11-14):** el primer arranque deja de ser un panel del instalador (ver 9.10); Everything y el acceso directo, opciones del instalador apagadas por defecto. Pendiente de su visto bueno. | |
+| 9.01 y 9.02 (prototipo) | Claude | `843cf45` | `docs/prototipos/instalador.html`: bienvenida (Nyx respira), licencia libre explicada en tres líneas (sin «aceptar»), qué se instala con tamaños y espacio libre, instalación con barras líquidas y la forma de Nyx que se llena con el total, corte de red (pausa y sigue donde iba), preparación (cerebro en la gráfica, oído, voz) y final: el panel se recoge en Nyx y sale la onda, que cruza dos monitores de distinto tamaño con el mismo reloj. Alternativas «Nyx aparece y desaparece» y «Nada», y la onda al encender el PC. **Visto por el usuario (2026-11-14): le gusta.** Corregido: el tick parpadeaba (cada repintado, cada 120 ms, volvía a animar el tick, el brillo de las barras y el oleaje: ahora la pantalla se pinta una vez y solo cambian los números); acceso directo en el escritorio, opción apagada en «Opciones»; el primer arranque (conversación guiada) empieza en cuanto están la app y el oído y la voz, que bajan antes que Ollama y el cerebro. **Rehecho tras su segunda revisión (2026-11-14):** el primer arranque deja de ser un panel del instalador (ver 9.10); Everything y el acceso directo, opciones del instalador apagadas por defecto. Tercera versión (micrófono primero, nombres visibles, deslizador y etiquetas propias). **Aprobado por el usuario el 2026-11-14** («me encanta, adelante con el instalador y el arranque»). | |
 | 9.03 | Claude | `7938d43` | `appearance.ready_indicator` (onda · nyx · nada; por defecto onda) en el modelo de ajustes, el saludo del puente (protocolo **v18**, los dos lados) y Ajustes → Apariencia («Al estar lista», con la explicación de cada opción); SPEC §13. La onda en sí es la 9.04 (tras el visto bueno del prototipo). pytest 1.707, svelte-check sin errores. | |
 | 9.05 | Claude | `aea9f93` y (este commit) | `nyx/update/`: `backup.py` (copia de ajustes, `extensions.json`, cola de la partida, ventana de Ajustes y las bases de alarmas y atajos con la API de copia de SQLite, cerrando las conexiones; restaurar manda los `-wal`/`-shm` viejos a la papelera; se quedan 3 copias y las demás a la papelera), `migrations.py` (versiones número a número; al arrancar, si la versión sube y hay migraciones de ese tramo: copia, las aplica en orden y, si una falla, restaura y no apunta la versión; al bajar no migra; hoy la lista está vacía), `moment.py` (`UpdateGate`: pipeline libre y sin botones pendientes, sin partida ni cola). Ajustes `updates.mode` y `updates.channel` (editables) en Ajustes → General; `main.py` migra antes de leer los ajustes. Encontrado: `with sqlite3.connect()` no cierra la conexión (en Windows la copia no se podía mover). Falta quien pregunte al `UpdateGate`: la app con Velopack (9.06). pytest 1.715. | |
