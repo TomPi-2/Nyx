@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Extensiones de Nyx</title>
+<style>
+/*
+ * Prototipo de la tarea 7.11 (2026-11-14, propuesta de Claude): Ajustes → Extensiones. Mismo
+ * estilo que Ajustes (SPEC §12). Lo que hay detrás ya está hecho en el núcleo (7.01–7.04 y 7.08):
+ * permisos con su forma exacta, firma de Tepnyx, modo desarrollador y lista de revocación.
+ */
+:root {
+  --page: #0f0f11; --text: #f5f5f7; --text-2: rgba(235, 235, 245, 0.62);
+  --text-3: rgba(235, 235, 245, 0.34); --control: rgba(118, 118, 128, 0.26);
+  --control-hi: rgba(160, 160, 170, 0.42); --active: rgba(229, 229, 234, 0.92);
+  --on-active: #1c1c1e; --raised: rgba(58, 58, 60, 0.45); --tint: rgba(28, 28, 30, 0.72);
+  --chrome: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --page: #e9e9ee; --text: #1c1c1e; --text-2: rgba(60, 60, 67, 0.64);
+  --text-3: rgba(60, 60, 67, 0.36); --control: rgba(118, 118, 128, 0.14);
+  --control-hi: rgba(118, 118, 128, 0.28); --active: rgba(72, 72, 74, 0.92);
+  --on-active: #f5f5f7; --raised: rgba(255, 255, 255, 0.6); --tint: rgba(242, 242, 247, 0.8);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --page: #e9e9ee; --text: #1c1c1e; --text-2: rgba(60, 60, 67, 0.64);
+    --text-3: rgba(60, 60, 67, 0.36); --control: rgba(118, 118, 128, 0.14);
+    --control-hi: rgba(118, 118, 128, 0.28); --active: rgba(72, 72, 74, 0.92);
+    --on-active: #f5f5f7; --raised: rgba(255, 255, 255, 0.6); --tint: rgba(242, 242, 247, 0.8); color-scheme: light;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text); font-family: var(--chrome); }
+main { max-width: 980px; margin: 0 auto; padding: 28px 16px 64px; display: grid; gap: 18px; }
+h1 { font: 600 30px/1.1 var(--display); margin: 0; }
+p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 86ch; }
+.bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.bar .label { font-size: 13px; color: var(--text-2); }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 999px; background: var(--control); }
+.seg button { border: 0; border-radius: 999px; padding: 7px 14px; background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer; }
+.seg button.on { background: var(--active); color: var(--on-active); }
+
+/* La ventana de Ajustes: barra lateral y contenido, sin bordes. */
+.window { display: grid; grid-template-columns: 200px 1fr; gap: 0; border-radius: 26px; overflow: hidden; min-height: 640px;
+  background: var(--tint); backdrop-filter: blur(24px); box-shadow: 0 18px 50px rgba(0,0,0,.3); position: relative; }
+@media (max-width: 720px) { .window { grid-template-columns: 1fr; } .side { display: none; } }
+.side { padding: 18px 10px; display: grid; align-content: start; gap: 2px; }
+.side div { padding: 8px 14px; border-radius: 12px; font-size: 13.5px; color: var(--text-2); }
+.side div.on { background: var(--control); color: var(--text); font-weight: 600; }
+.content { padding: 22px 24px 30px; display: grid; gap: 16px; align-content: start; }
+.card { display: grid; gap: 4px; }
+.card > .t { font: 600 15px/1.2 var(--display); margin: 2px 4px 6px; }
+.card > .note { font-size: 12.5px; color: var(--text-2); line-height: 1.45; margin: 4px 6px 0; }
+.rows { display: grid; gap: 2px; border-radius: 18px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--raised); font-size: 13.5px; }
+.row .grow { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.row .name { font-weight: 600; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.row .hint { color: var(--text-2); font-size: 12.5px; line-height: 1.4; }
+.icon { width: 38px; height: 38px; border-radius: 12px; background: var(--control-hi); flex: none; display: grid; place-items: center; font-weight: 700; font-size: 15px; }
+.badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--control); color: var(--text-2); }
+.badge.strong { background: var(--active); color: var(--on-active); }
+.btn { border: 0; border-radius: 999px; padding: 8px 16px; font: inherit; font-size: 13px; cursor: pointer; background: var(--control); color: var(--text); white-space: nowrap; }
+.btn.primary { background: var(--active); color: var(--on-active); font-weight: 600; }
+.btn.quiet { background: transparent; color: var(--text-2); }
+.toggle { width: 40px; height: 24px; border-radius: 999px; background: var(--control-hi); position: relative; flex: none; cursor: pointer; }
+.toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--text); transition: left .2s; }
+.toggle.on { background: var(--active); }
+.toggle.on::after { left: 19px; background: var(--on-active); }
+.toggle.off-locked { opacity: .45; pointer-events: none; }
+.more { display: none; padding: 4px 16px 14px 66px; background: var(--raised); font-size: 13px; }
+.more.open { display: grid; gap: 10px; }
+.perms { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.perms li { display: flex; gap: 8px; align-items: baseline; line-height: 1.4; }
+.perms li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); flex: none; transform: translateY(-1px); }
+.perms li.new::before { background: var(--text); }
+.perms .why { color: var(--text-2); font-size: 12px; }
+.line { display: flex; gap: 8px; flex-wrap: wrap; }
+.problem { font-size: 12.5px; color: var(--text); background: var(--control); padding: 8px 12px; border-radius: 12px; }
+
+/* Panel para instalar: encima de Ajustes, con el mismo cristal. */
+.sheet-bg { position: absolute; inset: 0; background: rgba(0,0,0,.35); display: none; place-items: center; padding: 16px; }
+.sheet-bg.open { display: grid; }
+.sheet { width: min(460px, 100%); border-radius: 26px; padding: 22px 22px 18px; display: grid; gap: 14px;
+  background: var(--tint); backdrop-filter: blur(24px); box-shadow: 0 18px 50px rgba(0,0,0,.4); animation: pop .4s cubic-bezier(.3,1.4,.5,1); }
+@keyframes pop { from { transform: scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
+.sheet .head { display: flex; gap: 12px; align-items: center; }
+.sheet .title { font: 600 19px/1.2 var(--display); }
+.sheet .actions { display: flex; gap: 8px; justify-content: flex-end; }
+.explain { font-size: 13px; line-height: 1.55; color: var(--text-2); }
+.explain b { color: var(--text); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Ajustes → Extensiones</h1>
+  <p class="lead">Propuesta para la tarea 7.11. Cada extensión dice qué puede hacer en lenguaje normal, igual que los
+    permisos de un móvil. Las de Tepnyx van firmadas; lo que no esté firmado solo entra con el modo desarrollador y
+    lleva la etiqueta «Sin revisar». Desinstalar manda la carpeta a la papelera. Los cambios se aplican al momento,
+    sin reiniciar Nyx (en partida, al terminar).</p>
+  <div class="bar">
+    <span class="label">Tema</span>
+    <div class="seg" id="theme"><button data-v="dark" class="on">Oscuro</button><button data-v="light">Claro</button></div>
+    <span class="label">Probar</span>
+    <div class="seg" id="tools"><button data-v="install">Instalar una firmada</button><button data-v="unsigned">Instalar sin firma</button></div>
+  </div>
+  <p class="explain" id="explain">Pulsa en una extensión para ver sus permisos. «Instalar sin firma» enseña qué pasa con el modo desarrollador apagado y encendido.</p>
+
+  <div class="window">
+    <nav class="side">
+      <div>General</div><div>Apariencia</div><div>Activación</div><div>Voz</div><div>Respuestas</div>
+      <div>Modo partida</div><div>Cerebro</div><div class="on">Extensiones</div><div>Caché</div><div>Privacidad</div><div>Ayuda</div>
+    </nav>
+    <section class="content" id="content"></section>
+    <div class="sheet-bg" id="sheet"></div>
+  </div>
+</main>
+
+<script>
+// Los permisos, en lenguaje normal (lo mismo irá en la interfaz real, junto a nyx/ext/manifest.py).
+const PERMS = {
+  "net": (t) => [`Conectarse a ${t.startsWith("localhost") ? "un programa de este PC" : t.split(":")[0]}`, `(${t})`],
+  "files:read": (t) => [`Leer archivos de tu carpeta ${t}`, ""],
+  "files:write": (t) => [`Guardar archivos en tu carpeta ${t}`, "lo que borre va a la papelera"],
+  "apps:launch": () => ["Abrir programas", ""],
+  "apps:control": (t) => [`Usar botones y atajos de ${t}`, "con aviso para deshacer"],
+  "audio": () => ["Cambiar el volumen", ""],
+  "media": () => ["Pausar y cambiar la música", ""],
+  "clipboard:read": () => ["Leer lo que tienes copiado", "solo cuando se lo pidas"],
+  "clipboard:write": () => ["Copiar texto", ""],
+  "notify": () => ["Avisarte", ""],
+  "ui:panel": () => ["Enseñarte paneles", ""],
+  "secrets": () => ["Guardar claves en el Administrador de credenciales de Windows", "nadie más las ve"],
+  "llm": () => ["Usar el cerebro de Nyx", "con un límite"],
+  "messages": (t) => [`Mandar mensajes por ${t}`, "siempre te pregunta antes"],
+};
+function perm(p) {
+  const [kind, ...rest] = p.split(":");
+  const key = PERMS[`${kind}:${rest[0]}`] ? `${kind}:${rest[0]}` : kind;
+  const target = key.includes(":") ? rest.slice(1).join(":") : rest.join(":");
+  return PERMS[key](target);
+}
+
+let devMode = false;
+const EXTS = [
+  { id: "tepnyx.obs", name: "OBS", author: "Tepnyx", version: "1.2.0", letter: "O", enabled: true, signed: true,
+    desc: "Grabar, empezar el directo y cambiar de escena con la voz.", perms: ["net:localhost:4455", "secrets", "ui:panel"],
+    update: { version: "1.3.0", newPerms: ["notify"] } },
+  { id: "tepnyx.spotify", name: "Spotify", author: "Tepnyx", version: "1.0.4", letter: "S", enabled: true, signed: true,
+    desc: "«Pon algo de Rosalía»: busca y pone lo que pidas.", perms: ["net:api.spotify.com:443", "secrets", "media"] },
+  { id: "maria.figma", name: "Atajos de Figma", author: "María", version: "0.3.0", letter: "F", enabled: true, signed: true,
+    desc: "«Agrupa esto», «exporta la selección»… en Figma.", perms: [], kinds: "Acciones sin código" },
+  { id: "alguien.temp", name: "Temperatura de la GPU", author: "Alguien", version: "2.0.1", letter: "T", enabled: false, signed: true,
+    revoked: "Tepnyx la ha retirado: recogía datos que no decía.", perms: ["net:temperaturas.example.com:443"] },
+];
+
+function row(e, i) {
+  const badges = [
+    e.signed ? "" : '<span class="badge strong">Sin revisar</span>',
+    e.update ? '<span class="badge">Actualización</span>' : "",
+    e.revoked ? '<span class="badge strong">Retirada</span>' : "",
+  ].join("");
+  const perms = e.perms.length
+    ? e.perms.map((p) => { const [what, why] = perm(p); return `<li class="${e.update?.newPerms?.includes(p) ? "new" : ""}"><span>${what} <span class="why">${why}</span></span></li>`; }).join("")
+    : `<li><span>No pide nada: ${e.kinds ? e.kinds.toLowerCase() : "solo contenido"}, no ejecuta código.</span></li>`;
+  const update = e.update
+    ? `<div class="problem">La versión ${e.update.version} pide además: <b>${e.update.newPerms.map((p) => perm(p)[0].toLowerCase()).join(", ")}</b>. Mientras no lo aceptes, sigue la ${e.version}.</div>
+       <div class="line"><button class="btn primary" onclick="acceptUpdate(${i})">Aceptar y actualizar</button></div>` : "";
+  return `
+    <div class="row" onclick="toggleMore(${i}, event)">
+      <div class="icon">${e.letter}</div>
+      <div class="grow"><div class="name">${e.name} ${badges}</div><div class="hint">${e.author} · ${e.version} · ${e.desc}</div></div>
+      <div class="toggle ${e.enabled && !e.revoked ? "on" : ""} ${e.revoked ? "off-locked" : ""}" onclick="event.stopPropagation(); flip(${i})"></div>
+    </div>
+    <div class="more" id="more${i}">
+      ${e.revoked ? `<div class="problem">${e.revoked}</div>` : ""}
+      <div class="hint">Puede:</div><ul class="perms">${perms}</ul>
+      ${update}
+      <div class="line"><button class="btn" onclick="uninstall(${i})">Desinstalar</button></div>
+    </div>`;
+}
+
+function render() {
+  const signed = EXTS.filter((e) => e.signed).length;
+  document.getElementById("content").innerHTML = `
+    <div class="card"><div class="t">Instaladas</div>
+      <div class="rows">${EXTS.map(row).join("") || '<div class="row"><div class="grow hint">Aún no tienes ninguna.</div></div>'}</div>
+      <div class="note">Las extensiones piden cosas a Nyx y Nyx decide: nunca tocan un juego ni se saltan lo que preguntas antes de hacer.</div>
+    </div>
+    <div class="card"><div class="t">Añadir</div>
+      <div class="rows">
+        <div class="row"><div class="grow"><div class="name">Desde un archivo</div><div class="hint">Un .nyxext que te hayas descargado.</div></div><button class="btn" onclick="ask(false)">Elegir archivo…</button></div>
+        <div class="row"><div class="grow"><div class="name">Tienda de extensiones</div><div class="hint">En tepnyx.com, con Nyx 1.0.</div></div><span class="badge">Pronto</span></div>
+      </div>
+    </div>
+    <div class="card"><div class="t">Para desarrolladores</div>
+      <div class="rows">
+        <div class="row"><div class="grow"><div class="name">Modo desarrollador</div><div class="hint">Instalar extensiones sin firmar o cargar una carpeta para probarla. Salen como «Sin revisar».</div></div>
+          <div class="toggle ${devMode ? "on" : ""}" onclick="devMode=!devMode;render()"></div></div>
+        ${devMode ? '<div class="row"><div class="grow"><div class="name">Cargar una carpeta</div><div class="hint">Se vuelve a leer al guardar cambios.</div></div><button class="btn">Elegir carpeta…</button></div>' : ""}
+      </div>
+      <div class="note">Una vez al día Nyx mira si Tepnyx ha retirado alguna extensión (${signed ? "tienes" : "no tienes"} extensiones firmadas${signed ? "" : ": no se mira"}).</div>
+    </div>`;
+}
+function toggleMore(i) { document.getElementById(`more${i}`).classList.toggle("open"); }
+function flip(i) { EXTS[i].enabled = !EXTS[i].enabled; render(); }
+function uninstall(i) {
+  const e = EXTS[i];
+  sheet(`<div class="title">¿Desinstalar ${e.name}?</div><div class="explain">Su carpeta va a la papelera y deja de funcionar al momento. Puedes volver a instalarla cuando quieras.</div>
+    <div class="actions"><button class="btn quiet" onclick="close_()">Cancelar</button><button class="btn primary" onclick="EXTS.splice(${i},1);close_();render()">Desinstalar</button></div>`);
+}
+function acceptUpdate(i) { const e = EXTS[i]; e.perms = [...e.perms, ...e.update.newPerms]; e.version = e.update.version; delete e.update; render(); toggleMore(i); }
+function ask(unsigned) {
+  const pkg = unsigned
+    ? { name: "Mi extensión", author: "Yo", version: "0.1.0", letter: "M", perms: ["files:read:documentos", "notify"], signed: false, desc: "La que estoy haciendo." }
+    : { name: "Hue", author: "Tepnyx", version: "1.0.0", letter: "H", perms: ["net:hue-bridge.local:443", "secrets"], signed: true, desc: "Encender y apagar las luces." };
+  if (unsigned && !devMode) {
+    return sheet(`<div class="title">No está firmada</div><div class="explain">«${pkg.name}» no la ha revisado Tepnyx. Solo se puede instalar con el <b>modo desarrollador</b> (más abajo).</div>
+      <div class="actions"><button class="btn primary" onclick="close_()">Entendido</button></div>`);
+  }
+  const list = pkg.perms.map((p) => { const [w, why] = perm(p); return `<li><span>${w} <span class="why">${why}</span></span></li>`; }).join("");
+  sheet(`<div class="head"><div class="icon">${pkg.letter}</div><div><div class="title">${pkg.name}</div>
+      <div class="explain">${pkg.author} · ${pkg.version} · ${pkg.signed ? "Firmada por Tepnyx" : "<b>Sin revisar</b>"}</div></div></div>
+    <div class="explain">${pkg.desc}</div>
+    <div class="explain">Podrá:</div><ul class="perms">${list}</ul>
+    <div class="actions"><button class="btn quiet" onclick="close_()">Cancelar</button>
+    <button class="btn primary" onclick='install(${JSON.stringify(pkg)})'>Instalar</button></div>`);
+}
+function install(pkg) { EXTS.push({ ...pkg, id: pkg.name, enabled: true }); close_(); render(); }
+function sheet(html) { const s = document.getElementById("sheet"); s.innerHTML = `<div class="sheet">${html}</div>`; s.classList.add("open"); }
+function close_() { document.getElementById("sheet").classList.remove("open"); }
+
+document.querySelectorAll(".seg").forEach((seg) => seg.addEventListener("click", (ev) => {
+  const b = ev.target.closest("button"); if (!b) return;
+  if (seg.id === "theme") { document.documentElement.dataset.theme = b.dataset.v; seg.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); }
+  if (seg.id === "tools") ask(b.dataset.v === "unsigned");
+}));
+render();
+</script>
+</body>
+</html>

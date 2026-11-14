@@ -123,6 +123,14 @@ activaciones (6.22).
     cambio tu voz?» (Ajustes en Voz). Decider y Sorty son apps del móvil: en el PC Nyx abre su
     página. Si echas en falta alguna pantalla o página, dímela.
 
+11. **Prototipos para tu visto bueno** (ábrelos en el navegador):
+    - `docs/prototipos/instalador.html`: el instalador entero y la onda de «Nyx listo» cruzando
+      dos monitores. Prueba «Cortar la red» y «"Nyx listo" al encender». ¿Te gustan los pasos,
+      la forma de Nyx que se llena y la onda? Hasta que digas, no lo construyo de verdad.
+    - `docs/prototipos/extensiones.html`: Ajustes → Extensiones. Pulsa en cada extensión, prueba
+      «Instalar una firmada» e «Instalar sin firma» (con el modo desarrollador apagado y
+      encendido) y la actualización que pide un permiso nuevo.
+
 ## Hecho en esta tanda
 
 - **6.13 `run_powershell`** (roja siempre, bloqueada en partida). La lista de bloqueo usa el
