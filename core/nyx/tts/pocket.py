@@ -29,6 +29,7 @@ log = logging.getLogger(__name__)
 
 THREADS = 2
 SAMPLE_RATE = 24_000
+_REPOS = ("pocket-tts-without-voice-cloning",)  # lo que Nyx descarga (sin clonar voces)
 
 
 def cache_dir() -> Path:
@@ -40,6 +41,11 @@ def _configure_cache() -> None:
     os.environ.setdefault("HF_HUB_CACHE", str(cache_dir()))
     os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
     os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+    # Con el modelo ya descargado, sin red: si no, cada arranque pregunta a Hugging Face por
+    # el modelo con clonación de voz (privado: 401) antes de usar el descargado (ERRORES.md,
+    # 2026-11-14). Nada sale del equipo y arranca igual (probado sin conexión).
+    if any((cache_dir() / f"models--kyutai--{name}" / "snapshots").is_dir() for name in _REPOS):
+        os.environ.setdefault("HF_HUB_OFFLINE", "1")
 
 
 def _redirect_voice_cache() -> None:

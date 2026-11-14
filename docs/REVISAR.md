@@ -55,6 +55,10 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
 
 7. ~~Plan de la 0.7~~ **Aprobado** (2026-11-13): se empieza al cerrar la 0.6.
 
+8. **¿Qué contesta Nyx a «¿quién te ha creado?»?** Ahora no lo sabe («Soy Nyx, tu asistente
+   personal…»). Propuesta: «Me ha hecho Tepnyx» (sin tu nombre, que la app será pública). Dime
+   la frase y la pongo en su conocimiento (`brain/knowledge/nyx.md`).
+
 ## Qué probar
 
 Probado y bien (2026-11-13): color de Nyx (6.23), ciudad automática (6.24) y falsas
@@ -87,6 +91,16 @@ activaciones (6.22).
    - «¿Qué IP tengo?» sigue sin preguntar; algo como «dime la carpeta de mi usuario con
      PowerShell» (usa `$env:USERPROFILE`) ahora pide confirmación.
    - Buscar en internet funciona igual (no debería notarse nada).
+
+9. **Arreglos tras tu prueba del 2026-11-14** (reinicia el núcleo):
+   - Unas cuantas preguntas de charla seguidas («cuéntame un chiste», «¿cómo hace la vaca?»):
+     el panel dice algo que tiene que ver, nunca «Noche».
+   - «¿Cuál es mi IP?»: tu IP local real, al momento y sin preguntar.
+   - Justo después de una respuesta, «Nix, ¿quién es tu creador?» se atiende (antes se
+     ignoraba). «Esto está roto. Nyx, ¿qué día es hoy?» contesta al día.
+   - «Vale, ábreme Netflix» lo abre.
+   - Nyx aprendió un atajo de una frase mal oída: «po muusiga» → abrir la web «Spotify» (que no
+     existe). Bórralo en Ajustes → Cerebro → Atajos aprendidos («Olvidar»).
 
 ## Hecho en esta tanda
 

@@ -38,11 +38,14 @@ _PC_TAIL = r"(?:\s+(?:en\s+|de\s+|del\s+)?(?:el\s+|mi\s+|la\s+)?(?:pc|ordenador|
     r"|(?P<disk>cuanto\s+(?:espacio|disco|almacenamiento)(?:\s+libre)?\s+(?:me\s+)?(?:queda|tengo|hay)"
     r"(?:\s+libre)?(?:\s+en\s+(?:el\s+)?(?:disco(?:\s+duro)?|c))?|"
     r"espacio\s+libre(?:\s+en\s+(?:el\s+)?disco(?:\s+duro)?)?)"
+    r"|(?P<ip>(?:cual\s+es|que\s+es|dime|sabes)\s+(?:mi|la)\s+(?:direccion\s+)?ip(?:\s+local)?|"
+    r"que\s+(?:direccion\s+)?ip\s+(?:tengo|tiene|uso)(?:\s+en\s+(?:casa|la\s+red))?|"
+    r"mi\s+(?:direccion\s+)?ip)"
     r")"
     rf"{_PC_TAIL}$",
 )
 def _system_info(m: re.Match[str], __: SystemIndex) -> Route | None:
-    for kind in ("top", "battery", "cpu", "ram", "disk"):
+    for kind in ("top", "battery", "cpu", "ram", "disk", "ip"):
         if m.group(kind):
             if (
                 kind == "top"

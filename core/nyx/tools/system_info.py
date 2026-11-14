@@ -1,14 +1,16 @@
 """system_info: estado del equipo con psutil (verde, observe, permitida en partida, 6.09).
 
 Consulta batería (porcentaje y si está enchufado), uso de CPU, memoria RAM usada/total, espacio
-libre por disco y el proceso que más CPU o RAM consume. Los números van redondeados y en español
-natural para que el modelo los diga en una frase sin leer rutas ni decimales largos.
+libre por disco, el proceso que más CPU o RAM consume y la IP del equipo en la red local. Los
+números van redondeados y en español natural para que el modelo los diga en una frase sin leer
+rutas ni decimales largos.
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
+import socket
 import time
 from typing import Any, Literal
 
@@ -19,7 +21,7 @@ from nyx.tools.base import Category, GamePolicy, Params, Risk, Tool, ToolContext
 
 log = logging.getLogger(__name__)
 
-What = Literal["battery", "cpu", "ram", "disk", "top"]
+What = Literal["battery", "cpu", "ram", "disk", "top", "ip"]
 CPU_SAMPLE_S = 0.2
 
 _IGNORED_PROCESSES = frozenset(
@@ -219,16 +221,41 @@ def _top(ps: Any, interval: float) -> ToolResult:
     )
 
 
+# Dirección de documentación (RFC 5737): solo sirve para que Windows elija la conexión por la
+# que saldría; con UDP, `connect` no manda nada.
+_ROUTE_PROBE = ("192.0.2.1", 9)
+
+
+def _ip() -> ToolResult:
+    """La IP local de la conexión por la que sale el equipo (ERRORES.md, 2026-11-14: el modelo
+    leía `Get-NetIPAddress` y se inventaba una). La pública no: habría que preguntar a una web."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect(_ROUTE_PROBE)
+            ip = str(sock.getsockname()[0])
+    except OSError:
+        ip = ""
+    if not ip or ip.startswith(("0.", "127.", "169.254.")):
+        return ToolResult.fail("No estás conectado a ninguna red", "sin IP")
+    return ToolResult(
+        ok=True,
+        message=f"Tu IP en la red local es {ip}.",
+        display=ip,
+        secondary="IP local",
+        data={"what": "ip", "ip": ip},
+    )
+
+
 class SystemInfoParams(Params):
     what: What = Field(
-        description="Dato (battery, cpu, ram, disk, top)",
+        description="Qué dato",
     )
 
 
 class SystemInfo(Tool[SystemInfoParams]):
     name = "system_info"
     description = (
-        "Consulta batería, CPU, RAM, disco libre o el proceso que más consume. "
+        "Consulta batería, CPU, RAM, disco libre, IP local o el proceso que más consume. "
         "Ej.: «¿cuánta RAM uso?» (what=ram), «¿qué consume más CPU?» (what=top)."
     )
     risk = Risk.GREEN
@@ -251,6 +278,8 @@ class SystemInfo(Tool[SystemInfoParams]):
             return _ram(ps)
         if what == "disk":
             return _disk(ps)
+        if what == "ip":
+            return _ip()
         return _top(ps, self._cpu_interval)
 
     async def run(self, params: SystemInfoParams, ctx: ToolContext) -> ToolResult:

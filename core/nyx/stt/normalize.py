@@ -26,7 +26,14 @@ HALLUCINATIONS = (
 # Cómo transcribe Whisper «Nyx» (visto en pruebas reales: «Nix», «Nyx», «NYAX»…).
 WAKE_VARIANTS = frozenset({"nyx", "nix", "nics", "niks", "nicks", "nyks", "nyax", "nik", "nick"})
 _WAKE = re.compile(
-    rf"^\s*[¿¡]?\s*(?:oye\s*,?\s*)?(?:{'|'.join(sorted(WAKE_VARIANTS))})\b[\s,.:;!?-]*",
+    rf"^\s*[-–—\"'«]*\s*[¿¡]?\s*(?:oye\s*,?\s*)?(?:{'|'.join(sorted(WAKE_VARIANTS))})\b"
+    r"[\s,.:;!?-]*",
+    re.IGNORECASE,
+)
+# «Esto está roto. Nyx, ¿qué día es hoy?»: el nombre tras un punto y con una pausa detrás. Lo
+# de antes no era para Nyx (ERRORES.md, 2026-11-14).
+_WAKE_MID = re.compile(
+    rf"(?<=[.!?…])\s*[¿¡]?\s*(?:{'|'.join(sorted(WAKE_VARIANTS))})\s*[,.:;!?]+\s*",
     re.IGNORECASE,
 )
 # Whisper a veces oye «¿Mix?» por «¿Nyx?». Solo al principio y con puntuación detrás; nunca
@@ -160,7 +167,33 @@ def strip_wake_word(text: str) -> str:
     stripped = _WAKE.sub("", text, count=1)
     if stripped == text:
         stripped = _WAKE_MIX.sub("", text, count=1)
+    # «Esto está roto. Nyx, ¿qué día es hoy?»: se atiende lo dicho tras el último «Nyx».
+    found = list(_WAKE_MID.finditer(stripped))
+    last = found[-1] if found else None
+    if last is not None and _WORD.search(stripped[last.end() :]):
+        stripped = stripped[last.end() :]
     return stripped
+
+
+# Letras que no existen en español. Con música o ruido, Whisper a veces «oye» islandés o
+# alemán aunque se le pida español (ERRORES.md, 2026-11-14: «Þó er langsði nýx í»). Las de
+# _RARE salen en nombres propios («Motörhead», «Björk»): una sola palabra no basta.
+_ALIEN = frozenset("þðæøõßãåœ")
+_RARE = frozenset("äëïöÿâêîôûàèìòùýčřšžł")
+
+
+def looks_foreign(text: str) -> bool:
+    """¿La transcripción está en otro idioma (y por tanto mal oída)?"""
+    words = [w.lower() for w in _WORD.findall(text)]
+    if any(_ALIEN.intersection(w) for w in words):
+        return True
+    return sum(1 for w in words if _RARE.intersection(w)) >= 2
+
+
+def addressed_by_name(text: str) -> bool:
+    """¿Se dirige a Nyx por su nombre («Nix, ¿quién es tu creador?»)? Entonces, en la ventana
+    de seguimiento, no hace falta preguntar al modelo si iba para Nyx."""
+    return _WAKE.match(text) is not None or _WAKE_MID.search(text) is not None
 
 
 def normalize(text: str) -> str:

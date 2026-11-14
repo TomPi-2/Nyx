@@ -16,6 +16,7 @@ from typing import Any
 
 from nyx.brain.base import ChatMessage, LLMEngine, LLMError, LLMToolCall
 from nyx.brain.memory import ShortMemory
+from nyx.brain.panel import unrelated
 from nyx.brain.prompts import (
     ADDRESSED_SCHEMA,
     TOOLS_HINT,
@@ -23,7 +24,7 @@ from nyx.brain.prompts import (
     system_message,
     user_message,
 )
-from nyx.brain.reply import MAX_HEADER, Reply, ReplyEvent, TextReplyParser
+from nyx.brain.reply import MAX_HEADER, Reply, ReplyEvent, TextReplyParser, first_sentence
 from nyx.brain.select import ToolSelector
 from nyx.brain.textcalls import could_be_call, parse_text_calls
 from nyx.settings.model import ResponseTone
@@ -226,9 +227,12 @@ class Brain:
         if not reply.spoken:
             log.warning("Respuesta vacía del LLM para %r", text)
         if worth_remembering(reply):
-            self.memory.add(
-                text, f"[{reply.display} | {reply.secondary}]\n{reply.spoken}", replace=continuing
-            )
+            display, secondary = reply.display, reply.secondary
+            if unrelated(display, secondary, reply.spoken, text):
+                # Una cabecera sin relación («[Noche]») no se guarda: el modelo la copiaría en
+                # todas las respuestas siguientes (ERRORES.md, 2026-11-14).
+                display, secondary = first_sentence(reply.spoken.strip()), ""
+            self.memory.add(text, f"[{display} | {secondary}]\n{reply.spoken}", replace=continuing)
         else:
             log.info("Respuesta que no se guarda en la memoria: %r", reply.spoken)
         yield ReplyDone(reply)

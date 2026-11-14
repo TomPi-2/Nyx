@@ -1,8 +1,10 @@
 import pytest
 
 from nyx.stt.normalize import (
+    addressed_by_name,
     has_wake_word,
     is_hallucination,
+    looks_foreign,
     normalize,
     normalize_times,
     strip_wake_word,
@@ -87,3 +89,52 @@ def test_strip_wake_word_only_at_start() -> None:
 def test_has_wake_word(text: str, anywhere: bool, first3: bool) -> None:
     assert has_wake_word(text) is anywhere
     assert has_wake_word(text, first_words=3) is first3
+
+
+# --- ERRORES.md, 2026-11-14 ---
+
+
+@pytest.mark.parametrize(
+    ("text", "want"),
+    [
+        ("Esto está roto. Nyx, ¿qué día es hoy?", "¿Qué día es hoy?"),
+        ("Ponme una peli. Nyx, ponme una peli.", "Ponme una peli."),
+        ("Hostia, qué bueno. Nix, ¿cómo hace la vaca?", "¿Cómo hace la vaca?"),
+        ("-Nyx, abre Spotify", "Abre Spotify"),
+        ("-Nyx.", ""),
+        ("Ya, ya. Nyx", "Ya, ya. Nyx"),  # sin nada detrás: se queda como está
+        ("dile a Nix que venga", "Dile a Nix que venga"),  # no tras un punto: no es llamarle
+    ],
+)
+def test_wake_word_in_the_middle(text: str, want: str) -> None:
+    assert normalize(text) == want
+
+
+@pytest.mark.parametrize(
+    ("text", "want"),
+    [
+        ("Nix, ¿quién es tu creador?", True),
+        ("Nick, soy una caca.", True),
+        ("Vale. Nyx, para.", True),
+        ("¿Quién es tu creador?", False),
+        ("Nixon fue presidente", False),
+    ],
+)
+def test_addressed_by_name(text: str, want: bool) -> None:
+    assert addressed_by_name(text) is want
+
+
+@pytest.mark.parametrize(
+    ("text", "want"),
+    [
+        ("Þó er langsði nýx í", True),
+        ("Ya, sem árakepí enni. Það er bara allir toður á því.", True),
+        ("Põ muusiga.", True),
+        ("Schätze, ach jä.", True),  # dos palabras con letras de fuera
+        ("Pon Motörhead", False),  # un nombre propio no basta
+        ("Pon algo de Björk en Spotify", False),
+        ("¿Qué tiempo hace en Málaga? Pingüino, año", False),
+    ],
+)
+def test_looks_foreign(text: str, want: bool) -> None:
+    assert looks_foreign(text) is want

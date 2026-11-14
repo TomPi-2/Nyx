@@ -53,11 +53,13 @@ def parse_number(text: str) -> int | None:
 
 _NUM = r"(?P<n>\d{1,3}|[a-z]+(?: y [a-z]+)?)"
 _POLITE = re.compile(r"\s+(?:por favor|porfa|gracias)$")
+# Muletillas al empezar («vale, ábreme Netflix», «venga, pon música»; ERRORES.md, 2026-11-14).
+_LEAD = re.compile(r"^(?:(?:vale|venga|bueno|pues|a ver|ok|okey|por favor|porfa)\s+)+(?=\w)")
 _THIS_WINDOW = {"", "esta ventana", "la ventana", "esto", "esta", "la ventana activa"}
 
 
 def _clean(text: str) -> str:
-    return _POLITE.sub("", normalize(text)).strip()
+    return _LEAD.sub("", _POLITE.sub("", normalize(text))).strip()
 
 
 _RAW: ContextVar[str] = ContextVar("router_raw", default="")

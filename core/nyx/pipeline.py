@@ -71,7 +71,7 @@ from nyx.log import new_request_id
 from nyx.safety.undo import UNDO_TTL_S
 from nyx.settings.model import ListenSettings
 from nyx.stt.base import STTEngine, STTError
-from nyx.stt.normalize import normalize
+from nyx.stt.normalize import addressed_by_name, looks_foreign, normalize
 from nyx.tools.base import GamePolicy, ToolResult
 from nyx.tools.clipboard import write_clipboard_text
 from nyx.tts.base import TTSEngine, TTSError
@@ -751,7 +751,19 @@ class Pipeline:
         if not text:
             await self._go_idle()
             return
-        followup = listening is not None and listening.followup
+        # Con «Nyx, …» delante va a Nyx aunque sea en la ventana de seguimiento (ERRORES.md,
+        # 2026-11-14: «Nix, ¿quién es tu creador?» se ignoraba).
+        followup = listening is not None and listening.followup and not addressed_by_name(raw)
+        if looks_foreign(text):
+            # Mal oído (música o ruido): en seguimiento se ignora; si se llamó a Nyx, que lo
+            # repita en vez de contestar a algo inventado.
+            log.info("Transcripción en otro idioma: no se atiende (%r)", text)
+            if followup:
+                await self._go_idle()
+            else:
+                p = self.phrases.pick("not_understood")
+                await self._fail(p.display, p.secondary, p.spoken)
+            return
         # «Sí» tras ofrecer guardar la receta no es una coletilla: es la respuesta (6.28).
         if followup and is_filler(text) and self._panel_wants(text) is None:
             log.info("Seguimiento ignorado (coletilla): %r", text)
@@ -1018,6 +1030,9 @@ class Pipeline:
             and len(plan.calls) == 1
             and results
             and all(r.ok for r in results)
+            # Dejada para después de la partida: aún no se sabe si funciona (ERRORES.md,
+            # 2026-11-14: «Põ muusiga» → la web «Spotify», que luego no existía).
+            and not any(r.data.get("deferred") for r in results)
         ):
             self._learn(text, ToolCall(plan.calls[0].name, plan.calls[0].arguments))
 
@@ -1125,7 +1140,7 @@ class Pipeline:
             if bubble is not None and (bubble.display or bubble.secondary):
                 bubble_shown = True
                 await self._show_bubble(
-                    bubble.display, bubble.secondary, spoken=final_spoken or first_said
+                    bubble.display, bubble.secondary, spoken=final_spoken or first_said, asked=text
                 )
 
         async def on_speech_start() -> None:
@@ -1377,10 +1392,12 @@ class Pipeline:
         kind: BubbleKind = "response",
         expires_s: float | None = None,
         spoken: str = "",
+        asked: str = "",
     ) -> None:
         # Criterio común de los paneles (6.23): mayúscula, punto solo en frases, la línea
         # pequeña solo si aporta y la grande con detalle (`spoken`: lo que dice la voz).
-        display, secondary = tidy(display, secondary, spoken)
+        # `asked` (lo pedido): solo para las cabeceras del modelo, que a veces no vienen a cuento.
+        display, secondary = tidy(display, secondary, spoken, asked)
         if self._bubble_timer is not None:
             self._bubble_timer.cancel()
             self._bubble_timer = None

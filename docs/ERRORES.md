@@ -6,11 +6,23 @@ Fallos vistos al usar Nyx que quedan pendientes de corregir. Se apuntan aquí pa
 
 | Fecha | Frase o situación | Qué pasa | Qué debería pasar | Pista |
 | --- | --- | --- | --- | --- |
+| 2026-11-14 | «Recomiéndame una película y ábremela en Netflix», «Proponme algo» | El modelo dice «Perfecto, te abro Netflix» sin abrir nada (habla de una acción sin llamar a la herramienta). | Abrir Netflix (`open_url`) o no decir que lo hace. | `nyx-r2`: ejemplos para la ronda 4 de «dice que lo hace pero no lo hace». |
+| 2026-11-14 | «Dime cómo hacer galletas» | «Aún no sé hacer recetas» (y «Busca una receta…» sí funciona). | Buscar la receta (`web_search`). | El 97 de 354 respuestas de texto del entrenamiento son «Aún no sé hacer eso»: la ronda 4 debería bajar ese peso; o una regla «dime cómo hacer X». |
+| 2026-11-14 | «¿Quién te ha creado?», «¿Quién es tu creador?» | «Soy Nyx, tu asistente personal…» sin contestar. | Decir quién la ha hecho. | Falta en `brain/knowledge/nyx.md`; qué decir lo decide el usuario (`REVISAR.md`). |
+| 2026-11-14 | «¿Cuál es mi IP?» cuando iba al modelo | Tras `run_powershell` pidió además el tiempo (`get_weather`) y otra vez el mismo comando; al final se inventó una IP. | Una sola consulta y el dato real. | Ya no pasa por el modelo (regla `system_info` ip). Queda el bucle de agente que pide algo sin relación: ronda 4. |
+| 2026-11-14 | «Ábreme esa película» (tras proponer «El padrino») | «No encuentro esa película» (busca una app llamada así). | Buscarla en Netflix o preguntar dónde. | Abrir algo dentro de un servicio: 0.7 (extensiones). |
 
 ## Corregidos
 
 | Fecha | Error | Commit |
 | --- | --- | --- |
+| 2026-11-14 | Panel con «Noche» (o «Partida») a cualquier respuesta: el modelo escribió una cabecera sin relación y, como la memoria corta la guarda, la copió en todas las siguientes. Ahora una cabecera corta que no comparte nada con lo dicho ni con lo pedido se cambia por la primera frase de la voz, y a la memoria va la corregida (`panel.unrelated`). | (revisión de logs) |
+| 2026-11-14 | «¿Cuál es mi IP?»: se inventaba la IP (192.168.1.100). Ahora `system_info` (`what=ip`, verde) da la IP local real por regla, sin el modelo, y la voz la lee número a número. | (revisión de logs) |
+| 2026-11-14 | «Nix, ¿quién es tu creador?» en la ventana de seguimiento se ignoraba («no iba dirigido a Nyx»): con el nombre delante, va siempre a Nyx. Y «Esto está roto. Nyx, ¿qué día es hoy?» atiende lo de después del nombre; «-Nyx.» ya no se toma por una petición. | (revisión de logs) |
+| 2026-11-14 | Con música, Whisper «oye» islandés o alemán («Þó er langsði nýx í») y Nyx contestaba a eso: una transcripción en otro idioma se ignora en el seguimiento o, si se llamó a Nyx, pide que se repita. | (revisión de logs) |
+| 2026-11-14 | Atajo aprendido de una acción dejada para después de la partida («Põ muusiga» → la web «Spotify», que luego falló): ya no se aprende hasta saber que funciona. | (revisión de logs) |
+| 2026-11-14 | «Vale, ábreme la Netflix» iba al modelo (que dijo «Aún no sé hacer eso»): el router quita «vale», «venga», «bueno»… del principio. | (revisión de logs) |
+| 2026-11-14 | Pocket TTS preguntaba a Hugging Face en cada arranque (respuesta 401): con el modelo descargado arranca sin red. | (revisión de logs) |
 | 2026-11-13 | «Ábreme el último documento que descargué»: «último», «más reciente» o «que descargué/guardé/creé» en lo que se pide abrir pasa al LLM (buscar y abrir: dos pasos) en vez de «No encuentro…». | (6.25) |
 | 2026-11-13 | «Busca qué aplicaciones ha creado Tepnyx»: «busca» seguido de una pregunta ya no va a buscar archivos (lo decide el modelo, que tiene `web_search`); «busca en internet/Google/Wikipedia…» va directo a `web_search`. De paso, «busca el archivo del contrato» buscaba «l contrato». | (6.06) |
 | 2026-11-13 | Nyx con un color puesto (interfaz): Color plano en `shaders.ts` (sin el sombreado que partía la forma en cuatro triángulos y oscurecía el borde); el movimiento no cambia. **Pendiente de que el usuario lo pruebe con colores.** | `7dc05c8` (6.23) |

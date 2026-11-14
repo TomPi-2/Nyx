@@ -185,6 +185,7 @@ _OPTION_VERBS: dict[tuple[str, str], str] = {
     ("system_info", "ram"): "mirar la memoria RAM",
     ("system_info", "disk"): "mirar el espacio en disco",
     ("system_info", "top"): "mirar qué programa consume más",
+    ("system_info", "ip"): "mirar la IP del equipo",
     ("clipboard", "read"): "leer el portapapeles",
     ("clipboard", "write"): "copiar al portapapeles",
     ("stopwatch", "start"): "poner el cronómetro",

@@ -35,6 +35,12 @@ def routed(text: str, index: SystemIndex) -> tuple[str, dict[str, Any]] | None:
         ("¿el ordenador va muy cargado?", "system_info", {"what": "top"}),
         ("¿por qué va tan lento el PC?", "system_info", {"what": "top"}),
         ("el portátil va lentísimo", "system_info", {"what": "top"}),
+        # la IP (ERRORES.md, 2026-11-14: el modelo se la inventaba)
+        ("¿Cuál es mi IP?", "system_info", {"what": "ip"}),
+        ("¿qué IP tengo?", "system_info", {"what": "ip"}),
+        ("dime mi dirección IP", "system_info", {"what": "ip"}),
+        ("¿qué IP tiene el ordenador?", "system_info", {"what": "ip"}),
+        ("mi IP", "system_info", {"what": "ip"}),
         # alarmas
         ("¿a qué hora sonaba la alarma de mañana?", "list_alarms", {}),
         ("¿a qué hora tengo la alarma?", "list_alarms", {}),
@@ -119,3 +125,16 @@ def test_found_by_the_battery(
 def test_stop_doing_something_is_not_pausing_music(text: str, index: SystemIndex) -> None:
     got = routed(text, index)
     assert got is None or got[0] != "media_control", got
+
+
+@pytest.mark.parametrize(
+    ("text", "tool", "args"),
+    [
+        # Muletillas al principio (ERRORES.md, 2026-11-14).
+        ("Vale, ábreme la Netflix.", "open_url", {"target": "Netflix"}),
+        ("Venga, pon música", "media_control", {"action": "play", "music": True}),
+        ("Bueno, ¿cuánta batería me queda?", "system_info", {"what": "battery"}),
+    ],
+)
+def test_leading_fillers(text: str, tool: str, args: dict[str, Any], index: SystemIndex) -> None:
+    assert routed(text, index) == (tool, args)

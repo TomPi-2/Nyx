@@ -118,7 +118,7 @@ Los atajos siguen el idioma de Windows (en español, «nuevo» es Ctrl+U y «gua
 | Actualidad | «¿quién ganó ayer el Madrid?» (noticias y resultados) | En parte (`web_search` lee lo que dan DuckDuckGo y las páginas; sin servicio de noticias, nada de pago: decisión del 2026-11-13) |
 | Definiciones y sinónimos | «otra palabra para bonito» | Hecho (LLM) |
 | Sobre el PC | «¿cuánta RAM uso?», «¿qué consume más CPU?», «temperatura de la gráfica» | Hecho (batería, CPU, RAM, disco, procesos) |
-| Sobre la red | «¿cuál es mi IP?», «¿va bien internet?» | En parte (la IP: `run_powershell`, verde por ser de solo lectura; «¿va bien internet?»: 0.7+) |
+| Sobre la red | «¿cuál es mi IP?», «¿va bien internet?» | En parte (la IP local: `system_info`, por regla y sin el modelo; la pública y «¿va bien internet?»: 0.7+) |
 | Lo que hay en pantalla | «¿qué pone aquí?», «resume esta página» (nunca en juegos) | Idea |
 
 ## 7. Escribir y portapapeles

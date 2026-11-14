@@ -98,9 +98,35 @@ def _adds_nothing(secondary: str, display: str) -> bool:
     return bool(small) and small <= big
 
 
-def tidy(display: str, secondary: str = "", spoken: str = "") -> tuple[str, str]:
-    """El panel listo para enseñar: (línea grande, línea pequeña o «»)."""
+def _stems(text: str) -> set[str]:
+    """Raíces de las palabras con contenido (5 letras: «descansar» = «descansa»)."""
+    return {w[:5] for w in _words(text) if len(w) >= 4}
+
+
+def unrelated(display: str, secondary: str, spoken: str, asked: str = "") -> bool:
+    """¿La cabecera no tiene nada que ver con lo que se dice ni con lo que se pidió?
+
+    El modelo a veces escribe una palabra suelta sin relación («[Noche]» a las 01:30 para un
+    chiste o «[Partida]»; ERRORES.md, 2026-11-14) y, como la memoria guarda la cabecera, la
+    repite en todas las respuestas siguientes. Solo se mira una cabecera corta: con números
+    («3 %», «1.440 minutos») vale siempre, porque la voz los dice en letra.
+    """
+    if not spoken or len(_words(display)) > 3 or any(c.isdigit() for c in display):
+        return False
+    head = _stems(f"{display} {secondary}")
+    if not head:
+        return False
+    return not head & _stems(f"{spoken} {asked}")
+
+
+def tidy(display: str, secondary: str = "", spoken: str = "", asked: str = "") -> tuple[str, str]:
+    """El panel listo para enseñar: (línea grande, línea pequeña o «»).
+
+    `asked`: lo que se pidió, para saber si una cabecera del modelo tiene que ver con algo.
+    """
     display, secondary = display.strip(), (secondary or "").strip()
+    if asked and unrelated(display, secondary, spoken, asked):
+        display, secondary = first_sentence(spoken.strip()), ""
     if spoken and " ".join(_words(display)) in BARE:
         first = first_sentence(spoken.strip())
         if len(_words(first)) > len(_words(display)):

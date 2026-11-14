@@ -53,6 +53,10 @@ def test_feminine_for_hours() -> None:
         ("Hace -3 grados", "Hace menos tres grados"),
         ("En 2026", "En dos mil veintiséis"),
         ("Hola, ¿qué tal?", "Hola, ¿qué tal?"),
+        (
+            "IP: 192.168.1.36",
+            "IP: ciento noventa y dos punto ciento sesenta y ocho punto uno punto treinta y seis",
+        ),
     ],
 )
 def test_to_spoken(text: str, spoken: str) -> None:

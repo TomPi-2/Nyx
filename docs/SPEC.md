@@ -232,7 +232,7 @@ Unas 35 herramientas genéricas cubren miles de peticiones al combinarse. Cada u
 | `send_hotkey` | Envía un atajo de teclado | Amarillo | SendInput; lista de atajos peligrosos bloqueada |
 | `wait_for_window` | Espera a que aparezca una ventana | Verde | Interno del ejecutor |
 | `system_power` | Bloquear, suspender, reiniciar, apagar | Rojo (bloquear: verde) | APIs de Windows |
-| `system_info` | Batería, CPU, RAM, GPU, espacio en disco | Verde | psutil |
+| `system_info` | Batería, CPU, RAM, GPU, espacio en disco, IP local | Verde | psutil |
 | `nyx_control` | Cambiar ajustes de Nyx por voz ("modo silencio", "habla más despacio") | Verde | Settings |
 | `run_powershell` | Comodín para lo que no cubre nada más | Rojo; verde si solo lee | Muestra el comando antes; lista de bloqueo con el analizador de PowerShell; si el análisis falla, no se ejecuta. Verde sin preguntar solo si todo el comando es de una lista cerrada de consultas (`Get-Date`, `Get-Process`, `Get-NetIPAddress`…) y de formato, sin leer archivos, sin asignaciones, redirecciones, otro equipo ni métodos salvo los de cálculo |
 | `install_app` | Instalar o desinstalar un programa | Rojo siempre | winget; confirma nombre exacto, editor e id; nunca adivina entre varios |

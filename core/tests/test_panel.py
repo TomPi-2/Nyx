@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from nyx.brain.panel import capitalize, is_sentence, tidy
+from nyx.brain.panel import capitalize, is_sentence, tidy, unrelated
 
 
 @pytest.mark.parametrize(
@@ -126,3 +126,35 @@ def test_fixed_texts_keep_their_accents() -> None:
                 if missing := words & need:
                     bad.append(f"{path.name}:{node.lineno} {sorted(missing)} {node.value[:60]!r}")
     assert bad == []
+
+
+# Cabeceras del modelo sin relación con nada (ERRORES.md, 2026-11-14: «[Noche]» a todo).
+@pytest.mark.parametrize(
+    ("display", "secondary", "spoken", "asked", "want"),
+    [
+        ("Noche", "", "¡Guau guau! ¿Qué tal, amigo?", "Hazme la voz de un perro.", True),
+        ("Noche", "", "Hoy es sábado 14 de noviembre de 2026.", "¿Qué día es hoy?", True),
+        ("Partida", "", "Eso lo decido yo.", "¿Cuál es mi P?", True),
+        # Tienen que ver con lo dicho o con lo pedido: se quedan.
+        ("Fidelidad", "koden", "En japonés se dice koden.", "¿Cómo se dice fidelidad?", False),
+        ("Buenas noches", "", "Que descanses.", "Buenas noches, Nyx", False),
+        ("Toca descansar", "", "Descansa, que mañana madrugas.", "Me voy a dormir", False),
+        ("Un agujero negro", "", "Un agujero negro es una región…", "¿Qué es?", False),
+        # Números y cabeceras largas no se miran.
+        ("3 %", "probabilidad de lluvia", "Mañana, un tres por ciento.", "¿Lloverá?", False),
+        ("Aún no sé hacer eso", "", "Puedo abrirte la app.", "Tweet.", False),
+        ("IP", "", "Tu IP es esta.", "¿Cuál es mi IP?", False),
+    ],
+)
+def test_unrelated(display: str, secondary: str, spoken: str, asked: str, want: bool) -> None:
+    assert unrelated(display, secondary, spoken, asked) is want
+
+
+def test_tidy_replaces_an_unrelated_header() -> None:
+    spoken = "El aire dispersa más la luz azul. Por eso lo ves así."
+    assert tidy("Noche", "", spoken, "¿Por qué el cielo es azul?") == (
+        "El aire dispersa más la luz azul.",
+        "",
+    )
+    # Sin saber qué se pidió (avisos, alarmas), no se toca.
+    assert tidy("Noche", "", spoken) == ("Noche", "")

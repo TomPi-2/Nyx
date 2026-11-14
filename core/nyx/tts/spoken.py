@@ -121,6 +121,12 @@ _TIME = re.compile(r"\b([01]?\d|2[0-3]):([0-5]\d)(?!\d)(\s*h\b)?")
 _DECIMAL = re.compile(r"\b(\d+),(\d+)\b|\b(\d+)\.(\d{1,2}|\d{4,})\b")
 _THOUSANDS = re.compile(r"\b\d{1,3}(?:\.\d{3})+\b")  # 1.000, 25.000.000
 _INTEGER = re.compile(r"\b\d+\b")
+# Direcciones IP: cada número por separado («ciento noventa y dos punto ciento sesenta y ocho…»).
+_IPV4 = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
+
+
+def _ip(m: re.Match[str]) -> str:
+    return " punto ".join(number_words(int(part)) for part in m.group().split("."))
 
 
 def _any_decimal(m: re.Match[str]) -> str:
@@ -136,7 +142,8 @@ def to_spoken(text: str) -> str:
     """El texto con las cifras y los símbolos tal como se dicen."""
     if not re.search(r"[\d%°€$×÷=+]", text):
         return text
-    out = _TIME.sub(_time, text)
+    out = _IPV4.sub(_ip, text)
+    out = _TIME.sub(_time, out)
     for pattern, words in _SYMBOLS:
         out = pattern.sub(words, out)
     out = _THOUSANDS.sub(_integer, out)

@@ -97,3 +97,19 @@ async def test_multi_step_plans_are_not_learned(tmp_path: Path) -> None:
     await h.p.wait_idle()
     assert store.all() == []
     await h.p.close()
+
+
+async def test_an_action_left_for_after_the_game_is_not_learned(tmp_path: Path) -> None:
+    """En partida se deja para después: aún no se sabe si funciona (ERRORES.md, 2026-11-14:
+    «Põ muusiga» → la web «Spotify», que luego no existía)."""
+    h = Harness()
+    deferred = ToolResult(ok=True, message="Te lo hago al terminar", data={"deferred": True})
+    executor = with_router(h, None, [deferred])
+    executor.registry = default_registry()  # type: ignore[attr-defined]
+    store = ShortcutStore(tmp_path / "s.db")
+    h.p.shortcuts = store
+    h.llm.plans = [[LLMToolCall("open_url", {"target": "Spotify"})]]
+    await h.bus.publish(TextEntered("pon musica"))
+    await h.p.wait_idle()
+    assert store.all() == []
+    await h.p.close()
