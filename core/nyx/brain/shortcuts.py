@@ -198,6 +198,14 @@ class ShortcutStore:
             )
         return [ToolCall(step["name"], step["arguments"]) for step in json.loads(row[0])]
 
+    def all_plans(self) -> list[tuple[str, list[str], int]]:
+        """(frase, herramientas de cada paso, usos) de los planes aprendidos (Ajustes)."""
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT phrase, calls, uses FROM plans ORDER BY uses DESC, phrase"
+            ).fetchall()
+        return [(p, [step["name"] for step in json.loads(c)], int(u)) for p, c, u in rows]
+
     def forget_all(self) -> int:
         """Olvida todos los atajos aprendidos (Ajustes → Cerebro, 6.24). Devuelve cuántos."""
         with self._lock:

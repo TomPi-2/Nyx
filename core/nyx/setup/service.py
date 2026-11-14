@@ -125,6 +125,11 @@ class SetupService:
             if shortcuts is None
             else [
                 {"phrase": s.phrase, "tool": s.call.name, "uses": s.uses} for s in shortcuts.all()
+            ]
+            + [
+                # Planes de varios pasos (7.16): se olvidan igual que un atajo.
+                {"phrase": phrase, "tool": "plan", "steps": steps, "uses": uses}
+                for phrase, steps, uses in shortcuts.all_plans()
             ],
             "samples": _count(self.root.joinpath(*SAMPLES_DIR), "*.wav"),
             "activations": _count(self.root / "activaciones", "*.jsonl"),

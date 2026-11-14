@@ -110,7 +110,9 @@
       {#each shortcuts as shortcut (shortcut.phrase)}
         <Row
           label="«{shortcut.phrase}»"
-          hint="{toolLabel(shortcut.tool)} · {shortcut.uses === 1
+          hint="{shortcut.steps
+            ? shortcut.steps.map(toolLabel).join(' → ')
+            : toolLabel(shortcut.tool)} · {shortcut.uses === 1
             ? 'usado 1 vez'
             : `usado ${shortcut.uses} veces`}"
         >

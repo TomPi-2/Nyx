@@ -195,7 +195,8 @@ export interface SetupStatus {
     scanning: boolean;
     everything: boolean;
   } | null;
-  shortcuts: { phrase: string; tool: string; uses: number }[];
+  /** v18: los planes de varios pasos (7.16) llegan con tool «plan» y sus pasos. */
+  shortcuts: { phrase: string; tool: string; uses: number; steps?: string[] }[];
   samples: number;
   activations: number;
   /** v13: tarjeta gráfica, modelos posibles y el recomendado. */
