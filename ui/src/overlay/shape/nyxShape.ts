@@ -48,6 +48,8 @@ const UNIFORMS = [
   "uTime",
   "uSquash",
   "uColor",
+  "uFill",
+  "uEmpty",
 ] as const;
 
 /** Muelle crítico-amortiguado sencillo: el valor va hacia su objetivo con algo de rebote. */
@@ -145,6 +147,13 @@ export class NyxShape {
   private grayTarget = 1;
   /** Color elegido en Apariencia (0–1); blanco por defecto. */
   private color: [number, number, number] = [1, 1, 1];
+  /** El instalador (9.08): sin girar (los bordes siguen vivos). La isla siempre gira. */
+  spin = true;
+  /** El instalador: se llena como un vaso hasta este nivel (0–1); null = entera. */
+  private fill: number | null = null;
+  private fillShown = 0;
+  /** Lo que aún no está lleno: este color y opacidad (0–1). */
+  private empty: [number, number, number, number] = [0.5, 0.5, 0.52, 0.28];
   private readonly s = {
     scale: new Spring(0, 90, 9), // aparición con rebote
     merge: new Spring(1, 60, 11), // 1 = un cuadrado, 0 = cuatro
@@ -272,6 +281,12 @@ export class NyxShape {
     this.color = rgb;
   }
 
+  /** Llenarse hasta `level` (0–1) con un oleaje suave en la superficie; null = entera. */
+  setFill(level: number | null, empty?: [number, number, number, number]): void {
+    this.fill = level === null ? null : Math.min(1, Math.max(0, level));
+    if (empty) this.empty = empty;
+  }
+
   setBackdrop(luma: number): void {
     this.grayTarget = luma > 0.85 ? 0.62 : luma > 0.7 ? 0.86 : 1;
   }
@@ -345,7 +360,7 @@ export class NyxShape {
       ? quarterPerLoop * (1 + 0.75 * Math.sin(phase))
       : quarterPerLoop * 0.5;
     this.rate += (rateTarget - this.rate) * Math.min(1, dt * 3);
-    this.angle += this.rate * dt * speed;
+    this.angle += this.rate * dt * speed * (this.spin ? 1 : 0);
     this.waitMix += ((waitingNow ? 1 : 0) - this.waitMix) * Math.min(1, dt * 4);
     const globalAngle = this.angle;
     // Al pensar, los giros cuentan desde que empezó a pensar (si no, al separarse recorrían
@@ -416,6 +431,14 @@ export class NyxShape {
     const g = this.gray;
     const [cr, cg, cb] = this.color;
     gl.uniform3f(u.uColor, cr * g, cg * g, cb * g);
+    // Lleno hasta un nivel (instalador): la línea sube con suavidad, en píxeles del lienzo.
+    if (this.fill !== null) {
+      this.fillShown += (this.fill - this.fillShown) * Math.min(1, dt * 4);
+      gl.uniform1f(u.uFill, cy + half - 2 * half * this.fillShown);
+    } else {
+      gl.uniform1f(u.uFill, -1e6);
+    }
+    gl.uniform4f(u.uEmpty, ...this.empty);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
 }

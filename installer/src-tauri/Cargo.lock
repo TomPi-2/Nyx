@@ -1939,9 +1939,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "nyx-glass"
+version = "0.0.0"
+dependencies = [
+ "raw-window-handle",
+ "serde",
+ "tauri",
+ "windows",
+ "windows-numerics",
+]
+
+[[package]]
 name = "nyx-installer"
 version = "0.0.0"
 dependencies = [
+ "nyx-glass",
  "serde",
  "serde_json",
  "sha2",

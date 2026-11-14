@@ -28,6 +28,7 @@ from typing import Any
 
 import httpx
 
+from nyx import errors
 from nyx.brain.shortcuts import ShortcutStore
 from nyx.bus import EventBus
 from nyx.events import (
@@ -73,6 +74,7 @@ class SetupService:
         self.whisper_server = whisper_server
         self.root = root or local_dir()
         self._downloading = False
+        self._failed_code = errors.DOWNLOAD_FAILED  # el de la última descarga que falló
         self._scanning = False
         self._mic: asyncio.Task[None] | None = None
         self._installing = False
@@ -176,6 +178,7 @@ class SetupService:
         if self._downloading:
             return
         self._downloading = True
+        self._failed_code = errors.DOWNLOAD_FAILED
         await self._publish_status()
         loop = asyncio.get_running_loop()
         failed: list[str] = []
@@ -184,16 +187,23 @@ class SetupService:
                 try:
                     await asyncio.to_thread(self._download_one, model, loop)
                 except (DownloadError, OSError) as err:
-                    log.warning("No se pudo descargar %s: %s", model.filename, err)
+                    code = err.code if isinstance(err, DownloadError) else errors.DOWNLOAD_FAILED
+                    log.warning("%s: no se pudo descargar %s: %s", code, model.filename, err)
                     failed.append(model.filename)
+                    self._failed_code = code
+                    text = errors.coded(code, f"No he podido descargar {model.filename}")
                     await self.bus.publish(
-                        SetupProgress(model.key, model.filename, 0, model.size_mb, True, str(err))
+                        SetupProgress(model.key, model.filename, 0, model.size_mb, True, text)
                     )
             if not await self._pull_ollama():
                 failed.append(self.settings.llm.model)
         finally:
             self._downloading = False
-        message = "No se pudo descargar: " + ", ".join(failed) if failed else None
+        message = (
+            errors.coded(self._failed_code, "No se pudo descargar: " + ", ".join(failed))
+            if failed
+            else None
+        )
         await self.bus.publish(SetupResult("download", not failed, message))
         await self._publish_status()
 
@@ -219,11 +229,16 @@ class SetupService:
             return True
         key, label = "ollama-app", "Ollama"
         await self.bus.publish(SetupProgress(key, label, 0, 1))
-        ok = ollama.installed() or await ollama.install()
-        ok = ok and await ollama.start(self.settings.llm.host)
-        error = None if ok else "No he podido instalar ni abrir Ollama"
-        await self.bus.publish(SetupProgress(key, label, 1 if ok else 0, 1, True, error))
-        return ok
+        error = None
+        if not ollama.installed() and not await ollama.install():
+            error = errors.coded(errors.OLLAMA_INSTALL, "No he podido instalar Ollama")
+        elif not await ollama.start(self.settings.llm.host):
+            error = errors.coded(errors.OLLAMA_START, "Ollama no responde")
+        if error is not None:
+            self._failed_code = errors.code_of(error) or errors.OLLAMA_INSTALL
+            log.warning("%s", error)
+        await self.bus.publish(SetupProgress(key, label, 0 if error else 1, 1, True, error))
+        return error is None
 
     async def _pull_ollama(self) -> bool:
         """Descarga el modelo de Ollama configurado si no lo tiene (instala Ollama si falta)."""
@@ -255,8 +270,10 @@ class SetupService:
                         last = now
                         await self.bus.publish(SetupProgress(key, name, done / MB, total / MB))
         except (httpx.HTTPError, DownloadError, ValueError) as err:
-            log.warning("No se pudo descargar %s en Ollama: %s", name, err)
-            await self.bus.publish(SetupProgress(key, name, 0, 0, True, str(err)))
+            log.warning("%s: no se pudo descargar %s en Ollama: %s", errors.BRAIN_PULL, name, err)
+            self._failed_code = errors.BRAIN_PULL
+            text = errors.coded(errors.BRAIN_PULL, "No he podido bajar mi cerebro")
+            await self.bus.publish(SetupProgress(key, name, 0, 0, True, text))
             return False
         await self.bus.publish(SetupProgress(key, name, 1, 1, True))
         return True

@@ -20,7 +20,7 @@ use tokio::sync::Notify;
 use velopack::sources::GithubSource;
 use velopack::{UpdateCheck, UpdateInfo, UpdateManager, UpdateOptions};
 
-use crate::core_process;
+use crate::{core_process, errors};
 
 /// Repositorio oficial: solo de aquí (HTTPS) se descargan versiones.
 const REPO: &str = "https://github.com/TomPi-2/Nyx";
@@ -73,10 +73,19 @@ pub async fn update_apply(app: AppHandle) -> Result<(), String> {
     let manager = manager(beta)?;
     // El núcleo se para antes (sus servicios se cierran al morir: whisper-server, Ollama no).
     core_process::stop(&app).await;
-    // Sale de la app; Velopack aplica la versión y vuelve a abrir Nyx.
-    manager
-        .apply_updates_and_restart(&info)
-        .map_err(|e| e.to_string())
+    // Sale de la app; Velopack aplica la versión y vuelve a abrir Nyx. Si no puede, Nyx
+    // sigue con la versión que tenía: el núcleo vuelve a arrancar y se avisa.
+    manager.apply_updates_and_restart(&info).map_err(|e| {
+        eprintln!("[nyx] {}: no se pudo aplicar: {e}", errors::UPDATE_APPLY);
+        core_process::resume(&app);
+        errors::notify(
+            &app,
+            errors::UPDATE_APPLY,
+            "No he podido actualizarme",
+            "Sigo con la versión que tenías.",
+        );
+        e.to_string()
+    })
 }
 
 fn channel(app: &AppHandle) -> String {
@@ -138,13 +147,19 @@ fn check_and_download(beta: bool) -> Option<UpdateInfo> {
         Ok(UpdateCheck::UpdateAvailable(info)) => match manager.download_updates(&info, None) {
             Ok(()) => Some(*info),
             Err(err) => {
-                eprintln!("[nyx] actualización: no se pudo descargar: {err}");
+                eprintln!(
+                    "[nyx] {}: no se pudo descargar la actualización: {err}",
+                    errors::UPDATE_DOWNLOAD
+                );
                 None
             }
         },
         Ok(_) => None,
         Err(err) => {
-            eprintln!("[nyx] actualización: no se pudo comprobar: {err}");
+            eprintln!(
+                "[nyx] {}: no se pudo comprobar si hay actualización: {err}",
+                errors::UPDATE_CHECK
+            );
             None
         }
     }

@@ -1,6 +1,7 @@
 //! Proceso principal de Nyx: bandeja, instancia única, ventanas y núcleo Python.
 
 mod core_process;
+mod errors;
 mod glass;
 mod hotkeys;
 mod input;
@@ -50,6 +51,7 @@ pub fn run() {
             welcome_window::welcome_open,
             welcome_window::open_folder,
             wave::wave_play,
+            errors::open_error,
             updater::update_configure,
             updater::update_apply,
             wave::wave_done,

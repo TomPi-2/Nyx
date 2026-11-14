@@ -118,13 +118,23 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
       usuario). ¿Lo quieres?
     - **«Arrancar con Windows»** viene encendido y lo pone el instalador; aún no hay un
       interruptor en Ajustes para quitarlo. ¿Lo añado en General?
-    - El cristal del instalador es el de CSS (no el motor de la app): pesa menos. ¿Vale así?
+    - ~~El cristal del instalador, el de CSS~~ **Hecho tras tu prueba:** el del motor (si la
+      gráfica puede, con el borde moviéndose siempre) y la forma real de Nyx, sin girar,
+      llenándose con el porcentaje.
     - **whisper-server** para publicar tiene que ser el compilado sin `GGML_NATIVE` (con las
       variantes de CPU): el de `C:\dev\tools` ahora mismo solo trae `ggml-cpu.dll`, que es el
       que se caía en el portátil.
-    - **Versión:** para probar he construido una 0.9.0 sin cambiar el código. ¿Con qué número
-      sale la primera versión pública?
+    - ~~Versión~~ **0.9.0, beta** (tu decisión, 2026-11-14): ya en el código.
     - Sin firma, SmartScreen avisará al abrir «Instalar Nyx.exe» (SignPath en la 9.09).
+    - **El fallo de tu prueba:** Nyx sí se instaló (dos veces; `velopack.log` dice «completed
+      successfully»), pero el instalador buscaba `nyx-ui.exe` y Velopack deja `Nyx.exe`. Ya
+      corregido. Te ha quedado instalada en `%LOCALAPPDATA%\TepnyxNyx` con un acceso directo
+      en el escritorio que puso Velopack por su cuenta (ya no lo hará). Al instalar la nueva
+      encima se arregla; o desinstálala desde Configuración → Aplicaciones (tus datos se
+      quedan).
+    - **Códigos de error** (`docs/CODIGOS-DE-ERROR.md`): enlazan a `tepnyx.com/nyx/errores`,
+      que aún no existe. ¿Hago esa página en la web de Tepnyx (`../Decider/tepnyx_website`)
+      o irá en una web propia de Nyx? El catálogo ya está escrito para copiarlo.
 
 ## Qué probar
 

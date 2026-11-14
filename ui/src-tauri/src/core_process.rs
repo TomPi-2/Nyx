@@ -11,6 +11,8 @@ use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
+
+use crate::errors;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::Notify;
@@ -62,6 +64,14 @@ pub async fn stop(app: &AppHandle) {
     let _ = tokio::time::timeout(Duration::from_secs(10), stopped).await;
 }
 
+/// Vuelve a lanzar el núcleo tras `stop` (la actualización no se ha podido aplicar).
+pub fn resume(app: &AppHandle) {
+    let state = app.state::<Arc<CoreState>>().inner().clone();
+    if state.stopping.swap(false, Ordering::SeqCst) {
+        tauri::async_runtime::spawn(supervise(app.clone(), state));
+    }
+}
+
 /// Ajustes → «Reiniciar ahora» (y Ayuda → Reiniciar Nyx): lo mismo que la bandeja.
 #[tauri::command]
 pub fn core_restart(app: AppHandle) {
@@ -77,9 +87,17 @@ async fn supervise(app: AppHandle, state: Arc<CoreState>) {
     let mut failures = 0u32;
     loop {
         let started = Instant::now();
+        // Si ni siquiera se lanza (falta o un antivirus lo bloquea), es otro código.
+        let mut missing = false;
         match run_once(&app, &state).await {
             Ok(status) => eprintln!("[nyx] el núcleo terminó: {status}"),
-            Err(err) => eprintln!("[nyx] no se pudo lanzar el núcleo: {err}"),
+            Err(err) => {
+                missing = true;
+                eprintln!(
+                    "[nyx] {}: no se pudo lanzar el núcleo: {err}",
+                    errors::CORE_MISSING
+                );
+            }
         }
         if let Ok(mut endpoint) = state.endpoint.lock() {
             *endpoint = None;
@@ -100,6 +118,18 @@ async fn supervise(app: AppHandle, state: Arc<CoreState>) {
                 "[nyx] el núcleo ha fallado {failures} veces seguidas; esperando reinicio manual"
             );
             let _ = app.emit("core://failed", ());
+            // Antes no se enseñaba nada: Nyx simplemente no contestaba.
+            let code = if missing {
+                errors::CORE_MISSING
+            } else {
+                errors::CORE_CRASHED
+            };
+            errors::notify(
+                &app,
+                code,
+                "Nyx no puede arrancar",
+                "Prueba con la bandeja → Reiniciar núcleo.",
+            );
             state.restart.notified().await;
             failures = 0;
         } else {

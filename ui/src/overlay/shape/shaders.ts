@@ -19,6 +19,8 @@ uniform float uAudio;      // nivel de voz (0-1)
 uniform float uTime;
 uniform vec2 uSquash;      // estirar/aplastar al hablar
 uniform vec3 uColor;
+uniform float uFill;       // instalador: altura (px) del nivel; por encima, uEmpty (-1e6 = entera)
+uniform vec4 uEmpty;       // color y opacidad de lo que aún no está lleno
 
 // Ruido simplex 3D (Ashima Arts, MIT)
 vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
@@ -78,6 +80,12 @@ void main(){
   // Color plano: todo el cuadrado exactamente del color elegido (6.23). El sombreado de antes
   // (borde un 7 % más oscuro y una luz según la pendiente) partía la forma en cuatro triángulos
   // por las diagonales, que con colores se notaban; y calculaba la forma 5 veces por píxel.
-  gl_FragColor = vec4(uColor*alpha, alpha);
+  // Llena como un vaso (instalador, 9.08): por encima del nivel, el color de «vacío», con un
+  // oleaje suave en la superficie.
+  float level = uFill + 3.0 * sin(p.x * 0.06 + uTime * 2.4) + 2.0 * sin(p.x * 0.11 - uTime * 1.7);
+  float full = clamp(p.y - level + 0.5, 0.0, 1.0);
+  vec4 filled = vec4(uColor * alpha, alpha);
+  vec4 empty = vec4(uEmpty.rgb * uEmpty.a * alpha, uEmpty.a * alpha);
+  gl_FragColor = mix(empty, filled, full);
 }
 `;

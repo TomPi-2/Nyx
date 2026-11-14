@@ -43,6 +43,10 @@
   const percent = $derived(total > 0 ? Math.round((done / total) * 100) : 0);
 
   const visible = $derived(connected && !gone);
+  /** Código del fallo (docs/CODIGOS-DE-ERROR.md), al principio del texto: «D-201 · …». */
+  const code = $derived(failed?.match(/^([IDAN]-\d{3})\b/)?.[1] ?? null);
+  /** Lo que ha pasado, sin el código delante. */
+  const reason = $derived(failed?.replace(/^[IDAN]-\d{3}\s*·\s*/, "") ?? "");
 
   $effect(() => {
     void invoke("island_set_size", {
@@ -170,13 +174,14 @@
     >
       <div class="head">
         <span class="title">
-          {#if allDone}Todo listo{:else if failed}Sin conexión{:else}Bajando lo que me falta{/if}
+          {#if allDone}Todo listo{:else if failed}No he podido terminar{:else}Bajando lo que me
+            falta{/if}
         </span>
         <span class="sub">
           {#if allDone}
             ✓ Ya lo tengo todo
           {:else if failed}
-            Sigo donde iba en cuanto vuelva.
+            {reason || "Sigo donde iba en cuanto vuelva."}
           {:else}
             {percent} %
           {/if}
@@ -199,7 +204,16 @@
         </div>
       {/each}
       {#if failed}
-        <button onclick={retry}>Reintentar</button>
+        <div class="fail">
+          {#if code}
+            <span class="code">Código {code}</span>
+            <button class="link" onclick={() => void invoke("open_error", { code })}
+              >Qué hacer</button
+            >
+          {/if}
+          <span class="spacer"></span>
+          <button onclick={retry}>Reintentar</button>
+        </div>
       {/if}
     </div>
   </div>
@@ -282,6 +296,28 @@
   .state {
     text-align: right;
     font-variant-numeric: tabular-nums;
+  }
+
+  .fail {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .fail .code {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .spacer {
+    flex: 1;
+  }
+
+  button.link {
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 6px 4px;
   }
 
   button {

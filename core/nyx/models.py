@@ -18,6 +18,7 @@ from pathlib import Path
 
 import httpx
 
+from nyx import errors
 from nyx.paths import models_dir
 
 log = logging.getLogger(__name__)
@@ -125,7 +126,12 @@ MODELS: dict[str, ModelFile] = {m.key: m for m in CATALOG}
 
 
 class DownloadError(Exception):
-    pass
+    """Una descarga que no ha salido. `code`: el de docs/CODIGOS-DE-ERROR.md (D-201 la red,
+    D-202 la huella)."""
+
+    def __init__(self, message: str, code: str = errors.DOWNLOAD_FAILED) -> None:
+        super().__init__(message)
+        self.code = code
 
 
 def sha256_of(path: Path) -> str:
@@ -185,7 +191,9 @@ def download(
                     progress(model, done, total)
         if h.hexdigest() != model.sha256:
             part.unlink(missing_ok=True)
-            raise DownloadError(f"{model.filename}: la huella SHA-256 no coincide")
+            raise DownloadError(
+                f"{model.filename}: la huella SHA-256 no coincide", errors.DOWNLOAD_HASH
+            )
     except httpx.HTTPError as e:
         part.unlink(missing_ok=True)
         raise DownloadError(f"{model.filename}: {e}") from e

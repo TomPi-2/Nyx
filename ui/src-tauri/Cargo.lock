@@ -2277,9 +2277,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "nyx-glass"
+version = "0.0.0"
+dependencies = [
+ "raw-window-handle",
+ "serde",
+ "tauri",
+ "windows",
+ "windows-numerics",
+]
+
+[[package]]
 name = "nyx-ui"
 version = "0.0.0"
 dependencies = [
+ "nyx-glass",
  "raw-window-handle",
  "serde",
  "serde_json",

@@ -1,0 +1,50 @@
+[package]
+name = "nyx-glass"
+version = "0.0.0"
+description = "Motor gráfico de cristal de Nyx (Windows.Graphics.Capture + Direct3D 11 + composición): lo usan la app y el instalador"
+authors = ["Tepnyx"]
+license = "GPL-3.0-only"
+edition = "2024"
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+raw-window-handle = "0.6"
+
+[target.'cfg(windows)'.dependencies]
+# Misma versión que usa Tauri para no compilar dos copias.
+windows = { version = "0.62", features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Dwm",
+  "Win32_Graphics_Gdi",
+  "Win32_System_Com",
+  "Win32_System_Registry",
+  "Win32_UI_Shell",
+  "Win32_UI_HiDpi",
+  "Win32_UI_WindowsAndMessaging",
+  # Motor de cristal (src/glass): Direct3D 11, captura y composición de Windows.
+  "Foundation",
+  "Foundation_Numerics",
+  "Graphics",
+  "Graphics_Capture",
+  "Graphics_DirectX",
+  "Graphics_DirectX_Direct3D11",
+  "System",
+  "UI",
+  "UI_Composition",
+  "UI_Composition_Desktop",
+  "Win32_Graphics_Direct3D",
+  "Win32_Graphics_Direct3D11",
+  "Win32_Graphics_Direct3D_Fxc",
+  "Win32_Graphics_Dxgi",
+  "Win32_Graphics_Dxgi_Common",
+  "Win32_Security",
+  "Win32_System_Power",
+  "Win32_System_Threading",
+  "Win32_System_WinRT",
+  "Win32_System_WinRT_Composition",
+  "Win32_System_WinRT_Direct3D11",
+  "Win32_System_WinRT_Graphics_Capture",
+] }
+# Vector2 de la composición de Windows (misma versión que trae `windows`; MIT/Apache-2.0).
+windows-numerics = "0.3"

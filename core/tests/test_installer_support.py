@@ -124,3 +124,52 @@ def test_download_models_json_flag() -> None:
     args = parse_args(["--download-models", "--json"])
     assert args.download_models and args.json
     assert not parse_args([]).json
+
+
+def test_error_codes_are_in_the_catalog() -> None:
+    """Cada código del núcleo está explicado en docs/CODIGOS-DE-ERROR.md (la página de la web)."""
+    from nyx import errors
+
+    catalog = (Path(__file__).resolve().parents[2] / "docs" / "CODIGOS-DE-ERROR.md").read_text(
+        encoding="utf-8"
+    )
+    codes = [v for k, v in vars(errors).items() if k.isupper() and isinstance(v, str)]
+    codes = [c for c in codes if errors.CODE.match(c)]
+    assert len(codes) >= 5
+    for code in codes:
+        assert f"| {code} |" in catalog, code
+    assert errors.code_of(errors.coded("D-201", "x")) == "D-201"
+    assert errors.code_of("sin código") is None
+
+
+async def test_a_failed_download_carries_its_code(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from nyx.events import SetupResult
+
+    bus = EventBus()
+    seen: list[Any] = []
+
+    async def on_any(e: Any) -> None:
+        seen.append(e)
+
+    bus.subscribe(SetupProgress, on_any)
+    bus.subscribe(SetupResult, on_any)
+    model = models.ModelFile(
+        key="vad", filename="vad.onnx", url="https://x", sha256="0", size_mb=2, license="MIT"
+    )
+    from nyx.setup import service as setup_service
+
+    monkeypatch.setattr(setup_service, "CATALOG", (model,))
+    monkeypatch.setattr(setup_service, "is_present", lambda _m: False)
+
+    def broken(*_: object, **__: object) -> None:
+        raise models.DownloadError("vad.onnx: la huella SHA-256 no coincide", "D-202")
+
+    monkeypatch.setattr(setup_service, "download", broken)
+    service = SetupService(bus, Settings(), root=tmp_path)
+    await service._download()
+    errors_seen = [e.error for e in seen if isinstance(e, SetupProgress) and e.error]
+    assert errors_seen[0].startswith("D-202 · ")
+    result = [e for e in seen if isinstance(e, SetupResult)][-1]
+    assert not result.ok and (result.message or "").startswith("D-202 · ")

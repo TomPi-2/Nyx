@@ -10,6 +10,8 @@
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
+  import { glass, glassShape } from "$lib/glass";
+  import NyxMark from "./NyxMark.svelte";
 
   type Screen = "welcome" | "license" | "options" | "install" | "done";
 
@@ -39,7 +41,17 @@
   let options = $state({ everything: false, autostart: true, shortcut: false });
   let free = $state<number | null>(null);
   let parts = $state<Record<string, Progress>>({});
-  let error = $state<string | null>(null);
+  /** Un fallo con su código (docs/CODIGOS-DE-ERROR.md) para buscarlo en la web. */
+  interface Fail {
+    code: string | null;
+    message: string;
+    detail: string;
+  }
+  let error = $state<Fail | null>(
+    preview && new URLSearchParams(location.search).has("fallo")
+      ? { code: "I-110", message: "La instalación de Nyx ha fallado", detail: "exit 1" }
+      : null,
+  );
   let leaving = $state(false);
 
   const app = $derived(parts["app"]);
@@ -65,15 +77,23 @@
       await invoke("install", { options });
       screen = "done";
       // Se recoge hacia arriba a la derecha, donde Nyx enseña lo que queda por bajar.
-      setTimeout(() => (leaving = true), 900);
-      setTimeout(() => void invoke("launch_nyx").catch((e) => (error = String(e))), 1600);
+      setTimeout(() => {
+        leaving = true;
+        glass.follow(800); // el cristal sigue a la tarjeta mientras se recoge
+      }, 900);
+      setTimeout(() => void invoke("launch_nyx").catch((e) => (error = asFail(e))), 1600);
     } catch (e) {
-      error = String(e);
+      error = asFail(e);
     }
   }
 
-  /** Margen alrededor de la tarjeta para su sombra (la ventana es transparente). */
-  const MARGIN = 20;
+  function asFail(e: unknown): Fail {
+    if (e && typeof e === "object" && "code" in e && "message" in e) return e as Fail;
+    return { code: null, message: "Algo ha fallado", detail: String(e) };
+  }
+
+  /** Margen alrededor de la tarjeta para su sombra y su borde líquido (ventana transparente). */
+  const MARGIN = 36;
   let card: HTMLElement | undefined = $state();
 
   // La ventana mide lo que la tarjeta: lo transparente de alrededor no tapa clics.
@@ -92,11 +112,22 @@
   });
 
   onMount(() => {
+    // El cristal de la app, con el borde siempre en movimiento. Si la tarjeta gráfica no
+    // puede, `<html data-glass="css">` y la tarjeta lleva el tinte de siempre.
+    void glass.attach({
+      quality: "auto",
+      motion: "siempre",
+      dark: matchMedia("(prefers-color-scheme: dark)").matches,
+      lowOpacity: 0.96,
+    });
     void invoke<number | null>("disk_free_gb").then((v) => (free = v));
     const off = listen<Progress>("install://progress", (e) => {
       parts = { ...parts, [e.payload.key]: e.payload };
     });
-    return () => void off.then((f) => f());
+    return () => {
+      void off.then((f) => f());
+      glass.detach();
+    };
   });
 
   function drag(event: MouseEvent) {
@@ -107,10 +138,16 @@
 
 <div class="stage">
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <main class="card" class:to-corner={leaving} onmousedown={drag} bind:this={card}>
+  <main
+    class="card"
+    class:to-corner={leaving}
+    onmousedown={drag}
+    bind:this={card}
+    use:glassShape={{ radius: 28 }}
+  >
     {#if screen === "welcome"}
       <div class="head step-in">
-        <div class="nyx full breathe" aria-hidden="true"></div>
+        <NyxMark />
         <div>
           <div class="title">Hola, soy Nyx</div>
           <div class="sub">
@@ -185,14 +222,12 @@
       <div class="dots"><i></i><i class="on"></i><i></i></div>
     {:else}
       <div class="head step-in">
-        <div class="nyx" class:full={screen === "done"} style:--p="{Math.round(overall * 100)}%">
-          <div class="level"></div>
-        </div>
+        <NyxMark fill={screen === "done" ? 1 : overall} />
         <div>
           <div class="title">{screen === "done" ? "Ya puedo hablar" : "Instalando"}</div>
           <div class="sub">
             {#if error}
-              {error}
+              {error.message}
             {:else if screen === "done"}
               Te espero arriba. Lo que falta lo bajo mientras te pregunto cómo me quieres.
             {:else}
@@ -240,6 +275,18 @@
           </span>
         </div>
       </div>
+      {#if error}
+        <div class="fail">
+          <span class="code">{error.code ? `Código ${error.code}` : "Sin código"}</span>
+          {#if error.code}
+            <button
+              class="btn link"
+              onclick={() => void invoke("open_error", { code: error?.code ?? "" })}
+              >Qué hacer</button
+            >
+          {/if}
+        </div>
+      {/if}
       <div class="actions">
         <span class="spacer"></span>
         {#if error}
@@ -259,6 +306,8 @@
     place-items: center;
   }
 
+  /* Con el motor, el cristal lo dibuja él detrás (con su sombra y su borde líquido); sin él,
+     el tinte de CSS de siempre. */
   .card {
     width: 440px;
     padding: 26px 28px 22px;
@@ -267,6 +316,14 @@
     border-radius: 28px;
     background: var(--tint);
     box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
+  }
+
+  :global(html[data-glass="engine"]) .card {
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .card {
     transition:
       transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
       opacity 0.45s;
@@ -406,68 +463,6 @@
     background: var(--on-active);
   }
 
-  /* La forma de Nyx se llena como un vaso con el progreso (y respira en la bienvenida). */
-  .nyx {
-    position: relative;
-    width: 58px;
-    height: 58px;
-    border-radius: 24px;
-    flex: none;
-    overflow: hidden;
-    background: var(--control);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-  }
-
-  .nyx .level {
-    position: absolute;
-    left: -20%;
-    right: -20%;
-    bottom: 0;
-    height: var(--p, 0%);
-    background: var(--nyx);
-    transition: height 0.4s ease;
-  }
-
-  .nyx .level::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: -6px;
-    height: 12px;
-    border-radius: 45%;
-    background: inherit;
-    animation: slosh 2.4s ease-in-out infinite;
-  }
-
-  .nyx.full {
-    background: var(--nyx);
-  }
-
-  .nyx.breathe {
-    animation: breathe 3s ease-in-out infinite;
-  }
-
-  @keyframes slosh {
-    0%,
-    100% {
-      transform: translateX(-8%) rotate(-3deg);
-    }
-    50% {
-      transform: translateX(8%) rotate(3deg);
-    }
-  }
-
-  @keyframes breathe {
-    0%,
-    100% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.05);
-    }
-  }
-
   /* Barras líquidas, sin bordes; la parte hecha brilla mientras avanza. */
   .track {
     height: 6px;
@@ -521,6 +516,22 @@
     to {
       transform: translateX(200%);
     }
+  }
+
+  .fail {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 6px 6px 14px;
+    border-radius: 16px;
+    background: var(--raised);
+    font-size: 12.5px;
+  }
+
+  .fail .code {
+    flex: 1;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
   }
 
   .state {
@@ -589,8 +600,6 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .nyx.breathe,
-    .nyx .level::before,
     .track .done,
     .step-in,
     .tick {

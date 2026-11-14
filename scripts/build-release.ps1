@@ -83,7 +83,10 @@ Push-Location $Repo
 dotnet tool restore; Check "dotnet tool restore"
 dotnet vpk pack --packId $PackId --packVersion $Version --packDir $Pack --mainExe $MainExe `
   --packTitle "Nyx" --packAuthors "Tepnyx" --icon "$Repo\ui\src-tauri\icons\icon.ico" `
+  --shortcuts StartMenuRoot --runtime win-x64 `
   --outputDir $Out; Check "vpk pack"
+# --shortcuts: solo el menú Inicio. El del escritorio lo pone el instalador si se elige
+# (Velopack lo creaba siempre, aunque la opción estuviera apagada).
 Pop-Location
 
 Step "Huellas"

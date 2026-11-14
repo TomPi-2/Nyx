@@ -25,6 +25,8 @@ uuid = { version = "1", features = ["v4"] }
 raw-window-handle = "0.6"
 tauri-plugin-notification = "2"
 velopack = "1.2.161"
+# Motor de cristal compartido con el instalador (9.08).
+nyx-glass = { path = "../../crates/nyx-glass" }
 
 [target.'cfg(windows)'.dependencies]
 # Misma versión que usa Tauri para no compilar dos copias.
