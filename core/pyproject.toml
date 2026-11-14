@@ -72,6 +72,8 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 "nyx/brain/router/*.py" = ["E501"]
 # Tablas de ejemplos para el LoRA (6.27): se leen mejor en una línea.
 "training/llm/make_dataset.py" = ["E501"]
+# El código que se ejecuta dentro del contenedor va en una cadena (7.05).
+"scripts/sandbox_probe.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"

@@ -468,6 +468,7 @@ Nyx es gratis, de código abierto y funciona en local: todo lo que hoy hace segu
 ### 8.3 Cómo se cobra sin cuenta
 
 - Pago con una plataforma que haga de **vendedor registrado** (Lemon Squeezy o Paddle): se encarga del IVA de cada país de la UE y del resto del mundo, que si no es un trabajo enorme. Stripe es más barato pero el IVA lo gestiona uno.
+- **Las extensiones de pago son siempre de pago único**, de Tepnyx y de terceros: nunca una suscripción, y la compra no caduca (decisión del 2026-11-14). La única suscripción posible es Nyx Plus, porque la nube cuesta dinero cada mes.
 - Se entrega una **licencia firmada** (archivo o código) que Nyx comprueba sin conexión. Sin cuenta para lo gratuito; para Nyx Plus sí hará falta una cuenta, opcional y solo para eso (ya lo prevé la SPEC).
 - Como Nyx es de código abierto, alguien podría saltarse la comprobación. Es normal y se asume: quien paga lo hace por las actualizaciones, el soporte y por apoyar el proyecto.
 

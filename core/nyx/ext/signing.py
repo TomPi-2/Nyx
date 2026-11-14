@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-only OR MIT
+# También con licencia MIT (decisión del 2026-11-14), para el kit de extensiones (7.12-7.13).
 """Firma de las extensiones, lista de revocación y modo desarrollador (tarea 7.08).
 
 Decidido por Claude con permiso del usuario (2026-11-14; a confirmar en `docs/REVISAR.md`):
@@ -33,9 +35,9 @@ SIGNATURE_NAME = "signature"
 DIGEST_DOMAIN = b"nyx-extension-v1\n"
 REVOCATION_DOMAIN = b"nyx-revocation-v1\n"
 
-#: Claves públicas de Tepnyx (id → clave Ed25519 en base64, 32 bytes). Vacío hasta que el
-#: usuario cree la suya con `scripts/sign_extension.py --nueva-clave` y la pegue aquí.
-TRUSTED_KEYS: dict[str, str] = {}
+#: Claves públicas de Tepnyx (id → clave Ed25519 en base64, 32 bytes), creadas con
+#: `scripts/sign_extension.py --nueva-clave`. `tepnyx-1`: la primera, del 2026-11-14.
+TRUSTED_KEYS: dict[str, str] = {"tepnyx-1": "9DtxxkwEwK+dVlPIfgo/MZeCs2c/3rBkwSkRmXL3E84="}
 
 
 class SignatureError(ValueError):

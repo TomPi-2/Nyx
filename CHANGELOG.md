@@ -8,10 +8,11 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
 
 - 0.9, adelantado (`docs/PLAN-0.9.md`, borrador):
   - Aviso de «Nyx listo» en Ajustes → Apariencia (onda por defecto, Nyx aparece y desaparece, o nada) y actualizaciones en Ajustes → General (preguntar, automático o solo avisar; canal estable o beta). Antes de cambiar de versión, Nyx guarda una copia de tus ajustes y datos, y si algo falla al ponerlos al día, vuelve a la copia.
-  - Prototipo del instalador y de la onda de «Nyx listo» (`docs/prototipos/instalador.html`), pendiente del visto bueno.
+  - Prototipo del instalador y de la onda de «Nyx listo» (`docs/prototipos/instalador.html`). Tras verlo el usuario: el tick de cada descarga ya no parpadea, acceso directo en el escritorio opcional (apagado) y el primer arranque empieza en cuanto están el oído y la voz, mientras baja el cerebro.
 - 0.7, extensiones (`docs/PLAN-0.7.md`):
   - Paquetes `.nyxext` con manifiesto estricto, permisos con su forma exacta, instalar, actualizar (si pide más permisos, espera a que los aceptes), desactivar y desinstalar a la papelera, sin reiniciar Nyx y nunca en mitad de una partida. Un paquete malo (rutas que salen de su carpeta, enlaces, zip bomba, un fallo a medias) no deja a Nyx mal.
-  - Firma de Tepnyx (Ed25519); sin firma, solo con el modo desarrollador y la etiqueta «Sin revisar». Lista de revocación firmada.
+  - Firma de Tepnyx (Ed25519, con la primera clave de Tepnyx ya dentro de Nyx); sin firma, solo con el modo desarrollador y la etiqueta «Sin revisar». Lista de revocación firmada. Los módulos que validan las extensiones también tienen licencia MIT, para el kit de extensiones.
+  - Medido cómo encerrar las extensiones con código (`docs/benchmarks/aislamiento-7.05.md`): en un AppContainer, en su propio escritorio y con límites de memoria y procesador, no pueden leer tus archivos, salir a internet, ver tu pantalla ni lanzar otros programas, y Python arranca igual de rápido.
   - Extensiones sin código: atajos de apps (los de Nyx ya son una), preajustes que solo tocan apariencia, voz y tono, conocimiento que Nyx consulta como información de fuera, personalidades y formas de Nyx (contrato en `docs/extensiones/formas.md`).
   - Nyx recuerda los planes de varios pasos que han salido bien y los repite sin pensar la próxima vez (salen en Ajustes → Cerebro, junto a los atajos).
   - Prototipo de Ajustes → Extensiones (`docs/prototipos/extensiones.html`), pendiente del visto bueno.

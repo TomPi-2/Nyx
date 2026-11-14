@@ -58,31 +58,48 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
 8. ~~¿Quién ha creado a Nyx?~~ **Tepnyx** (2026-11-14). Hecho, junto con todo Tepnyx (ver
    «Qué probar», 10).
 
-9. **0.7, aislamiento de las extensiones con código (7.05): necesito tu permiso.** Para medir
-   qué aísla de verdad (token de baja integridad o AppContainer) tengo que descargar el Python
-   «embeddable» oficial de python.org y ejecutarlo encerrado, intentando leer tus Documentos y
-   abrir la red. El modo automático no me deja descargar y ejecutar un programa de internet sin
-   que lo digas. Si te parece bien, dime «adelante con la 7.05» (o añade el permiso). Mientras,
-   las extensiones con código no se ejecutan (no hay host todavía); lo demás de la 0.7 sí está.
-   Según la documentación de Windows, la baja integridad no impide leer tus archivos ni la red;
-   AppContainer sí. Mi propuesta, si las medidas lo confirman: AppContainer sin red.
+9. **0.7, aislamiento (7.05): medido, ¿te vale la propuesta?** (permiso dado el 2026-11-14).
+   Informe completo en `docs/benchmarks/aislamiento-7.05.md`. En corto:
+   - Baja integridad no sirve: lee tus archivos y sale a internet.
+   - AppContainer sin capacidades no lee ni escribe tus archivos y no tiene red ni portapapeles,
+     y Python va igual de rápido (22 ms, 14 MB). Pero en tu escritorio **puede copiar la
+     pantalla**: con un escritorio aparte creado por Nyx (como hace Chromium), ya no.
+   - Queda que puede leer partes del registro que Windows abre a todas las apps (por ejemplo la
+     lista de documentos recientes), sin red para sacarlo. LPAC lo cerraría, pero no arrancó
+     Python a la primera; lo investigo en la 7.06.
+   - **Propuesta:** AppContainer + escritorio aparte + objeto de trabajo (1 proceso, 512 MB, CPU
+     con tope duro, menos aún en partida). **Un cambio sobre HOJA-DE-RUTA §4.4:** hablar con Nyx
+     por la entrada y salida estándar en vez de una tubería con nombre (nadie más puede
+     conectarse y no hay que dar permisos a la tubería). ¿Sigo así con la 7.06?
 
-10. **0.7, firma (7.08), decidido por mí:** Ed25519; la clave privada de Tepnyx en
-    `%APPDATA%\Tepnyx\keys\` del PC que firma (nunca en git); sin firma, solo en modo
-    desarrollador con la etiqueta «sin revisar»; lista de revocación firmada, una vez al día y
-    solo si tienes alguna extensión firmada. **Para crear tu clave** (solo tú, una vez, y guarda
-    copia): desde `core/`, `uv run python scripts/sign_extension.py --nueva-clave tepnyx-1`, y
-    pega la línea que enseña en `TRUSTED_KEYS` (`core/nyx/ext/signing.py`). ¿Te vale así?
+10. ~~Firma (7.08)~~ **Confirmada** (2026-11-14). Tu clave `tepnyx-1` ya está en `TRUSTED_KEYS`
+    (venía sin el id; corregido y comprobado que casa con tu clave privada). La privada está
+    ahora en `%LOCALAPPDATA%\Tepnyx\keys\` (Local no viaja con el perfil; la he movido desde
+    Roaming). **Haz una copia fuera del PC** (un USB o tu gestor de contraseñas): si se pierde,
+    hay que sacar una versión de Nyx con una clave nueva.
 
-12. **0.7, modo Noche (7.10), decidido por mí:** Windows no deja activar la luz nocturna ni «No
-    molestar» de forma oficial, y las formas no oficiales pueden romperse con cualquier
-    actualización. El modo abrirá la página de Configuración y te dirá qué tocar. ¿Te vale?
+12. ~~Modo Noche (7.10)~~ **Confirmado** (2026-11-14): abre Configuración. No hay forma oficial;
+    la no oficial (escribir un dato binario sin documentar del registro) funciona hoy en muchas
+    versiones pero Windows ya la ha cambiado otras veces. Lo automático de verdad lo trae
+    Windows: «Programar luz nocturna» (del atardecer al amanecer), y Nyx puede decirte dónde.
 
-13. **0.7, licencia del kit de extensiones (7.12):** decidiste que el kit sea MIT, pero la
-    validación de manifiestos y paquetes vive en el núcleo (GPL-3.0). Como eres el autor, puedes
-    publicar esos módulos (`core/nyx/ext/manifest.py`, `content.py`, `signing.py`) también con
-    MIT para que el kit los use sin problema. ¿Lo hago así? Mientras, hay una herramienta
-    provisional en el núcleo: `uv run python scripts/nyx_ext.py new|validate|pack`.
+13. ~~Licencia del kit (7.12)~~ **MIT, sí** (2026-11-14). Hecho: `manifest.py`, `content.py` y
+    `signing.py` llevan `GPL-3.0-only OR MIT` (`docs/LICENCIAS.md`).
+
+14. ~~Extensiones de pago~~ **Siempre de pago único** (2026-11-14), de Tepnyx y de terceros:
+    apuntado en HOJA-DE-RUTA §8.3. El manifiesto ya admite `"license": {"type": "paid",
+    "product": …}` y la compra se demostrará con una licencia firmada que Nyx comprueba sin red
+    (ya previsto). Queda para la 1.1: si la compra incluye las versiones mayores futuras.
+
+15. **Instalador: acceso directo y primer arranque** (cambiado en el prototipo, mira el 11):
+    - Acceso directo en el escritorio: **opción en «Opciones», apagada por defecto** (siempre
+      en el menú Inicio). Nyx vive en la bandeja y se llama con la voz o Win+Alt+H; Microsoft
+      recomienda no poner accesos en el escritorio sin preguntar.
+      ¿Prefieres que salga encendida o en la pantalla final?
+    - Primer arranque: **empieza en cuanto están el oído y la voz** (lo segundo que se
+      descarga), mientras el cerebro sigue bajando. Es una conversación guiada (micrófono,
+      «Nyx», ciudad, datos anónimos), así que no necesita el cerebro, y no esperas sin hacer
+      nada. Al acabar el cerebro, «¡Lista!» y la onda.
 
 ## Qué probar
 

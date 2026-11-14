@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-only OR MIT
+# También con licencia MIT (decisión del 2026-11-14), para el kit de extensiones (7.12-7.13).
 """Tipos de extensión sin código (tarea 7.03): acciones por app, preajustes, conocimiento y
 personalidad (HOJA-DE-RUTA §4.3).
 

@@ -8,6 +8,14 @@ cada pieza, comprobado una a una. Lo que necesita una decisión está en **Pendi
 
 - **Código de Nyx:** GPL-3.0 (`LICENSE`). `ui/package.json` y `ui/src-tauri/Cargo.toml` dicen
   `GPL-3.0-only`, y `core/pyproject.toml` también desde el 2026-11-13 (decisión del usuario).
+  **Excepción (2026-11-14, decisión del usuario):** `core/nyx/ext/manifest.py`, `content.py` y
+  `signing.py` son `GPL-3.0-only OR MIT` (cabecera SPDX), para que el kit de extensiones (MIT)
+  valide igual que Nyx. Al montar el kit (7.13) hay que llevarse también, con MIT, lo pequeño
+  que importan del núcleo (`Risk`/`GamePolicy`, la tabla de teclas, `normalize` y la lista de
+  ajustes editables) o copiarlo dentro del kit.
+- **Python de las extensiones (7.05–7.07):** el «embeddable» oficial de python.org (licencia
+  PSF-2.0, compatible con GPL; firmado por la Python Software Foundation). Cuando se distribuya
+  con Nyx, su `LICENSE.txt` va al lado y a los créditos.
 - **Todas las dependencias que se distribuyen son compatibles con GPL-3.0.** Ninguna es de
   pago ni prohíbe distribuir.
 - **Hay que citar autores** (CC BY, ODbL, OFL): falta una pantalla de créditos en Ajustes →

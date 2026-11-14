@@ -1,7 +1,8 @@
 """Firmar extensiones y la lista de revocación con la clave de Tepnyx (tarea 7.08).
 
-La clave privada vive fuera del repositorio, en `%APPDATA%\\Tepnyx\\keys\\` del equipo que
-firma (o donde diga `--clave`). Nunca se sube a git ni se copia a otro sitio.
+La clave privada vive fuera del repositorio, en `%LOCALAPPDATA%\\Tepnyx\\keys\\` del equipo que
+firma (Local: nunca viaja con el perfil), o donde diga `--clave`. Nunca se sube a git ni se
+copia a otro sitio.
 
     uv run python scripts/sign_extension.py --nueva-clave tepnyx-1
         Crea la clave (si no existe) y enseña la línea para `TRUSTED_KEYS` en
@@ -35,7 +36,7 @@ from nyx.ext.store import PackageError, read_package
 
 
 def keys_dir() -> Path:
-    return Path(os.environ.get("APPDATA", Path.home())) / "Tepnyx" / "keys"
+    return Path(os.environ.get("LOCALAPPDATA", Path.home())) / "Tepnyx" / "keys"
 
 
 def key_path(key_id: str) -> Path:
