@@ -26,7 +26,7 @@ from typing import Any
 from nyx.bridge.protocol import PROTOCOL_VERSION, GlassInfo, ToolInfo, VoiceInfo
 from nyx.bridge.server import UIBridge
 from nyx.bus import EventBus
-from nyx.events import TextEntered
+from nyx.events import NyxReady, TextEntered
 from nyx.log import setup_logging
 from nyx.models import MODELS, download_all
 from nyx.paths import logs_dir
@@ -207,6 +207,10 @@ async def run(args: argparse.Namespace) -> int:
             services = await build_services(bus, settings, voice=voice)
             services.pipeline.setup = flow
             flow.speaker_ready.set()
+            if settings.onboarding.done and not args.ask:
+                # Lista: la interfaz lo enseña con la onda o lo elegido en Apariencia (9.04).
+                # En el primer arranque lo dice la configuración guiada al acabar.
+                await bus.publish(NyxReady())
             tasks.append(asyncio.create_task(services.pipeline.run(), name="pipeline"))
             if args.ask:
                 await bus.publish(TextEntered(args.ask))

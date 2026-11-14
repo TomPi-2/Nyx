@@ -744,7 +744,12 @@ fn params(s: &Surface) -> GlassParams {
     for (i, shape) in s.shapes.iter().take(MAX_SHAPES).enumerate() {
         let (hw, hh) = (shape.w * 0.5 * k, shape.h * 0.5 * k);
         p.rects[i] = [shape.x * k + hw, shape.y * k + hh, hw, hh];
-        p.params[i] = [shape.radius * k, shape.wobble.clamp(0.0, 2.0), 0.0, 0.0];
+        p.params[i] = [
+            shape.radius * k,
+            shape.wobble.clamp(0.0, 2.0),
+            shape.ring.max(0.0) * k,
+            0.0,
+        ];
     }
     p
 }

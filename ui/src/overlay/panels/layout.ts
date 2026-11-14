@@ -43,6 +43,9 @@ export type NyxPresence = "coming" | "gone";
  * los paneles y al campo con NYX_EVENT.
  */
 export const INPUT_EVENT = "input://layout";
+
+/** Ajustes → Apariencia → «Probar»: la isla enseña el aviso de «Nyx lista» (9.04). */
+export const READY_TEST_EVENT = "island://ready-test";
 export const PANELS_EVENT = "panels://raised";
 export interface InputLayout {
   open: boolean;

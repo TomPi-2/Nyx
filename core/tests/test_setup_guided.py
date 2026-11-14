@@ -13,6 +13,7 @@ from nyx.audio.playback import Player
 from nyx.bus import EventBus
 from nyx.events import (
     MicLevelChanged,
+    NyxReady,
     SettingsRequested,
     SetupFlowChanged,
     SetupFlowRequested,
@@ -156,6 +157,7 @@ async def setup(
     settings = Settings()
     speaker = FakeSpeaker()
     seen: list[Any] = []
+    switched: list[str] = []
 
     async def on_settings(e: SettingsRequested) -> None:
         assert e.patch is not None
@@ -167,12 +169,16 @@ async def setup(
     bus.subscribe(SettingsRequested, on_settings)
     bus.subscribe(SetupRequested, on_any)
     bus.subscribe(SetupFlowChanged, on_any)
+    bus.subscribe(NyxReady, on_any)
     guided = GuidedSetup(
         bus,
         settings,
         speaker=lambda: speaker,
         mics=lambda: ["Micrófono (Realtek Audio)", "Auriculares HyperX Cloud"],
+        speakers=lambda: ["Altavoces (Realtek Audio)", "Cascos Arctis 7"],
+        switch_output=switched.append,
     )
+    guided.switched = switched  # type: ignore[attr-defined]
     return guided, speaker, settings, seen
 
 
@@ -252,6 +258,29 @@ async def test_panel_buttons_and_live_size(
     assert guided.key == "color"
     await guided.bus.publish(SetupFlowRequested("close"))
     assert not guided.active and settings.onboarding.done is False  # vuelve a salir otro día
+
+
+async def test_speaker_choice_and_ready_wave(
+    setup: tuple[GuidedSetup, FakeSpeaker, Settings, list[Any]],
+) -> None:
+    guided, speaker, settings, seen = setup
+    await guided.start()
+    await guided.hear("empezar")
+    assert guided.snapshot()["speakers"] == ["Altavoces (Realtek Audio)", "Cascos Arctis 7"]
+    await guided.hear("que suene por los cascos")
+    assert settings.audio.output_device == "Cascos Arctis 7"
+    assert guided.switched == ["Cascos Arctis 7"]  # type: ignore[attr-defined]
+    assert speaker.said[-1] == "¿Me oyes bien por aquí?"
+    # Escucha sin «Nyx» desde el principio (antes, solo tras la prueba del micrófono).
+    assert all(listen > 0 for listen in speaker.listen)
+    # Termina con todo descargado: «¡Lista!» y la onda (NyxReady) cuando acaban las descargas.
+    guided.step = len(flow_module.STEPS) - 1
+    await guided.hear("sí")
+    await guided.hear("terminar")
+    assert not any(isinstance(e, NyxReady) for e in seen)  # aún bajando
+    await guided.bus.publish(flow_module.SetupResult("download", True, None))
+    assert any(isinstance(e, NyxReady) for e in seen)
+    assert "¡Lista!" in speaker.said[-1]
 
 
 async def test_skip_from_welcome(

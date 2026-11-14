@@ -8,6 +8,7 @@ mod island;
 mod monitors;
 mod settings_window;
 mod tray;
+mod wave;
 mod welcome_window;
 mod win32;
 
@@ -46,6 +47,8 @@ pub fn run() {
             settings_window::settings_open,
             welcome_window::welcome_open,
             welcome_window::open_folder,
+            wave::wave_play,
+            wave::wave_done,
         ])
         .setup(|app| {
             let handle = app.handle();

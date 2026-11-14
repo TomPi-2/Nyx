@@ -1,5 +1,7 @@
 <!-- Ajustes → Apariencia (SPEC secciones 12 y 13): Nyx y el motor de cristal. -->
 <script lang="ts">
+  import { emitTo } from "@tauri-apps/api/event";
+  import Button from "$lib/controls/Button.svelte";
   import Card from "$lib/controls/Card.svelte";
   import Row from "$lib/controls/Row.svelte";
   import Segmented from "$lib/controls/Segmented.svelte";
@@ -20,6 +22,7 @@
   import { onMount } from "svelte";
   import Select from "$lib/controls/Select.svelte";
   import type { MonitorSettings, ReadyIndicator } from "$lib/protocol";
+  import { READY_TEST_EVENT } from "$overlay/panels/layout";
   import { monitors } from "../monitors.svelte";
   import { settings } from "../store.svelte";
 
@@ -179,6 +182,12 @@
         value={data.appearance.ready_indicator}
         onchange={(ready_indicator) => settings.set({ appearance: { ready_indicator } })}
       />
+    </Row>
+    <Row label="Probarlo" hint="Como al encender el PC, con lo que tengas elegido.">
+      <Button
+        disabled={data.appearance.ready_indicator === "nada"}
+        onclick={() => void emitTo("island", READY_TEST_EVENT)}>Probar</Button
+      >
     </Row>
   </Card>
 

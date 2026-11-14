@@ -332,6 +332,12 @@ class SetupFlowStateMsg(_Msg):
     state: dict[str, Any]
 
 
+class NyxReadyMsg(_Msg):
+    """v20: Nyx está lista; la interfaz enseña la onda (9.04) o lo elegido en Apariencia."""
+
+    type: Literal["nyx_ready"] = "nyx_ready"
+
+
 ServerMessage = Annotated[
     Welcome
     | StateMsg
@@ -348,7 +354,8 @@ ServerMessage = Annotated[
     | SetupProgressMsg
     | MicLevelMsg
     | SetupResultMsg
-    | SetupFlowStateMsg,
+    | SetupFlowStateMsg
+    | NyxReadyMsg,
     Field(discriminator="type"),
 ]
 server_adapter: TypeAdapter[ServerMessage] = TypeAdapter(ServerMessage)

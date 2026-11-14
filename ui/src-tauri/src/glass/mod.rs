@@ -92,6 +92,10 @@ pub struct Shape {
     /// Amplitud relativa del borde líquido de este panel (1 = la de las opciones).
     #[serde(default = "one")]
     pub wobble: f32,
+    /// Grosor del anillo (px CSS): con más de 0 solo se dibuja esa franja junto al borde
+    /// (la onda de «Nyx lista», 9.04). 0 = el panel entero.
+    #[serde(default)]
+    pub ring: f32,
 }
 
 fn one() -> f32 {

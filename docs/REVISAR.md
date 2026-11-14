@@ -137,12 +137,22 @@ activaciones (6.22).
     cambio tu voz?» (Ajustes en Voz). Decider y Sorty son apps del móvil: en el PC Nyx abre su
     página. Si echas en falta alguna pantalla o página, dímela.
 
-12. **Primer arranque guiado de verdad (9.10a)** (reinicia la app entera: protocolo v19).
+12. **Primer arranque guiado de verdad (9.10a)** (reinicia la app entera: protocolo **v20**).
     Ajustes → Ayuda → Primer arranque → «Repetir». Nyx aparece, te habla y saca debajo un panel
-    por paso: micrófono (habla y luego di «Nyx»; desde ahí puedes contestar sin «Nyx»), color
-    («ponte coral»), tamaño («más grande» o arrastrando), paneles, escaneo y datos. Prueba a
-    pulsar «Siguiente» mientras habla: debe callarse en un instante. Cambia tu color y tamaño
-    de verdad (lo puedes volver a poner luego). El panel de descargas solo sale si falta algo.
+    por paso: micrófono (y por dónde suena), color («ponte coral»), tamaño («más pequeño» o
+    arrastrando), paneles, escaneo y datos. **Tras tu primera prueba:** ya no se activa con su
+    propia voz; te escucha sin «Nyx» todo el rato desde la bienvenida (di «empezar»,
+    «siguiente»… cuando acabe de hablar, sin prisa); para cortarla mientras habla, «Nyx,
+    siguiente». Pulsa «Siguiente» mientras habla: debe callarse en un instante. Cambia tu color
+    y tamaño de verdad. El panel de descargas solo sale si falta algo.
+
+13. **La onda de «Nyx lista» (9.04)**: Ajustes → Apariencia → «Al estar lista» → «Probar».
+    Debe salir una onda de cristal desde el sitio de Nyx que deforma lo que hay detrás y cruza
+    tus dos monitores como si fueran uno (según cómo los tengas colocados en Windows), en
+    ~1,7 s, sin quitarte el foco ni bloquear el ratón. Con «Nyx aparece y desaparece», Nyx sale
+    un momento. También sale al arrancar Nyx y al acabar el primer arranque. En partida, con
+    «reducir movimiento» o con el cristal en Bajo, sale Nyx en vez de la onda. Dime si la
+    quieres más lenta, más gruesa o con más brillo.
 
 11. **Prototipos para tu visto bueno** (ábrelos en el navegador):
     - `docs/prototipos/instalador.html`: el instalador entero y la onda de «Nyx listo» cruzando

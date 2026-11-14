@@ -27,6 +27,7 @@ from typing import Any, Literal, Protocol
 from nyx.bus import EventBus
 from nyx.events import (
     MicLevelChanged,
+    NyxReady,
     NyxState,
     SettingsRequested,
     SetupFlowChanged,
@@ -270,6 +271,8 @@ class GuidedSetup:
                 else "¡Lista! Llámame diciendo «Nyx» o con Win + Alt + H."
             )
             await self._say(text)
+            if not self.downloading:
+                await self.bus.publish(NyxReady())  # la onda (9.04)
         else:
             self.active = False
             await self._say("¡Me encanta cómo he quedado!")
@@ -490,6 +493,7 @@ class GuidedSetup:
         self.downloading = False
         if self.finished and event.ok:
             await self._say("¡Lista! Ya tengo todo. Llámame diciendo «Nyx» o con Win + Alt + H.")
+            await self.bus.publish(NyxReady())
         await self._publish()
 
     # --- Voz, ajustes y estado ------------------------------------------------------------------

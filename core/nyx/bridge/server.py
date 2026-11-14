@@ -32,6 +32,7 @@ from nyx.bridge.protocol import (
     LevelMsg,
     LongSectionMsg,
     MicLevelMsg,
+    NyxReadyMsg,
     OpenSettingsMsg,
     PanelNoteMsg,
     ReadingMsg,
@@ -62,6 +63,7 @@ from nyx.events import (
     ExtRequested,
     ExtStatusChanged,
     MicLevelChanged,
+    NyxReady,
     NyxState,
     OpenSettingsWindow,
     PanelNote,
@@ -148,6 +150,7 @@ class UIBridge:
             bus.subscribe(MicLevelChanged, self._on_mic_level),
             bus.subscribe(SetupResult, self._on_setup_result),
             bus.subscribe(SetupFlowChanged, self._on_setup_flow),
+            bus.subscribe(NyxReady, self._on_ready),
         ]
 
     @property
@@ -325,6 +328,9 @@ class UIBridge:
         await self.broadcast(
             SetupResultMsg(action=event.action, ok=event.ok, message=event.message)
         )
+
+    async def _on_ready(self, _: NyxReady) -> None:
+        await self.broadcast(NyxReadyMsg())
 
     async def _on_setup_flow(self, event: SetupFlowChanged) -> None:
         self._setup_flow = SetupFlowStateMsg(state=event.state)

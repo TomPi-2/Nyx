@@ -241,6 +241,12 @@ class SetupFlowChanged:
 
 
 @dataclass(frozen=True, slots=True)
+class NyxReady:
+    """Nyx está lista (al arrancar, o al acabar el primer arranque y las descargas): la
+    interfaz lo enseña según «Al estar lista» (onda, Nyx aparece y desaparece, o nada)."""
+
+
+@dataclass(frozen=True, slots=True)
 class SetupResult:
     action: str
     ok: bool

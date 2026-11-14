@@ -367,7 +367,9 @@ export type ServerMessage =
   | { type: "mic_level"; rms: number }
   | { type: "setup_result"; action: string; ok: boolean; message: string | null }
   /** v19 */
-  | { type: "setup_flow_state"; state: SetupFlowState };
+  | { type: "setup_flow_state"; state: SetupFlowState }
+  /** v20: Nyx está lista (al arrancar o al acabar el primer arranque): la onda (9.04). */
+  | { type: "nyx_ready" };
 
 /** Secciones de la ventana de Ajustes (ui/src/settings/Settings.svelte). */
 export type SettingsSection =

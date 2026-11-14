@@ -81,7 +81,7 @@ cbuffer Glass : register(b0) {
     float gSeed;
     float3 gGlassPad;
     float4 gRects[MAX_SHAPES];   // centro (xy) y semitamaño (zw), px
-    float4 gParams[MAX_SHAPES];  // radio de esquina, amplitud relativa, -, -
+    float4 gParams[MAX_SHAPES];  // radio de esquina, amplitud relativa, grosor del anillo, -
 };
 
 // Ruido simplex 3D de Ashima Arts (MIT), el mismo que la forma de Nyx.
@@ -154,6 +154,11 @@ Nearest nearest(float2 p) {
         float4 r = gRects[k];
         float rad = min(gParams[k].x, min(r.z, r.w));
         float d = sdRoundRect(p - r.xy, r.zw, rad);
+        // Anillo (la onda de «Nyx lista»): solo la franja de este grosor junto al borde.
+        float ring = gParams[k].z;
+        if (ring > 0.0) {
+            d = abs(d + ring * 0.5) - ring * 0.5;
+        }
         if (d < n.d) {
             n.d = d;
             n.wob = gParams[k].y;

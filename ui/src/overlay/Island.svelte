@@ -10,13 +10,20 @@
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
   import { connectCore, type CoreConnection } from "$lib/core";
   import { MOVE_EVENT, MOVE_IN_MS, type MovePhase } from "$lib/motion";
-  import type { MonitorSettings, NyxState, ServerMessage } from "$lib/protocol";
+  import type {
+    GlassInfo,
+    MonitorSettings,
+    NyxState,
+    ReadyIndicator,
+    ServerMessage,
+  } from "$lib/protocol";
   import Indicator from "./shape/Indicator.svelte";
   import { SHAPE_PAD } from "./shape/nyxShape";
   import {
     INPUT_EVENT,
     NYX_EVENT,
     PANEL_MOVE_MS,
+    READY_TEST_EVENT,
     SHAPE_TOP,
     type InputLayout,
     type NyxPresence,
@@ -78,7 +85,36 @@
     }
   });
 
-  const shown = $derived(connected && !hiddenForGame && (active || setupOn || setupLinger));
+  // «Nyx lista» (9.04): la onda que sale de su sitio y cruza los monitores o, si no se puede
+  // (partida, «reducir movimiento», cristal en Bajo o para salir en capturas), Nyx aparece y
+  // desaparece. Lo elegido en Ajustes → Apariencia → «Al estar lista».
+  const GREET_MS = 1800;
+  let readyIndicator: ReadyIndicator = "onda";
+  let glassInfo: GlassInfo | null = null;
+  let greeting = $state(false);
+  let greetTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function ready() {
+    if (readyIndicator === "nada" || hiddenForGame) return;
+    const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const lowGlass = glassInfo?.quality === "bajo" || glassInfo?.show_in_captures === true;
+    if (readyIndicator === "onda" && !game.active && !calm && !lowGlass) {
+      // Del centro de su forma, aunque ahora esté oculta (wave.rs).
+      void invoke("wave_play", { cy: SHAPE_TOP + box / 2 }).catch(greet);
+      return;
+    }
+    greet();
+  }
+
+  function greet() {
+    greeting = true;
+    clearTimeout(greetTimer);
+    greetTimer = setTimeout(() => (greeting = false), GREET_MS);
+  }
+
+  const shown = $derived(
+    connected && !hiddenForGame && (active || setupOn || setupLinger || greeting),
+  );
 
   // Sin Nyx, el panel sube a ocupar su sitio (panels/layout.ts). Esta ventana es la única que
   // sabe si la forma está a la vista (incluido el «pensando» mínimo y la animación de salida),
@@ -93,7 +129,7 @@
   const shapeStatus = $derived<NyxState>(
     hiddenForGame || waitPanel
       ? "idle"
-      : status === "idle" && (setupOn || setupLinger)
+      : status === "idle" && (setupOn || setupLinger || greeting)
         ? "confirm"
         : status,
   );
@@ -176,6 +212,8 @@
       case "welcome":
         size = msg.indicator_size ?? 100;
         color = msg.nyx_color ?? "blanco";
+        readyIndicator = msg.ready_indicator ?? "onda";
+        glassInfo = msg.glass ?? null;
         // Primera vez: el primer arranque guiado por Nyx (9.10; una vez por sesión; si se
         // cierra sin terminar, vuelve a salir la próxima vez que se abra Nyx).
         if (msg.onboarding_done === false && !welcomeAsked) {
@@ -191,6 +229,11 @@
         // Cambiado en Ajustes → Apariencia: se ve al momento.
         size = msg.data.appearance.indicator_size;
         color = msg.data.appearance.nyx_color;
+        readyIndicator = msg.data.appearance.ready_indicator;
+        glassInfo = msg.data.appearance.glass;
+        break;
+      case "nyx_ready":
+        ready();
         break;
       case "open_settings":
         // «Abre tus ajustes»: solo esta ventana lo hace (todas reciben el mensaje).
@@ -224,6 +267,7 @@
     const offInput = getCurrentWebviewWindow().listen<InputLayout>(INPUT_EVENT, (e) => {
       inputOpen = e.payload.open;
     });
+    const offReady = getCurrentWebviewWindow().listen(READY_TEST_EVENT, () => ready());
     // Atajo de hablar (Win+Alt+H): llega del proceso principal y se reenvía al núcleo.
     const offTalk = listen<boolean>("hotkey://talk", (event) => {
       connection.send({ type: "talk", pressed: event.payload });
@@ -233,6 +277,7 @@
       void offTalk.then((off) => off());
       void offMove.then((off) => off());
       void offInput.then((off) => off());
+      void offReady.then((off) => off());
     };
   });
 </script>
