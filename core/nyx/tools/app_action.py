@@ -60,6 +60,7 @@ class AppAction(Tool[AppActionParams]):
     risk = Risk.YELLOW
     game_policy = GamePolicy.BLOCKED
     category = Category.WINDOWS
+    params_model = AppActionParams
 
     def schema(self) -> dict[str, Any]:
         # La lista de acciones, al día: también las de las extensiones instaladas (7.04).
@@ -67,7 +68,6 @@ class AppAction(Tool[AppActionParams]):
         props = out["function"]["parameters"]["properties"]
         props["action"]["description"] = "Acción: " + ", ".join(all_actions())
         return out
-    params_model = AppActionParams
 
     async def prepare(self, params: AppActionParams, ctx: ToolContext) -> Prepared:
         def fail(message: str, hint: str | None = None) -> Prepared:

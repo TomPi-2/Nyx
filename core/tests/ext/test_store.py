@@ -13,6 +13,7 @@ import pytest
 
 from nyx.ext import store as store_mod
 from nyx.ext.store import ExtensionStore, PackageError, read_package
+from tests.ext.conftest import TRUSTED, signed
 
 BASE: dict[str, Any] = {
     "id": "tepnyx.prueba",
@@ -39,7 +40,7 @@ def package(
         zf.writestr("manifest.json", json.dumps(data))
         for member, blob in (files or {"README.md": b"hola"}).items():
             zf.writestr(member, blob)
-    return path
+    return signed(path)
 
 
 class Trash:
@@ -60,7 +61,9 @@ def trash() -> Trash:
 
 @pytest.fixture
 def store(tmp_path: Path, trash: Trash) -> ExtensionStore:
-    return ExtensionStore(tmp_path / "ext", tmp_path / "extensions.json", trash=trash)
+    return ExtensionStore(
+        tmp_path / "ext", tmp_path / "extensions.json", trash=trash, trusted_keys=TRUSTED
+    )
 
 
 def test_install_accept_and_reload(tmp_path: Path, store: ExtensionStore) -> None:

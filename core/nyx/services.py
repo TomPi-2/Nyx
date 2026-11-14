@@ -38,6 +38,7 @@ from nyx.events import (
     SettingsRequested,
 )
 from nyx.executor import Executor
+from nyx.ext import revocation
 from nyx.ext.manager import ExtensionManager
 from nyx.ext.store import ExtensionStore
 from nyx.game.brain import GameBrain
@@ -102,7 +103,7 @@ class Services:
         self.index = index
         self.watcher = watcher
         self.notice: asyncio.Task[None] | None = None
-        self.background: set[asyncio.Task[int]] = set()
+        self.background: set[asyncio.Task[Any]] = set()
         self.extensions: ExtensionManager | None = None
 
     async def close(self) -> None:
@@ -169,7 +170,23 @@ def _extensions(
             await manager.game_ended()
 
     bus.subscribe(GameStateChanged, on_game)
+    manager.set_revocations(revocation.load_cached())
     return manager
+
+
+async def _revocations(manager: ExtensionManager) -> None:
+    """Lista de revocación (7.08): una vez al día, solo con alguna extensión firmada."""
+    import httpx
+
+    while True:
+        signed = [e for e in manager.store.installed() if not e.state.dev]
+        if signed and revocation.due():
+            async with httpx.AsyncClient(follow_redirects=False) as client:
+                fresh = await revocation.refresh(client)
+            if fresh != manager.revocations:
+                manager.set_revocations(fresh)
+                await manager.reload()
+        await asyncio.sleep(3600)
 
 
 async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Services:
@@ -381,6 +398,9 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     if services.extensions.store.installed():
         # Solo si hay alguna: recargar recalienta el modelo con sus herramientas.
         await services.extensions.reload()
+    revocations = asyncio.create_task(_revocations(services.extensions), name="ext-revocations")
+    services.background.add(revocations)
+    revocations.add_done_callback(services.background.discard)
     if index.needs_scan():
         task = asyncio.create_task(index.refresh(), name="index-scan")
         services.background.add(task)

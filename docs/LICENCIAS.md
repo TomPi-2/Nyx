@@ -25,6 +25,7 @@ Sacado de `uv export --no-dev` y de los metadatos de cada paquete instalado.
 | Licencia | Paquetes |
 | --- | --- |
 | MIT / MIT-0 | anyio, cffi, comtypes, fastapi, filelock, h11, onnxruntime, pydantic, pycaw, rapidfuzz, screen-brightness-control, sounddevice, setuptools, typer, urllib3, rich, pyyaml, mss, wmi, winrt-*, einops, pocket-tts (código) y otros |
+| Apache-2.0 o BSD-3 | cryptography (firma de extensiones, 0.7) |
 | BSD-2/3 | httpx, httpcore, click, idna, numpy (+ 0BSD, Zlib, CC0), psutil, send2trash, starlette, uvicorn, websockets, scipy, sympy, networkx, protobuf, pygments, markupsafe, jinja2 |
 | Apache-2.0 | requests, huggingface-hub, hf-xet, watchdog, sentencepiece, tokenizers, safetensors, flatbuffers, vosk, python-multipart, opentelemetry-api, packaging (o BSD) |
 | MPL-2.0 | certifi, tqdm (+ MIT) |

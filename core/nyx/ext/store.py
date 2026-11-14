@@ -203,8 +203,12 @@ class ExtensionStore:
         state_path: Path | None = None,
         *,
         trash: Callable[[Path], None] = _trash,
+        trusted_keys: dict[str, str] | None = None,
     ) -> None:
         self.root = root or default_root()
+        # Claves públicas de Tepnyx (None: las de `signing.TRUSTED_KEYS`; las pruebas ponen
+        # las suyas).
+        self._trusted = trusted_keys
         self.state_path = state_path or default_state_path()
         self._trash = trash
         self._lock = threading.RLock()
@@ -279,8 +283,18 @@ class ExtensionStore:
         `read_package(...)[0].permissions` antes de llamar). Sin aceptar, una extensión nueva
         queda instalada pero desactivada; una actualización con permisos nuevos se prepara y
         la versión anterior sigue funcionando hasta que se acepten.
+
+        `dev`: modo desarrollador. Sin él, el paquete tiene que estar firmado por Tepnyx (7.08);
+        con él, se instala aunque no lo esté y queda marcado «sin revisar».
         """
         manifest, members = read_package(package)
+        if not dev:
+            from nyx.ext.signing import SignatureError, verify_package
+
+            try:
+                verify_package(package, [m for _, m in members], self._trusted)
+            except SignatureError as e:
+                raise PackageError(f"{e}. Sin firma, solo en modo desarrollador") from e
         with self._lock:
             current = self._state.extensions.get(manifest.id)
             if current is not None and _key(manifest.version) < _key(current.version):

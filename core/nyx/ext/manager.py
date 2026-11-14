@@ -26,6 +26,7 @@ from typing import Any
 
 from nyx.brain.select import ToolSelector, _chars
 from nyx.ext.content import ExtContent, Personality, Preset, load_content
+from nyx.ext.signing import RevocationList
 from nyx.ext.store import ExtensionStore, Installed, InstallResult
 from nyx.index.aliases import normalize
 from nyx.tools import app_catalog, nyx_info
@@ -79,6 +80,16 @@ class ExtensionManager:
         self.presets: dict[str, Preset] = {}  # «id/nombre» → preajuste
         self.personalities: dict[str, Personality] = {}
         self.groups: tuple[Group, ...] = ()  # los de las extensiones
+        #: Lista de revocación vigente (7.08): las que estén en ella no se cargan.
+        self.revocations: RevocationList | None = None
+
+    def set_revocations(self, revocations: RevocationList | None) -> None:
+        self.revocations = revocations
+
+    def revoked(self, ext: Installed) -> str | None:
+        if self.revocations is None:
+            return None
+        return self.revocations.reason(ext.id, ext.manifest.version)
 
     # --- operaciones (Ajustes) ---
 
@@ -117,10 +128,16 @@ class ExtensionManager:
                 return
             self._pending = False
             active = await asyncio.to_thread(self.store.active)
+            revoked = {ext.id: why for ext in active if (why := self.revoked(ext))}
+            for ext_id, why in revoked.items():
+                log.warning("Extensión %s retirada por Tepnyx: %s", ext_id, why)
+            active = [ext for ext in active if ext.id not in revoked]
             contents = await asyncio.to_thread(
                 lambda: [(ext, load_content(ext.manifest, ext.path)) for ext in active]
             )
             self.problems = {ext.id: list(content.problems) for ext, content in contents}
+            for ext_id, why in revoked.items():
+                self.problems[ext_id] = [f"Tepnyx la ha retirado: {why}"]
             self._apply_content(contents)
             self._apply_tools(active)
             selector = ToolSelector(
@@ -220,7 +237,7 @@ class ExtensionManager:
                     author=m.author,
                     description=m.description,
                     enabled=ext.state.enabled,
-                    active=ext.active,
+                    active=ext.active and self.revoked(ext) is None,
                     dev=ext.state.dev,
                     permissions=m.permissions,
                     pending_permissions=pending,
