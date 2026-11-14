@@ -190,6 +190,9 @@ class FakePlayer:
     def prepare(self) -> None:
         pass
 
+    def fade_out(self, ms: float = 150.0) -> None:
+        self._released.set()  # el primer arranque se calla con un fundido
+
     def enqueue(self, samples: np.ndarray) -> None:
         self.enqueued += 1
 

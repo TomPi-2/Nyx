@@ -283,6 +283,39 @@ async def test_speaker_choice_and_ready_wave(
     assert "¡Lista!" in speaker.said[-1]
 
 
+async def test_reused_panel_lets_other_requests_through(
+    setup: tuple[GuidedSetup, FakeSpeaker, Settings, list[Any]],
+) -> None:
+    """9.11: el panel suelto solo se queda con lo suyo; «abre Spotify» lo cierra sin decir nada
+    y lo atiende Nyx como siempre. Si no se cambia nada, «listo» no dice «me encanta»."""
+    guided, speaker, _, _ = setup
+    await guided.start("size")
+    assert guided.wants("más grande") and not guided.wants("abre Spotify")
+    said = len(speaker.said)
+    assert await guided.hear("abre Spotify") is False
+    assert not guided.active and len(speaker.said) == said
+    await guided.start("tint")
+    await guided.hear("listo")
+    assert not guided.active and not any("Me encanta" in t for t in speaker.said)
+
+
+async def test_reused_panel_closes_when_idle(
+    setup: tuple[GuidedSetup, FakeSpeaker, Settings, list[Any]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    guided, _, _, _ = setup
+    monkeypatch.setattr(flow_module, "PANEL_IDLE_S", 0.01)
+    await guided.start("color")
+    assert guided.active
+    await asyncio.sleep(0.05)
+    assert not guided.active
+    # El primer arranque no se cierra solo.
+    await guided.start()
+    await asyncio.sleep(0.05)
+    assert guided.active
+    await guided.cancel()
+
+
 async def test_skip_from_welcome(
     setup: tuple[GuidedSetup, FakeSpeaker, Settings, list[Any]],
 ) -> None:
@@ -321,6 +354,12 @@ class Hook:
 
     def understands(self, text: str) -> bool:
         return understand("color", text) is not None
+
+    def wants(self, text: str) -> bool:
+        return self.active
+
+    async def dismiss(self) -> None:
+        self.active = False
 
     async def hear(self, text: str) -> bool:
         self.heard.append(text)
@@ -442,4 +481,24 @@ async def test_announce_stops_listening_to_herself() -> None:
     await h.p.announce("Azul. Clásico y seguro.")
     await _spin()
     assert h.p.mode.value != "listening"
+    await h.p.close()
+
+
+async def test_reused_panel_hands_over_what_it_does_not_understand() -> None:
+    """Con el panel suelto abierto, «abre Spotify» va al router como siempre."""
+    from tests.test_pipeline import Harness
+
+    class Panel(Hook):
+        def wants(self, text: str) -> bool:
+            return self.active and self.understands(text)
+
+    h = Harness()
+    panel = Panel()
+    h.p.setup = panel
+    await h.bus.publish(TextEntered("coral"))
+    await h.p.wait_idle()
+    assert panel.heard == ["coral"] and panel.active
+    await h.bus.publish(TextEntered("¿qué hora es?"))
+    await h.p.wait_idle()
+    assert panel.heard == ["coral"] and not panel.active  # cerrado y atendido por Nyx
     await h.p.close()

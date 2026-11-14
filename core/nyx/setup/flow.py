@@ -60,6 +60,8 @@ HEARD_LEVEL = 0.25
 #: espera de cada tanda: si no dices nada, la canalización vuelve a escuchar (antes eran 8 s y
 #: un «siguiente» algo tardío se perdía, ERRORES.md 2026-11-14).
 LISTEN_AFTER_S = 30.0
+#: Panel suelto (9.11) sin tocarlo ni decirle nada este rato: se cierra solo.
+PANEL_IDLE_S = 45.0
 #: La interfaz pide empezar en cuanto conecta, antes de que la voz esté cargada: se espera.
 SPEAKER_WAIT_S = 60.0
 
@@ -192,6 +194,8 @@ class GuidedSetup:
         self.usage: bool | None = None  # ninguna opción viene marcada
         self.downloading = False
         self.finished = False
+        self._changed = False  # en el panel suelto: si se ha cambiado algo (para despedirse)
+        self._idle: asyncio.Task[None] | None = None
         self._nyx_state = NyxState.IDLE
         # main.py lo marca cuando la canalización (la voz) está lista.
         self.speaker_ready = asyncio.Event()
@@ -204,6 +208,7 @@ class GuidedSetup:
         ]
 
     async def close(self) -> None:
+        self._stop_idle()
         for unsubscribe in self._unsubscribe:
             unsubscribe()
         for task in list(self._tasks):
@@ -241,6 +246,7 @@ class GuidedSetup:
         self.active = True
         self.finished = False
         self.step = 0
+        self._changed = False
         await self._wait_speaker()
         if mode == "first_run":
             self.heard = self.woke = False
@@ -252,6 +258,7 @@ class GuidedSetup:
             await self.bus.publish(SetupRequested("download"))  # lo que falte (voz, cerebro)
         log.info("Primer arranque guiado: %s", mode)
         await self._enter()
+        self._touch()
 
     async def _wait_speaker(self) -> None:
         if self._speaker() is None:
@@ -275,8 +282,44 @@ class GuidedSetup:
                 await self.bus.publish(NyxReady())  # la onda (9.04)
         else:
             self.active = False
-            await self._say("¡Me encanta cómo he quedado!")
+            self._stop_idle()
+            if self._changed:
+                await self._say("¡Me encanta cómo he quedado!")
+            else:
+                await self._publish()
         log.info("Primer arranque guiado terminado (%s)", self.mode)
+
+    async def dismiss(self) -> None:
+        """Panel suelto (9.11): lo dicho no era para él («Nyx, abre Spotify») o nadie lo usa.
+        Se cierra sin decir nada; lo dicho lo atiende Nyx como siempre."""
+        if not self.active or self.mode == "first_run":
+            return
+        self.active = False
+        self._stop_idle()
+        log.info("Panel suelto cerrado sin terminar (%s)", self.mode)
+        await self._publish()
+
+    def wants(self, text: str) -> bool:
+        """¿Lo dicho es para el primer arranque? Siempre, mientras dura (si no se entiende, lo
+        dice); el panel suelto solo se queda con lo que entiende."""
+        return self.active and (self.mode == "first_run" or self.understands(text))
+
+    def _touch(self) -> None:
+        """Panel suelto: se ha usado; vuelve a contar el rato para cerrarse solo."""
+        if self.mode == "first_run" or not self.active:
+            return
+        self._stop_idle()
+        self._idle = asyncio.create_task(self._close_when_idle(), name="setup-idle")
+
+    def _stop_idle(self) -> None:
+        if self._idle is not None and self._idle is not asyncio.current_task():
+            self._idle.cancel()
+        self._idle = None
+
+    async def _close_when_idle(self) -> None:
+        await asyncio.sleep(PANEL_IDLE_S)
+        self._idle = None
+        await self.dismiss()
 
     async def cancel(self) -> None:
         """Se cierra sin acabar (la app se cierra): la próxima vez vuelve a salir."""
@@ -294,6 +337,9 @@ class GuidedSetup:
         answer = self._understand(text)
         log.info("Primer arranque, %s: %r → %s", self.key, text, answer)
         if answer is None:
+            if self.mode != "first_run":
+                await self.dismiss()  # no era para el panel: que lo atienda Nyx
+                return False
             await self._say(self._pick(NOT_UNDERSTOOD))
             return True
         await self._act(answer)
@@ -333,6 +379,9 @@ class GuidedSetup:
 
     async def _act(self, answer: Answer) -> None:
         kind, value = answer.kind, answer.value
+        self._touch()
+        if kind in ("pick", "size"):
+            self._changed = True
         if kind in ("next", "done") and self.mode != "first_run":
             await self._finish()  # el panel suelto (9.11): «listo» lo cierra
         elif kind == "next":

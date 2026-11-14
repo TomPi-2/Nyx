@@ -100,6 +100,9 @@ class ToolContext:
     # Cambia ajustes de Nyx por el mismo camino que la ventana de Ajustes (nyx_control, 6.04).
     # Devuelve lo que se aplica al reiniciar; la pone services.py.
     apply_settings: Callable[[dict[str, Any]], Awaitable[list[str]]] | None = None
+    # Saca junto a Nyx el panel de su color, su tamaño o los paneles (nyx_panel, 9.11): «color»,
+    # «size» o «tint»; la pone services.py.
+    open_nyx_panel: Callable[[str], Awaitable[None]] | None = None
 
 
 @dataclass

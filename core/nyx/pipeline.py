@@ -335,6 +335,8 @@ class SetupHook(Protocol):
         ...
 
     def understands(self, text: str) -> bool: ...
+    def wants(self, text: str) -> bool: ...
+    async def dismiss(self) -> None: ...
     async def hear(self, text: str) -> bool: ...
     async def on_wake(self) -> None: ...
 
@@ -611,6 +613,11 @@ class Pipeline:
         """`show=False`: se graba ya, pero el indicador espera a que whisper confirme «Nyx»
         (el detector propio salta más a menudo y whisper descarta casi todo). `timeout_s`:
         cuánto espera a que se empiece a hablar (por defecto, el de los ajustes)."""
+        if followup and self._announce_speaking():
+            # Lo dice el primer arranque o el panel suelto: escuchará él al acabar (si no, se
+            # oiría a sí misma). Pasa al sacar el panel por voz (9.11).
+            self.mode = Mode.IDLE
+            return
         self.hush()  # si Nyx estaba diciendo algo del primer arranque, se calla al oírte
         self._drop_listening()
         await self._cancel_request()
@@ -690,8 +697,8 @@ class Pipeline:
         text = self.wake_phrase.without(normalize(raw))
         if not text:
             return False
-        if self.setup is not None and self.setup.active:
-            return self.setup.understands(text)  # «siguiente», «coral»: no hay que esperar
+        if self.setup is not None and self.setup.active and self.setup.understands(text):
+            return True  # «siguiente», «coral»: no hay que esperar
         if self.router is not None and isinstance(self.router(text), Route):
             return True
         words = text.rstrip("?").split()
@@ -834,13 +841,16 @@ class Pipeline:
             return
         if self.setup is not None and self.setup.active:
             # Primer arranque guiado: «Nyx» es la prueba de la activación y lo demás, una
-            # respuesta a lo que ha preguntado (sin router ni cerebro).
+            # respuesta a lo que ha preguntado (sin router ni cerebro). El panel suelto (9.11)
+            # solo se queda con lo que entiende; lo demás se atiende como siempre.
             if verify is not None or self.wake_phrase.heard(raw, first_words=3):
                 await self.setup.on_wake()
-            await self._go_idle()
-            if text and not looks_foreign(text):
-                await self.setup.hear(text)
-            return
+            if not text or looks_foreign(text) or self.setup.wants(text):
+                await self._go_idle()
+                if text and not looks_foreign(text):
+                    await self.setup.hear(text)
+                return
+            await self.setup.dismiss()
         if not text:
             await self._go_idle()
             return
@@ -877,9 +887,11 @@ class Pipeline:
         marks.phrase = text
         self._agent = AgentRun()
         if self.setup is not None and self.setup.active:
-            await self._go_idle()
-            await self.setup.hear(text)
-            return
+            if self.setup.wants(text):
+                await self._go_idle()
+                await self.setup.hear(text)
+                return
+            await self.setup.dismiss()
         if self.ringer is not None and self.ringer.swallow(text):
             # «Nyx, para» con la alarma sonando: es para ella, no para la música.
             await self.ringer.stop()

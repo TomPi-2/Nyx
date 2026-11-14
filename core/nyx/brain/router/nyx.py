@@ -91,8 +91,45 @@ _NYX_PART = {
     r"(?P<what>voz|colores|color|tamano|letra|aspecto|palabra\s+de\s+activacion|palabra|tono)$",
 )
 def _nyx_change(m: re.Match[str], _: SystemIndex) -> Route:
-    section = _NYX_PART[re.sub(r"\s+", " ", m.group("what"))]
-    return _call("nyx_change", "open_nyx_settings", section=section)
+    what = re.sub(r"\s+", " ", m.group("what"))
+    # Su color y su tamaño: el panel junto a Nyx (9.11), no Ajustes.
+    if (panel := _PANEL_OF.get(what)) is not None:
+        return _call("nyx_change", "nyx_panel", panel=panel)
+    return _call("nyx_change", "open_nyx_settings", section=_NYX_PART[what])
+
+
+_PANEL_OF = {"color": "color", "colores": "color", "tamano": "tamaño"}
+
+
+@rule(
+    "nyx_panel",
+    # «Cambia tu color», «cámbiate el color», «cámbiate de tamaño», «quiero elegir tu color»,
+    # «cambia el color de los paneles», «quiero cambiar el color de tus paneles» (9.11). Sin un
+    # color dicho: con color («ponte coral») lo hace nyx_color directamente.
+    r"^(?:(?:quiero|me\s+gustaria|vamos\s+a)\s+)?"
+    r"(?:cambia(?:r|me)?|cambiate|elige|elegir|escoge(?:r)?|personaliza(?:r)?)\s+"
+    r"(?:(?:tu|el|de|tus)\s+)?"
+    r"(?P<what>color|colores|tamano|"
+    r"(?:color|colores|tono|tinte)\s+de\s+(?:los|tus|las)\s+(?:paneles|burbujas|ventanas))"
+    r"(?:\s+de\s+(?:nyx|nix))?$",
+)
+def _nyx_panel(m: re.Match[str], _: SystemIndex) -> Route:
+    what = m.group("what")
+    panel = "paneles" if " de " in what else _PANEL_OF[what]
+    return _call("nyx_panel", "nyx_panel", panel=panel)
+
+
+@rule(
+    "nyx_size",
+    # «Hazte más grande», «ponte un poco más pequeña», «vuélvete enorme» (9.11; antes iba al
+    # modelo, y en el primer arranque fallaba).
+    r"^(?:hazte|ponte|vuelvete|haste)\s+(?:un\s+poco\s+|algo\s+|mucho\s+|bastante\s+)?"
+    r"(?:mas\s+)?(?P<v>grande|pequena|pequeno|pequenita|pequenito|chica|chico|enorme|diminuta)$",
+)
+def _nyx_size(m: re.Match[str], _: SystemIndex) -> Route:
+    bigger = m.group("v") in ("grande", "enorme")
+    value = "más grande" if bigger else "más pequeña"
+    return _call("nyx_size", "nyx_control", setting="tamaño", value=value)
 
 
 # Colores de Nyx (los de nyx_control), los compuestos primero: «azul cielo» antes que «azul».

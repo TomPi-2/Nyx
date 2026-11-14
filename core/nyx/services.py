@@ -36,6 +36,7 @@ from nyx.events import (
     OpenSettingsWindow,
     SettingsChanged,
     SettingsRequested,
+    SetupFlowRequested,
 )
 from nyx.executor import Executor
 from nyx.ext import revocation
@@ -312,6 +313,9 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     async def open_nyx_settings(section: str | None) -> None:
         await bus.publish(OpenSettingsWindow(section))
 
+    async def open_nyx_panel(mode: str) -> None:
+        await bus.publish(SetupFlowRequested("start", mode))
+
     async def apply_settings(patch: dict[str, Any]) -> list[str]:
         restart = apply_patch(settings, patch)
         # La ventana de Ajustes y las demás se enteran (como si se cambiara desde Ajustes).
@@ -325,6 +329,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         alarms=alarms,
         open_nyx_settings=open_nyx_settings,
         apply_settings=apply_settings,
+        open_nyx_panel=open_nyx_panel,
     )
     ringer = AlarmRinger(bus, tts=tts, player=player)
     # Modo partida (SPEC sección 9): qué herramientas se permiten, se difieren o se bloquean.

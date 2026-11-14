@@ -62,6 +62,8 @@ ORDER = (
     "tepnyx_info",
     "nyx_said",
     "nyx_color",
+    "nyx_panel",
+    "nyx_size",
     "volume_up",
     "volume_down",
     "volume_set",
