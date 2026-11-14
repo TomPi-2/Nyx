@@ -6,6 +6,15 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
 
 ### Añadido
 
+- 0.9, adelantado (`docs/PLAN-0.9.md`, borrador):
+  - Aviso de «Nyx listo» en Ajustes → Apariencia (onda por defecto, Nyx aparece y desaparece, o nada) y actualizaciones en Ajustes → General (preguntar, automático o solo avisar; canal estable o beta). Antes de cambiar de versión, Nyx guarda una copia de tus ajustes y datos, y si algo falla al ponerlos al día, vuelve a la copia.
+  - Prototipo del instalador y de la onda de «Nyx listo» (`docs/prototipos/instalador.html`), pendiente del visto bueno.
+- 0.7, extensiones (`docs/PLAN-0.7.md`):
+  - Paquetes `.nyxext` con manifiesto estricto, permisos con su forma exacta, instalar, actualizar (si pide más permisos, espera a que los aceptes), desactivar y desinstalar a la papelera, sin reiniciar Nyx y nunca en mitad de una partida. Un paquete malo (rutas que salen de su carpeta, enlaces, zip bomba, un fallo a medias) no deja a Nyx mal.
+  - Firma de Tepnyx (Ed25519); sin firma, solo con el modo desarrollador y la etiqueta «Sin revisar». Lista de revocación firmada.
+  - Extensiones sin código: atajos de apps (los de Nyx ya son una), preajustes que solo tocan apariencia, voz y tono, conocimiento que Nyx consulta como información de fuera, personalidades y formas de Nyx (contrato en `docs/extensiones/formas.md`).
+  - Nyx recuerda los planes de varios pasos que han salido bien y los repite sin pensar la próxima vez (salen en Ajustes → Cerebro, junto a los atajos).
+  - Prototipo de Ajustes → Extensiones (`docs/prototipos/extensiones.html`), pendiente del visto bueno.
 - 0.6, cerebro (`docs/PLAN-0.6.md`):
   - 6.19 (revisión de cierre): PowerShell sin preguntar ya no acepta variables (`${C:rchivo.txt}` leía un archivo y `$env:…` puede guardar claves: ahora se confirman); al buscar en internet, ninguna página puede llevar a Nyx a tu red de casa ni a tu propio equipo, y una página lenta ya no retrasa la búsqueda (a los 6 s se usa el resumen del buscador); con el panel largo abierto, «pásala» vuelve a pasar la canción (solo «pásala a una nota» la guarda).
   - 6.28, respuestas largas y notas: las explicaciones largas salen en un panel que se escribe letra a letra al ritmo de la voz y no se cierra mientras lees (puedes subir para releer); al buscar una receta, unos pasos o una lista, salen ordenados con su formato y Nyx ofrece guardarlos. Botones y voz para cerrar, copiar o guardar en una nota («ciérralo», «cópialo», «guárdamela en una nota»). Notas nuevas en Documentos › Notas de Nyx, que se abren en el Bloc de notas (nunca sobrescribe y se pueden deshacer); también «apunta en una nota que…».
