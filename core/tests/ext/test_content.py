@@ -206,7 +206,10 @@ def test_bad_shapes(tmp_path: Path, glsl: str, why: str) -> None:
 
 
 def test_comments_do_not_count(tmp_path: Path) -> None:
-    glsl = "// while (true) aquí no pasa nada\n/* uniform */\nvoid main() { gl_FragColor = vec4(0.0); }"
+    glsl = (
+        "// while (true) aquí no pasa nada\n/* uniform */\n"
+        "void main() { gl_FragColor = vec4(0.0); }"
+    )
     files = {"shape/shape.json": {"name": "Comentada"}, "shape/shape.glsl": glsl}
     assert load_content(*ext(tmp_path, ["shape"], files)).shape is not None
 
