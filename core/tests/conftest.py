@@ -16,6 +16,20 @@ from nyx.settings.model import Settings
 from nyx.tools.base import ToolContext
 
 
+@pytest.fixture(autouse=True)
+def _no_real_ollama(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Ninguna prueba instala ni abre Ollama de verdad (9.08: la descarga lo hace si falta).
+    Las que lo prueban ponen sus propias versiones encima."""
+    from nyx.setup import ollama
+
+    async def nope(*_: object) -> bool:
+        return False
+
+    monkeypatch.setattr(ollama, "installed", lambda: False)
+    monkeypatch.setattr(ollama, "install", nope)
+    monkeypatch.setattr(ollama, "start", nope)
+
+
 def app(name: str, app_id: str, process: str | None = None) -> Entry:
     return Entry(
         key=f"app:{app_id.casefold()}",

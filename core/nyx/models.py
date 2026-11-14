@@ -7,6 +7,7 @@ Uso: `uv run nyx --download-models`.
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
 import sys
@@ -204,6 +205,10 @@ def download(
     return final
 
 
+#: Lo que baja Pocket TTS de Hugging Face (modelo en español y voz), para el progreso.
+POCKET_MB = 440
+
+
 def download_pocket() -> None:
     """La voz predeterminada (Pocket TTS, «lola»): modelo en español y voz, desde Hugging Face."""
     import asyncio
@@ -213,10 +218,28 @@ def download_pocket() -> None:
     asyncio.run(PocketTTS("lola").load())
 
 
-def download_all(root: Path | None = None, skip: frozenset[str] = frozenset()) -> int:
-    """Orden `nyx --download-models`: descarga lo que falte mostrando el progreso."""
+def download_all(
+    root: Path | None = None, skip: frozenset[str] = frozenset(), *, json_lines: bool = False
+) -> int:
+    """Orden `nyx --download-models`: descarga lo que falte mostrando el progreso. Con
+    `json_lines` (el instalador, 9.08) cada avance es además una línea JSON por la salida
+    estándar: `{"key", "label", "done_mb", "total_mb", "finished", "error"}`."""
     failed = 0
     last_pct: dict[str, int] = {}
+
+    def emit(
+        key: str, label: str, done: float, total: float, finished: bool, error: str = ""
+    ) -> None:
+        if json_lines:
+            line = {
+                "key": key,
+                "label": label,
+                "done_mb": round(done, 2),
+                "total_mb": round(total, 2),
+                "finished": finished,
+                "error": error or None,
+            }
+            print(json.dumps(line, ensure_ascii=False), flush=True)
 
     def show(model: ModelFile, done: int, total: int) -> None:
         if not total:
@@ -224,6 +247,7 @@ def download_all(root: Path | None = None, skip: frozenset[str] = frozenset()) -
         pct = done * 100 // total
         if last_pct.get(model.key) != pct:
             last_pct[model.key] = pct
+            emit(model.key, model.filename, done / 1e6, total / 1e6, False)
             print(f"\r  {model.filename}: {pct:3d} %", end="", file=sys.stderr, flush=True)
 
     for model in CATALOG:
@@ -232,19 +256,25 @@ def download_all(root: Path | None = None, skip: frozenset[str] = frozenset()) -
             continue
         if is_present(model, root):
             print(f"· {model.filename}: ya descargado", file=sys.stderr)
+            emit(model.key, model.filename, model.size_mb, model.size_mb, True)
             continue
         print(f"· {model.filename} ({model.size_mb} MB, {model.license})", file=sys.stderr)
         try:
             download(model, root, progress=show)
             print(f"\r  {model.filename}: listo        ", file=sys.stderr)
+            emit(model.key, model.filename, model.size_mb, model.size_mb, True)
         except (DownloadError, OSError) as e:
             failed += 1
             print(f"\n  Error: {e}", file=sys.stderr)
+            emit(model.key, model.filename, 0, model.size_mb, True, str(e))
     print("· Voz predeterminada (Pocket TTS, CC BY 4.0, Kyutai)", file=sys.stderr)
+    emit("pocket", "Voz de Nyx", 0, POCKET_MB, False)
     try:
         download_pocket()
         print("  voz: lista", file=sys.stderr)
+        emit("pocket", "Voz de Nyx", POCKET_MB, POCKET_MB, True)
     except Exception as e:
         failed += 1
         print(f"  Error: {e}", file=sys.stderr)
+        emit("pocket", "Voz de Nyx", 0, POCKET_MB, True, str(e))
     return 1 if failed else 0

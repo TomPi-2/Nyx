@@ -9,6 +9,9 @@ Resultado (lo que va junto al ejecutable de la app, `core_process.rs` lo busca a
       python/            Python 3.14 «embeddable» oficial (PSF-2.0, firmado por la PSF),
                          comprobado con su SHA-256, y las dependencias en Lib\site-packages
       app/nyx/           el código del núcleo, ya compilado a .pyc
+      bin/whisper/       whisper-server.exe compilado con Vulkan y sus DLL (MIT; `--whisper`
+                         o NYX_WHISPER_DIR: la carpeta Release de whisper.cpp, compilada sin
+                         GGML_NATIVE para que funcione en cualquier procesador)
       build.json         versión de Python, huella del uv.lock y fecha
 
 - Las dependencias salen de `uv.lock` (las mismas versiones que en desarrollo) con sus huellas
@@ -25,6 +28,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -118,6 +122,17 @@ def install_dependencies(site_packages: Path) -> str:
     return _sha256(lock)
 
 
+def copy_whisper(source: Path, dest: Path) -> int:
+    """whisper-server.exe y las DLL que necesita (ggml, Vulkan…); nada más de la carpeta."""
+    if not (source / "whisper-server.exe").is_file():
+        raise SystemExit(f"No está whisper-server.exe en {source}")
+    dest.mkdir(parents=True)
+    files = [source / "whisper-server.exe", *sorted(source.glob("*.dll"))]
+    for f in files:
+        shutil.copy2(f, dest / f.name)
+    return len(files)
+
+
 def copy_core(app: Path) -> None:
     shutil.copytree(
         CORE / "nyx",
@@ -162,6 +177,12 @@ def size_mb(path: Path) -> float:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    parser.add_argument(
+        "--whisper",
+        type=Path,
+        default=Path(os.environ["NYX_WHISPER_DIR"]) if "NYX_WHISPER_DIR" in os.environ else None,
+        help="carpeta con whisper-server.exe y sus DLL (si no, el paquete va sin él)",
+    )
     args = parser.parse_args(argv)
     out: Path = args.out.resolve()
     started = time.perf_counter()
@@ -176,6 +197,11 @@ def main(argv: list[str] | None = None) -> None:
     unpack_python(fetch_python(), python)
     lock_sha = install_dependencies(python / "Lib" / "site-packages")
     copy_core(app)
+    if args.whisper is not None:
+        count = copy_whisper(args.whisper, out / "bin" / "whisper")
+        print(f"whisper-server: {count} archivos")
+    else:
+        print("Aviso: sin --whisper, el paquete no lleva whisper-server (no podrá oír)")
     python_exe = python / "python.exe"
     compile_core(python_exe, app)
     smoke_out = smoke(python_exe)

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import sys
 import time
 from collections.abc import Awaitable, Callable
 from pathlib import Path
@@ -81,7 +82,14 @@ NOTICE_S = 8.0
 
 
 def whisper_server_path(settings: Settings) -> Path:
-    return settings.stt.server or local_dir() / "whisper" / "whisper-server.exe"
+    r"""El de los ajustes; si no, el que va con Nyx empaquetado (9.07: `core\bin\whisper`
+    junto a su Python); si no, en %LOCALAPPDATA%\Nyx\whisper."""
+    if settings.stt.server is not None:
+        return settings.stt.server
+    packaged = Path(sys.prefix).parent / "bin" / "whisper" / "whisper-server.exe"
+    if packaged.is_file():
+        return packaged
+    return local_dir() / "whisper" / "whisper-server.exe"
 
 
 class Services:

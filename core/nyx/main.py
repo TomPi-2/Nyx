@@ -55,6 +55,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument(
         "--download-models", action="store_true", help="descarga los modelos que falten y sale"
     )
+    p.add_argument(
+        "--json", action="store_true", help="con --download-models: avance en líneas JSON"
+    )
     p.add_argument("--log-level", default="INFO")
     p.add_argument("--no-log-file", action="store_true")
     return p.parse_args(argv)
@@ -263,17 +266,18 @@ def tool_infos() -> list[ToolInfo]:
     ]
 
 
-def download_models() -> int:
+def download_models(*, json_lines: bool = False) -> int:
     settings = load_settings()
     # Si el modelo de whisper ya está configurado en otra carpeta, no se descarga otra vez.
     stt_elsewhere = settings.stt.model.exists() and settings.stt.model != MODELS["stt"].path()
-    return download_all(skip=frozenset({"stt"}) if stt_elsewhere else frozenset())
+    skip = frozenset({"stt"}) if stt_elsewhere else frozenset()
+    return download_all(skip=skip, json_lines=json_lines)
 
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     if args.download_models:
-        sys.exit(download_models())
+        sys.exit(download_models(json_lines=args.json))
     try:
         sys.exit(asyncio.run(run(args)))
     except KeyboardInterrupt:

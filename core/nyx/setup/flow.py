@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
 import logging
 import random
 from collections.abc import Callable, Sequence
@@ -38,6 +39,7 @@ from nyx.events import (
 )
 from nyx.index.model import Kind
 from nyx.index.service import SystemIndex
+from nyx.paths import roaming_dir
 from nyx.settings.model import Settings
 from nyx.setup import everything
 from nyx.setup.answers import (
@@ -60,6 +62,8 @@ HEARD_LEVEL = 0.25
 #: espera de cada tanda: si no dices nada, la canalización vuelve a escuchar (antes eran 8 s y
 #: un «siguiente» algo tardío se perdía, ERRORES.md 2026-11-14).
 LISTEN_AFTER_S = 30.0
+#: Lo que deja el instalador (9.08) para el primer arranque.
+INSTALLER_CHOICES = "instalador.json"
 #: Panel suelto (9.11) sin tocarlo ni decirle nada este rato: se cierra solo.
 PANEL_IDLE_S = 45.0
 #: La interfaz pide empezar en cuanto conecta, antes de que la voz esté cargada: se espera.
@@ -256,6 +260,10 @@ class GuidedSetup:
             self.speaker_names = self._speakers()
             self.downloading = True
             await self.bus.publish(SetupRequested("download"))  # lo que falte (voz, cerebro)
+            if installer_choices().get("everything") is True:
+                # Marcado en el instalador (9.08): se instala ya (Windows pide permiso una vez)
+                # y el escaneo lo dice.
+                self._spawn(self._install_everything_if_missing())
         log.info("Primer arranque guiado: %s", mode)
         await self._enter()
         self._touch()
@@ -518,6 +526,10 @@ class GuidedSetup:
         await self._react(text)
         await self._publish()
 
+    async def _install_everything_if_missing(self) -> None:
+        if not (await asyncio.to_thread(everything.status)).get("installed"):
+            await self._install_everything()
+
     async def _install_everything(self) -> None:
         if self.installing_everything:
             return
@@ -605,6 +617,16 @@ class GuidedSetup:
 
     async def _publish(self) -> None:
         await self.bus.publish(SetupFlowChanged(self.snapshot()))
+
+
+def installer_choices() -> dict[str, Any]:
+    r"""Lo elegido en el instalador (9.08), en %APPDATA%\Nyx\instalador.json: por ahora,
+    `everything`. Si no está o no se lee, nada."""
+    try:
+        data = json.loads((roaming_dir() / INSTALLER_CHOICES).read_text(encoding="utf-8"))
+    except OSError, ValueError:
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 def _clamp(size: int) -> int:

@@ -17,6 +17,8 @@ node_modules/
 ui/dist/
 ui/src-tauri/target/
 ui/src-tauri/gen/schemas/
+installer/src-tauri/target/
+installer/src-tauri/gen/schemas/
 
 # Modelos y datos (se descargan en %LOCALAPPDATA%\Nyx\models)
 models/

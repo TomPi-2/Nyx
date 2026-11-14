@@ -107,6 +107,24 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
     - **«Solo avisar»** tiene el botón [Actualizar]; falta decirlo por voz («Nyx,
       actualízate»). ¿Lo añado?
     - Probarlo de verdad necesita el repositorio público y una Release firmada (9.09).
+18. **Instalador (9.08), hecho sin ti el 2026-11-14.** Decidido con lo que había; dime si no:
+    - **Carpeta:** `%LOCALAPPDATA%\TepnyxNyx` (identificador de Velopack `TepnyxNyx`). No
+      `%LOCALAPPDATA%\Nyx`: ahí están tus datos y modelos, y al desinstalar Velopack borra su
+      carpeta entera. Los datos se quedan al desinstalar.
+    - **Ollama** se instala con winget (como Everything): oficial, comprobado y sin
+      administrador. Lo hace el panel de descargas de Nyx (como en el prototipo), no el
+      instalador. Si no hay winget, lo dice y no se instala.
+    - **Quité «Cambiar carpeta»** de Opciones (Velopack instala siempre en la carpeta del
+      usuario). ¿Lo quieres?
+    - **«Arrancar con Windows»** viene encendido y lo pone el instalador; aún no hay un
+      interruptor en Ajustes para quitarlo. ¿Lo añado en General?
+    - El cristal del instalador es el de CSS (no el motor de la app): pesa menos. ¿Vale así?
+    - **whisper-server** para publicar tiene que ser el compilado sin `GGML_NATIVE` (con las
+      variantes de CPU): el de `C:\dev\tools` ahora mismo solo trae `ggml-cpu.dll`, que es el
+      que se caía en el portátil.
+    - **Versión:** para probar he construido una 0.9.0 sin cambiar el código. ¿Con qué número
+      sale la primera versión pública?
+    - Sin firma, SmartScreen avisará al abrir «Instalar Nyx.exe» (SignPath en la 9.09).
 
 ## Qué probar
 

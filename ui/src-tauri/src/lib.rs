@@ -4,6 +4,7 @@ mod core_process;
 mod glass;
 mod hotkeys;
 mod input;
+pub mod install_hooks;
 mod island;
 mod monitors;
 mod settings_window;

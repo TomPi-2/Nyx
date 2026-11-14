@@ -106,8 +106,14 @@ async def test_clear_goes_to_the_recycle_bin(
 async def test_download_with_nothing_missing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Sin nada que descargar y sin Ollama: termina bien y vuelve a mandar el estado."""
+    """Sin nada que descargar y con Ollama ya abierto y con el cerebro: termina bien y vuelve
+    a mandar el estado."""
     monkeypatch.setattr(setup_service, "CATALOG", ())
+
+    async def ready(_: object) -> dict[str, object]:
+        return {"running": True, "models": ["x"], "wanted": "x", "has_wanted": True}
+
+    monkeypatch.setattr(setup_service.SetupService, "_ollama_status", ready)
     bus = EventBus()
     SetupService(bus, _settings(), root=tmp_path)
     got = Collect(bus)
@@ -136,3 +142,15 @@ async def test_status_has_llm_choices_and_everything(tmp_path: Path) -> None:
     assert {c["id"] for c in status["llm"]["choices"]} == {"qwen2.5:7b"}  # uno solo (2026-11-11)
     assert status["llm"]["recommended"] in {c["id"] for c in status["llm"]["choices"]}
     assert set(status["everything"]) == {"installed", "running", "cli"}
+
+
+async def test_download_without_ollama_says_so(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Sin Ollama y sin poder instalarlo (9.08): la descarga termina con el aviso."""
+    monkeypatch.setattr(setup_service, "CATALOG", ())
+    bus = EventBus()
+    SetupService(bus, _settings(), root=tmp_path)
+    got = Collect(bus)
+    await bus.publish(SetupRequested("download"))
+    assert not got.results[-1].ok and got.results[-1].action == "download"

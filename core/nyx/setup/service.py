@@ -42,7 +42,7 @@ from nyx.index.service import SystemIndex
 from nyx.models import CATALOG, DownloadError, ModelFile, download, is_present
 from nyx.paths import local_dir
 from nyx.settings.model import Settings
-from nyx.setup import everything, hardware
+from nyx.setup import everything, hardware, ollama
 
 log = logging.getLogger(__name__)
 
@@ -212,8 +212,23 @@ class SetupService:
         done = SetupProgress(model.key, model.filename, model.size_mb, model.size_mb, True)
         asyncio.run_coroutine_threadsafe(self.bus.publish(done), loop).result()
 
+    async def _ensure_ollama(self) -> bool:
+        """Ollama oficial si falta (9.08): se instala con winget y se abre. El panel de
+        descargas lo enseña como «Ollama» mientras tanto."""
+        if (await self._ollama_status())["running"]:
+            return True
+        key, label = "ollama-app", "Ollama"
+        await self.bus.publish(SetupProgress(key, label, 0, 1))
+        ok = ollama.installed() or await ollama.install()
+        ok = ok and await ollama.start(self.settings.llm.host)
+        error = None if ok else "No he podido instalar ni abrir Ollama"
+        await self.bus.publish(SetupProgress(key, label, 1 if ok else 0, 1, True, error))
+        return ok
+
     async def _pull_ollama(self) -> bool:
-        """Descarga el modelo de Ollama configurado si Ollama está y no lo tiene."""
+        """Descarga el modelo de Ollama configurado si no lo tiene (instala Ollama si falta)."""
+        if not await self._ensure_ollama():
+            return False
         status = await self._ollama_status()
         if not status["running"] or status["has_wanted"]:
             return True
