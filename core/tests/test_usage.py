@@ -113,6 +113,7 @@ async def test_sends_finished_days_once_to_the_nyx_schema(tmp_path: Path) -> Non
     (req,) = got
     assert req.url.path == "/rest/v1/rpc/report"
     assert req.headers["Content-Profile"] == "nyx"
+    assert "authorization" not in req.headers  # la clave nueva va solo en `apikey`
     body = json.loads(req.content)
     assert body["p_report"]["day"] == "2026-11-15"
     assert await s.send_pending() == 0  # no se repite

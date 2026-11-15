@@ -159,11 +159,14 @@ class UsageSender:
         url, key = self._target
         headers = {
             "apikey": key,
-            "Authorization": f"Bearer {key}",
             "Content-Type": "application/json",
             # Todo lo de Nyx está en su propio esquema de la base de datos de Tepnyx.
             "Content-Profile": "nyx",
         }
+        if key.startswith("eyJ"):
+            # Solo la clave «anon» antigua (un JWT) va también como Bearer; la nueva
+            # («sb_publishable_…») no es un JWT y Supabase la quiere solo en `apikey`.
+            headers["Authorization"] = f"Bearer {key}"
         try:
             async with httpx.AsyncClient(timeout=TIMEOUT_S, transport=self._transport) as http:
                 resp = await http.post(
