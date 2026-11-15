@@ -34,7 +34,9 @@ def package(tmp: Path, *, sign: bool) -> Path:
 
 
 class Harness:
-    def __init__(self, tmp: Path, *, dev_mode: bool = False) -> None:
+    def __init__(
+        self, tmp: Path, *, dev_mode: bool = False, official: list[Path] | None = None
+    ) -> None:
         self.bus = EventBus()
         self.settings = Settings()
         self.settings.extensions.dev_mode = dev_mode
@@ -62,6 +64,7 @@ class Harness:
             self.settings,
             read_setting=lambda i, k: self.creds.get((i, k)),
             write_setting=write,
+            official_packages=lambda: list(official or []),
         )
         self.seen: list[ExtStatusChanged] = []
 
@@ -148,3 +151,14 @@ async def test_settings_the_user_fills_in(tmp_path: Path) -> None:
     assert refused.error and ("tepnyx.obs", "otra") not in h.creds
     await h.ask("setting", ext_id="tepnyx.obs", key="password", value="")
     assert ("tepnyx.obs", "password") not in h.creds
+
+
+async def test_official_ones_are_offered_until_installed(tmp_path: Path) -> None:
+    """7.14: las de Tepnyx que vienen con Nyx salen para instalarlas, y dejan de salir."""
+    path = package(tmp_path, sign=True)
+    h = Harness(tmp_path, official=[path])
+    shown = await h.ask("list")
+    (offer,) = shown.official
+    assert offer["id"] == "tepnyx.luces" and offer["path"] == str(path) and not offer["update"]
+    done = await h.ask("install", path=offer["path"])
+    assert done.official == [] and done.items[0]["id"] == "tepnyx.luces"

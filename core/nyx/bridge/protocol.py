@@ -301,6 +301,8 @@ class ExtensionsMsg(_Msg):
     dev_mode: bool
     inspect: dict[str, Any] | None = None
     error: str | None = None
+    #: v22: las de Tepnyx que vienen con Nyx, sin instalar (7.14).
+    official: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class SetupStatusMsg(_Msg):

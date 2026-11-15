@@ -149,6 +149,17 @@ export interface ExtStatus {
   settings: ExtSetting[];
 }
 
+/** v22: una extensión de Tepnyx que viene con Nyx, sin instalar (7.14). */
+export interface ExtOffer {
+  path: string;
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  /** Ya la tienes, pero esta es más nueva. */
+  update: boolean;
+}
+
 /** Lo que trae un paquete antes de instalarlo. */
 export interface ExtInspect {
   path: string;
@@ -378,6 +389,8 @@ export type ServerMessage =
       dev_mode: boolean;
       inspect: ExtInspect | null;
       error: string | null;
+      /** v22: las de Tepnyx que vienen con Nyx y aún no tienes. */
+      official?: ExtOffer[];
     }
   | {
       type: "setup_progress";

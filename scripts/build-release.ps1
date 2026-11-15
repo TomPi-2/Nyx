@@ -4,7 +4,8 @@
 
 .DESCRIPTION
   1. El núcleo empaquetado (core/scripts/package_core.py): Python 3.14 oficial, dependencias
-     de uv.lock con sus huellas, el núcleo y whisper-server.
+     de uv.lock con sus huellas, el núcleo, whisper-server y las extensiones oficiales
+     firmadas (core/scripts/pack_official.py, con la clave de Tepnyx de este equipo).
   2. La app (Tauri, sin instalador propio: lo pone Velopack).
   3. El paquete de Velopack (vpk, herramienta local: .config/dotnet-tools.json):
      TepnyxNyx-win-Setup.exe, el paquete completo y el feed para las actualizaciones.
@@ -67,6 +68,8 @@ New-Item -ItemType Directory -Force $Out, $Pack -ErrorAction Stop | Out-Null
 Step "Núcleo empaquetado"
 Push-Location "$Repo\core"
 uv run python scripts/package_core.py --out "$Pack\core" --whisper "$Whisper"; Check "package_core"
+# Las extensiones de Tepnyx (OBS, Spotify…), firmadas: salen en Ajustes → Extensiones.
+uv run python scripts/pack_official.py --out "$Pack\core\extensiones"; Check "pack_official"
 Pop-Location
 
 Step "App (Tauri)"

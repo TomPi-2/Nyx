@@ -194,6 +194,28 @@
     {/each}
   </Card>
 
+  {#if ext.official.length}
+    <Card title="De Tepnyx" note="Vienen con Nyx. Antes de instalarla ves qué podrá hacer.">
+      {#each ext.official as o (o.id)}
+        <div class="ext">
+          <span class="icon" aria-hidden="true">{letter(o)}</span>
+          <span class="grow">
+            <span class="name"
+              >{o.name}{#if o.update}<span class="badge">Versión nueva</span>{/if}</span
+            >
+            <span class="hint">{o.description}</span>
+          </span>
+          <Button
+            onclick={() => {
+              choosing = true;
+              settings.ext("inspect", undefined, o.path);
+            }}>{o.update ? "Actualizar…" : "Instalar…"}</Button
+          >
+        </div>
+      {/each}
+    </Card>
+  {/if}
+
   <Card title="Añadir">
     <Row label="Desde un archivo" hint="Un .nyxext que te hayas descargado.">
       <Button onclick={() => void choose()}>Elegir archivo…</Button>

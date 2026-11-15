@@ -9,6 +9,7 @@ import { connectCore, type CoreConnection } from "$lib/core";
 import type {
   ExtAction,
   ExtInspect,
+  ExtOffer,
   ExtStatus,
   NyxSettings,
   NyxState,
@@ -68,6 +69,7 @@ class SettingsStore {
     devMode: boolean;
     inspect: ExtInspect | null;
     error: string | null;
+    official: ExtOffer[];
   } | null>(null);
   downloads = $state<Record<string, Download>>({});
   micLevel = $state(0);
@@ -216,6 +218,7 @@ class SettingsStore {
           devMode: msg.dev_mode,
           inspect: msg.inspect,
           error: msg.error,
+          official: msg.official ?? [],
         };
         return;
       case "setup_result":

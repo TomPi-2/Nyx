@@ -25,7 +25,6 @@ import json
 import shutil
 import subprocess
 import sys
-import zipfile
 from pathlib import Path
 from typing import IO, Any
 
@@ -33,22 +32,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from nyx.ext.content import load_content
 from nyx.ext.manifest import MANIFEST_NAME, Manifest, ManifestError, load_manifest
-from nyx.ext.store import PackageError, check_code, read_package
+from nyx.ext.official import SKIP, pack_folder
+from nyx.ext.store import PackageError, check_code
 from nyx.ext.tools_spec import TOOLS_FILE, load_tools
 from nyx.paths import local_dir
-
-SKIP = {
-    ".git",
-    "__pycache__",
-    ".venv",
-    ".pytest_cache",
-    ".mypy_cache",
-    ".ruff_cache",
-    ".DS_Store",
-    "Thumbs.db",
-}
-#: Lo que no va en el paquete aunque esté en la carpeta (en la raíz).
-NOT_PACKED = {"tests", "pyproject.toml", "uv.lock"}
 
 TOOLS_MAIN = '''"""Herramientas de la extensión.
 
@@ -326,20 +313,9 @@ def pack(folder: Path, out: Path | None) -> None:
         sys.exit("No se empaqueta: arregla lo de arriba")
     manifest = load_manifest((folder / MANIFEST_NAME).read_bytes())
     out = out or folder.parent / f"{manifest.id}-{manifest.version}.nyxext"
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
-        for path in sorted(folder.rglob("*")):
-            rel = path.relative_to(folder)
-            if (
-                path.is_file()
-                and not SKIP.intersection(rel.parts)
-                and rel.parts[0] not in NOT_PACKED
-                and rel.name != "signature"
-            ):
-                zf.write(path, rel.as_posix())
     try:
-        read_package(out)  # las mismas comprobaciones que al instalar
+        pack_folder(folder, out)
     except PackageError as e:
-        out.unlink()
         sys.exit(f"El paquete no valdría: {e}")
     print(f"Empaquetada en {out} (sin firmar: para instalarla sin firma, modo desarrollador)")
 

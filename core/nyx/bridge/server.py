@@ -309,7 +309,11 @@ class UIBridge:
     async def _on_ext_status(self, event: ExtStatusChanged) -> None:
         await self.broadcast(
             ExtensionsMsg(
-                items=event.items, dev_mode=event.dev_mode, inspect=event.inspect, error=event.error
+                items=event.items,
+                dev_mode=event.dev_mode,
+                inspect=event.inspect,
+                error=event.error,
+                official=event.official,
             )
         )
 

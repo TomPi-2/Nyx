@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Literal
 
@@ -201,6 +201,8 @@ class ExtStatusChanged:
     dev_mode: bool
     inspect: dict[str, Any] | None = None
     error: str | None = None
+    #: Las de Tepnyx que vienen con Nyx y aún no tienes (o tienes más viejas; 7.14).
+    official: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass(frozen=True, slots=True)

@@ -24,7 +24,7 @@ from typing import Any
 
 from nyx.bus import EventBus
 from nyx.events import ExtRequested, ExtStatusChanged
-from nyx.ext import api
+from nyx.ext import api, official
 from nyx.ext.manager import ExtensionManager
 from nyx.ext.signing import SignatureError, verify_package
 from nyx.ext.store import PACKAGE_SUFFIX, PackageError, read_package
@@ -42,12 +42,14 @@ class ExtensionsService:
         *,
         read_setting: Callable[[str, str], str | None] = api.read_setting,
         write_setting: Callable[[str, str, str], None] = api.write_setting,
+        official_packages: Callable[[], list[Path]] = official.packages,
     ) -> None:
         self.bus = bus
         self.manager = manager
         self.settings = settings
         self._read_setting = read_setting
         self._write_setting = write_setting
+        self._official_packages = official_packages
         self._unsubscribe = bus.subscribe(ExtRequested, self._on_request)
 
     def close(self) -> None:
@@ -78,8 +80,9 @@ class ExtensionsService:
         self, *, inspect: dict[str, Any] | None = None, error: str | None = None
     ) -> None:
         items = await asyncio.to_thread(self._items)
+        offers = await asyncio.to_thread(self._official)
         await self.bus.publish(
-            ExtStatusChanged(items, self.settings.extensions.dev_mode, inspect, error)
+            ExtStatusChanged(items, self.settings.extensions.dev_mode, inspect, error, offers)
         )
 
     def _items(self) -> list[dict[str, Any]]:
@@ -107,6 +110,30 @@ class ExtensionsService:
                 )
             items.append(item)
         return items
+
+    def _official(self) -> list[dict[str, Any]]:
+        """Las oficiales que vienen con Nyx y no tienes (o tienes en una versión más vieja)."""
+        out = []
+        for path in self._official_packages():
+            try:
+                manifest, _ = read_package(path)
+            except (PackageError, OSError) as e:
+                log.warning("Extensión oficial %s: %s", path.name, e)
+                continue
+            current = self.manager.store.get(manifest.id)
+            if current is not None and current.manifest.version_key() >= manifest.version_key():
+                continue
+            out.append(
+                {
+                    "path": str(path),
+                    "id": manifest.id,
+                    "name": manifest.name,
+                    "description": manifest.description,
+                    "version": manifest.version,
+                    "update": current is not None,
+                }
+            )
+        return out
 
     async def _set(self, ext_id: str, key: str, value: str) -> None:
         ext = self.manager.store.get(ext_id)
