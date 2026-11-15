@@ -60,6 +60,10 @@ Apache-2.0 y MPL-2.0 son compatibles con GPL-3.0 (en el sentido de distribuirlas
   `webpki-roots` (los certificados raíz de Mozilla, **CDLA-Permissive-2.0**, permisiva y
   compatible: hay que citarla en los créditos). El instalador (9.08) añade `ureq` y `sha2`
   (MIT o Apache-2.0); `vpk` y el Setup de Velopack son MIT.
+- **Grabadora de la voz (`tools/grabadora`, herramienta interna, no va con Nyx):** `cpal` y
+  `hound` (Apache-2.0), `zip` (MIT) y `dirs` (MIT o Apache-2.0). Su guion lleva 2.200 frases
+  de Common Voice (`sentence-collector.txt` de Mozilla, **CC0**: dominio público) y frases
+  propias.
 
 ## Modelos
 

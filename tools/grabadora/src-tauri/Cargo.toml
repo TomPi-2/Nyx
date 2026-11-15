@@ -1,0 +1,30 @@
+[package]
+name = "grabadora-nyx"
+version = "0.1.0"
+description = "Grabadora de la voz de Nyx: guion frase a frase, sin filtros, en WAV de 24 bits"
+authors = ["Tepnyx"]
+license = "GPL-3.0-only"
+edition = "2024"
+
+[lib]
+name = "grabadora_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+cpal = "0.16"
+hound = "3"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+dirs = "6"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

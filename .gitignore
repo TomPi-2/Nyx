@@ -60,3 +60,5 @@ Desktop.ini
 crates/*/target/
 crates/*/Cargo.lock
 core/training/voz/fuentes/
+tools/grabadora/src-tauri/target/
+tools/grabadora/src-tauri/gen/schemas/
