@@ -52,6 +52,7 @@ pub fn run() {
             welcome_window::open_folder,
             wave::wave_play,
             errors::open_error,
+            errors::open_link,
             updater::update_configure,
             updater::update_apply,
             wave::wave_done,

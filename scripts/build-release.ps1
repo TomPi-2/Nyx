@@ -76,6 +76,14 @@ if (-not (Test-Path node_modules)) { npm install; Check "npm install (ui)" }
 # La versión del núcleo es la de la app: la que se publica.
 npx tauri build --no-bundle --config $VersionConfig; Check "tauri build (ui)"
 Copy-Item "src-tauri\target\release\$MainExe" $Pack -ErrorAction Stop
+# Licencias que hay que llevar junto a la app: la GPL de Nyx, los avisos de terceros y el
+# texto de la OFL de las fuentes (la propia OFL lo exige al distribuirlas).
+$Licenses = Join-Path $Pack "licencias"
+New-Item -ItemType Directory -Force $Licenses -ErrorAction Stop | Out-Null
+Copy-Item "$Repo\LICENSE" "$Licenses\LICENSE-Nyx.txt" -ErrorAction Stop
+Copy-Item "$Repo\NOTICE.md" "$Licenses\NOTICE.md" -ErrorAction Stop
+Copy-Item "node_modules\@fontsource-variable\manrope\LICENSE" "$Licenses\OFL-Manrope.txt" -ErrorAction Stop
+Copy-Item "node_modules\@fontsource-variable\nunito\LICENSE" "$Licenses\OFL-Nunito.txt" -ErrorAction Stop
 Pop-Location
 
 Step "Paquete de Velopack ($Version)"

@@ -27,6 +27,20 @@ pub fn open_error(code: String) {
     open_url(&format!("{ERRORS_URL}#{code}"));
 }
 
+/// Abre un enlace de la app (créditos y licencias) en el navegador. Solo `https://`: nada de
+/// archivos ni otros esquemas aunque una página lo pidiera.
+#[tauri::command]
+pub fn open_link(url: String) -> Result<(), String> {
+    let ok = url.starts_with("https://")
+        && url.len() < 300
+        && !url.chars().any(|c| c.is_whitespace() || c == '"');
+    if !ok {
+        return Err("enlace no válido".into());
+    }
+    open_url(&url);
+    Ok(())
+}
+
 /// Aviso de Windows con el código (sirve aunque no haya ninguna ventana de Nyx a la vista).
 pub fn notify(app: &AppHandle, code: &str, title: &str, body: &str) {
     let _ = app
