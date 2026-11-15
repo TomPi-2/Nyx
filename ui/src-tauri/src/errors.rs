@@ -15,6 +15,8 @@ pub const CORE_MISSING: &str = "N-402";
 pub const UPDATE_CHECK: &str = "A-301";
 pub const UPDATE_DOWNLOAD: &str = "A-302";
 pub const UPDATE_APPLY: &str = "A-303";
+/// La versión nueva no arrancaba y se ha vuelto a la anterior.
+pub const UPDATE_ROLLED_BACK: &str = "A-304";
 
 /// Abre la explicación de un código en el navegador (panel de descargas, avisos).
 #[tauri::command]
@@ -85,6 +87,7 @@ mod tests {
             super::UPDATE_CHECK,
             super::UPDATE_DOWNLOAD,
             super::UPDATE_APPLY,
+            super::UPDATE_ROLLED_BACK,
         ] {
             assert!(catalog.contains(&format!("| {code} |")), "{code}");
         }

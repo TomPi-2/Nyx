@@ -45,6 +45,7 @@ Los números no se reutilizan aunque un error deje de existir.
 | A-301 | No se ha podido mirar si hay versión nueva. | Nada: lo vuelve a intentar en unas horas. |
 | A-302 | No se ha podido descargar la versión nueva. | Nada: lo vuelve a intentar en unas horas. |
 | A-303 | No se ha podido aplicar la versión nueva. | Nyx sigue con la que tenías. Si se repite, descarga «Instalar Nyx» de la web. |
+| A-304 | La versión nueva no arrancaba bien y Nyx ha vuelto sola a la anterior. | Nada: sigue funcionando. Cuando salga un arreglo, se actualizará sola. |
 
 ## N · Núcleo
 

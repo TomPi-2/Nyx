@@ -10,6 +10,7 @@ mod input;
 pub mod install_hooks;
 mod island;
 mod monitors;
+mod rollback;
 mod settings_window;
 mod tray;
 mod updater;
@@ -65,6 +66,7 @@ pub fn run() {
             glass::init(handle);
             core_process::start(handle);
             updater::init(handle);
+            rollback::check(handle);
             island::create(handle)?;
             input::create(handle)?;
             hotkeys::register(handle);

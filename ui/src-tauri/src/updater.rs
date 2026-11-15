@@ -20,7 +20,7 @@ use tokio::sync::Notify;
 use velopack::sources::GithubSource;
 use velopack::{UpdateCheck, UpdateInfo, UpdateManager, UpdateOptions};
 
-use crate::{core_process, errors};
+use crate::{core_process, errors, rollback};
 
 /// Repositorio oficial: solo de aquí (HTTPS) se descargan versiones.
 const REPO: &str = "https://github.com/TomPi-2/Nyx";
@@ -71,6 +71,11 @@ pub async fn update_apply(app: AppHandle) -> Result<(), String> {
         .ok_or("no hay ninguna versión descargada")?;
     let beta = channel(&app) == "beta";
     let manager = manager(beta)?;
+    // Copia de la versión actual para poder volver si la nueva no arranca (rollback.rs).
+    let current = manager.get_current_version_as_string();
+    if let Err(e) = rollback::before_apply(&current, &info.TargetFullRelease.Version) {
+        eprintln!("[nyx] sin copia para volver atrás: {e}");
+    }
     // El núcleo se para antes (sus servicios se cierran al morir: whisper-server, Ollama no).
     core_process::stop(&app).await;
     // Sale de la app; Velopack aplica la versión y vuelve a abrir Nyx. Si no puede, Nyx

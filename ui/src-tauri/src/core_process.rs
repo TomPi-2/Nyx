@@ -118,6 +118,10 @@ async fn supervise(app: AppHandle, state: Arc<CoreState>) {
                 "[nyx] el núcleo ha fallado {failures} veces seguidas; esperando reinicio manual"
             );
             let _ = app.emit("core://failed", ());
+            // Recién actualizada y no arranca: a la versión anterior (rollback.rs).
+            if crate::rollback::pending(&app) {
+                crate::rollback::roll_back(&app).await;
+            }
             // Antes no se enseñaba nada: Nyx simplemente no contestaba.
             let code = if missing {
                 errors::CORE_MISSING
