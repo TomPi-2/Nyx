@@ -73,7 +73,8 @@ def _after_header(text: str) -> str | None:
 # la verdad en vez de fingir.
 _CLAIM_OPENER = re.compile(
     r"^\s*(?:vale|claro|hecho|listo|perfecto|de acuerdo|ok|okey|venga|ahora mismo|enseguida|"
-    r"ya est[aá]|ah[ií] (?:va|lo tienes)|"
+    r"ya est[aá]|ah[ií] (?:va|lo tienes)|voy|bajamos|subimos|ponemos|quitamos|cerramos|"
+    r"abrimos|apagamos|silenciamos|"
     # «Te cierro…», «Lo muteo…»: al decidir solo se ha visto el pronombre; se espera a la frase.
     r"te|se|me|lo|la|los|las|le|les|"
     r"deshago|guardo|muteo|desmuteo|muto|desmuto|silencio|cierro|abro|pongo|quito|paso|activo|desactivo|"
@@ -88,6 +89,10 @@ _CLAIM = re.compile(
     r"|(?:guardo|muteo|desmuteo|muto|desmuto|silencio|cierro|abro|pongo|quito|activo|desactivo|subo|bajo|"
     r"apago|enciendo|borro|muevo|grabo|reinicio|actualizo|instalo|salto|tacho|apunto)\s+"
     r"(?:el|la|los|las|tu|tus|esta|este|eso|esa|ese|un|una)\b"
+    # «Voy a bajarlo un poco», «Bajamos el volumen» (batería del 2026-11-16).
+    r"|\bvoy a (?:bajar|subir|poner|quitar|cerrar|abrir|activar|desactivar|apagar|encender|"
+    r"silenciar|mutear|guardar|borrar|mover|cambiar|pasar|reiniciar|instalar)\w*"
+    r"|^\s*(?:bajamos|subimos|ponemos|quitamos|cerramos|abrimos|apagamos|silenciamos)\b"
     r"|^\s*(?:vale|ok|hecho|listo)[,.!]?\s+(?:pasa|pon|cambia|salta|la siguiente|cierra|abre|"
     r"activa|desactiva|mutea|silencia|guarda|quita)\b)",
     re.IGNORECASE,

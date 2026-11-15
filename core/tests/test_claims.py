@@ -60,6 +60,8 @@ def spoken(events: list[object]) -> str:
         "Vale, pasa la canción.",
         "Deshago eso y te desmuto el micrófono.",
         "Vale, activo la extensión.",
+        "Voy a bajarlo un poco.",
+        "Bajamos el volumen.",
     ],
 )
 def test_claims(text: str) -> None:
@@ -73,6 +75,7 @@ def test_claims(text: str) -> None:
         "Claro, en alemán se dice Hallo.",
         "Son las siete y media.",
         "Te cuento un chiste: ¿por qué…?",
+        "Voy a contarte un chiste.",
     ],
 )
 def test_not_claims(text: str) -> None:

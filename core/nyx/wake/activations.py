@@ -129,6 +129,9 @@ class ActivationLog:
         """Apunta una activación. `verified=False` (whisper no oyó «Nyx») cuenta para la
         subida automática y, con `save_clips`, guarda su audio (`clip`, int16 a 16 kHz)."""
         activation = Activation(uuid.uuid4().hex[:10], time.time() if now is None else now, score)
+        from nyx.usage.stats import STATS
+
+        STATS.activation(verified)  # solo cuántas: nada de lo oído
         if verified is False:
             self._discarded(activation.at)
             if self.save_clips and clip is not None and len(clip):

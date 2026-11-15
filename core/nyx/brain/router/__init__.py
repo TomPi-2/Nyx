@@ -74,6 +74,7 @@ ORDER = (
     "volume_down",
     "volume_set",
     "volume_said",
+    "volume_too_much",
     "unmute",
     "mute",
     "media_pause",

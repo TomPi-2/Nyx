@@ -62,3 +62,7 @@ crates/*/Cargo.lock
 core/training/voz/fuentes/
 tools/grabadora/src-tauri/target/
 tools/grabadora/src-tauri/gen/schemas/
+
+# Datos de uso (2026-11-16): dirección y clave pública de Supabase, fuera de git
+scripts/uso.local.json
+core/uso.json

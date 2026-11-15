@@ -17,6 +17,15 @@ from nyx.tools.base import ToolContext
 
 
 @pytest.fixture(autouse=True)
+def _usage_stats_in_tmp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Las cuentas de uso (nyx/usage) de las pruebas no van a la carpeta de datos de verdad."""
+    from nyx.usage.stats import STATS
+
+    monkeypatch.setattr(STATS, "root", tmp_path / "uso")
+    monkeypatch.setattr(STATS, "_day", None)
+
+
+@pytest.fixture(autouse=True)
 def _no_real_ollama(monkeypatch: pytest.MonkeyPatch) -> None:
     """Ninguna prueba instala ni abre Ollama de verdad (9.08: la descarga lo hace si falta).
     Las que lo prueban ponen sus propias versiones encima."""

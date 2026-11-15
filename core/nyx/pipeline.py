@@ -76,6 +76,7 @@ from nyx.tools.base import GamePolicy, ToolResult
 from nyx.tools.clipboard import write_clipboard_text
 from nyx.tts.base import TTSEngine, TTSError
 from nyx.tts.sentences import SentenceSplitter
+from nyx.usage.stats import STATS
 from nyx.wake.activations import ActivationLog, is_not_for_you
 from nyx.wake.base import WakeWordEngine
 from nyx.wake.custom import WakePhrase
@@ -950,6 +951,7 @@ class Pipeline:
         if self.refuse is not None and (no := self.refuse(text)) is not None:
             # Lo que Nyx no hace nunca (vaciar la papelera, actuar dentro de un juego…).
             log.info("Negativa fija para %r: %s", text, no[0])
+            STATS.request("refusal")
             spoken = f"{no[0]}." if from_voice or self.speak_typed else None
             await self._fail(no[0], no[1], spoken)
             return
@@ -1026,6 +1028,8 @@ class Pipeline:
             routed.rule,
             _ms(self._clock() - marks.end),
         )
+        path = {"llm": "llm", "aprendido": "shortcut"}.get(routed.rule, "router")
+        STATS.request(path, (self._clock() - marks.end) * 1000)
         speak = from_voice or self.speak_typed
         failed = next((r for r in results if not r.ok), None)
         self._agent.done += list(zip(routed.calls, results, strict=False))
@@ -1337,6 +1341,12 @@ class Pipeline:
             await show_bubble()
             level_task = asyncio.create_task(self._speaking_levels())
             log.info("Latencia: %s", _latency(marks))
+            start = marks.stt if marks.stt is not None else marks.end
+            STATS.request(
+                "llm",
+                (marks.first_audio - marks.end) * 1000,
+                (marks.first_token - start) * 1000 if marks.first_token is not None else None,
+            )
 
         long_ready = False  # el panel largo ya tiene escrito lo de antes: se sigue frase a frase
 
@@ -1497,6 +1507,7 @@ class Pipeline:
                 await show_bubble()
         except LLMError as e:
             log.error("Fallo del LLM: %s", e)
+            STATS.error(f"llm_{getattr(e, 'kind', 'error')}")
             if speech is not None:
                 await speech.abort()
             p = self.phrases.llm_error(e.kind)

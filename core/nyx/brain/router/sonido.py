@@ -211,6 +211,18 @@ def _volume_said(m: re.Match[str], index: SystemIndex) -> Route | None:
     return _call("volume_said", "set_volume", change=step, app=best.entry.name)
 
 
+@rule(
+    "volume_too_much",
+    # «Está muy alto el sonido», «el volumen está demasiado bajo», «se oye muy fuerte» (sin
+    # nombrar app: el volumen general; batería del 2026-11-16).
+    r"^(?:(?:el\s+sonido|el\s+volumen|la\s+musica|esto)\s+)?(?:esta|suena|se\s+oye)\s+"
+    rf"(?:muy|demasiado|super)\s+(?:(?P<loud>{_LOUD})|(?P<soft>{_SOFT}))"
+    r"(?:\s+(?:el\s+sonido|el\s+volumen|la\s+musica))?$",
+)
+def _volume_too_much(m: re.Match[str], _: SystemIndex) -> Route:
+    return _call("volume_too_much", "set_volume", change=-10 if m.group("loud") else 10)
+
+
 _SPOTIFY = r"(?:\s+(?:en|de)\s+spotify)?$"
 rule(
     "shuffle",

@@ -78,6 +78,8 @@ from nyx.tts.pocket import PocketTTS
 from nyx.tts.voices import Engine, voice_for
 from nyx.update.coordinator import UpdateCoordinator
 from nyx.update.moment import UpdateGate
+from nyx.usage.sender import UsageSender
+from nyx.usage.stats import STATS
 from nyx.wake.activations import ActivationLog
 from nyx.wake.base import WakeWordEngine
 from nyx.wake.custom import WakePhrase, validate, vosk_vocabulary
@@ -130,8 +132,12 @@ class Services:
         self.update_gate = UpdateGate()
         # Cuándo se aplica una versión descargada (9.06); «Nyx, actualízate» (nyx_update).
         self.updates: UpdateCoordinator | None = None
+        # Datos de uso anónimos (SPEC §8): solo con permiso y si esta versión trae a dónde.
+        self.usage: UsageSender | None = None
 
     async def close(self) -> None:
+        if self.usage is not None:
+            await self.usage.close()
         if self.updates is not None:
             self.updates.close()
         if self.notice is not None:
@@ -474,6 +480,10 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     # «Nyx, actualízate» (herramienta nyx_update).
     services.updates = UpdateCoordinator(bus, settings, services.update_gate)
     tools_ctx.update_now = services.updates.by_voice
+    services.usage = UsageSender(
+        STATS, enabled=lambda: settings.privacy.usage_data, llm_model=lambda: settings.llm.model
+    )
+    services.usage.start()
     services.game_detector = GameDetector(
         bus,
         always=settings.game.always,

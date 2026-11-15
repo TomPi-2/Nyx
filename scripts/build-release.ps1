@@ -68,6 +68,15 @@ New-Item -ItemType Directory -Force $Out, $Pack -ErrorAction Stop | Out-Null
 Step "Núcleo empaquetado"
 Push-Location "$Repo\core"
 uv run python scripts/package_core.py --out "$Pack\core" --whisper "$Whisper"; Check "package_core"
+# Datos de uso anónimos (SPEC §8): a dónde se envían, si el usuario lo permite. La dirección
+# y la clave pública de Supabase están en scripts\uso.local.json, fuera de git. Sin ese
+# archivo, esta versión no envía nada.
+$UsageConfig = Join-Path $Repo "scripts\uso.local.json"
+if (Test-Path $UsageConfig) {
+  Copy-Item $UsageConfig "$Pack\core\app\uso.json" -ErrorAction Stop
+} else {
+  Write-Host "Sin scripts\uso.local.json: esta versión no enviará datos de uso"
+}
 # Las extensiones de Tepnyx (OBS, Spotify…), firmadas: salen en Ajustes → Extensiones.
 # Solo desde la 1.0.0 (decisión del 2026-11-15): la beta soporta extensiones, pero no trae
 # ninguna.
