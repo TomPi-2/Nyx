@@ -28,6 +28,7 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 
 use nyx_glass::{Engine, GlassOptions, Shape};
 
+mod in_use;
 mod win;
 
 /// Lo que publica `vpk pack` (scripts/build-release.ps1). Velopack deja en la carpeta un
@@ -146,14 +147,28 @@ async fn install_steps(app: &AppHandle, options: &Options) -> Result<(), Fail> {
         Some(path) => path,
         None => download_setup(app).await?,
     };
-    let status = tokio::process::Command::new(&setup)
-        .arg("--silent")
-        // La app que abre el Setup al acabar se cierra sola: la abre este instalador después
-        // de bajar el oído y la voz (install_hooks.rs de la app).
-        .env("NYX_INSTALLER", "1")
-        .status()
-        .await
-        .map_err(|e| fail("I-112", "No he podido abrir el instalador de Nyx", e))?;
+    // Si ya hay una Nyx instalada (la misma versión u otra), el Setup la sustituye.
+    let before = in_use::log_len();
+    let mut status = run_setup(&setup).await?;
+    if !status.success() && in_use::folder_in_use(before) {
+        // Algo de fuera tiene abierta la carpeta de la Nyx que hay (Ollama o Everything):
+        // se cierran, se reintenta y se vuelven a abrir como estaban.
+        let stopped = tokio::task::spawn_blocking(in_use::stop_helpers)
+            .await
+            .unwrap_or_default();
+        tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
+        let again = in_use::log_len();
+        status = run_setup(&setup).await?;
+        in_use::relaunch(&stopped);
+        if !status.success() && in_use::folder_in_use(again) {
+            let closed = in_use::names(&stopped);
+            return Err(fail(
+                "I-113",
+                "Algo tiene abierta la carpeta de Nyx",
+                format!("{status}; cerrado: {closed}"),
+            ));
+        }
+    }
     if !status.success() {
         return Err(fail("I-110", "La instalación de Nyx ha fallado", status));
     }
@@ -184,6 +199,18 @@ async fn install_steps(app: &AppHandle, options: &Options) -> Result<(), Fail> {
 
     // 3. El oído y la voz, con el núcleo recién instalado.
     download_voice(app).await
+}
+
+/// El Setup de Velopack en silencio.
+async fn run_setup(setup: &std::path::Path) -> Result<std::process::ExitStatus, Fail> {
+    tokio::process::Command::new(setup)
+        .arg("--silent")
+        // La app que abre el Setup al acabar se cierra sola: la abre este instalador después
+        // de bajar el oído y la voz (install_hooks.rs de la app).
+        .env("NYX_INSTALLER", "1")
+        .status()
+        .await
+        .map_err(|e| fail("I-112", "No he podido abrir el instalador de Nyx", e))
 }
 
 /// Abre Nyx (el primer arranque lo guía ella) y cierra el instalador.

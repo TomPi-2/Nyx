@@ -21,6 +21,7 @@ Los números no se reutilizan aunque un error deje de existir.
 | I-110 | El instalador de la app (Velopack) ha terminado con error. | Pulsa «Reintentar». El detalle está en `%LOCALAPPDATA%\Velopack\velopack.log`. |
 | I-111 | La app parece instalada pero no aparece `Nyx.exe` en `%LOCALAPPDATA%\TepnyxNyx`. | Pulsa «Reintentar». Si sigue, mira si un antivirus lo ha puesto en cuarentena. |
 | I-112 | No se ha podido abrir el instalador de la app. | Mira si un antivirus lo bloquea y pulsa «Reintentar». |
+| I-113 | Ya hay una Nyx instalada y algo tiene abierta su carpeta (`%LOCALAPPDATA%\TepnyxNyx`), así que no se puede sustituir. El instalador ya ha cerrado Ollama y Everything y lo ha reintentado. | Cierra las ventanas del Explorador o terminales que estén en esa carpeta y pulsa «Reintentar». Si sigue, reinicia el PC y vuelve a abrir el instalador. |
 | I-120 | No se ha podido guardar lo elegido en «Opciones» (`%APPDATA%\Nyx\instalador.json`). | Nyx funciona igual; Everything se puede instalar luego desde Ajustes → Caché. |
 | I-121 | No se ha podido poner «Arrancar con Windows». | Nyx funciona igual; ábrela desde el menú Inicio. |
 | I-122 | No se ha podido crear el acceso directo del escritorio. | Nyx está en el menú Inicio y en la bandeja. |

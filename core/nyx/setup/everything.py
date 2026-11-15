@@ -93,7 +93,8 @@ def start() -> bool:
     if _running():
         return True
     try:
-        subprocess.Popen([str(exe), "-startup"], close_fds=True)
+        # En su carpeta: si heredara la de Nyx, no dejaría reinstalarla (I-110).
+        subprocess.Popen([str(exe), "-startup"], close_fds=True, cwd=exe.parent)
     except OSError as err:
         log.warning("No se pudo abrir Everything: %s", err)
         return False

@@ -19,8 +19,25 @@ mod win32;
 
 use tauri::RunEvent;
 
+/// Trabaja desde `%LOCALAPPDATA%\Nyx`, nunca desde la carpeta de la app.
+///
+/// Velopack abre Nyx con la carpeta de la versión (`TepnyxNyx\current`) como carpeta de
+/// trabajo, y todo lo que se lanza desde aquí la hereda: el núcleo y, a través de él, Ollama,
+/// Everything o las apps que abre Nyx. Mientras alguno siga abierto, Windows no deja apartar
+/// esa carpeta y reinstalar o actualizar falla (I-110, «Acceso denegado»).
+fn leave_app_folder() {
+    let Some(base) = std::env::var_os("LOCALAPPDATA") else {
+        return;
+    };
+    let dir = std::path::PathBuf::from(base).join("Nyx");
+    if std::fs::create_dir_all(&dir).is_ok() {
+        let _ = std::env::set_current_dir(&dir);
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    leave_app_folder();
     let app = tauri::Builder::default()
         // Debe registrarse el primero (instancia única, SPEC sección 14).
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {

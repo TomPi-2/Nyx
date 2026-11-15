@@ -72,6 +72,7 @@ async def start(host: str) -> bool:
         subprocess.Popen(  # noqa: ASYNC220 - se lanza y se deja correr (no se espera)
             [str(exe)] if exe == app else [str(exe), "serve"],
             creationflags=flags,
+            cwd=exe.parent,  # nunca la carpeta de Nyx: no dejaría reinstalarla (I-110)
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,

@@ -9,13 +9,24 @@ explorer.exe, que delega en el Explorador que ya está en marcha.
 from __future__ import annotations
 
 import logging
+import os
 import subprocess
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 from nyx.index.model import Launch, LaunchKind
 
 log = logging.getLogger(__name__)
+
+
+def _own_folder(program: str) -> str | None:
+    """La carpeta del programa (o la del usuario): nunca la de Nyx, que heredaría y no dejaría
+    reinstalarla ni actualizarla mientras siga abierto (I-110)."""
+    exe = Path(program)
+    if exe.is_absolute() and exe.parent.is_dir():
+        return str(exe.parent)
+    return os.environ.get("USERPROFILE") or None
 
 
 def spawn_detached(args: Sequence[str]) -> None:
@@ -34,6 +45,7 @@ def spawn_detached(args: Sequence[str]) -> None:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 close_fds=True,
+                cwd=_own_folder(args[0]),
             )
             return
         except OSError as e:

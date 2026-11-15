@@ -72,7 +72,8 @@ def documents_folder() -> Path | None:
 
 
 def open_in_notepad(path: Path) -> None:
-    subprocess.Popen(["notepad.exe", str(path)], close_fds=True)
+    # En la carpeta de la nota: nunca la de Nyx (no dejaría reinstalarla, I-110).
+    subprocess.Popen(["notepad.exe", str(path)], close_fds=True, cwd=path.parent)
 
 
 class SaveNote(Tool[SaveNoteParams]):

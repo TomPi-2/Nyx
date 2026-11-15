@@ -66,6 +66,9 @@ def launch_ollama() -> bool:
             subprocess.Popen(
                 cmd,
                 creationflags=flags,
+                # En su carpeta: si heredara la de Nyx, al seguir abierto no dejaría
+                # reinstalar ni actualizar Nyx (I-110).
+                cwd=Path(cmd[0]).parent,
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
