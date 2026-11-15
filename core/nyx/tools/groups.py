@@ -43,6 +43,10 @@ class Group:
     about: str  # una línea para el índice de último recurso (6.20c) y los registros
     tools: tuple[str, ...]
     keywords: tuple[str, ...]
+    # A demanda (0.8): aunque todo quepa, sus herramientas solo se ven cuando la frase habla
+    # de su tema, y van al final. Así una herramienta nueva no cambia lo que ve el modelo en
+    # las frases de siempre (la caché y el acierto medidos siguen igual).
+    lazy: bool = False
 
 
 GROUPS: tuple[Group, ...] = (
@@ -225,6 +229,19 @@ GROUPS: tuple[Group, ...] = (
             r"contar",
             r"contando",
         ),
+    ),
+    Group(
+        "organizacion",
+        "listas (la compra, pendientes) y tareas: apuntar, quitar, tachar, ver",
+        ("list_items", "task"),
+        (
+            r"lista",
+            r"compra",
+            r"tarea",
+            r"pendiente",
+            r"tacha",
+        ),
+        lazy=True,
     ),
     Group(
         "equipo",

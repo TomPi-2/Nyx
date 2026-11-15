@@ -19,6 +19,11 @@ Por eso la lista solo se recorta cuando no cabe:
 
 En el bucle de agente (otra vuelta de la misma petición) la lista no cambia.
 
+Grupos **a demanda** (`Group.lazy`, 0.8): aunque todo quepa, sus herramientas solo se añaden,
+al final, cuando la frase habla de su tema. Las 47 herramientas de la 0.7 llenaban justo el
+presupuesto con 12.288 de contexto: así las nuevas no cambian lo que ve el modelo en las frases
+de siempre.
+
 3. **Índice de último recurso** (0.7, tarea 7.15; antes 6.20c): si no caben y la frase no trae
    ninguna pista, el cerebro pregunta al modelo en una llamada corta qué grupos hacen falta, con
    una línea por grupo (`index_lines`), y se los pasa a `select(picked=…)`. Solo entonces: con
@@ -78,9 +83,13 @@ class ToolSelector:
             for g in self.groups
         }
         self._fixed_chars = sum(_chars(self._schemas[n]) for n in self.fixed)
+        # Las que solo están en grupos a demanda no cuentan para «caben todas».
+        eager = {n for g in self.groups if not g.lazy for n in g.tools} | set(self.fixed)
+        self._lazy = frozenset(n for g in self.groups if g.lazy for n in g.tools if n not in eager)
         # Todas caben: se ven todas, en el orden del registro (el de siempre, el medido).
-        self.all_fit = sum(_chars(s) for s in self._schemas.values()) <= budget_chars
-        self._everything = list(self._schemas.values())
+        self._everything = [s for n, s in self._schemas.items() if n not in self._lazy]
+        self.all_fit = sum(_chars(s) for s in self._everything) <= budget_chars
+        self._lazy_current: tuple[str, ...] = ()  # grupos a demanda de la última petición
         # Todas las herramientas (también las que no se ven): una llamada escrita como texto a
         # una que no estaba en la lista se reconoce y se ejecuta igual (existe).
         self.names = frozenset(t.name for t in registry.all())
@@ -128,7 +137,19 @@ class ToolSelector:
         """Herramientas para esta petición. `keep`: otra vuelta de la misma petición.
         `picked`: grupos elegidos con el índice de último recurso (7.15)."""
         if self.all_fit:
-            return self._everything
+            if not keep:
+                self._lazy_current = tuple(
+                    g for g in self.groups_for(text) if self._by_name[g].lazy
+                )
+            if not self._lazy_current:
+                return self._everything
+            extra = [
+                n
+                for g in self._lazy_current
+                for n in self._by_name[g].tools
+                if n in self._lazy and n in self._schemas
+            ]
+            return self._everything + [self._schemas[n] for n in dict.fromkeys(extra)]
         if keep:
             return self.tools_for(self.current)
         wanted = (

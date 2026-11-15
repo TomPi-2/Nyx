@@ -407,3 +407,13 @@
 {"frase": "explícame por qué el cielo es azul", "tipo": "respuesta"}
 {"frase": "explícame cómo funciona una vacuna", "tipo": "respuesta"}
 {"frase": "¿me explicas qué es la inflación?", "tipo": "respuesta"}
+{"frase": "añade leche y pan a la lista de la compra", "tool": "list_items", "args": {"action": "add"}}
+{"frase": "¿qué hay en la lista de la compra?", "tool": "list_items", "args": {"action": "read"}}
+{"frase": "quita el pan de la lista de la compra", "tool": "list_items", "args": {"action": "remove"}}
+{"frase": "vacía la lista de la compra", "tool": "list_items", "args": {"action": "clear"}}
+{"frase": "¿qué tareas tengo hoy?", "tool": "task", "args": {"action": "read", "day": "today"}}
+{"frase": "apunta como tarea renovar el DNI", "tool": "task", "args": {"action": "add"}}
+{"frase": "apunta como tarea llamar al banco mañana a las 10", "tool": "task", "args": {"action": "add", "day": "tomorrow", "time": "10:00"}}
+{"frase": "acuérdate de que tengo que comprar pilas, ponlo en la lista de la compra", "tool": "list_items", "args": {"action": "add"}}
+{"frase": "ya he llamado al banco, márcalo como hecho en mis tareas", "tool": "task", "args": {"action": "done"}}
+{"frase": "¿qué me queda por comprar?", "tool": "list_items", "args": {"action": "read"}}

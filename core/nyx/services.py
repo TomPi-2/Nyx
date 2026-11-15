@@ -61,6 +61,7 @@ from nyx.index.scanners.games import steam_root
 from nyx.index.service import SystemIndex
 from nyx.index.watcher import IndexWatcher
 from nyx.models import MODELS
+from nyx.organizer.store import OrganizerStore
 from nyx.paths import local_dir
 from nyx.pipeline import Pipeline
 from nyx.safety.action_log import ActionLog
@@ -381,6 +382,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         settings=settings,
         paths=paths,
         alarms=alarms,
+        organizer=OrganizerStore.default(),
         open_nyx_settings=open_nyx_settings,
         apply_settings=apply_settings,
         open_nyx_panel=open_nyx_panel,

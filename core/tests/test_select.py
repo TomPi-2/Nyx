@@ -59,9 +59,22 @@ def test_today_everything_fits_and_the_list_never_changes() -> None:
     registry = default_registry()
     sel = ToolSelector(registry, budget_chars=tools_budget(12288))
     assert sel.all_fit
-    every = names(registry.schemas())
+    lazy = {"list_items", "task"}  # grupo a demanda (8.01)
+    every = [n for n in names(registry.schemas()) if n not in lazy]
     for text in ("¿cuánta batería me queda?", "mueve las fotos a Imágenes", "hola"):
         assert names(sel.select(text)) == every
+
+
+def test_on_demand_groups_go_at_the_end_only_when_asked() -> None:
+    """0.8: las de un grupo a demanda solo salen si la frase habla de su tema, y al final (lo
+    de siempre sigue igual en la caché); en otra vuelta de la misma petición, también."""
+    registry = default_registry()
+    sel = ToolSelector(registry, budget_chars=tools_budget(12288))
+    every = names(sel.select("hola"))
+    asked = names(sel.select("añade leche a la lista de la compra"))
+    assert asked[: len(every)] == every and asked[len(every) :] == ["list_items", "task"]
+    assert names(sel.select("", keep=True)) == asked
+    assert names(sel.select("¿tengo que coger paraguas mañana?")) == every
 
 
 def test_smaller_context_does_not_fit_everything() -> None:

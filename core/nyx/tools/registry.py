@@ -71,6 +71,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.get_weather import GetWeather
     from nyx.tools.install_app import InstallApp
     from nyx.tools.list_files import ListFiles
+    from nyx.tools.list_items import ListItems
     from nyx.tools.media_control import MediaControl
     from nyx.tools.move_files import MoveFiles
     from nyx.tools.now_playing import NowPlayingTool
@@ -96,6 +97,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.stopwatch import Stopwatch
     from nyx.tools.system_info import SystemInfo
     from nyx.tools.system_power import SystemPower
+    from nyx.tools.task import TaskTool
     from nyx.tools.toggle_bluetooth import ToggleBluetooth
     from nyx.tools.toggle_wifi import ToggleWifi
     from nyx.tools.type_text import TypeText
@@ -136,6 +138,8 @@ def default_registry() -> ToolRegistry:
             ListAlarms(),
             CancelAlarm(),
             Stopwatch(),
+            ListItems(),
+            TaskTool(),
             NyxInfo(),
             NyxControl(),
             NyxPanel(),
