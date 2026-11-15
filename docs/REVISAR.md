@@ -214,6 +214,14 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
       extensión con la guía (`docs/extensiones/README.md`; ¿se la pasamos a Gemini o a alguien
       que conozcas?) y medir el coste en partida con una extensión en marcha (tú, jugando).
 
+24. **Plan de la 0.8** (`docs/PLAN-0.8.md`, borrador del 2026-11-15): **necesita tu visto
+    bueno.** Organización (notas, listas y tareas; calendario local con `.ics`; recordatorios
+    al abrir una app; dictado; resumir lo seleccionado o un documento; documentos recientes),
+    seguridad (quién usa el micro y la cámara; bloquear; ocultar apps) y lo que pasa de la 0.7
+    (modos y formas). Mientras tanto empiezo por el núcleo de notas, listas y tareas (8.01),
+    que no cambia nada visible. Dudas: ¿las notas rápidas también como archivo en
+    `Documentos\Notas de Nyx`, o solo dentro de Nyx? (de momento, solo dentro, con deshacer).
+
 ## Qué probar
 
 Probado y bien (2026-11-13): color de Nyx (6.23), ciudad automática (6.24) y falsas

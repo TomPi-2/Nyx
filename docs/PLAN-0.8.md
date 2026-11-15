@@ -1,0 +1,159 @@
+# Plan de la versión 0.8 — Organización y seguridad
+
+> **Borrador de Claude del 2026-11-15, pendiente del visto bueno del usuario.** El usuario
+> pidió hacer la 0.8 antes de la beta y seguir sin parar apuntando las dudas
+> (`REVISAR.md` 24); mientras no lo apruebe, se empieza por lo que no cambia nada visible ni
+> el modo partida (bloque B, núcleo), y lo que lleva interfaz se hace como prototipo.
+> Fuente: [HOJA-DE-RUTA.md](HOJA-DE-RUTA.md) §2 (0.8) y §5 (modos), y lo que pasa de la 0.7
+> (`PLAN-0.7.md`, 7.09 y 7.10). Funciona como los planes anteriores: una tarea por sesión, sus
+> comprobaciones (§0.3 de `PLAN-0.6.md`), un commit y su fila en el Registro.
+
+**Objetivo de la 0.8:** que Nyx ayude a organizarse (notas, listas, tareas, calendario,
+dictado, resúmenes, documentos recientes) y a proteger la privacidad (modos, bloquear, quién
+usa el micro y la cámara), sin tocar el rendimiento en partida.
+
+**Para cerrar la 0.8** (HOJA-DE-RUTA §2): cada función con sus frases en la batería y sus
+pruebas; la batería no baja (388/409 con `nyx-r2:7b` en la 7.17) y el coste en partida sigue
+dentro del objetivo (SPEC §14).
+
+---
+
+## 0. Reglas propias de la 0.8
+
+- **Todo local.** Notas, listas, tareas y calendario en una base SQLite en
+  `%LOCALAPPDATA%\Nyx` (copia en la de seguridad de las actualizaciones, 9.05). Nada sale del
+  PC; importar un `.ics` es leer un archivo que elige el usuario.
+- **Borrar es a la papelera o con deshacer.** Una nota, lista o tarea borrada se puede
+  recuperar (deshacer 30 s y «papelera» propia de 30 días); nunca borrado permanente.
+- **Lo privado no se enseña sin querer:** en el modo Privacidad, las burbujas no llevan
+  contenido (ni notas, ni citas, ni lo que se dicta).
+- **El modo partida no cambia** al pasar a ser un modo: mismas políticas, mismos tiempos, y se
+  comprueba jugando antes de cerrar.
+
+## 1. Orden y dependencias
+
+```text
+A. Organización        8.01 → 8.02 → 8.03 · 8.04 · 8.05 · 8.06    (núcleo primero)
+B. Seguridad básica    8.07 · 8.08                                (independientes)
+C. Modos               8.09 (diseño) → 8.10 → 8.11                (lo que pasa de la 0.7)
+D. Interfaz            8.12 (prototipo antes) · 8.13 (formas, de la 7.09)
+E. Cierre              8.14
+```
+
+## 2. Bloque A — Organización
+
+### 8.01 Notas, listas y tareas (núcleo) · Claude
+
+`nyx/organizer/` con una base SQLite (`organizer.db`): notas rápidas (texto y fecha), listas
+con elementos (la compra, pendientes) y tareas con fecha opcional que avisan como un
+recordatorio (`alarms`). Herramientas `note` (apuntar, leer, buscar), `list_items` (añadir,
+quitar, leer, vaciar con deshacer) y `task` (crear, completar, ver las de hoy). Reglas del
+router para lo seguro («apunta que…», «añade leche a la lista de la compra», «¿qué tengo en la
+lista?»), con variantes de respuesta por tono. `save_note` (la nota en el Bloc de notas) sigue
+igual: «apunta en una nota» abre el Bloc; «apunta que…» guarda en Nyx. **A decidir:** si las
+notas rápidas también se guardan como archivo en `Documentos\Notas de Nyx` (para verlas fuera
+de Nyx) o solo en la base.
+
+### 8.02 Calendario local · Claude
+
+Citas con fecha, hora, duración y aviso (el planificador de alarmas), «¿qué tengo mañana?»,
+«mueve la cita del dentista al jueves», importar un `.ics` (biblioteca `icalendar`, BSD: se
+comprueba la licencia antes). Repeticiones sencillas (cada semana, cada mes). Sin cuentas
+(Outlook y Google: 1.3).
+
+### 8.03 Recordatorios por contexto · Claude
+
+«Cuando abra Discord, recuérdame…», «cuando llegue a casa» no (sin ubicación continua). Usa
+el aviso de app en primer plano que ya tiene el modo partida (`game/` detecta procesos); el
+recordatorio salta una vez y se borra (con deshacer). Nunca en partida: espera a que acabe.
+
+### 8.04 Dictado · cualquiera
+
+«Escribe lo que te diga»: Nyx escucha seguido (como en el primer arranque) y escribe en la app
+activa con `type_text` (sin Intro ni tabulador sin confirmar, como ya hace), hasta «ya está»
+o un silencio largo. Puntuación hablada («coma», «punto», «nueva línea»). Nunca en juegos ni
+en terminales sin confirmar.
+
+### 8.05 Resúmenes del texto seleccionado y de documentos · Claude
+
+El del portapapeles ya existe (`clipboard`). Añadir: el texto seleccionado (copiarlo con
+Ctrl+C y devolver el portapapeles como estaba, nunca en juegos) y un documento («resume el
+PDF de Descargas»: `pypdf` BSD para PDF, `python-docx` MIT para Word, texto plano), que llega
+al modelo como información de fuera (como una web), por trozos si es largo.
+
+### 8.06 Documentos recientes · cualquiera
+
+«Abre el último Word», «¿qué documento estaba editando ayer?»: la carpeta Recientes de Windows
+(accesos directos `.lnk`) y, si hace falta, las listas de saltos. Sin indexar nada nuevo.
+
+## 3. Bloque B — Seguridad básica
+
+### 8.07 Quién usa el micrófono y la cámara · Claude
+
+«¿Quién está usando el micro?», «¿qué apps han usado la cámara hoy?»: el registro de
+privacidad de Windows (`CapabilityAccessManager\ConsentStore\{microphone,webcam}`, por usuario,
+con `LastUsedTimeStart/Stop`; en uso si `Stop` es 0). Solo lectura. Nyx se nombra a sí misma
+si es ella. Aviso opcional (apagado por defecto) cuando una app empieza a usar la cámara.
+
+### 8.08 Bloquear y ocultar · cualquiera
+
+Bloquear el PC por voz ya existe (`system_power`, verde): frases en la batería y la regla del
+router (hoy «apaga el wifi y bloquea» acaba en apagar, con confirmación). Ocultar apps
+concretas: minimizarlas y quitarlas de la barra mientras dure (las devuelve al salir del modo
+Privacidad o con «enséñalas»), nunca juegos ni Nyx.
+
+## 4. Bloque C — Modos (de la 0.7)
+
+### 8.09 Sistema de modos: diseño · Claude · DECISIÓN
+
+Con HOJA-DE-RUTA §5: disparadores (voz, automáticos, bandeja), acciones al entrar y al salir
+que se deshacen, comportamiento de Nyx (voz, burbujas, monitor, tono) y políticas de
+herramientas por modo. **La partida pasa a ser el primer modo sin cambiar cómo funciona.**
+Propuesta escrita y el visto bueno del usuario antes de tocar `game/` y `gamemode/`.
+
+### 8.10 Modos Trabajo, Noche y Privacidad · Claude
+
+Trabajo (abre y coloca las apps elegidas, silencia lo que distrae, voz baja), Noche (volumen
+bajo, voz más suave, sin sonidos, y abre luz nocturna y no molestar en Configuración: decisión
+de la 7.10) y Privacidad (micrófono de Nyx solo con atajo, burbujas sin contenido, sin
+búsquedas en internet, oculta las apps elegidas: 8.08). Se prueba jugando que Partida sigue
+igual.
+
+### 8.11 Modos como extensiones · Claude
+
+El tipo `mode` del manifiesto (hoy se acepta y no se usa): un modo de fuera solo puede usar
+acciones y ajustes que un preajuste ya puede tocar, nunca políticas de seguridad. Tercer
+ejemplo de la guía de extensiones (el que faltaba de la 7.13).
+
+## 5. Bloque D — Interfaz
+
+### 8.12 Organización en la interfaz · cualquiera (prototipo antes)
+
+Prototipo HTML (como en la 6.28) y visto bueno del usuario: panel de notas, listas y tareas
+junto a Nyx («enséñame la lista de la compra»), la agenda del día, Ajustes → Modos y el aviso
+de cámara. SPEC §12 al pie de la letra.
+
+### 8.13 Formas de extensión en Nyx (de la 7.09) · cualquiera
+
+Dibujar en la isla la forma de una extensión con el preámbulo del contrato
+(`docs/extensiones/formas.md`), volver a la de siempre si no compila o cuesta demasiado, y
+registrar la forma actual como `tepnyx.forma-nyx` (la predeterminada). Elegirla en Ajustes →
+Apariencia. Se mide el coste en partida.
+
+## 6. Bloque E — Cierre
+
+### 8.14 Cierre de la 0.8 · Claude
+
+Revisión, batería con las frases nuevas, coste en partida, SPEC (organización, seguridad y
+modos), `CHANGELOG.md` y `CLAUDE.md` (siguiente: 0.9, la beta).
+
+## 7. Fuera de la 0.8
+
+- Calendarios de Outlook y Google: 1.3.
+- Modos Streaming y Relax: 1.1.
+- Programas desconocidos y apps que se inician con Windows: 1.3.
+
+## 8. Registro
+
+| Tarea | Agente | Commit | Notas para la revisión | Revisado |
+| --- | --- | --- | --- | --- |
