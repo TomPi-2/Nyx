@@ -258,6 +258,19 @@ GROUPS: tuple[Group, ...] = (
         lazy=True,
     ),
     Group(
+        "recientes",
+        "documentos abiertos hace poco: abrir el último o decir cuáles",
+        ("recent_files",),
+        (
+            r"ultim[oa] (?:word|excel|powerpoint|pdf|documento)",
+            r"he abierto",
+            r"abri\b",
+            r"recientes?",
+            r"estaba (?:editando|usando|mirando)",
+        ),
+        lazy=True,
+    ),
+    Group(
         "equipo",
         "estado del equipo (batería, procesador, memoria, disco), brillo, wifi, bluetooth, "
         "apagar, reiniciar, suspender o bloquear",

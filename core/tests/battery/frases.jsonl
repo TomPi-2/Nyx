@@ -421,3 +421,7 @@
 {"frase": "¿alguien me está escuchando?", "tool": "privacy_check", "args": {"device": "microphone"}}
 {"frase": "¿qué apps han usado la cámara hoy?", "tool": "privacy_check", "args": {"device": "camera", "when": "today"}}
 {"frase": "oye, ¿hay algún programa espiándome por la webcam?", "tool": "privacy_check", "args": {"device": "camera"}}
+{"frase": "abre el último Word", "tool": "recent_files", "args": {"action": "open", "kind": "word"}}
+{"frase": "¿qué documentos he abierto hoy?", "tool": "recent_files", "args": {"action": "list"}}
+{"frase": "ábreme otra vez el Excel que estaba usando antes", "tool": "recent_files", "args": {"action": "open", "kind": "excel"}}
+{"frase": "¿cómo se llamaba el PDF que abrí ayer?", "tool": "recent_files", "args": {"action": "list", "kind": "pdf"}}
