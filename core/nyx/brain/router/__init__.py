@@ -192,8 +192,19 @@ _BACKGROUND = re.compile(
 _OPENERS = {"open_app", "open_url", "open_path", "open_settings"}
 
 
+_RAW_LEAD = re.compile(
+    r"^(?:\s*(?:vale|venga|bueno|pues|a ver|ok|okey|oye|oiga|eh+|ehm|em|mm+|hmm|hey|ey)"
+    r"[\s,.…!¡]+)+(?=\w|[¿¡])",
+    re.IGNORECASE,
+)
+_RAW_TRAIL = re.compile(r"(?:[\s,]+(?:por favor|porfa|gracias))+[\s.!]*$", re.IGNORECASE)
+
+
 def route(text: str, index: SystemIndex) -> Route | Miss | None:
     """Ruta para `text`, `Miss` si el patrón encaja sin destino claro, o None (→ LLM)."""
+    # Muletillas y cortesías fuera antes de partir en órdenes y de guardar el texto tal cual:
+    # «A ver, abre Spotify y pon el volumen al 30, por favor» (batería de voz, 2026-11-15).
+    text = _RAW_TRAIL.sub("", _RAW_LEAD.sub("", text)) or text
     _RAW_EXACT.set(text.strip())
     _RAW.set(text.strip().rstrip(".!¡?¿ "))
     # «marca.com» → «marca punto com»: la limpieza quita los puntos; open_url los recupera.

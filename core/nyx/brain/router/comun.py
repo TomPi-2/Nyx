@@ -54,7 +54,11 @@ def parse_number(text: str) -> int | None:
 _NUM = r"(?P<n>\d{1,3}|[a-z]+(?: y [a-z]+)?)"
 _POLITE = re.compile(r"\s+(?:por favor|porfa|gracias)$")
 # Muletillas al empezar («vale, ábreme Netflix», «venga, pon música»; ERRORES.md, 2026-11-14).
-_LEAD = re.compile(r"^(?:(?:vale|venga|bueno|pues|a ver|ok|okey|por favor|porfa)\s+)+(?=\w)")
+# «Oye, …», «Eh… …», «Hey, …» (variantes de voz, 2026-11-15).
+_LEAD = re.compile(
+    r"^(?:(?:vale|venga|bueno|pues|a ver|ok|okey|por favor|porfa|oye|oiga|eh|ehm|em|mm|mmm|"
+    r"hmm|hey|ey)\s+)+(?=\w)"
+)
 _THIS_WINDOW = {"", "esta ventana", "la ventana", "esto", "esta", "la ventana activa"}
 
 

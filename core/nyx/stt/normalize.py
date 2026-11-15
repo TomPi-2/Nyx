@@ -196,12 +196,49 @@ def addressed_by_name(text: str) -> bool:
     return _WAKE.match(text) is not None or _WAKE_MID.search(text) is not None
 
 
+_SENTENCE = re.compile(r"(?<=[.!?…])\s+")
+
+
+def _sentence_key(text: str) -> str:
+    return " ".join(_WORD.findall(_strip_accents(text).lower()))
+
+
+def _drop_repeats(text: str) -> str:
+    """«Siguiente. Siguiente.» o «Más pequeño más pequeño» → una vez: Whisper repite lo dicho
+    cuando la frase es corta (registros del 2026-11-14 y 15)."""
+    parts = [p for p in _SENTENCE.split(text) if _sentence_key(p)]
+    if len(parts) > 1 and len({_sentence_key(p) for p in parts}) == 1:
+        return parts[0].strip()
+    words = text.split()
+    half = len(words) // 2
+    if len(words) >= 2 and len(words) % 2 == 0:
+        first, second = " ".join(words[:half]), " ".join(words[half:])
+        if _sentence_key(first) and _sentence_key(first) == _sentence_key(second):
+            return first.strip().rstrip(",")
+    return text
+
+
+def _drop_trailing_hallucination(text: str) -> str:
+    """«Pasa la canción. Gracias.»: el «Gracias.» del final suele ser invento de Whisper."""
+    parts = _SENTENCE.split(text)
+    if len(parts) > 1 and is_hallucination(parts[-1]):
+        return " ".join(parts[:-1]).strip()
+    return text
+
+
 def normalize(text: str) -> str:
     """Texto listo para el cerebro, o "" si no hay nada útil."""
     text = " ".join(text.split())
     if is_hallucination(text):
         return ""
     text = strip_wake_word(text).strip()
+    # «Nix. Nix. Pasa la canción.»: el nombre dos veces (registros del 2026-11-15).
+    for _ in range(2):
+        again = strip_wake_word(text).strip()
+        if again == text:
+            break
+        text = again
+    text = _drop_trailing_hallucination(_drop_repeats(text))
     if is_hallucination(text):
         return ""
     text = normalize_times(text)
