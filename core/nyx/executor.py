@@ -153,6 +153,8 @@ _VERBS = {
     "list_items": "cambiar la lista",
     "task": "apuntar la tarea",
     "privacy_check": "mirar quién usa el micrófono y la cámara",
+    "close_nyx_settings": "cerrar los ajustes",
+    "nyx_restart": "reiniciarme",
     "recent_files": "mirar los documentos recientes",
     "nyx_info": "consultar cómo funciono, sobre",
     "get_weather": "mirar el tiempo",

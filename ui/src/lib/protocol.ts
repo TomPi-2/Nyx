@@ -2,7 +2,7 @@
 
 import type { FontId, NyxColorId, PanelTintId } from "$theme/palette";
 
-export const PROTOCOL_VERSION = 22;
+export const PROTOCOL_VERSION = 23;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -380,7 +380,7 @@ export type ServerMessage =
       voices: { id: string; label: string }[];
     }
   /** v9: abrir la ventana de Ajustes («abre tus ajustes»), en una sección o en la primera. */
-  | { type: "open_settings"; section: SettingsSection | null }
+  | { type: "open_settings"; section: SettingsSection | null; close?: boolean }
   /** v12: asistente y Ajustes → Cerebro, Caché, Ayuda y Privacidad. */
   | { type: "setup_status"; status: SetupStatus }
   | {
@@ -408,7 +408,9 @@ export type ServerMessage =
   /** v20: Nyx está lista (al arrancar o al acabar el primer arranque): la onda (9.04). */
   | { type: "nyx_ready" }
   /** v21: aplicar ya la actualización descargada (la app para el núcleo y reinicia; 9.06). */
-  | { type: "update_apply"; version: string };
+  | { type: "update_apply"; version: string }
+  /** v23: «reiníciate»: la isla pide a la app que reinicie el núcleo. */
+  | { type: "core_restart" };
 
 /** Secciones de la ventana de Ajustes (ui/src/settings/Settings.svelte). */
 export type SettingsSection =

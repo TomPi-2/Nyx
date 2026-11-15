@@ -64,6 +64,14 @@ pub fn open_at(app: &AppHandle, section: Option<&str>) {
     CREATING.store(false, Ordering::SeqCst);
 }
 
+/// «Cierra tus ajustes» (2026-11-15): la cierra como su botón de cerrar (guarda la posición).
+#[tauri::command]
+pub fn settings_close(app: AppHandle) {
+    if let Some(window) = app.get_webview_window(LABEL) {
+        let _ = window.close();
+    }
+}
+
 /// La isla lo pide cuando el núcleo dice «abre tus ajustes» (herramienta open_nyx_settings).
 /// Asíncrono: crear una ventana desde un comando síncrono bloquea Tauri en Windows.
 #[tauri::command]

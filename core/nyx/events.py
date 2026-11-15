@@ -97,9 +97,10 @@ class BubbleHidden:
 
 @dataclass(frozen=True, slots=True)
 class OpenSettingsWindow:
-    """Abrir la ventana de Ajustes de Nyx (herramienta open_nyx_settings)."""
+    """Abrir la ventana de Ajustes de Nyx (herramienta open_nyx_settings), o cerrarla."""
 
     section: str | None = None
+    close: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -251,6 +252,11 @@ class UpdateOffered:
     """La app (Velopack) ha descargado una versión nueva y está lista para aplicarla (9.06)."""
 
     version: str
+
+
+@dataclass(frozen=True, slots=True)
+class CoreRestart:
+    """«Reiníciate»: el núcleo pide a la app que lo reinicie (como bandeja → Reiniciar)."""
 
 
 @dataclass(frozen=True, slots=True)

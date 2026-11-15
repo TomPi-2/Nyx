@@ -77,7 +77,9 @@ def test_default_registry_tools_are_complete() -> None:
     # las 20 de la fase 3 + undo + send_hotkey y app_action + open_nyx_settings (5c) + 0.6
     # + run_powershell (6.13), install_app y ui_action (6.14), web_search (6.06), save_note (6.28)
     # + nyx_panel (9.11)
-    assert len(tools) == 51  # + nyx_update (9.06), list_items y task (8.01), 8.07 y 8.06
+    assert (
+        len(tools) == 53
+    )  # + reiniciar Nyx; + nyx_update (9.06), list_items y task (8.01), 8.07, 8.06 y cerrar ajustes
     for tool in tools:
         assert tool.description and tool.risk and tool.game_policy and tool.category
         assert tool.schema()["function"]["name"] == tool.name

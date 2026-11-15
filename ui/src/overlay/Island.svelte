@@ -239,9 +239,14 @@
         // El núcleo ha elegido el momento (9.06): la app lo para y Velopack cambia de versión.
         void invoke("update_apply").catch((err) => console.warn("Actualización:", err));
         break;
+      case "core_restart":
+        // «Reiníciate» (2026-11-15): como bandeja → Reiniciar.
+        void invoke("core_restart");
+        break;
       case "open_settings":
-        // «Abre tus ajustes»: solo esta ventana lo hace (todas reciben el mensaje).
-        void invoke("settings_open", { section: msg.section });
+        // «Abre tus ajustes» (o «ciérralos», v23): solo esta ventana lo hace (todas lo reciben).
+        if (msg.close) void invoke("settings_close");
+        else void invoke("settings_open", { section: msg.section });
         break;
       case "game":
         game = { active: msg.active, mode: msg.mode, monitor: msg.monitor ?? "" };

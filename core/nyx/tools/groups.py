@@ -271,6 +271,17 @@ GROUPS: tuple[Group, ...] = (
         lazy=True,
     ),
     Group(
+        "nyx_ventana",
+        "cerrar los ajustes de Nyx o reiniciarla",
+        ("close_nyx_settings", "nyx_restart"),
+        (
+            r"(?:cierr|cerr|ocult|quit)\w* (?:tus|los|la|el) (?:ajustes|configuracion|opciones)",
+            r"reinici",
+            r"vuelve a arrancar",
+        ),
+        lazy=True,
+    ),
+    Group(
         "equipo",
         "estado del equipo (batería, procesador, memoria, disco), brillo, wifi, bluetooth, "
         "apagar, reiniciar, suspender o bloquear",

@@ -24,6 +24,7 @@ from nyx.bridge.protocol import (
     ActionMsg,
     BubbleHideMsg,
     BubbleMsg,
+    CoreRestartMsg,
     ExtensionsMsg,
     ExtMsg,
     GameMsg,
@@ -62,6 +63,7 @@ from nyx.events import (
     AudioLevel,
     BubbleHidden,
     BubbleShown,
+    CoreRestart,
     ExtRequested,
     ExtStatusChanged,
     MicLevelChanged,
@@ -156,6 +158,7 @@ class UIBridge:
             bus.subscribe(SetupFlowChanged, self._on_setup_flow),
             bus.subscribe(NyxReady, self._on_ready),
             bus.subscribe(UpdateApply, self._on_update_apply),
+            bus.subscribe(CoreRestart, self._on_core_restart),
         ]
 
     @property
@@ -301,9 +304,9 @@ class UIBridge:
     async def _on_open_settings(self, event: OpenSettingsWindow) -> None:
         # Una sección desconocida abre la primera (lo valida el propio mensaje).
         try:
-            msg = OpenSettingsMsg.model_validate({"section": event.section})
+            msg = OpenSettingsMsg.model_validate({"section": event.section, "close": event.close})
         except ValidationError:
-            msg = OpenSettingsMsg()
+            msg = OpenSettingsMsg(close=event.close)
         await self.broadcast(msg)
 
     async def _on_ext_status(self, event: ExtStatusChanged) -> None:
@@ -339,6 +342,9 @@ class UIBridge:
         await self.broadcast(
             SetupResultMsg(action=event.action, ok=event.ok, message=event.message)
         )
+
+    async def _on_core_restart(self, event: CoreRestart) -> None:
+        await self.broadcast(CoreRestartMsg())
 
     async def _on_update_apply(self, event: UpdateApply) -> None:
         await self.broadcast(UpdateApplyMsg(version=event.version))

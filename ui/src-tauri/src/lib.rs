@@ -69,6 +69,7 @@ pub fn run() {
             glass::gallery::glass_toggle_bubble,
             glass::gallery::glass_close_gallery,
             settings_window::settings_open,
+            settings_window::settings_close,
             folders::open_folder,
             autostart::autostart_get,
             autostart::autostart_set,

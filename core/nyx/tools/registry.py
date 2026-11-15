@@ -63,6 +63,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.audio_output import AudioOutput
     from nyx.tools.clipboard import Clipboard
     from nyx.tools.close_app import CloseApp
+    from nyx.tools.close_nyx_settings import CloseNyxSettings
     from nyx.tools.copy_files import CopyFiles
     from nyx.tools.create_folder import CreateFolder
     from nyx.tools.delete_files import DeleteFiles
@@ -78,6 +79,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.nyx_control import NyxControl
     from nyx.tools.nyx_info import NyxInfo
     from nyx.tools.nyx_panel import NyxPanel
+    from nyx.tools.nyx_restart import NyxRestart
     from nyx.tools.nyx_update import NyxUpdate
     from nyx.tools.open_app import OpenApp
     from nyx.tools.open_nyx_settings import OpenNyxSettings
@@ -119,6 +121,7 @@ def default_registry() -> ToolRegistry:
             OpenUrl(),
             OpenSettings(),
             OpenNyxSettings(),
+            CloseNyxSettings(),
             Pending(),
             OpenPath(),
             SetVolume(),
@@ -148,6 +151,7 @@ def default_registry() -> ToolRegistry:
             NyxControl(),
             NyxPanel(),
             NyxUpdate(),
+            NyxRestart(),
             GetWeather(locator=Locator()),
             SystemInfo(),
             SystemPower(),

@@ -56,6 +56,7 @@ __all__ = [
 # partirlo en temas (6.25): el orden importa («muéstrame tus ajustes» antes que cambiar de
 # ventana, «cierra la pestaña» antes que cerrar una app…).
 ORDER = (
+    "nyx_settings_close",
     "nyx_settings",
     "city_set",
     "city_live",
@@ -68,6 +69,7 @@ ORDER = (
     "nyx_panel",
     "nyx_size",
     "nyx_update",
+    "nyx_restart",
     "volume_up",
     "volume_down",
     "volume_set",

@@ -35,6 +35,7 @@ from nyx.bus import EventBus
 from nyx.events import (
     BubbleHidden,
     BubbleShown,
+    CoreRestart,
     OpenSettingsWindow,
     SettingsChanged,
     SettingsRequested,
@@ -368,6 +369,12 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     async def open_nyx_settings(section: str | None) -> None:
         await bus.publish(OpenSettingsWindow(section))
 
+    async def close_nyx_settings() -> None:
+        await bus.publish(OpenSettingsWindow(close=True))
+
+    async def restart_nyx() -> None:
+        await bus.publish(CoreRestart())
+
     async def open_nyx_panel(mode: str) -> None:
         await bus.publish(SetupFlowRequested("start", mode))
 
@@ -384,6 +391,8 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         alarms=alarms,
         organizer=OrganizerStore.default(),
         open_nyx_settings=open_nyx_settings,
+        close_nyx_settings=close_nyx_settings,
+        restart_nyx=restart_nyx,
         apply_settings=apply_settings,
         open_nyx_panel=open_nyx_panel,
     )

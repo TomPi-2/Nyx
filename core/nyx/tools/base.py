@@ -98,6 +98,10 @@ class ToolContext:
     organizer: OrganizerStore | None = None
     # Abre la ventana de Ajustes de Nyx (sección o None); la pone services.py.
     open_nyx_settings: Callable[[str | None], Awaitable[None]] | None = None
+    # Cierra la ventana de Ajustes («cierra tus ajustes»); la pone services.py.
+    close_nyx_settings: Callable[[], Awaitable[None]] | None = None
+    # «Reiníciate»: pide a la app que reinicie el núcleo; la pone services.py.
+    restart_nyx: Callable[[], Awaitable[None]] | None = None
     # La cola de la partida (lo diferido); la pone services.py.
     game: GameGate | None = None
     # Cambia ajustes de Nyx por el mismo camino que la ventana de Ajustes (nyx_control, 6.04).

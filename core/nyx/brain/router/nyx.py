@@ -22,6 +22,16 @@ _PANEL_WORDS = r"(?:ajustes|configuracion|opciones|preferencias)"
 
 
 @rule(
+    "nyx_settings_close",
+    # «cierra tus ajustes», «cerra tus ajustes» (Whisper), «ahora cierra los ajustes de Nyx»
+    r"^(?:(?:ahora|vale|ya)\s+)?(?:cierra|cierrame|cerra|cierre|quita|oculta)\s+"
+    rf"(?:(?:(?:los|las|el|la)\s+)?{_PANEL_WORDS}\s+de\s+(?:{_NYX})|(?:tus|tu)\s+{_PANEL_WORDS})$",
+)
+def _nyx_settings_close(m: re.Match[str], _: SystemIndex) -> Route:
+    return _call("nyx_settings_close", "close_nyx_settings")
+
+
+@rule(
     "nyx_settings",
     r"^(?:(?:abre|abrir|abreme|muestra|muestrame|ensena|ensename|ve a|ir a|entra en|llevame a)\s+)?"
     rf"(?:(?:(?:los|las|el|la)\s+)?{_PANEL_WORDS}\s+de\s+(?:{_NYX})\b|(?:tus|tu)\s+{_PANEL_WORDS}\b)"
@@ -129,6 +139,17 @@ def _nyx_panel(m: re.Match[str], _: SystemIndex) -> Route:
 )
 def _nyx_update(_: re.Match[str], __: SystemIndex) -> Route:
     return _call("nyx_update", "nyx_update")
+
+
+@rule(
+    "nyx_restart",
+    # «Reiníciate», «reiníciate tú», «reinicia Nyx», «reinicia tu núcleo» (registros del
+    # 2026-11-15: el modelo elegía reiniciar el ordenador). «Reinicia el PC» sigue en equipo.py.
+    r"^(?:(?:puedes|vale|venga|ahora)\s+)?(?:reiniciate|reiniciarte|reinicia(?:te)?\s+(?:tu|a\s+ti\s+misma|"
+    r"nyx|nix|tu\s+nucleo|el\s+nucleo(?:\s+de\s+(?:nyx|nix))?)|vuelve\s+a\s+arrancar(?:te)?)$",
+)
+def _nyx_restart(_: re.Match[str], __: SystemIndex) -> Route:
+    return _call("nyx_restart", "nyx_restart")
 
 
 @rule(

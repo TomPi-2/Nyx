@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 22
+PROTOCOL_VERSION = 23
 
 
 class _Msg(BaseModel):
@@ -288,9 +288,12 @@ class OpenSettingsMsg(_Msg):
             "cache",
             "privacidad",
             "ayuda",
+            "extensiones",
         ]
         | None
     ) = None
+    #: v23: cerrarla («cierra tus ajustes»).
+    close: bool = False
 
 
 class ExtensionsMsg(_Msg):
@@ -347,6 +350,12 @@ class SetupFlowStateMsg(_Msg):
     state: dict[str, Any]
 
 
+class CoreRestartMsg(_Msg):
+    """v23: el núcleo pide a la app que lo reinicie («reiníciate»)."""
+
+    type: Literal["core_restart"] = "core_restart"
+
+
 class UpdateApplyMsg(_Msg):
     """v21: el núcleo pide a la app que aplique la actualización ya (para y reinicia)."""
 
@@ -378,7 +387,8 @@ ServerMessage = Annotated[
     | SetupResultMsg
     | SetupFlowStateMsg
     | NyxReadyMsg
-    | UpdateApplyMsg,
+    | UpdateApplyMsg
+    | CoreRestartMsg,
     Field(discriminator="type"),
 ]
 server_adapter: TypeAdapter[ServerMessage] = TypeAdapter(ServerMessage)

@@ -40,6 +40,14 @@ _PLAYING = re.compile(
     r"chatea\w*|manda un mensaje en el chat)\b"
     r"|\b(?:el coche|la pelota|el balon|el personaje|el muneco|mi jugador)\b"
 )
+# …salvo que hable de otra cosa: «salta la canción», «salta el anuncio», «apunta pan en la
+# lista» son de la música, de un vídeo o de Nyx, no del juego (visto en los registros del
+# 2026-11-15: «salta la canción» en partida se negaba y había que repetirlo).
+_NOT_THE_GAME = re.compile(
+    r"\b(?:cancion\w*|tema|temazo|musica|spotify|youtube|anuncio\w*|video\w*|intro|pista|"
+    r"disco|album|capitulo|episodio|serie|pelicula|podcast|siguiente|anterior|"
+    r"lista|nota|tarea|recordatorio|alarma|escena|obs|discord)\b"
+)
 IN_GAME_REFUSAL = ("Dentro de los juegos no toco nada", "puedo abrirlos, la música y el volumen")
 
 
@@ -53,7 +61,7 @@ def refusal(text: str, index: SystemIndex, *, playing: bool = False) -> tuple[st
         return "Eso no lo hago", "borraría para siempre: lo que borro va a la papelera"
     if _MONEY.search(clean):
         return "Eso no lo hago", "no compro ni pago nada: puedo abrirte la web"
-    if playing and _PLAYING.search(clean):
+    if playing and _PLAYING.search(clean) and not _NOT_THE_GAME.search(clean):
         return IN_GAME_REFUSAL
     if _IN_GAME.search(clean):
         games = {a for e in index.entries({Kind.GAME}) for a in (*e.aliases, normalize(e.name))}

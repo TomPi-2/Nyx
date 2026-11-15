@@ -135,7 +135,10 @@ def _play(m: re.Match[str], _: SystemIndex) -> Route:
 
 @rule(
     "media_next",
-    r"^(?:(?:pon\s+)?(?:la\s+)?siguiente|pasa(?:\s+de|\s+a)?(?:\s+la\s+siguiente)?|salta|skip)(?:\s+(?:cancion|tema|pista|video))?"
+    # «salta la canción», «pasa la canción», «cambia a la siguiente canción» (registros del
+    # 2026-11-15: sin el artículo no encajaba y el modelo decía «vale» sin hacer nada).
+    r"^(?:(?:pon\s+)?(?:la\s+)?siguiente|(?:pasa|salta|cambia)(?:\s+de|\s+a)?(?:\s+la\s+siguiente)?|skip)"
+    r"(?:\s+(?:la\s+|el\s+|esta\s+|este\s+)?(?:cancion|tema|pista|video))?"
     r"(?:\s+(?:en|de|del)\s+[a-z0-9 ]+)?$",
 )
 def _next(m: re.Match[str], _: SystemIndex) -> Route:
@@ -221,7 +224,10 @@ rule(
 )(lambda m, index: _call("repeat", "app_action", app="Spotify", action="repeat"))
 rule(
     "like",
-    r"^(?:dale\s+(?:a\s+)?(?:un\s+)?me gusta|me gusta esta cancion|guarda esta cancion)"
+    r"^(?:dale\s+(?:a\s+)?(?:un\s+)?me gusta|me gusta esta cancion|"
+    r"(?:guarda|guardame|anade|anademe|mete|pon)\s+esta\s+cancion"
+    # «guarda esta canción en favoritos / en "me gusta"» (registros del 2026-11-15)
+    r"(?:\s+(?:en|a)\s+(?:mis\s+|tus\s+|los\s+)?(?:favoritos|favoritas|me gusta|canciones que me gustan))?)"
     r"(?:\s+a\s+esta\s+cancion)?" + _SPOTIFY,
 )(lambda m, index: _call("like", "app_action", app="Spotify", action="like"))
 
