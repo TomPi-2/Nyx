@@ -2,6 +2,7 @@
 
 mod core_process;
 mod errors;
+mod folders;
 mod glass;
 mod hotkeys;
 mod input;
@@ -12,7 +13,6 @@ mod settings_window;
 mod tray;
 mod updater;
 mod wave;
-mod welcome_window;
 mod win32;
 
 use tauri::RunEvent;
@@ -48,8 +48,7 @@ pub fn run() {
             glass::gallery::glass_toggle_bubble,
             glass::gallery::glass_close_gallery,
             settings_window::settings_open,
-            welcome_window::welcome_open,
-            welcome_window::open_folder,
+            folders::open_folder,
             wave::wave_play,
             errors::open_error,
             errors::open_link,
