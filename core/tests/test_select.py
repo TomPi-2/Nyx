@@ -59,7 +59,7 @@ def test_today_everything_fits_and_the_list_never_changes() -> None:
     registry = default_registry()
     sel = ToolSelector(registry, budget_chars=tools_budget(12288))
     assert sel.all_fit
-    lazy = {"list_items", "task"}  # grupo a demanda (8.01)
+    lazy = {n for g in GROUPS if g.lazy for n in g.tools}  # a demanda (0.8)
     every = [n for n in names(registry.schemas()) if n not in lazy]
     for text in ("¿cuánta batería me queda?", "mueve las fotos a Imágenes", "hola"):
         assert names(sel.select(text)) == every

@@ -244,6 +244,20 @@ GROUPS: tuple[Group, ...] = (
         lazy=True,
     ),
     Group(
+        "privacidad",
+        "qué apps usan o han usado el micrófono y la cámara",
+        ("privacy_check",),
+        (
+            r"microfono",
+            r"micro\b",
+            r"camara",
+            r"webcam",
+            r"escuchando",
+            r"espiando",
+        ),
+        lazy=True,
+    ),
+    Group(
         "equipo",
         "estado del equipo (batería, procesador, memoria, disco), brillo, wifi, bluetooth, "
         "apagar, reiniciar, suspender o bloquear",

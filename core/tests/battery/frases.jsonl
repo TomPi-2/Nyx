@@ -417,3 +417,7 @@
 {"frase": "acuérdate de que tengo que comprar pilas, ponlo en la lista de la compra", "tool": "list_items", "args": {"action": "add"}}
 {"frase": "ya he llamado al banco, márcalo como hecho en mis tareas", "tool": "task", "args": {"action": "done"}}
 {"frase": "¿qué me queda por comprar?", "tool": "list_items", "args": {"action": "read"}}
+{"frase": "¿quién está usando el micro?", "tool": "privacy_check", "args": {"device": "microphone"}}
+{"frase": "¿alguien me está escuchando?", "tool": "privacy_check", "args": {"device": "microphone"}}
+{"frase": "¿qué apps han usado la cámara hoy?", "tool": "privacy_check", "args": {"device": "camera", "when": "today"}}
+{"frase": "oye, ¿hay algún programa espiándome por la webcam?", "tool": "privacy_check", "args": {"device": "camera"}}

@@ -85,6 +85,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.open_settings import OpenSettings
     from nyx.tools.open_url import OpenUrl
     from nyx.tools.pending import Pending
+    from nyx.tools.privacy_check import PrivacyCheck
     from nyx.tools.rename_file import RenameFile
     from nyx.tools.run_powershell import RunPowershell
     from nyx.tools.save_note import SaveNote
@@ -140,6 +141,7 @@ def default_registry() -> ToolRegistry:
             Stopwatch(),
             ListItems(),
             TaskTool(),
+            PrivacyCheck(),
             NyxInfo(),
             NyxControl(),
             NyxPanel(),
