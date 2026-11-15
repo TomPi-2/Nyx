@@ -67,13 +67,17 @@ class ExtensionManager:
         apply_selector: ApplySelector,
         playing: Callable[[], bool] = lambda: False,
         tool_factory: ToolFactory | None = None,
+        on_stopped: Callable[[str, bool], Awaitable[None]] | None = None,
     ) -> None:
+        """`on_stopped(id, removed)`: se ha desactivado (False) o desinstalado (True); el host
+        la para y, al desinstalar, se borra su contenedor (7.07)."""
         self.store = store
         self.registry = registry
         self.budget_chars = budget_chars
         self._apply_selector = apply_selector
         self._playing = playing
         self._tool_factory = tool_factory
+        self._on_stopped = on_stopped
         self._lock = asyncio.Lock()
         self._pending = False  # hay un cambio esperando a que acabe la partida
         self.problems: dict[str, list[str]] = {}
@@ -107,8 +111,12 @@ class ExtensionManager:
     async def set_enabled(self, ext_id: str, enabled: bool) -> None:
         await asyncio.to_thread(self.store.set_enabled, ext_id, enabled)
         await self.reload()
+        if not enabled and self._on_stopped is not None:
+            await self._on_stopped(ext_id, False)
 
     async def uninstall(self, ext_id: str) -> None:
+        if self._on_stopped is not None:
+            await self._on_stopped(ext_id, True)
         await asyncio.to_thread(self.store.uninstall, ext_id)
         await self.reload()
 

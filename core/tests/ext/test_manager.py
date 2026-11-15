@@ -16,7 +16,7 @@ from nyx.ext.store import ExtensionStore, Installed
 from nyx.tools import app_catalog, nyx_info
 from nyx.tools.base import Category, GamePolicy, Params, Risk, Tool, ToolContext, ToolResult
 from nyx.tools.registry import ToolRegistry, default_registry
-from tests.ext.conftest import TRUSTED, signed
+from tests.ext.conftest import TRUSTED, code_files, signed
 
 
 class Scene(Params):
@@ -66,6 +66,9 @@ def package(tmp: Path, ext_id: str = "alguien.obs", **changes: Any) -> Path:
         zf.writestr("manifest.json", json.dumps(manifest))
         zf.writestr("actions.json", json.dumps(actions))
         zf.writestr("knowledge/obs.md", "## Escenas\n\nUna escena es un conjunto de fuentes.")
+        if "tools" in manifest["kinds"]:
+            for member, blob in code_files("obs_scene").items():
+                zf.writestr(member, blob)
     return signed(path)
 
 

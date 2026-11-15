@@ -171,6 +171,20 @@ def read_package(package: Path) -> tuple[Manifest, list[tuple[zipfile.ZipInfo, P
     return manifest, members
 
 
+def _check_code(folder: Path, manifest: Manifest) -> None:
+    """Una extensión con herramientas trae su código y su `tools.json` válido (7.07)."""
+    from nyx.ext.tools_spec import TOOLS_FILE, load_tools
+
+    if not (folder / "tools" / "main.py").is_file():
+        raise PackageError("falta tools/main.py")
+    try:
+        load_tools((folder / TOOLS_FILE).read_bytes(), manifest)
+    except OSError as e:
+        raise PackageError(f"falta {TOOLS_FILE}") from e
+    except ManifestError as e:
+        raise PackageError(str(e)) from e
+
+
 def _extract(package: Path, members: list[tuple[zipfile.ZipInfo, PurePosixPath]], to: Path) -> None:
     """Extrae contando bytes de verdad: la cabecera de un zip puede mentir."""
     total = 0
@@ -313,6 +327,8 @@ class ExtensionStore:
                 # Lo extraído tiene que ser lo mismo que se validó.
                 if load_manifest((staging / MANIFEST_NAME).read_bytes()) != manifest:
                     raise PackageError("el manifiesto cambió al extraerlo")
+                if "tools" in manifest.kinds:
+                    _check_code(staging, manifest)
                 final = self._folder(manifest.id, manifest.version)
                 if final.exists():
                     # Reinstalar la misma versión: la que hay se aparta y solo se tira cuando

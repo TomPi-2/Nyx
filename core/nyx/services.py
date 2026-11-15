@@ -8,6 +8,7 @@ entrada por texto; sin voz, las respuestas solo salen en la burbuja.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import sys
 import time
@@ -41,9 +42,13 @@ from nyx.events import (
 )
 from nyx.executor import Executor
 from nyx.ext import revocation
+from nyx.ext.api import ExtensionApi
+from nyx.ext.host import ExtensionHost
 from nyx.ext.manager import ExtensionManager
+from nyx.ext.sandbox import SandboxLauncher, delete_container
 from nyx.ext.service import ExtensionsService
 from nyx.ext.store import ExtensionStore
+from nyx.ext.tools import make_tools
 from nyx.game.brain import GameBrain
 from nyx.game.controller import GameController
 from nyx.game.detector import GameDetector, GameStateChanged
@@ -178,15 +183,43 @@ def _extensions(
         except LLMError as e:
             log.warning("No se pudo recalentar el modelo tras cambiar las extensiones: %s", e)
 
+    store = ExtensionStore()
+
+    def accepted(ext_id: str) -> tuple[str, ...]:
+        ext = next((e for e in store.installed() if e.id == ext_id), None)
+        return tuple(ext.state.accepted) if ext is not None and ext.active else ()
+
+    # Extensiones con código (7.06–7.07): encerradas, y lo que pidan, con su permiso.
+    api = ExtensionApi(bus, accepted)
+
+    async def disabled(ext_id: str, reason: str) -> None:
+        log.warning("Extensión %s desactivada: %s", ext_id, reason)
+        await manager.set_enabled(ext_id, False)
+        await bus.publish(
+            BubbleShown(display="He desactivado una extensión", secondary=reason[:120], alert=True)
+        )
+
+    host = ExtensionHost(SandboxLauncher(), on_disabled=disabled, handlers=api.handlers)
+
+    async def stopped(ext_id: str, removed: bool) -> None:
+        await host.stop(ext_id)
+        await api.close(ext_id)
+        if removed:
+            with contextlib.suppress(OSError):
+                await asyncio.to_thread(delete_container, ext_id)
+
     manager = ExtensionManager(
-        ExtensionStore(),
+        store,
         registry,
         budget_chars=tools_budget(settings.llm.num_ctx),
         apply_selector=apply_selector,
         playing=lambda: game.active,
+        tool_factory=lambda ext: make_tools(ext, host),
+        on_stopped=stopped,
     )
 
     async def on_game(event: GameStateChanged) -> None:
+        host.set_game(event.active)
         if not event.active:
             await manager.game_ended()
 

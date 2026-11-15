@@ -13,7 +13,7 @@ import pytest
 
 from nyx.ext import store as store_mod
 from nyx.ext.store import ExtensionStore, PackageError, read_package
-from tests.ext.conftest import TRUSTED, signed
+from tests.ext.conftest import TRUSTED, code_files, signed
 
 BASE: dict[str, Any] = {
     "id": "tepnyx.prueba",
@@ -38,7 +38,10 @@ def package(
     path = tmp / name
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("manifest.json", json.dumps(data))
-        for member, blob in (files or {"README.md": b"hola"}).items():
+        default = {"README.md": b"hola"}
+        if "tools" in data.get("kinds", ()):
+            default |= code_files()
+        for member, blob in (default if files is None else files).items():
             zf.writestr(member, blob)
     return signed(path)
 
@@ -137,7 +140,7 @@ def test_a_failure_halfway_keeps_the_old_one(
 
 def test_reinstalling_the_same_version(tmp_path: Path, store: ExtensionStore) -> None:
     store.install(package(tmp_path), accept=True)
-    store.install(package(tmp_path, files={"README.md": b"nuevo"}), accept=True)
+    store.install(package(tmp_path, files={"README.md": b"nuevo", **code_files()}), accept=True)
     found = store.get("tepnyx.prueba")
     assert found is not None and (found.path / "README.md").read_bytes() == b"nuevo"
 

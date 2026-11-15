@@ -133,6 +133,16 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
       Tepnyx junto con la de Nyx, y se harán al final (apuntado en CLAUDE.md, antes de
       publicar). Recompilar `whisper-server`: también en esa lista, para recordártelo.
 
+19. **Extensiones con código (7.07), hecho sin ti el 2026-11-15.** Decidido para que lo confirmes:
+    - Las herramientas se describen en `tools/tools.json` (así Nyx las conoce sin arrancar la
+      extensión). Su riesgo nunca es menor que el de los permisos que usa.
+    - Lo que pueden pedir a Nyx: red y WebSocket a sus servidores, secretos en el
+      Administrador de credenciales, avisos, portapapeles y archivos de sus carpetas. Aún no:
+      abrir apps (`apps:launch`), volumen y multimedia (`audio`, `media`) y el cerebro
+      (`llm`): los añado cuando una extensión los necesite (las de OBS y Spotify no los usan
+      de entrada).
+    - Si una extensión se cae tres veces seguidas, se desactiva y sale un aviso.
+
 ## Qué probar
 
 Probado y bien (2026-11-13): color de Nyx (6.23), ciudad automática (6.24) y falsas
