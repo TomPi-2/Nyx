@@ -96,10 +96,16 @@ const MOVING_FOR: Duration = Duration::from_millis(400);
 const LOOP_S: f64 = 9.0;
 /// Al interactuar, cuánto sigue ondulando antes de frenarse (s).
 const POKE_FOR: Duration = Duration::from_millis(2500);
-/// Si cada fotograma tarda en la GPU más que esto (la mitad de un fotograma a 60 Hz)
-/// durante unos segundos, se baja un nivel.
-const GPU_SLOW_MS: f32 = 8.0;
-const GPU_SLOW_FOR: Duration = Duration::from_secs(5);
+/// Si cada fotograma tarda en la GPU más que esto (más de un fotograma a 60 Hz) durante un
+/// buen rato, se baja un nivel. Antes eran 8 ms en 5 s, y en un PC bueno (RX 7700 XT) se
+/// quedaba en Medio: con Ollama, un juego o el navegador usando la gráfica, la medida se
+/// infla (prueba del usuario, 2026-11-15).
+const GPU_SLOW_MS: f32 = 20.0;
+const GPU_SLOW_FOR: Duration = Duration::from_secs(10);
+/// Bajado por la GPU, vuelve a Alto cuando lleva este rato holgada (por debajo de
+/// GPU_FREE_MS): una carga pasajera no lo deja en Medio toda la sesión.
+const GPU_FREE_MS: f32 = 6.0;
+const GPU_FREE_FOR: Duration = Duration::from_secs(30);
 /// El borde líquido se mueve despacio: a 30 fotogramas por segundo no se nota la diferencia
 /// y cuesta la mitad. Al arrastrar la ventana se sigue redibujando a la frecuencia de la pantalla.
 const ANIM_INTERVAL: Duration = Duration::from_millis(33);
@@ -224,6 +230,7 @@ struct Engine {
     frames: u32,
     gpu_ms: Option<f32>,
     slow_since: Option<Instant>,
+    free_since: Option<Instant>,
 }
 
 impl Engine {
@@ -245,6 +252,7 @@ impl Engine {
             frames: 0,
             gpu_ms: None,
             slow_since: None,
+            free_since: None,
         }
     }
 
@@ -612,8 +620,24 @@ impl Engine {
         let load = self.gpu_ms.map(|ms| ms * engine_fps / 10.0);
 
         // GPU que no llega de verdad (cada fotograma tarda más de lo que hay disponible): se
-        // baja un solo nivel en las ventanas que capturan, hasta que el usuario cambie algo.
-        // La carga en % solo se muestra: con otras apps usando la GPU sale inflada.
+        // baja un solo nivel en las ventanas que capturan. Cuando vuelve a ir holgada un rato,
+        // se quita la bajada. La carga en % solo se muestra: con otras apps usando la GPU sale
+        // inflada.
+        if self.gpu_ms.is_some_and(|ms| ms < GPU_FREE_MS) {
+            let since = *self.free_since.get_or_insert(now);
+            if now.duration_since(since) >= GPU_FREE_FOR {
+                for s in self
+                    .surfaces
+                    .iter_mut()
+                    .filter(|s| s.limits.gpu_cap.is_some())
+                {
+                    s.limits.gpu_cap = None;
+                }
+                self.free_since = None;
+            }
+        } else {
+            self.free_since = None;
+        }
         if self.gpu_ms.is_some_and(|ms| ms > GPU_SLOW_MS) {
             let since = *self.slow_since.get_or_insert(now);
             if now.duration_since(since) >= GPU_SLOW_FOR {

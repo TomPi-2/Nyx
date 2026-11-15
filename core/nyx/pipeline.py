@@ -555,8 +555,11 @@ class Pipeline:
             await self.start_listening(self.wake_prebuffer_s + VERIFY_CLIP_S / 2)
 
     def _announce_speaking(self) -> bool:
+        """¿Está hablando el primer arranque (o un panel suelto)? La propia tarea de hablar no
+        cuenta: es ella la que abre la escucha al acabar, y contarla dejaba el primer arranque
+        sin escuchar nunca sin «Nyx» (prueba del usuario, 2026-11-15)."""
         task = self._announcing
-        return task is not None and not task.done()
+        return task is not None and not task.done() and task is not asyncio.current_task()
 
     def _stt_prompt(self) -> str:
         """Con el primer arranque en marcha, la pista lleva las palabras del paso."""

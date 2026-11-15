@@ -115,7 +115,8 @@
   let lingering = $state(false);
   let lingerTimer: ReturnType<typeof setTimeout> | undefined;
   function onFlow(next: SetupFlowState) {
-    if (flow?.active && !next.active) lingering = true;
+    // Solo el primer arranque se despide en su panel; el suelto («Listo») se cierra y ya.
+    if (flow?.active && !next.active && flow.mode === "first_run") lingering = true;
     if (next.active) lingering = false;
     flow = next;
   }
@@ -342,7 +343,13 @@
     void glass.attach();
     const connection = connectCore(handle, (ok) => {
       connected = ok;
-      if (!ok) bubble = null;
+      if (!ok) {
+        bubble = null;
+        // Reinicio del núcleo: el primer arranque que hubiera se acabó con él (si no estaba
+        // terminado, la isla lo vuelve a empezar al conectar).
+        flow = null;
+        lingering = false;
+      }
     });
     core = connection;
     const offInput = getCurrentWebviewWindow().listen<InputLayout>(

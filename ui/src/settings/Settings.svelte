@@ -40,7 +40,7 @@
   // «Abre tus ajustes del modo partida»: la sección llega en la dirección (ventana nueva) o
   // en un evento (ya abierta).
   const fromUrl = new URLSearchParams(location.search).get("section");
-  let current = $state<SettingsSection>(SECTIONS.find((s) => s.id === fromUrl)?.id ?? "apariencia");
+  let current = $state<SettingsSection>(SECTIONS.find((s) => s.id === fromUrl)?.id ?? "general"); // la primera de la lista (prueba del usuario, 2026-11-15)
   let maximized = $state(false);
   // Se encoge como Nyx al irse y luego se cierra de verdad.
   let closing = $state(false);

@@ -502,3 +502,19 @@ async def test_reused_panel_hands_over_what_it_does_not_understand() -> None:
     await h.p.wait_idle()
     assert panel.heard == ["coral"] and not panel.active  # cerrado y atendido por Nyx
     await h.p.close()
+
+
+async def test_after_speaking_she_listens_without_the_name() -> None:
+    """Al acabar de hablar en el primer arranque, escucha sin «Nyx» (ERRORES.md, 2026-11-15:
+    la propia tarea de hablar se tomaba por «está hablando» y nunca abría la escucha)."""
+    from tests.test_pipeline import Harness
+
+    h = Harness()
+    h.p.setup = Hook()
+    await h.p.announce("Ahora, mi color. Dime cuál.", listen_after=30.0)
+    for _ in range(200):
+        await asyncio.sleep(0)
+        if h.p.mode.value == "listening":
+            break
+    assert h.p.mode.value == "listening"
+    await h.p.close()

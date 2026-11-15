@@ -222,7 +222,7 @@
         }
         break;
       case "setup_flow_state":
-        if (setupOn && !msg.state.active) setupLinger = true;
+        if (setupOn && !msg.state.active && msg.state.mode === "first_run") setupLinger = true;
         setupOn = msg.state.active;
         break;
       case "settings":
@@ -260,7 +260,14 @@
   onMount(() => {
     const connection = connectCore(handle, (ok) => {
       connected = ok;
-      if (!ok) status = "idle";
+      if (!ok) {
+        status = "idle";
+        // Reinicio del núcleo en mitad del primer arranque: se olvida y, si no estaba
+        // terminado, se vuelve a pedir al conectar (antes se quedaba colgado).
+        setupOn = false;
+        setupLinger = false;
+        welcomeAsked = false;
+      }
       // Los ajustes de monitor no van en «welcome»: se piden (la respuesta llega a todas).
       if (ok) connection.send({ type: "settings_get" });
     });
