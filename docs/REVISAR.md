@@ -99,13 +99,11 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
 
 17. **Actualizaciones (9.06), hecho sin ti el 2026-11-14.** Lo que no he podido o no he
     querido decidir solo:
-    - **Vuelta atrás automática** (SPEC §15, paso 6): Velopack no la trae. Propuesta: antes de
-      aplicar, guardar el paquete de la versión actual; si la nueva no arranca en 60 s o el
-      núcleo se cae 3 veces seguidas, reaplicarlo y avisar. ¿Lo hago?
+    - ~~Vuelta atrás automática~~ **Hecha** (2026-11-15, «no pares»): como se proponía, con 90 s
+      de margen y aviso A-304.
     - **«Más tarde»** vuelve a preguntar a las 4 h y, si cierras Nyx o apagas antes, se
       aplica al volver a abrirla (no justo al apagar: Windows no da tiempo de forma fiable).
-    - **«Solo avisar»** tiene el botón [Actualizar]; falta decirlo por voz («Nyx,
-      actualízate»). ¿Lo añado?
+    - ~~«Nyx, actualízate»~~ **Hecho** (2026-11-15).
     - Probarlo de verdad necesita el repositorio público y una Release firmada (9.09).
 18. **Instalador (9.08), hecho sin ti el 2026-11-14.** Decidido con lo que había; dime si no:
     - **Carpeta:** `%LOCALAPPDATA%\TepnyxNyx` (identificador de Velopack `TepnyxNyx`). No
@@ -116,8 +114,7 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
       instalador. Si no hay winget, lo dice y no se instala.
     - **Quité «Cambiar carpeta»** de Opciones (Velopack instala siempre en la carpeta del
       usuario). ¿Lo quieres?
-    - **«Arrancar con Windows»** viene encendido y lo pone el instalador; aún no hay un
-      interruptor en Ajustes para quitarlo. ¿Lo añado en General?
+    - ~~«Arrancar con Windows» en Ajustes~~ **Hecho** (2026-11-15), en General.
     - ~~El cristal del instalador, el de CSS~~ **Hecho tras tu prueba:** el del motor (si la
       gráfica puede, con el borde moviéndose siempre) y la forma real de Nyx, sin girar,
       llenándose con el porcentaje.
