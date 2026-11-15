@@ -1,0 +1,8 @@
+# Extensiones oficiales (7.14): corren con el Python de las extensiones (3.14).
+line-length = 100
+target-version = "py314"
+
+[lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "ASYNC", "SIM", "RUF"]
+# Textos en español: guiones, comillas latinas y signos de apertura son intencionados.
+ignore = ["RUF001", "RUF002", "RUF003"]

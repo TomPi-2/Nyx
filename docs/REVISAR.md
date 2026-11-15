@@ -155,6 +155,30 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
       como paquete aparte (con `manifest.py`, `content.py` y `tools_spec.py`, que ya son MIT).
       Lo dejo para cuando se abra la tienda (1.0); no se publica nada sin ti.
 
+21. **Extensión de OBS (7.14), hecha sin ti el 2026-11-15** (`extensions/tepnyx.obs`). Decidido
+    para que lo confirmes:
+    - Por obs-websocket 5 (viene dentro de OBS desde la 28; sin librerías de fuera, así que no
+      hay licencia que mirar), nunca con teclas. Graba (empezar, parar, pausar, reanudar),
+      directo (**rojo**: Nyx pregunta antes de empezarlo o pararlo, y en partida lo deja para
+      después salvo en modo normal), repetición (guardar, activar, desactivar), cámara virtual,
+      escenas por su nombre como lo diga la gente, silenciar y volumen del micro, del sonido
+      del PC o de una fuente, mostrar u ocultar fuentes, captura y «¿estoy grabando?».
+    - Todo lo demás se puede usar **en partida** (grabar, clips y escenas son justo para eso).
+    - La contraseña de OBS se pone en **Ajustes → Extensiones → OBS Studio** (campo nuevo para
+      cualquier extensión: `settings` del manifiesto), se guarda en el Administrador de
+      credenciales y no vuelve a enseñarse. Al desinstalar una extensión, sus claves se borran
+      de ahí.
+    - El permiso `net:localhost:4455` se enseña como «Controlar OBS Studio»: da OBS entero
+      (podría, por ejemplo, añadir una fuente de navegador). Por eso las de fuera que lo pidan
+      tendrán que pasar la revisión de Tepnyx.
+    - Licencia de las extensiones oficiales: **MIT**, para que sirvan de ejemplo.
+    - **Sin probar con OBS de verdad**: tienes OBS instalado, pero no lo he abierto ni le he
+      cambiado los ajustes. Probado con un OBS falso que habla el mismo protocolo y encerrada
+      de verdad (sin OBS abierto da el aviso bueno). Qué probar: en OBS, Herramientas →
+      Configuración del servidor WebSocket → Habilitar; copia la contraseña en Ajustes; y
+      «Nyx, empieza a grabar en OBS», «cambia a la escena de charla», «silencia el micro en
+      OBS», «guarda la repetición», «¿estoy grabando?».
+
 ## Qué probar
 
 Probado y bien (2026-11-13): color de Nyx (6.23), ciudad automática (6.24) y falsas

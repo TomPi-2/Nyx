@@ -1,0 +1,50 @@
+{
+  "id": "tepnyx.obs",
+  "name": "OBS Studio",
+  "version": "1.0.0",
+  "author": "Tepnyx",
+  "description": "Graba, emite, cambia de escena, silencia fuentes y guarda repeticiones en OBS con la voz.",
+  "nyx_api": ">=1.0 <2.0",
+  "kinds": ["tools", "knowledge"],
+  "permissions": ["net:localhost:4455"],
+  "groups": [
+    {
+      "name": "obs",
+      "about": "OBS Studio: grabar, directo, escenas, fuentes y repeticiones",
+      "keywords": [
+        "obs",
+        "grab",
+        "directo",
+        "stream",
+        "emision",
+        "emitir",
+        "escena",
+        "repeticion",
+        "clip",
+        "camara virtual",
+        "fuente"
+      ],
+      "tools": [
+        "obs_record",
+        "obs_stream",
+        "obs_replay",
+        "obs_virtualcam",
+        "obs_scene",
+        "obs_mute",
+        "obs_volume",
+        "obs_show",
+        "obs_screenshot",
+        "obs_status"
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "key": "password",
+      "label": "Contraseña de OBS",
+      "hint": "La del servidor WebSocket de OBS: Herramientas → Configuración del servidor WebSocket → Mostrar información de conexión."
+    }
+  ],
+  "license": { "type": "free", "spdx": "MIT" },
+  "homepage": "https://tepnyx.com/nyx"
+}

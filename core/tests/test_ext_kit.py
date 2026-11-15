@@ -163,3 +163,17 @@ def test_fake_nyx_settings(tmp_path: Path) -> None:
     assert FakeNyx(make(tmp_path / "b")).run("ajuste", clave="password") is None
     with pytest.raises(RuntimeError, match="manifiesto"):
         fake.run("ajuste", clave="otra")
+
+
+# --- Las extensiones oficiales (7.14) -----------------------------------------------------------
+
+OFFICIAL = sorted(p.parent for p in (ROOT / "extensions").glob("*/manifest.json"))
+
+
+@pytest.mark.parametrize("folder", OFFICIAL, ids=lambda p: p.name)
+def test_official_extensions_validate_and_pack(tmp_path: Path, folder: Path) -> None:
+    assert nyx_ext.validate(folder)
+    out = tmp_path / f"{folder.name}.nyxext"
+    nyx_ext.pack(folder, out)
+    names = zipfile.ZipFile(out).namelist()
+    assert "tools/main.py" in names and not any(n.startswith("tests/") for n in names)

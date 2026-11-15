@@ -14,6 +14,7 @@ Trae dos cosas:
 ```python
 from nyx_sdk.testing import FakeNyx
 
+
 def test_graba() -> None:
     nyx = FakeNyx("mi-extension")
     nyx.answer("ws.open", 1)

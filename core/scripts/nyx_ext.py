@@ -345,6 +345,10 @@ def pack(folder: Path, out: Path | None) -> None:
 
 
 def main() -> None:
+    # En una consola o tubería que no es UTF-8, «→» o «ñ» no deben tumbar la herramienta.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
     p_new = sub.add_parser("new")

@@ -14,6 +14,10 @@ API: str
 #: Carpeta de datos propia de la extensión (la única donde puede escribir por su cuenta).
 data_dir: Path
 
+class Error(Exception):
+    """Lánzala con un texto para el usuario («OBS no está abierto»): Nyx lo enseña tal cual.
+    Cualquier otra excepción sale con su tipo y va al registro con su traza."""
+
 def tool[F: Callable[..., Any]](fn: F) -> F:
     """Marca una función como herramienta. Su nombre es el de la función y tiene que estar
     descrita en `tools/tools.json`."""

@@ -59,6 +59,10 @@ class PermissionDeniedError(RuntimeError):
     """Lo que dice Nyx cuando la extensión pide algo sin permiso."""
 
 
+class ExtensionError(Exception):
+    """`nyx.Error` dentro de la extensión: lo que el usuario leería tal cual."""
+
+
 class FakeNyx:
     def __init__(
         self,
@@ -183,6 +187,7 @@ class FakeNyx:
             future = asyncio.run_coroutine_threadsafe(ask(method, params, timeout_s), self._loop)
             return future.result()
 
+        module.Error = ExtensionError  # type: ignore[attr-defined]
         module.tool = tool  # type: ignore[attr-defined]
         module.ask = ask  # type: ignore[attr-defined]
         module.ask_sync = ask_sync  # type: ignore[attr-defined]

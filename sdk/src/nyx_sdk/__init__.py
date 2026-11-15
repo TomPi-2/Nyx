@@ -8,9 +8,9 @@
 Crear, comprobar, probar encerrada y empaquetar: `nyx-ext` (docs/extensiones/README.md).
 """
 
-from nyx_sdk.testing import FakeNyx, PermissionDeniedError
+from nyx_sdk.testing import ExtensionError, FakeNyx, PermissionDeniedError
 
-__all__ = ["API", "FakeNyx", "PermissionDeniedError"]
+__all__ = ["API", "ExtensionError", "FakeNyx", "PermissionDeniedError"]
 
 #: Versión de la API de extensiones de Nyx que cubre este kit.
 API = "1.0"

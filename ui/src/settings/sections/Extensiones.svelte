@@ -20,6 +20,11 @@
   /** Paquete elegido: se enseña qué trae antes de instalarlo. */
   let choosing = $state(false);
 
+  /** Programas de este PC que se controlan por un puerto conocido: se dice cuál. */
+  const KNOWN_PORTS: Record<string, [string, string]> = {
+    "localhost:4455": ["Controlar OBS Studio", "grabar, emitir, escenas y fuentes"],
+  };
+
   /** Los permisos en lenguaje normal: [qué puede hacer, matiz]. */
   function describe(p: string): [string, string] {
     const [kind, ...rest] = p.split(":");
@@ -28,6 +33,8 @@
     switch (kind) {
       case "net": {
         const where = rest.join(":");
+        const known = KNOWN_PORTS[where];
+        if (known) return known;
         return [
           where.startsWith("localhost") || where.startsWith("127.")
             ? "Conectarse a un programa de este PC"

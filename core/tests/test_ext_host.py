@@ -37,6 +37,10 @@ def falla() -> None:
     raise ValueError("algo suyo")
 
 @nyx.tool
+def explica() -> None:
+    raise nyx.Error("OBS no está abierto")
+
+@nyx.tool
 def cuelga() -> None:
     time.sleep(60)
 
@@ -143,6 +147,9 @@ async def test_tool_error_is_not_a_crash(pkg: Path, launcher: PlainLauncher) -> 
             await host.call("t.ext", pkg, "falla", {}, 5)
         with pytest.raises(RpcError, match="no tiene la herramienta"):
             await host.call("t.ext", pkg, "no_existe", {}, 5)
+        # nyx.Error: el texto tal cual, sin el tipo de la excepción.
+        with pytest.raises(RpcError, match="^OBS no está abierto$"):
+            await host.call("t.ext", pkg, "explica", {}, 5)
         assert host.crashes.get("t.ext") is None
         assert await host.call("t.ext", pkg, "saluda", {"nombre": "B"}, 5) == "Hola, B"
         assert len(launcher.started) == 1

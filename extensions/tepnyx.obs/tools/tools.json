@@ -1,0 +1,124 @@
+[
+  {
+    "name": "obs_record",
+    "description": "Graba en OBS: empezar, parar, pausar o reanudar la grabación.",
+    "parameters": {
+      "properties": {
+        "accion": { "type": "string", "enum": ["empezar", "parar", "pausar", "reanudar"] }
+      },
+      "required": ["accion"]
+    },
+    "risk": "green",
+    "uses": ["net:localhost:4455"],
+    "game_policy": "allowed"
+  },
+  {
+    "name": "obs_stream",
+    "description": "Empieza o termina el directo (emisión) en OBS.",
+    "parameters": {
+      "properties": {
+        "accion": { "type": "string", "enum": ["empezar", "parar"] }
+      },
+      "required": ["accion"]
+    },
+    "risk": "red",
+    "uses": ["net:localhost:4455"],
+    "game_policy": "allowed"
+  },
+  {
+    "name": "obs_replay",
+    "description": "Búfer de repetición de OBS: guardar la repetición (clip de lo último), activarlo o desactivarlo.",
+    "parameters": {
+      "properties": {
+        "accion": { "type": "string", "enum": ["guardar", "activar", "desactivar"] }
+      },
+      "required": ["accion"]
+    },
+    "risk": "green",
+    "uses": ["net:localhost:4455"],
+    "game_policy": "allowed"
+  },
+  {
+    "name": "obs_virtualcam",
+    "description": "Activa o desactiva la cámara virtual de OBS.",
+    "parameters": {
+      "properties": {
+        "accion": { "type": "string", "enum": ["activar", "desactivar"] }
+      },
+      "required": ["accion"]
+    },
+    "risk": "green",
+    "uses": ["net:localhost:4455"],
+    "game_policy": "allowed"
+  },
+  {
+    "name": "obs_scene",
+    "description": "Cambia a otra escena de OBS por su nombre.",
+    "parameters": {
+      "properties": {
+        "nombre": { "type": "string", "description": "La escena, como la diga el usuario" }
+      },
+      "required": ["nombre"]
+    },
+    "risk": "green",
+    "uses": ["net:localhost:4455"],
+    "game_policy": "allowed"
+  },
+  {
+    "name": "obs_mute",
+    "description": "Silencia o quita el silencio a un audio de OBS (el micro, el sonido del PC o una fuente por su nombre).",
+    "parameters": {
+      "properties": {
+        "fuente": { "type": "string", "description": "micro, escritorio o el nombre de la fuente" },
+        "estado": { "type": "string", "enum": ["silenciar", "activar", "alternar"] }
+      },
+      "required": ["fuente", "estado"]
+    },
+    "risk": "green",
+    "uses": ["net:localhost:4455"],
+    "game_policy": "allowed"
+  },
+  {
+    "name": "obs_volume",
+    "description": "Pone el volumen de un audio de OBS en un porcentaje (0 a 100).",
+    "parameters": {
+      "properties": {
+        "fuente": { "type": "string", "description": "micro, escritorio o el nombre de la fuente" },
+        "porcentaje": { "type": "integer" }
+      },
+      "required": ["fuente", "porcentaje"]
+    },
+    "risk": "green",
+    "uses": ["net:localhost:4455"],
+    "game_policy": "allowed"
+  },
+  {
+    "name": "obs_show",
+    "description": "Muestra u oculta una fuente de OBS (la cámara, una imagen…) en la escena actual o en otra.",
+    "parameters": {
+      "properties": {
+        "fuente": { "type": "string" },
+        "estado": { "type": "string", "enum": ["mostrar", "ocultar", "alternar"] },
+        "escena": { "type": "string", "description": "Solo si dice otra escena" }
+      },
+      "required": ["fuente", "estado"]
+    },
+    "risk": "green",
+    "uses": ["net:localhost:4455"],
+    "game_policy": "allowed"
+  },
+  {
+    "name": "obs_screenshot",
+    "description": "Hace una captura de lo que se ve en OBS y la guarda en la carpeta de grabaciones.",
+    "risk": "green",
+    "uses": ["net:localhost:4455"],
+    "game_policy": "allowed"
+  },
+  {
+    "name": "obs_status",
+    "description": "Dice qué pasa en OBS: si graba o emite, la escena actual, las escenas y los audios que hay.",
+    "risk": "green",
+    "uses": ["net:localhost:4455"],
+    "game_policy": "allowed"
+  }
+]

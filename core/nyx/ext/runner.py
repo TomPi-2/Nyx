@@ -89,6 +89,10 @@ class _Log(io.TextIOBase):
 # --- El módulo «nyx» que ve la extensión ------------------------------------------------------
 
 
+class Error(Exception):
+    """Lo que la extensión quiere que el usuario lea tal cual («OBS no está abierto»)."""
+
+
 def tool(fn: Callable[..., Any]) -> Callable[..., Any]:
     """Marca una función como herramienta. Su nombre es el de la función."""
     _tools[fn.__name__] = fn
@@ -118,6 +122,7 @@ def ask_sync(method: str, params: dict[str, Any] | None = None, timeout_s: float
 
 def _make_module(data_dir: Path) -> types.ModuleType:
     module = types.ModuleType("nyx", "API de Nyx para extensiones")
+    module.Error = Error  # type: ignore[attr-defined]
     module.tool = tool  # type: ignore[attr-defined]
     module.ask = ask  # type: ignore[attr-defined]
     module.ask_sync = ask_sync  # type: ignore[attr-defined]
@@ -155,6 +160,8 @@ async def _handle(message: dict[str, Any]) -> None:
         else:
             raise LookupError(f"no sé hacer «{method}»")
         reply: dict[str, Any] = {"id": msg_id, "result": result}
+    except Error as e:  # un fallo explicado por la extensión: se enseña tal cual
+        reply = {"id": msg_id, "error": {"message": str(e)[:500]}}
     except Exception as e:
         print("".join(traceback.format_exception(e)), file=sys.stderr)
         reply = {"id": msg_id, "error": {"message": f"{type(e).__name__}: {e}"[:500]}}
