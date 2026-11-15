@@ -224,7 +224,7 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
     *(Resuelto: las notas ya eran archivos con `save_note`; la 8.01 son listas y tareas.)*
 
 25. **Tienda de extensiones** (pedida el 2026-11-15). Prototipo:
-    `docs/prototipos/tienda-extensiones.html` (**necesita tu visto bueno** antes de hacerla).
+    `docs/prototipos/tienda-extensiones.html` (**aprobado el 2026-11-15**; se hace con la 1.0).
     Decidido ya por ti: la beta soporta extensiones pero no trae ninguna (`build-release.ps1`
     solo mete las oficiales desde la 1.0.0); en la beta la tienda dice que llega con la 1.0.
     Propuesta de arquitectura, para que esté lista cuando se publiquen:
