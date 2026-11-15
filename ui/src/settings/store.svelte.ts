@@ -7,6 +7,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { connectCore, type CoreConnection } from "$lib/core";
 import type {
+  ExtAction,
+  ExtInspect,
+  ExtStatus,
   NyxSettings,
   NyxState,
   ServerMessage,
@@ -59,6 +62,13 @@ class SettingsStore {
   connected = $state(false);
   /** Asistente y Ajustes → Cerebro, Caché, Ayuda y Privacidad. */
   setupStatus = $state<SetupStatus | null>(null);
+  /** Ajustes → Extensiones (7.11): las instaladas, el paquete que se mira y el último fallo. */
+  extensions = $state<{
+    items: ExtStatus[];
+    devMode: boolean;
+    inspect: ExtInspect | null;
+    error: string | null;
+  } | null>(null);
   downloads = $state<Record<string, Download>>({});
   micLevel = $state(0);
   /** Estado de Nyx (el asistente mira si se activa al decir «Nyx»). */
@@ -86,6 +96,11 @@ class SettingsStore {
   setup(action: SetupAction, arg = ""): boolean {
     if (action === "download") this.downloads = {};
     return this.core?.send({ type: "setup", action, arg }) ?? false;
+  }
+
+  /** Ajustes → Extensiones (core/nyx/ext/service.py). */
+  ext(action: ExtAction, id?: string, path?: string): boolean {
+    return this.core?.send({ type: "ext", action, id, path }) ?? false;
   }
 
   /** Primer arranque guiado por Nyx (9.10), otra vez desde Ajustes → Ayuda. */
@@ -136,6 +151,7 @@ class SettingsStore {
         if (ok) {
           this.core?.send({ type: "settings_get" });
           this.core?.send({ type: "setup", action: "status" });
+          this.core?.send({ type: "ext", action: "list" });
         }
       },
     );
@@ -188,6 +204,14 @@ class SettingsStore {
         return;
       case "state":
         this.nyxState = msg.state;
+        return;
+      case "extensions":
+        this.extensions = {
+          items: msg.items,
+          devMode: msg.dev_mode,
+          inspect: msg.inspect,
+          error: msg.error,
+        };
         return;
       case "setup_result":
         this.lastResult = { action: msg.action, ok: msg.ok, message: msg.message };

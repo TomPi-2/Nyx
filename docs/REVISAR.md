@@ -142,6 +142,8 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
       (`llm`): los añado cuando una extensión los necesite (las de OBS y Spotify no los usan
       de entrada).
     - Si una extensión se cae tres veces seguidas, se desactiva y sale un aviso.
+    - En Ajustes → Extensiones falta «Cargar una carpeta» (modo desarrollador) del prototipo: de
+      momento se prueba empaquetando con `core/scripts/nyx_ext.py`. ¿La hago?
 
 ## Qué probar
 

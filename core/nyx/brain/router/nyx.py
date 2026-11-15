@@ -42,6 +42,8 @@ def _nyx_settings(m: re.Match[str], _: SystemIndex) -> Route:
         section = "voz"
     elif re.search(r"cerebro|modelo|ollama|atajos aprendidos", rest):
         section = "cerebro"
+    elif re.search(r"extension", rest):
+        section = "extensiones"
     elif re.search(r"cache|escane", rest):
         section = "cache"
     elif re.search(r"privacidad|datos", rest):

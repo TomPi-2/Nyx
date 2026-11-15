@@ -384,6 +384,7 @@ export type SettingsSection =
   | "respuestas"
   | "partida"
   | "cerebro"
+  | "extensiones"
   | "cache"
   | "privacidad"
   | "ayuda";

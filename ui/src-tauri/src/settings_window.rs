@@ -77,6 +77,7 @@ pub async fn settings_open(app: AppHandle, section: Option<String>) {
                 | "respuestas"
                 | "partida"
                 | "cerebro"
+                | "extensiones"
                 | "cache"
                 | "privacidad"
                 | "ayuda"

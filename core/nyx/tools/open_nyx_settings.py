@@ -22,6 +22,7 @@ Section = Literal[
     "respuestas",
     "partida",
     "cerebro",
+    "extensiones",
     "cache",
     "privacidad",
     "ayuda",

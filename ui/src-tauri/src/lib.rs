@@ -30,6 +30,8 @@ pub fn run() {
         .plugin(hotkeys::plugin())
         // Alarmas y avisos: además de la burbuja, notificación de Windows (SPEC sección 11).
         .plugin(tauri_plugin_notification::init())
+        // Elegir un .nyxext en Ajustes → Extensiones (7.11).
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             core_process::core_endpoint,
             core_process::core_restart,

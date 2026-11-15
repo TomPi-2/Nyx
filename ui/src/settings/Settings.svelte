@@ -16,6 +16,7 @@
   import Ayuda from "./sections/Ayuda.svelte";
   import Cache from "./sections/Cache.svelte";
   import Cerebro from "./sections/Cerebro.svelte";
+  import Extensiones from "./sections/Extensiones.svelte";
   import General from "./sections/General.svelte";
   import Privacidad from "./sections/Privacidad.svelte";
   import ModoPartida from "./sections/ModoPartida.svelte";
@@ -31,6 +32,7 @@
     { id: "respuestas", label: "Respuestas", component: Respuestas },
     { id: "partida", label: "Modo partida", component: ModoPartida },
     { id: "cerebro", label: "Cerebro", component: Cerebro },
+    { id: "extensiones", label: "Extensiones", component: Extensiones },
     { id: "cache", label: "Caché", component: Cache },
     { id: "privacidad", label: "Privacidad", component: Privacidad },
     { id: "ayuda", label: "Ayuda", component: Ayuda },
