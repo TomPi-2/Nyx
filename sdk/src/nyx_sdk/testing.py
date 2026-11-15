@@ -47,6 +47,8 @@ _PLAIN = {
     "clipboard.write": "clipboard:write",
 }
 _SOCKET = ("ws.send", "ws.recv", "ws.close")
+#: Apps que se pueden abrir con `open.uri` (como `APP_SCHEMES` en Nyx).
+APP_SCHEMES = frozenset({"spotify"})
 _JSON_TYPES: dict[str, tuple[type, ...]] = {
     "string": (str,),
     "integer": (int,),
@@ -100,6 +102,8 @@ class FakeNyx:
         self._tools: dict[str, Callable[..., Any]] = {}
         self._loop: asyncio.AbstractEventLoop | None = None
         self._loaded = False
+        #: El `tools/main.py` cargado (para mirar su estado en las pruebas).
+        self.module: types.ModuleType | None = None
 
     # --- Preparar ------------------------------------------------------------------------------
 
@@ -127,6 +131,7 @@ class FakeNyx:
                 raise ImportError("no se puede cargar tools/main.py")
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
+            self.module = module
         finally:
             # El código de la extensión ya tiene su `nyx`; se deja todo como estaba.
             sys.path[:] = saved_path
@@ -218,13 +223,24 @@ class FakeNyx:
             if params.get("key") not in keys:
                 raise RuntimeError(f"«{params.get('key')}» no está en los ajustes de su manifiesto")
             return
+        if method == "oauth.authorize":
+            for key in ("authorize_url", "token_url"):
+                self._need(self._host(str(params.get(key, "")), ("https",)))
+            if not str(params.get("client_id", "")).strip():
+                raise RuntimeError("falta el identificador de la app (client_id)")
+            return
+        if method == "open.uri":
+            self._need("apps:launch")
+            uri = str(params.get("uri", ""))
+            scheme = uri.split(":", 1)[0].lower()
+            if scheme == "https":
+                self._need(self._host(uri, ("https",)))
+            elif scheme not in APP_SCHEMES:
+                raise RuntimeError(f"solo se pueden abrir {', '.join(sorted(APP_SCHEMES))}")
+            return
         if method in ("net.fetch", "ws.open"):
-            parts = urlsplit(str(params.get("url", "")))
             schemes = ("http", "https") if method == "net.fetch" else ("ws", "wss")
-            if parts.scheme not in schemes or not parts.hostname:
-                raise RuntimeError(f"dirección no válida: {params.get('url')}")
-            port = parts.port or (443 if parts.scheme in ("https", "wss") else 80)
-            needed = f"net:{parts.hostname.lower()}:{port}"
+            needed = self._host(str(params.get("url", "")), schemes)
         elif method in _FILES:
             needed = f"files:{_FILES[method]}:{params.get('folder', '')}"
         elif method in _PLAIN:
@@ -233,8 +249,20 @@ class FakeNyx:
             return
         else:
             raise RuntimeError(f"Nyx no sabe hacer «{method}»")
-        if needed not in self.permissions:
-            raise PermissionDeniedError(f"sin permiso «{needed}»")
+        self._need(needed)
+
+    def _need(self, permission: str) -> None:
+        if permission not in self.permissions:
+            raise PermissionDeniedError(f"sin permiso «{permission}»")
+
+    @staticmethod
+    def _host(url: str, schemes: tuple[str, ...]) -> str:
+        """El permiso de red que hace falta para `url` (net:servidor:puerto)."""
+        parts = urlsplit(url)
+        if parts.scheme not in schemes or not parts.hostname:
+            raise RuntimeError(f"dirección no válida: {url}")
+        port = parts.port or (443 if parts.scheme in ("https", "wss") else 80)
+        return f"net:{parts.hostname.lower()}:{port}"
 
     def _check_args(self, tool: str, args: dict[str, Any]) -> None:
         params = self.specs[tool].get("parameters") or {}

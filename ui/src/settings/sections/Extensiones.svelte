@@ -48,7 +48,7 @@
           : [`Leer archivos de tu carpeta ${target}`, ""];
       case "apps":
         return sub === "launch"
-          ? ["Abrir programas", ""]
+          ? ["Abrir su app o sus páginas web", "solo las que Nyx permite"]
           : [`Usar botones y atajos de ${target}`, "con aviso para deshacer"];
       case "audio":
         return ["Cambiar el volumen", ""];

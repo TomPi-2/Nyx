@@ -250,3 +250,112 @@ async def test_websocket_to_an_allowed_server() -> None:
 def test_code_is_needed() -> None:
     """Una extensión con herramientas sin código de verdad no se carga (ni rompe Nyx)."""
     assert textwrap.dedent(CODE).strip().startswith("import nyx")
+
+
+# --- Iniciar sesión (OAuth con PKCE) y abrir su app (7.14) -------------------------------------
+
+SPOTIFY = ("net:accounts.spotify.com:443", "apps:launch")
+
+
+def browser(*, accept: bool = True, state: str | None = None) -> Any:
+    """Hace de navegador: el usuario entra y el servicio vuelve a la dirección de Nyx."""
+    from urllib.parse import parse_qs, urlencode, urlsplit
+
+    seen: list[dict[str, str]] = []
+
+    def open_url(url: str) -> None:
+        query = {k: v[0] for k, v in parse_qs(urlsplit(url).query).items()}
+        seen.append(query)
+        back = {"state": state or query["state"]}
+        back |= {"code": "codigo"} if accept else {"error": "access_denied"}
+        httpx.get(f"{query['redirect_uri']}?{urlencode(back)}", timeout=5)
+
+    open_url.seen = seen  # type: ignore[attr-defined]
+    return open_url
+
+
+async def test_oauth_with_pkce() -> None:
+    import base64
+    import hashlib
+    from urllib.parse import parse_qs
+
+    sent: list[dict[str, str]] = []
+
+    def token_server(request: httpx.Request) -> httpx.Response:
+        sent.append({k: v[0] for k, v in parse_qs(request.content.decode()).items()})
+        return httpx.Response(200, json={"access_token": "a", "refresh_token": "r", "x": 1})
+
+    open_url = browser()
+    api = ExtensionApi(
+        EventBus(),
+        lambda _id: SPOTIFY,
+        open_url=open_url,
+        transport=httpx.MockTransport(token_server),
+    )
+    tokens = await api.oauth_authorize(
+        "tepnyx.spotify",
+        {
+            "authorize_url": "https://accounts.spotify.com/authorize",
+            "token_url": "https://accounts.spotify.com/api/token",
+            "client_id": "mi-app",
+            "scopes": "user-modify-playback-state",
+        },
+    )
+    assert tokens == {"access_token": "a", "refresh_token": "r"}  # solo lo que hace falta
+    (asked,) = open_url.seen
+    assert asked["redirect_uri"].startswith("http://127.0.0.1:")
+    assert asked["code_challenge_method"] == "S256"
+    (form,) = sent
+    assert form["code"] == "codigo" and form["redirect_uri"] == asked["redirect_uri"]
+    digest = hashlib.sha256(form["code_verifier"].encode()).digest()
+    assert base64.urlsafe_b64encode(digest).decode().rstrip("=") == asked["code_challenge"]
+
+
+@pytest.mark.parametrize(
+    ("params", "playing", "error"),
+    [
+        ({"authorize_url": "https://otro.com/authorize"}, False, "sin permiso"),
+        ({"authorize_url": "http://accounts.spotify.com/authorize"}, False, "no válida"),
+        ({"client_id": ""}, False, "client_id"),
+        ({}, True, "partida"),
+    ],
+)
+async def test_oauth_refused(params: dict[str, str], playing: bool, error: str) -> None:
+    api = ExtensionApi(EventBus(), lambda _id: SPOTIFY, open_url=browser(), playing=lambda: playing)
+    base = {
+        "authorize_url": "https://accounts.spotify.com/authorize",
+        "token_url": "https://accounts.spotify.com/api/token",
+        "client_id": "mi-app",
+    }
+    with pytest.raises(RpcError, match=error):
+        await api.oauth_authorize("x.y", base | params)
+
+
+async def test_oauth_cancelled_or_forged() -> None:
+    base = {
+        "authorize_url": "https://accounts.spotify.com/authorize",
+        "token_url": "https://accounts.spotify.com/api/token",
+        "client_id": "mi-app",
+        "timeout_s": 1,
+    }
+    denied = ExtensionApi(EventBus(), lambda _id: SPOTIFY, open_url=browser(accept=False))
+    with pytest.raises(RpcError, match="access_denied"):
+        await denied.oauth_authorize("x.y", base)
+    # Otra web que llama a la dirección de Nyx sin el «state» bueno: no vale.
+    forged = ExtensionApi(EventBus(), lambda _id: SPOTIFY, open_url=browser(state="otro"))
+    with pytest.raises(RpcError, match="a tiempo"):
+        await forged.oauth_authorize("x.y", base)
+
+
+async def test_open_uri_only_its_app_and_webs() -> None:
+    opened: list[str] = []
+    api = ExtensionApi(EventBus(), lambda _id: SPOTIFY, open_url=opened.append)
+    await api.open_uri("x.y", {"uri": "spotify:search:queen"})
+    await api.open_uri("x.y", {"uri": "https://accounts.spotify.com/"})
+    assert opened == ["spotify:search:queen", "https://accounts.spotify.com/"]
+    for uri in ("file:///C:/Windows/notepad.exe", "ms-settings:", "https://otra.com/", "calc"):
+        with pytest.raises(RpcError):
+            await api.open_uri("x.y", {"uri": uri})
+    plain = ExtensionApi(EventBus(), lambda _id: (), open_url=opened.append)
+    with pytest.raises(RpcError, match="sin permiso"):
+        await plain.open_uri("x.y", {"uri": "spotify:"})

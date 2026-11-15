@@ -1,0 +1,71 @@
+[
+  {
+    "name": "spotify_play",
+    "description": "Pone en Spotify una canción, un artista, un disco o una lista concretos.",
+    "parameters": {
+      "properties": {
+        "que": { "type": "string", "description": "Lo que hay que poner, como lo diga el usuario" },
+        "tipo": { "type": "string", "enum": ["cancion", "artista", "disco", "lista"] }
+      },
+      "required": ["que"]
+    },
+    "risk": "green",
+    "uses": ["net:api.spotify.com:443", "net:accounts.spotify.com:443", "secrets", "apps:launch"],
+    "game_policy": "allowed"
+  },
+  {
+    "name": "spotify_queue",
+    "description": "Añade una canción a la cola de Spotify.",
+    "parameters": {
+      "properties": {
+        "que": { "type": "string", "description": "La canción (y el artista, si lo dice)" }
+      },
+      "required": ["que"]
+    },
+    "risk": "green",
+    "uses": ["net:api.spotify.com:443", "net:accounts.spotify.com:443", "secrets"],
+    "game_policy": "allowed"
+  },
+  {
+    "name": "spotify_like",
+    "description": "Guarda en tus canciones favoritas de Spotify la que suena.",
+    "risk": "green",
+    "uses": ["net:api.spotify.com:443", "net:accounts.spotify.com:443", "secrets"],
+    "game_policy": "allowed"
+  },
+  {
+    "name": "spotify_now",
+    "description": "Dice qué suena en Spotify (canción, artista y disco).",
+    "risk": "green",
+    "uses": ["net:api.spotify.com:443", "net:accounts.spotify.com:443", "secrets"],
+    "game_policy": "allowed"
+  },
+  {
+    "name": "spotify_mode",
+    "description": "Aleatorio o repetir en Spotify.",
+    "parameters": {
+      "properties": {
+        "modo": {
+          "type": "string",
+          "enum": ["aleatorio", "sin aleatorio", "repetir", "repetir cancion", "sin repetir"]
+        }
+      },
+      "required": ["modo"]
+    },
+    "risk": "green",
+    "uses": ["net:api.spotify.com:443", "net:accounts.spotify.com:443", "secrets"],
+    "game_policy": "allowed"
+  },
+  {
+    "name": "spotify_connect",
+    "description": "Conecta la cuenta de Spotify (abre el navegador para iniciar sesión) o la desconecta.",
+    "parameters": {
+      "properties": {
+        "accion": { "type": "string", "enum": ["conectar", "desconectar"] }
+      }
+    },
+    "risk": "green",
+    "uses": ["net:accounts.spotify.com:443", "secrets", "notify"],
+    "game_policy": "deferred"
+  }
+]

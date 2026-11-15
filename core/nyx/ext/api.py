@@ -10,6 +10,8 @@ el manifiesto lo pide y el usuario lo ha aceptado (HOJA-DE-RUTA §4.5):
 | ws.open · ws.send · ws.recv · ws.close | net:<servidor>:<puerto> (OBS: localhost:4455) |
 | secrets.get · secrets.set · secrets.delete | secrets (Administrador de credenciales) |
 | settings.get                     | ninguno: los ajustes de su manifiesto, que pone el usuario |
+| oauth.authorize                  | net:<servidor>:443 de las dos direcciones (iniciar sesión) |
+| open.uri                         | apps:launch (su app por su esquema, o sus webs)            |
 | notify                           | notify                     |
 | clipboard.read · clipboard.write | clipboard:read / :write    |
 | files.list · files.read          | files:read:<carpeta>       |
@@ -24,11 +26,14 @@ from __future__ import annotations
 import asyncio
 import base64
 import contextlib
+import hashlib
 import logging
+import os
+import secrets as pysecrets
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlencode, urlsplit
 
 import httpx
 
@@ -40,6 +45,9 @@ from nyx.ext.rpc import Handler, RpcError
 log = logging.getLogger(__name__)
 
 MAX_BODY = 1024 * 1024  # 1 MB por respuesta de red o archivo leído
+#: Esquemas de apps que una extensión con `apps:launch` puede abrir. Lista cerrada: nada de
+#: `file:`, `ms-settings:` ni otros que lancen programas cualesquiera.
+APP_SCHEMES = frozenset({"spotify"})
 MAX_SOCKETS = 4
 MAX_RECV_S = 30.0
 
@@ -57,13 +65,19 @@ class ExtensionApi:
         transport: httpx.AsyncBaseTransport | None = None,
         settings_of: Callable[[str], tuple[str, ...]] | None = None,
         setting_reader: Callable[[str, str], str | None] | None = None,
+        open_url: Callable[[str], None] | None = None,
+        playing: Callable[[], bool] = lambda: False,
     ) -> None:
         """`permissions(id)`: los permisos aceptados de esa extensión (vacío si no está).
-        `settings_of(id)`: las claves de `settings` de su manifiesto."""
+        `settings_of(id)`: las claves de `settings` de su manifiesto. `open_url`: abre una
+        URI ya comprobada (en Windows, `os.startfile`). `playing()`: si hay partida."""
         self.bus = bus
         self._permissions = permissions
         self._settings_of = settings_of or (lambda _id: ())
         self._read_setting = setting_reader or read_setting
+        self._open_url = open_url or _open_url
+        self._playing = playing
+        self._logins: set[str] = set()
         self._folders = folders or _known_folders
         self._transport = transport
         self._sockets: dict[str, dict[int, Any]] = {}
@@ -86,6 +100,8 @@ class ExtensionApi:
             "secrets.set": bind(self.secret_set),
             "secrets.delete": bind(self.secret_delete),
             "settings.get": bind(self.setting_get),
+            "oauth.authorize": bind(self.oauth_authorize),
+            "open.uri": bind(self.open_uri),
             "notify": bind(self.notify),
             "clipboard.read": bind(self.clipboard_read),
             "clipboard.write": bind(self.clipboard_write),
@@ -227,6 +243,53 @@ class ExtensionApi:
             raise RpcError(f"«{key[:40]}» no está en los ajustes de su manifiesto")
         return await asyncio.to_thread(self._read_setting, ext_id, key)
 
+    # --- Iniciar sesión en un servicio (OAuth 2 con PKCE; 7.14) --------------------------------
+
+    async def oauth_authorize(self, ext_id: str, p: dict[str, Any]) -> dict[str, Any]:
+        """Abre el navegador para que el usuario entre en el servicio y devuelve sus tokens.
+
+        Nyx escucha la vuelta en 127.0.0.1 (puerto libre) y cambia el código por los tokens con
+        PKCE: la extensión no ve la contraseña ni el navegador. Las dos direcciones tienen que
+        estar en sus permisos de red. Nunca en partida.
+        """
+        authorize = self._need_host(ext_id, str(p.get("authorize_url", "")), ("https",))
+        token_url = self._need_host(ext_id, str(p.get("token_url", "")), ("https",))
+        client_id = str(p.get("client_id", "")).strip()
+        scopes = str(p.get("scopes", "")).strip()
+        if not client_id or len(client_id) > 200 or len(scopes) > 1000:
+            raise RpcError("falta el identificador de la app (client_id)")
+        if self._playing():
+            raise RpcError("en partida no se inicia sesión: al terminar")
+        if ext_id in self._logins:
+            raise RpcError("ya hay un inicio de sesión abierto")
+        self._logins.add(ext_id)
+        try:
+            return await _oauth_flow(
+                authorize,
+                token_url,
+                client_id,
+                scopes,
+                open_url=self._open_url,
+                transport=self._transport,
+                timeout_s=min(float(p.get("timeout_s", 180)), 300.0),
+            )
+        finally:
+            self._logins.discard(ext_id)
+
+    # --- Abrir su app o sus webs (7.14) ---------------------------------------------------------
+
+    async def open_uri(self, ext_id: str, p: dict[str, Any]) -> None:
+        self._need(ext_id, "apps:launch")
+        uri = str(p.get("uri", ""))
+        if len(uri) > 2000 or not uri.isprintable():
+            raise RpcError("dirección no válida")
+        scheme = uri.split(":", 1)[0].lower()
+        if scheme == "https":
+            self._need_host(ext_id, uri, ("https",))
+        elif scheme not in APP_SCHEMES:
+            raise RpcError(f"solo se pueden abrir {', '.join(sorted(APP_SCHEMES))}: y sus webs")
+        await asyncio.to_thread(self._open_url, uri)
+
     # --- Avisos y portapapeles ----------------------------------------------------------------
 
     async def notify(self, ext_id: str, p: dict[str, Any]) -> None:
@@ -308,6 +371,107 @@ class ExtensionApi:
             target.write_bytes(data)
 
         await asyncio.to_thread(run)
+
+
+# --- OAuth ------------------------------------------------------------------------------------
+
+_DONE_PAGE = (
+    "<!doctype html><meta charset=utf-8><title>Nyx</title>"
+    "<body style='font-family:Segoe UI,sans-serif;background:#1c1c1e;color:#eee;"
+    "display:grid;place-items:center;height:100vh;margin:0'>"
+    "<p style='font-size:18px'>{text}</p>"
+)
+
+
+async def _oauth_flow(
+    authorize_url: str,
+    token_url: str,
+    client_id: str,
+    scopes: str,
+    *,
+    open_url: Callable[[str], None],
+    transport: httpx.AsyncBaseTransport | None,
+    timeout_s: float,
+) -> dict[str, Any]:
+    verifier = pysecrets.token_urlsafe(64)
+    digest = hashlib.sha256(verifier.encode()).digest()
+    challenge = base64.urlsafe_b64encode(digest).decode().rstrip("=")
+    state = pysecrets.token_urlsafe(16)
+    got: asyncio.Future[dict[str, str]] = asyncio.get_running_loop().create_future()
+
+    async def on_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        try:
+            line = (await asyncio.wait_for(reader.readline(), 10)).decode("latin-1")
+            target = line.split(" ")[1] if line.count(" ") >= 2 else ""
+            parts = urlsplit(target)
+            query = {k: v[0] for k, v in parse_qs(parts.query).items()}
+            ok = parts.path == "/callback" and query.get("state") == state
+            text = (
+                "Listo: ya puedes cerrar esta pestaña y volver con Nyx."
+                if ok and "code" in query
+                else "No se ha podido iniciar sesión. Vuelve a pedírselo a Nyx."
+            )
+            body = _DONE_PAGE.format(text=text).encode()
+            head = (
+                "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n"
+                f"Content-Length: {len(body)}\r\nConnection: close\r\n\r\n"
+            )
+            writer.write(head.encode() + body)
+            await writer.drain()
+            if ok and not got.done():
+                got.set_result(query)
+        except OSError, TimeoutError, ValueError, IndexError:
+            pass
+        finally:
+            writer.close()
+
+    server = await asyncio.start_server(on_client, "127.0.0.1", 0)
+    try:
+        port = server.sockets[0].getsockname()[1]
+        redirect = f"http://127.0.0.1:{port}/callback"
+        query = {
+            "client_id": client_id,
+            "response_type": "code",
+            "redirect_uri": redirect,
+            "code_challenge_method": "S256",
+            "code_challenge": challenge,
+            "state": state,
+        }
+        if scopes:
+            query["scope"] = scopes
+        await asyncio.to_thread(open_url, f"{authorize_url}?{urlencode(query)}")
+        try:
+            answer = await asyncio.wait_for(got, timeout_s)
+        except TimeoutError:
+            raise RpcError("no se ha terminado de iniciar sesión a tiempo") from None
+    finally:
+        server.close()
+    if "code" not in answer:
+        raise RpcError(f"el servicio no ha dado permiso ({answer.get('error', 'cancelado')})")
+    form = {
+        "grant_type": "authorization_code",
+        "code": answer["code"],
+        "redirect_uri": redirect,
+        "client_id": client_id,
+        "code_verifier": verifier,
+    }
+    async with httpx.AsyncClient(timeout=15, follow_redirects=False, transport=transport) as http:
+        try:
+            resp = await http.post(token_url, data=form)
+        except httpx.HTTPError as e:
+            raise RpcError(f"no se ha podido conectar: {e}") from e
+    try:
+        tokens = resp.json()
+    except ValueError:
+        tokens = None
+    if resp.status_code != 200 or not isinstance(tokens, dict) or "access_token" not in tokens:
+        raise RpcError(f"el servicio no ha dado los tokens ({resp.status_code})")
+    keep = ("access_token", "refresh_token", "expires_in", "scope", "token_type")
+    return {k: tokens[k] for k in keep if k in tokens}
+
+
+def _open_url(uri: str) -> None:
+    os.startfile(uri)  # solo Windows; la URI ya está comprobada
 
 
 # --- Ajustes de las extensiones (los escribe Ajustes, nunca la extensión) ---------------------

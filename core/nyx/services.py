@@ -195,7 +195,7 @@ def _extensions(
         return tuple(s.key for s in ext.manifest.settings) if ext is not None else ()
 
     # Extensiones con código (7.06–7.07): encerradas, y lo que pidan, con su permiso.
-    api = ExtensionApi(bus, accepted, settings_of=settings_of)
+    api = ExtensionApi(bus, accepted, settings_of=settings_of, playing=lambda: game.active)
 
     async def disabled(ext_id: str, reason: str) -> None:
         log.warning("Extensión %s desactivada: %s", ext_id, reason)

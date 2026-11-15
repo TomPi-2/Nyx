@@ -1,0 +1,55 @@
+{
+  "id": "tepnyx.spotify",
+  "name": "Spotify",
+  "version": "1.0.0",
+  "author": "Tepnyx",
+  "description": "Pon la canción, el artista, el disco o la lista que digas, añade a la cola, guarda en tus favoritas y aleatorio o repetir.",
+  "nyx_api": ">=1.0 <2.0",
+  "kinds": ["tools", "knowledge"],
+  "permissions": [
+    "net:api.spotify.com:443",
+    "net:accounts.spotify.com:443",
+    "secrets",
+    "notify",
+    "apps:launch"
+  ],
+  "groups": [
+    {
+      "name": "spotify",
+      "about": "Spotify: poner canciones, artistas, discos y listas concretas",
+      "keywords": [
+        "spotify",
+        "cancion",
+        "canciones",
+        "artista",
+        "disco",
+        "album",
+        "lista de reproduccion",
+        "playlist",
+        "cola",
+        "favoritas",
+        "me gusta",
+        "aleatorio",
+        "repetir"
+      ],
+      "tools": [
+        "spotify_play",
+        "spotify_queue",
+        "spotify_like",
+        "spotify_now",
+        "spotify_mode",
+        "spotify_connect"
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "key": "client_id",
+      "label": "Client ID de tu app de Spotify",
+      "hint": "Para que Nyx ponga la música ella sola (necesita Premium). Pídele a Nyx «¿cómo conecto Spotify?» y te guía.",
+      "secret": false
+    }
+  ],
+  "license": { "type": "free", "spdx": "MIT" },
+  "homepage": "https://tepnyx.com/nyx"
+}

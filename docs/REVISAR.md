@@ -179,6 +179,29 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
       «Nyx, empieza a grabar en OBS», «cambia a la escena de charla», «silencia el micro en
       OBS», «guarda la repetición», «¿estoy grabando?».
 
+22. **Extensión de Spotify (7.14), hecha sin ti el 2026-11-15** (`extensions/tepnyx.spotify`).
+    **Spotify no deja una app común:** desde febrero de 2026 cada app de desarrollador sirve a
+    5 personas como mucho, su dueño necesita Premium, y la cuota ampliada es solo para empresas
+    con más de 250.000 usuarios. Así que, como se decidió el 2026-11-11 («si un servicio no lo
+    permite, Nyx lo dice y ofrece guiar»):
+    - Cada usuario crea **su propia app** de Spotify (gratis, una vez, ~3 minutos) y pega su
+      Client ID en Ajustes → Extensiones → Spotify. «¿Cómo conecto Spotify?» le guía paso a
+      paso. Luego «conecta Spotify» abre el navegador para entrar (Nyx hace el inicio de
+      sesión; la extensión nunca ve la contraseña). Spotify cierra la sesión cada 6 meses.
+    - Con eso: poner una canción (dentro de su disco, para que siga sonando), un artista, un
+      disco o una lista (las tuyas primero), la cola, «me gusta esta», «¿qué suena?»,
+      aleatorio y repetir. **Poner música desde otra app exige Premium** (lo dice Spotify).
+    - Sin conectar: «pon X en Spotify» abre la búsqueda en la app de Spotify y Nyx explica cómo
+      conectarla. Pausar, seguir y pasar de canción ya los hacía Nyx sin extensión.
+    - Para esto, dos cosas nuevas que pueden pedir las extensiones: iniciar sesión en un
+      servicio (OAuth con PKCE, nunca en partida, solo con servidores de sus permisos) y abrir
+      su app (`apps:launch`; de momento solo `spotify:`, lista cerrada) o sus webs.
+    - **Sin probar con Spotify de verdad** (necesita tu cuenta). Probado con un Spotify falso y
+      encerrada (sin conectar, avisa bien). Qué probar: los pasos de «¿cómo conecto
+      Spotify?», luego «pon Bohemian Rhapsody en Spotify», «pon mi lista …», «añade … a la
+      cola», «me gusta esta canción», «pon aleatorio en Spotify». Si Spotify contesta raro al
+      guardar en favoritas (su documentación se contradice en el formato), dímelo.
+
 ## Qué probar
 
 Probado y bien (2026-11-13): color de Nyx (6.23), ciudad automática (6.24) y falsas
