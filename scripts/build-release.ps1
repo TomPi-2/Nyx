@@ -4,8 +4,8 @@
 
 .DESCRIPTION
   1. El núcleo empaquetado (core/scripts/package_core.py): Python 3.14 oficial, dependencias
-     de uv.lock con sus huellas, el núcleo, whisper-server y las extensiones oficiales
-     firmadas (core/scripts/pack_official.py, con la clave de Tepnyx de este equipo).
+     de uv.lock con sus huellas, el núcleo, whisper-server y, desde la 1.0.0, las extensiones
+     oficiales firmadas (core/scripts/pack_official.py, con la clave de Tepnyx de este equipo).
   2. La app (Tauri, sin instalador propio: lo pone Velopack).
   3. El paquete de Velopack (vpk, herramienta local: .config/dotnet-tools.json):
      TepnyxNyx-win-Setup.exe, el paquete completo y el feed para las actualizaciones.
@@ -69,7 +69,13 @@ Step "Núcleo empaquetado"
 Push-Location "$Repo\core"
 uv run python scripts/package_core.py --out "$Pack\core" --whisper "$Whisper"; Check "package_core"
 # Las extensiones de Tepnyx (OBS, Spotify…), firmadas: salen en Ajustes → Extensiones.
-uv run python scripts/pack_official.py --out "$Pack\core\extensiones"; Check "pack_official"
+# Solo desde la 1.0.0 (decisión del 2026-11-15): la beta soporta extensiones, pero no trae
+# ninguna.
+if ([int]($Version.Split('.')[0]) -ge 1) {
+  uv run python scripts/pack_official.py --out "$Pack\core\extensiones"; Check "pack_official"
+} else {
+  Write-Host "Versión $Version (beta): sin extensiones oficiales"
+}
 Pop-Location
 
 Step "App (Tauri)"

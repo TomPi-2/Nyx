@@ -37,16 +37,17 @@ class _NotRunningError(Exception):
 
 
 def ollama_command() -> list[str] | None:
-    """La app de Ollama (bandeja + servidor) o, si no está, `ollama serve`."""
+    """Solo el servidor de Ollama (`ollama serve`), oculto.
+
+    Nunca su app («ollama app.exe»): en las versiones nuevas abre su ventana, y Nyx no debe
+    abrir nada que el usuario no haya pedido. El servidor es lo único que Nyx necesita."""
     local = os.environ.get("LOCALAPPDATA")
-    candidates = [Path(local) / "Programs" / "Ollama"] if local else []
+    candidates = [Path(local) / "Programs" / "Ollama" / "ollama.exe"] if local else []
     if exe := shutil.which("ollama"):
-        candidates.append(Path(exe).parent)
-    for folder in candidates:
-        if (app := folder / "ollama app.exe").exists():
-            return [str(app)]
-    if exe:
-        return [exe, "serve"]
+        candidates.append(Path(exe))
+    for candidate in candidates:
+        if candidate.is_file():
+            return [str(candidate), "serve"]
     return None
 
 

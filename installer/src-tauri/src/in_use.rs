@@ -12,8 +12,6 @@ use std::process::Command;
 
 /// Lo que escribe Velopack cuando no puede apartar la carpeta de la versión instalada.
 const IN_USE: &str = "Failed to remove existing application directory";
-/// Programas que Nyx abre y siguen abiertos al cerrarla (proceso, ¿se abre con `-startup`?).
-const HELPERS: [(&str, bool); 2] = [("ollama app", false), ("Everything", true)];
 
 #[cfg(windows)]
 const NO_WINDOW: u32 = 0x0800_0000; // CREATE_NO_WINDOW
@@ -57,39 +55,84 @@ fn hidden(program: &str) -> Command {
     cmd
 }
 
-/// Cierra Ollama y Everything si están abiertos y devuelve lo que hay que volver a abrir.
+/// Cierra Ollama y Everything si están abiertos y devuelve lo que hay que volver a abrir:
+/// solo Everything (con `-startup`, sin ventana). Ollama no se vuelve a abrir: Nyx arranca su
+/// servidor, oculto, cuando lo necesita. Sin PowerShell ni consolas: llamadas de Windows.
 pub fn stop_helpers() -> Vec<(PathBuf, bool)> {
-    let mut stopped = Vec::new();
-    for (name, startup) in HELPERS {
-        let script = format!(
-            "Get-Process -Name '{name}' -ErrorAction SilentlyContinue | ForEach-Object {{ $_.Path }}"
-        );
-        let Ok(out) = hidden("powershell")
-            .args(["-NoProfile", "-NonInteractive", "-Command", &script])
-            .output()
-        else {
-            continue;
-        };
-        let paths: Vec<PathBuf> = String::from_utf8_lossy(&out.stdout)
-            .lines()
-            .map(str::trim)
-            .filter(|l| !l.is_empty())
-            .map(PathBuf::from)
-            .collect();
-        if paths.is_empty() {
-            continue;
-        }
-        let image = format!("{name}.exe");
-        let _ = hidden("taskkill").args(["/F", "/T", "/IM", &image]).status();
-        if name == "ollama app" {
-            // El servidor que abrió su app, por si sigue vivo.
-            let _ = hidden("taskkill").args(["/F", "/IM", "ollama.exe"]).status();
-        }
-        if let Some(first) = paths.into_iter().next() {
-            stopped.push((first, startup));
+    let mut stopped: Vec<(PathBuf, bool)> = Vec::new();
+    for (path, relaunch) in close_processes(&["ollama app.exe", "ollama.exe", "everything.exe"]) {
+        let everything = path
+            .file_name()
+            .is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case("everything.exe"));
+        if relaunch && everything && !stopped.iter().any(|(p, _)| p == &path) {
+            stopped.push((path, true));
         }
     }
     stopped
+}
+
+/// Cierra los procesos con esos nombres (de este usuario: los demás no se dejan abrir) y
+/// devuelve sus rutas. `true`: se ha podido cerrar.
+#[cfg(windows)]
+fn close_processes(names: &[&str]) -> Vec<(PathBuf, bool)> {
+    use windows::Win32::Foundation::CloseHandle;
+    use windows::Win32::System::Diagnostics::ToolHelp::{
+        CreateToolhelp32Snapshot, PROCESSENTRY32W, Process32FirstW, Process32NextW,
+        TH32CS_SNAPPROCESS,
+    };
+    use windows::Win32::System::Threading::{
+        OpenProcess, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_TERMINATE,
+        QueryFullProcessImageNameW, TerminateProcess,
+    };
+    use windows::core::PWSTR;
+
+    let mut out = Vec::new();
+    // SAFETY: instantánea de procesos de solo lectura; cada handle se cierra.
+    unsafe {
+        let Ok(snapshot) = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) else {
+            return out;
+        };
+        let mut entry = PROCESSENTRY32W {
+            dwSize: std::mem::size_of::<PROCESSENTRY32W>() as u32,
+            ..Default::default()
+        };
+        let mut more = Process32FirstW(snapshot, &mut entry).is_ok();
+        while more {
+            let len = entry.szExeFile.iter().position(|&c| c == 0).unwrap_or(0);
+            let name = String::from_utf16_lossy(&entry.szExeFile[..len]);
+            if names.iter().any(|n| n.eq_ignore_ascii_case(&name))
+                && let Ok(handle) = OpenProcess(
+                    PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE,
+                    false,
+                    entry.th32ProcessID,
+                )
+            {
+                let mut buf = [0u16; 1024];
+                let mut size = buf.len() as u32;
+                let path = QueryFullProcessImageNameW(
+                    handle,
+                    PROCESS_NAME_WIN32,
+                    PWSTR(buf.as_mut_ptr()),
+                    &mut size,
+                )
+                .ok()
+                .map(|()| PathBuf::from(String::from_utf16_lossy(&buf[..size as usize])));
+                let closed = TerminateProcess(handle, 1).is_ok();
+                let _ = CloseHandle(handle);
+                if let Some(path) = path {
+                    out.push((path, closed));
+                }
+            }
+            more = Process32NextW(snapshot, &mut entry).is_ok();
+        }
+        let _ = CloseHandle(snapshot);
+    }
+    out
+}
+
+#[cfg(not(windows))]
+fn close_processes(_names: &[&str]) -> Vec<(PathBuf, bool)> {
+    Vec::new()
 }
 
 /// Los vuelve a abrir, cada uno en su carpeta (nunca en la de Nyx).
