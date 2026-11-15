@@ -1,5 +1,9 @@
-<!-- Ajustes → General (SPEC sección 13): ubicación para el tiempo y actualizaciones (§15). -->
+<!-- Ajustes → General (SPEC sección 13): ubicación para el tiempo, arrancar con Windows y
+  actualizaciones (§15). -->
 <script lang="ts">
+  import { onMount } from "svelte";
+  import { invoke } from "@tauri-apps/api/core";
+  import Toggle from "$lib/controls/Toggle.svelte";
   import Card from "$lib/controls/Card.svelte";
   import Row from "$lib/controls/Row.svelte";
   import Segmented from "$lib/controls/Segmented.svelte";
@@ -8,6 +12,15 @@
   import { settings } from "../store.svelte";
 
   const data = $derived(settings.data);
+
+  // «Arrancar con Windows»: la clave Run del usuario (la pone el instalador; autostart.rs).
+  let autostart = $state<boolean | null>(null);
+  onMount(() => {
+    void invoke<boolean>("autostart_get").then((on) => (autostart = on));
+  });
+  async function setAutostart(on: boolean) {
+    autostart = await invoke<boolean>("autostart_set", { on }).catch(() => !on);
+  }
 
   type Updates = NyxSettings["updates"];
   const MODES: { value: Updates["mode"]; label: string }[] = [
@@ -27,6 +40,20 @@
 </script>
 
 {#if data}
+  <Card title="Al encender">
+    <Row
+      label="Arrancar con Windows"
+      hint="Nyx se abre sola al encender el PC y te avisa cuando está lista."
+    >
+      <Toggle
+        label="Arrancar con Windows"
+        checked={autostart ?? false}
+        disabled={autostart === null}
+        onchange={(on) => void setAutostart(on)}
+      />
+    </Row>
+  </Card>
+
   <Card title="El tiempo">
     <Row
       label="Tu ciudad"

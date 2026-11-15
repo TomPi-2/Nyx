@@ -1,5 +1,6 @@
 //! Proceso principal de Nyx: bandeja, instancia única, ventanas y núcleo Python.
 
+mod autostart;
 mod core_process;
 mod errors;
 mod folders;
@@ -49,6 +50,8 @@ pub fn run() {
             glass::gallery::glass_close_gallery,
             settings_window::settings_open,
             folders::open_folder,
+            autostart::autostart_get,
+            autostart::autostart_set,
             wave::wave_play,
             errors::open_error,
             errors::open_link,
