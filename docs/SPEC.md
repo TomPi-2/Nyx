@@ -262,6 +262,19 @@ Unas 35 herramientas genéricas cubren miles de peticiones al combinarse. Cada u
 
 **Buenas prácticas al añadir herramientas:** descripciones cortas con ejemplos de frases, parámetros con tipos estrictos, resultados en JSON con `ok`, `message` y `undo` cuando aplique, y una prueba por herramienta.
 
+### Extensiones (0.7)
+
+Nyx se amplía con paquetes `.nyxext` (guía para desarrolladores: `docs/extensiones/README.md`; plan y decisiones: `docs/PLAN-0.7.md`). Se instalan, actualizan, desactivan y desinstalan (a la papelera) desde Ajustes → Extensiones sin reiniciar Nyx; en partida, los cambios esperan a que acabe.
+
+- **Tipos:** herramientas con código (`tools`), atajos por app (`actions`; el catálogo de `app_action` es la extensión integrada `tepnyx.apps`), conocimiento (`knowledge`, que llega al modelo como información de fuera), preajustes (solo apariencia, voz y tono), personalidad y formas de Nyx (`shape`, contrato en `docs/extensiones/formas.md`). Los modos (`mode`) llegarán con el sistema de modos.
+- **Manifiesto estricto** (`nyx/ext/manifest.py`): id `autor.nombre`, SemVer, rango de la API de Nyx (1.0), permisos con su forma exacta, grupos de herramientas, ajustes que pone el usuario y licencia (de pago, siempre pago único). Lo que no valida no se instala.
+- **Permisos** con su riesgo mínimo: `net:<servidor>:<puerto>`, `files:read|write:<carpeta conocida>`, `apps:launch`, `apps:control:<app>`, `audio`, `media`, `clipboard:read|write`, `notify`, `ui:panel`, `secrets`, `llm`, `messages:<servicio>` (rojo). Se enseñan en palabras normales antes de instalar; una actualización que pide más espera a que se acepte. **Ninguno sirve para tocar un juego** (ni teclas, ni pantalla, ni memoria, ni inyección).
+- **Código encerrado:** un proceso por extensión con el Python 3.14 oficial, en un AppContainer sin capacidades, en su propio escritorio y en un objeto de trabajo (512 MB, 10 % del procesador, 3 % e «inactiva» en partida). Sin red, sin archivos del usuario, sin pantalla. Habla con Nyx por JSON-RPC por su entrada y salida; lo que necesite (red a sus servidores, WebSocket, claves y ajustes en el Administrador de credenciales, iniciar sesión con OAuth y PKCE, abrir su app, avisos, portapapeles, archivos de sus carpetas) lo pide y Nyx lo hace solo con el permiso aceptado. Cada llamada tiene 20 s; tres caídas seguidas la desactivan con aviso.
+- **Sus herramientas son como las de Nyx:** descritas en `tools/tools.json`, pasan por `SafetyGuard` con el mayor riesgo entre el declarado y el mínimo de sus permisos, por la política de partida y por el registro de acciones. El selector las encuentra por los grupos y palabras clave del manifiesto.
+- **Firma de Tepnyx** (Ed25519, clave `tepnyx-1` dentro de Nyx; la privada nunca en git). Sin firma, solo con el modo desarrollador y como «Sin revisar». Lista de revocación firmada, consultada una vez al día si hay alguna firmada.
+- **Oficiales que vienen con Nyx** (`extensions/`, MIT): **OBS Studio** (obs-websocket 5: grabar, directo, repetición, cámara virtual, escenas, audio y fuentes, captura, estado) y **Spotify** (Web API con la app propia del usuario, porque Spotify ya no permite una común; poner canción, artista, disco o lista, cola, favoritas, qué suena, aleatorio y repetir). Se ofrecen en Ajustes → Extensiones («De Tepnyx») y se instalan viendo antes sus permisos.
+- **Kit (MIT):** `sdk/` (tipos de `import nyx` y un Nyx falso para pytest) y `core/scripts/nyx_ext.py` (`new`, `validate`, `run` encerrada como en Nyx, `pack`). La tienda, con Nyx 1.0.
+
 ## 8. Seguridad y confirmaciones
 
 Nada destructivo se ejecuta sin confirmación, y lo que se borra va siempre a la papelera. El riesgo lo decide `SafetyGuard` con reglas fijas, nunca el LLM.

@@ -148,7 +148,7 @@ async def test_tool_error_is_not_a_crash(pkg: Path, launcher: PlainLauncher) -> 
         with pytest.raises(RpcError, match="no tiene la herramienta"):
             await host.call("t.ext", pkg, "no_existe", {}, 5)
         # nyx.Error: el texto tal cual, sin el tipo de la excepción.
-        with pytest.raises(RpcError, match="^OBS no está abierto$"):
+        with pytest.raises(RpcError, match=r"^OBS no está abierto$"):
             await host.call("t.ext", pkg, "explica", {}, 5)
         assert host.crashes.get("t.ext") is None
         assert await host.call("t.ext", pkg, "saluda", {"nombre": "B"}, 5) == "Hola, B"

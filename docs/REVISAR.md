@@ -202,6 +202,18 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
       cola», «me gusta esta canción», «pon aleatorio en Spotify». Si Spotify contesta raro al
       guardar en favoritas (su documentación se contradice en el formato), dímelo.
 
+23. **Cierre de la 0.7 (7.17), hecho sin ti el 2026-11-15.** Decidido para que lo confirmes:
+    - **Pasan a la 0.8** dos cosas que no estaban en el orden que acordamos y que hay que ver o
+      probar jugando: dibujar en Nyx las formas que traigan las extensiones (7.09, la parte de
+      la interfaz: el contrato y la validación ya están) y el **sistema de modos** (7.10:
+      Trabajo, Noche, Privacidad, con la partida como primer modo). Encajan con la 0.8, que ya
+      trae el modo privacidad.
+    - Las extensiones oficiales vienen dentro de Nyx, firmadas, y se instalan desde Ajustes →
+      Extensiones → «De Tepnyx» (sin tienda hasta la 1.0).
+    - **Queda de los criterios de cierre:** que alguien que no seamos tú ni yo haga una
+      extensión con la guía (`docs/extensiones/README.md`; ¿se la pasamos a Gemini o a alguien
+      que conozcas?) y medir el coste en partida con una extensión en marcha (tú, jugando).
+
 ## Qué probar
 
 Probado y bien (2026-11-13): color de Nyx (6.23), ciudad automática (6.24) y falsas
