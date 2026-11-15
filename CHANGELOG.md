@@ -75,6 +75,10 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
   - 6.02, memoria sin código y con lo último hecho: tras ejecutar, Nyx guarda lo que hizo de verdad (en español, con nombre, carpeta y ruta) y se lo da al modelo como contexto del mensaje, no como un turno de la conversación (el 7B lo imitaba: código o «Borro la carpeta» sin hacerlo). «Ábrela», «muévela», «ábrelo», «cópialo» funcionan después de crear o encontrar algo; el router deja esas referencias al modelo. Ejemplos con un archivo concreto en `copy_files` y `move_files`. Negativa fija para comprar, pagar, hacer pedidos o mandar dinero.
   - Tras probar la 6.01: la burbuja y la voz no repiten el dato si la línea secundaria dice lo mismo; «¿qué hay en…?» dice el total de archivos y carpetas (y los 10 más recientes), con el nombre de la carpeta como lo dice el usuario; el clasificador de la ventana de seguimiento cuenta las correcciones («pero hay muchos más») y, ante la duda, atiende; `find_files` limpia la consulta («la última factura que tengo» → «factura», la más reciente) y si no encuentra nada lo dice con naturalidad («No he encontrado ninguna factura»).
 
+### Corregido
+
+- Instalar Nyx encima de otra (la misma versión u otra) fallaba con I-110 si Ollama o Everything seguían abiertos: Nyx los abría con su propia carpeta como carpeta de trabajo y Windows no dejaba sustituirla (y desinstalar dejaba `TepnyxNyx\current` vacía). Ahora Nyx trabaja desde `%LOCALAPPDATA%\Nyx` y abre cada programa en su carpeta, y el instalador, si aun así la carpeta está en uso, cierra Ollama y Everything, lo reintenta y los vuelve a abrir. Si no puede, da el código nuevo I-113 con qué hacer.
+
 ## [0.5.0] - 2026-11-11
 
 Primera versión interna completa (fases 1 a 5 de la SPEC; versión 0.5 de `docs/HOJA-DE-RUTA.md`). Sin publicar: solo en los equipos de prueba.
