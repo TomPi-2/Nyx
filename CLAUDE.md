@@ -69,6 +69,9 @@ Recuérdaselo al usuario al llegar a la fase 6.
 - [ ] **Recordárselo al usuario al publicar:** recompilar `whisper-server` sin `GGML_NATIVE`
   (con `GGML_BACKEND_DL` y `GGML_CPU_ALL_VARIANTS`, `docs/benchmarks/README.md`); el de
   `C:\dev\tools` solo trae `ggml-cpu.dll` y se cae en procesadores sin AVX-512 (el portátil).
+- [ ] Subir el cerebro de Nyx a la Release `cerebro-r2`: los trozos de `dist\brain\`
+  (`core/scripts/export_brain.py`; el manifiesto con sus huellas ya va en
+  `core/nyx/brain/data/cerebro.json`). Sin ellos, el primer arranque baja `qwen2.5:7b`.
 - [ ] Las páginas de Nyx y de sus códigos de error (`tepnyx.com/nyx/errores`, desde
   `docs/CODIGOS-DE-ERROR.md`) en la web de Tepnyx: se hacen al final (decisión 2026-11-15).
 

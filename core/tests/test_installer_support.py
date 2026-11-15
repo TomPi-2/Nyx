@@ -173,3 +173,36 @@ async def test_a_failed_download_carries_its_code(
     assert errors_seen[0].startswith("D-202 · ")
     result = [e for e in seen if isinstance(e, SetupResult)][-1]
     assert not result.ok and (result.message or "").startswith("D-202 · ")
+
+
+async def test_nyx_brain_replaces_the_stock_model(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """9.08b: con el modelo de serie, el primer arranque baja el cerebro de Nyx y lo usa."""
+    from nyx.events import SettingsRequested
+    from nyx.setup import brain
+
+    bus = EventBus()
+    patches: list[Any] = []
+
+    async def on_settings(e: SettingsRequested) -> None:
+        patches.append(e.patch)
+
+    bus.subscribe(SettingsRequested, on_settings)
+    service = SetupService(bus, Settings(), root=tmp_path)
+
+    async def status() -> dict[str, Any]:
+        return {"running": True, "models": [], "wanted": "qwen2.5:7b", "has_wanted": False}
+
+    async def ensure(host: str, progress: Any, **_: Any) -> str:
+        await progress(1.0, 2.0)
+        return "nyx-r2:7b"
+
+    async def running() -> bool:
+        return True
+
+    monkeypatch.setattr(service, "_ollama_status", status)
+    monkeypatch.setattr(service, "_ensure_ollama", running)
+    monkeypatch.setattr(brain, "ensure", ensure)
+    assert await service._pull_ollama()
+    assert {"llm": {"model": "nyx-r2:7b"}} in patches

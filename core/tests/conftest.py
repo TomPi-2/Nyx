@@ -28,6 +28,10 @@ def _no_real_ollama(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(ollama, "installed", lambda: False)
     monkeypatch.setattr(ollama, "install", nope)
     monkeypatch.setattr(ollama, "start", nope)
+    # Ni el cerebro de Nyx (9.08b): a una dirección donde no hay nada.
+    from nyx.setup import brain
+
+    monkeypatch.setattr(brain, "RELEASES", "http://127.0.0.1:9/sin-red")
 
 
 def app(name: str, app_id: str, process: str | None = None) -> Entry:

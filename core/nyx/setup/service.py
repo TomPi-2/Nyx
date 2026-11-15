@@ -33,6 +33,7 @@ from nyx.brain.shortcuts import ShortcutStore
 from nyx.bus import EventBus
 from nyx.events import (
     MicLevelChanged,
+    SettingsRequested,
     SetupProgress,
     SetupRequested,
     SetupResult,
@@ -43,7 +44,7 @@ from nyx.index.service import SystemIndex
 from nyx.models import CATALOG, DownloadError, ModelFile, download, is_present
 from nyx.paths import local_dir
 from nyx.settings.model import Settings
-from nyx.setup import everything, hardware, ollama
+from nyx.setup import brain, everything, hardware, ollama
 
 log = logging.getLogger(__name__)
 
@@ -240,12 +241,38 @@ class SetupService:
         await self.bus.publish(SetupProgress(key, label, 0 if error else 1, 1, True, error))
         return error is None
 
+    async def _nyx_brain(self) -> bool:
+        """El cerebro entrenado de Nyx (9.08b) en vez del Qwen de serie: si sale, pasa a ser el
+        que usa Nyx. Si no (sin publicar, sin red…), False y se baja el de siempre."""
+        data = brain.manifest()
+        if data is None:
+            return False
+        name = str(data["name"])
+        key = f"ollama:{name}"
+
+        async def progress(done: float, total: float) -> None:
+            await self.bus.publish(SetupProgress(key, name, done, total))
+
+        try:
+            await brain.ensure(self.settings.llm.host, progress)
+        except brain.BrainError as err:
+            log.info("Cerebro de Nyx no disponible (%s): bajo %s", err, self.settings.llm.model)
+            # La barra del cerebro de Nyx se quita: la sustituye la del modelo de siempre.
+            await self.bus.publish(SetupProgress(key, name, 0, 0, True))
+            return False
+        # Por el mismo camino que Ajustes (lo guarda y avisa a las ventanas).
+        await self.bus.publish(SettingsRequested({"llm": {"model": name}}))
+        await self.bus.publish(SetupProgress(key, name, 1, 1, True))
+        return True
+
     async def _pull_ollama(self) -> bool:
         """Descarga el modelo de Ollama configurado si no lo tiene (instala Ollama si falta)."""
         if not await self._ensure_ollama():
             return False
         status = await self._ollama_status()
         if not status["running"] or status["has_wanted"]:
+            return True
+        if self.settings.llm.model == hardware.LLM_CHOICES[0].id and await self._nyx_brain():
             return True
         name = self.settings.llm.model
         key = f"ollama:{name}"
