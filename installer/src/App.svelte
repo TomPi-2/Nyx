@@ -105,7 +105,8 @@
       const win = getCurrentWindow();
       void win
         .setSize(new LogicalSize(Math.ceil(r.width) + 2 * MARGIN, Math.ceil(r.height) + 2 * MARGIN))
-        .then(() => win.center());
+        .then(() => win.center())
+        .then(() => glass.follow(300));
     });
     fit.observe(card);
     return () => fit.disconnect();
@@ -124,8 +125,14 @@
     const off = listen<Progress>("install://progress", (e) => {
       parts = { ...parts, [e.payload.key]: e.payload };
     });
+    // Al ajustarse la ventana a la tarjeta, la tarjeta cambia de sitio dentro de ella sin
+    // cambiar de tamaño: el cristal se quedaba donde estaba, más abajo (prueba del usuario,
+    // 2026-11-15). Se le vuelve a pasar la forma unos fotogramas.
+    const onResize = () => glass.follow(300);
+    window.addEventListener("resize", onResize);
     return () => {
       void off.then((f) => f());
+      window.removeEventListener("resize", onResize);
       glass.detach();
     };
   });
@@ -145,6 +152,14 @@
     bind:this={card}
     use:glassShape={{ radius: 28 }}
   >
+    {#if screen === "welcome" || screen === "license" || screen === "options"}
+      <!-- Cerrar sin instalar: solo antes de empezar (mientras instala, no). -->
+      <button class="close" aria-label="Cerrar" onclick={() => void getCurrentWindow().close()}>
+        <svg viewBox="0 0 12 12" aria-hidden="true">
+          <path d="M2 2l8 8M10 2l-8 8" />
+        </svg>
+      </button>
+    {/if}
     {#if screen === "welcome"}
       <div class="head step-in">
         <NyxMark />
@@ -324,9 +339,48 @@
   }
 
   .card {
+    position: relative;
     transition:
       transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
       opacity 0.45s;
+  }
+
+  /* Cerrar: redondo y gris, sin bordes, arriba a la derecha (como el de la bienvenida de la
+     app). */
+  .close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 999px;
+    background: var(--control);
+    color: var(--text-2);
+    cursor: pointer;
+    transition:
+      background-color 0.15s,
+      transform 0.15s;
+  }
+
+  .close:hover {
+    background: var(--control-hi);
+    color: var(--text);
+  }
+
+  .close:active {
+    transform: scale(0.92);
+  }
+
+  .close svg {
+    width: 10px;
+    height: 10px;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    fill: none;
   }
 
   /* Se recoge hacia el panel de descargas de Nyx (arriba a la derecha). */

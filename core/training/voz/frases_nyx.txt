@@ -1,0 +1,194 @@
+# Frases de asistente para grabar la voz de Nyx (training/voz/guion.py). Una por línea; las
+# que empiezan por # no cuentan. Cosas que Nyx dice o diría: saludos, confirmaciones,
+# disculpas, avisos, explicaciones cortas y nombres de apps y juegos.
+
+# Saludos y presentación
+¡Hola! Soy Nyx. ¿En qué te ayudo?
+Buenos días. ¿Qué tal has dormido?
+Buenas tardes. Aquí estoy.
+Buenas noches. ¿Necesitas algo antes de irte a dormir?
+¡Hola de nuevo!
+Aquí estoy, dime.
+Te escucho.
+¿Sí? Dime.
+Cuando quieras.
+Estoy lista.
+Ya estoy aquí otra vez.
+Soy Nyx, tu asistente de voz. Funciono en tu ordenador, sin cuenta y sin pagar nada.
+Me ha creado Tepnyx.
+Puedo abrir programas, buscar archivos, poner música, decirte el tiempo y mucho más.
+Llámame diciendo «Nyx» o con el atajo de teclado.
+¡Encantada de conocerte!
+
+# Confirmaciones
+Hecho.
+Ya está.
+Listo.
+Vale, ahora mismo.
+Perfecto, lo dejo así.
+Abriendo Spotify.
+Abriendo el navegador.
+Te abro Discord.
+Abro tus descargas.
+Abro la configuración del sonido.
+Cerrando Chrome.
+He cerrado todas las ventanas del navegador.
+Música en pausa.
+Sigo con la música.
+Siguiente canción.
+Vuelvo a la canción anterior.
+Volumen al cincuenta por ciento.
+Subo un poco el volumen.
+Bajo el volumen.
+Silencio.
+Brillo al máximo.
+Bajo el brillo de la pantalla.
+Wifi desconectado.
+Vuelvo a conectar el wifi.
+Bluetooth encendido.
+Captura de pantalla guardada.
+He copiado el texto.
+Nota guardada en tus documentos.
+Carpeta creada en el escritorio.
+He movido los archivos a la papelera. Puedes deshacerlo durante unos segundos.
+Deshecho. Todo como estaba.
+Cronómetro en marcha.
+Temporizador de diez minutos en marcha.
+Alarma puesta para mañana a las siete y media.
+Alarma cancelada.
+Te lo recuerdo en una hora.
+Ahora suena por los auriculares.
+Ahora suena por los altavoces.
+Ventana a la izquierda.
+He minimizado todo.
+
+# Preguntas y confirmaciones
+¿Quieres que lo abra?
+¿Lo borro? Irá a la papelera.
+¿Seguro que quieres apagar el ordenador?
+¿Reinicio el equipo ahora?
+¿Te refieres a Chrome o a Opera?
+¿Qué canción te pongo?
+¿Para qué hora pongo la alarma?
+¿En qué carpeta lo guardo?
+¿Te lo leo en voz alta?
+¿Quieres que lo guarde en una nota?
+¿Lo busco en internet?
+¿Cuál de los dos abro?
+¿Me lo repites, por favor?
+¿Lo dejo para cuando termines la partida?
+¿Te ayudo con algo más?
+¿Quieres que te lo explique con más detalle?
+
+# Disculpas y límites
+Perdona, no te he entendido bien.
+Lo siento, eso todavía no sé hacerlo.
+Uy, algo ha fallado. ¿Lo intentamos otra vez?
+No encuentro ese programa. ¿Cómo se llama exactamente?
+No he encontrado ningún archivo con ese nombre.
+No tengo conexión a internet ahora mismo.
+Eso no lo hago nunca: podría ser peligroso para tu equipo.
+Mientras juegas no toco nada del juego, pero te lo dejo apuntado para luego.
+No puedo vaciar la papelera, pero puedo abrírtela.
+Perdona la espera, estaba pensando.
+Me he equivocado. Lo corrijo ahora mismo.
+No estoy segura de eso. Prefiero no inventármelo.
+Todavía me estoy preparando. Dame unos segundos.
+Me falta descargar una parte. En cuanto termine, te aviso.
+
+# Información
+Son las cinco y diez de la tarde.
+Hoy es martes, catorce de noviembre.
+Ahora mismo hace dieciocho grados y está nublado.
+Mañana va a llover por la tarde. Llévate paraguas.
+Te queda poca batería. Conviene enchufar el portátil.
+Chrome es lo que más memoria está usando ahora.
+Tu procesador va bastante tranquilo.
+Tienes tres alarmas para mañana.
+No tienes nada pendiente.
+Está sonando una canción de Rosalía en Spotify.
+La capital de Australia es Canberra.
+Hola en alemán se dice «hallo».
+Un kilómetro son mil metros.
+En la receta necesitas harina, huevos, azúcar y mantequilla.
+Primero, precalienta el horno a ciento ochenta grados.
+Después, mezcla bien todos los ingredientes.
+Por último, déjalo enfriar unos minutos antes de servir.
+Te lo he buscado en Wikipedia: es un volcán de Islandia.
+Según la web del tiempo, el fin de semana hará sol.
+
+# Apps, juegos y nombres que dirá a menudo
+Abriendo Valorant.
+Abriendo Rocket League.
+Abro Steam.
+Abro YouTube en el navegador.
+Pongo Netflix.
+Abro WhatsApp.
+Abro el Bloc de notas.
+Abro Word.
+Abro Excel.
+Abro el Explorador de archivos.
+Abro Visual Studio Code.
+Abro Photoshop.
+Abro Twitch.
+Abro Minecraft.
+Abro Fortnite.
+Abro League of Legends.
+Abro el Administrador de tareas.
+Abro la Configuración de Windows.
+Abro Opera GX.
+Abro Firefox.
+Abro Microsoft Edge.
+Abro el Panel de control.
+Abro la Calculadora.
+Abro Everything.
+Abro Ollama.
+Te llevo a la web de Tepnyx.
+Abro Decider.
+
+# Modo partida
+Modo partida activado. Solo te molesto si me llamas.
+¡Buena partida!
+La partida ha terminado. Tenías dos cosas pendientes: ya las he hecho.
+En partida hablo bajito y no abro nada encima del juego.
+
+# Personalidad y conversación
+¡Me encanta cómo he quedado!
+Gracias, eres muy amable.
+Eso me ha hecho gracia.
+Vaya, qué buena idea.
+Tranquilo, lo solucionamos.
+Ánimo, que ya queda poco.
+¡Qué bien suena eso!
+Me alegro mucho.
+Vaya, lo siento.
+Interesante pregunta. Déjame pensarlo.
+Te cuento lo que sé.
+Dicho así suena fácil, pero tiene su truco.
+Sí, claro que sí.
+No, todavía no.
+Quizá mañana.
+Puede ser.
+Exacto.
+Eso es.
+Mmm, no estoy segura.
+Vamos allá.
+Venga, a por ello.
+Ya me contarás qué tal.
+Descansa, que mañana será otro día.
+¡Feliz cumpleaños!
+¡Enhorabuena!
+Hasta luego.
+Hasta mañana.
+Aquí sigo si me necesitas.
+
+# Primer arranque y ayuda
+Vamos a dejarme a tu gusto.
+Primero, el micrófono. Habla un poco y mira cómo se mueve la barra.
+¡Te oigo alto y claro!
+Ahora dime «siguiente» cuando quieras seguir.
+Puedes cambiarlo todo luego en mis ajustes.
+Para cambiar mi color, dímelo o tócalo en el panel.
+Estoy bajando mi cerebro. Tardaré unos minutos.
+¡Lista! Ya tengo todo.
+Si algo falla, te digo un código para que sepas qué ha pasado.

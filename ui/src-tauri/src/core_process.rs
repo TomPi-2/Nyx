@@ -128,7 +128,7 @@ async fn supervise(app: AppHandle, state: Arc<CoreState>) {
                 &app,
                 code,
                 "Nyx no puede arrancar",
-                "Prueba con la bandeja → Reiniciar núcleo.",
+                "Prueba con la bandeja → Reiniciar.",
             );
             state.restart.notified().await;
             failures = 0;

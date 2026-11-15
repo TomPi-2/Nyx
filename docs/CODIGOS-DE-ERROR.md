@@ -50,5 +50,5 @@ Los números no se reutilizan aunque un error deje de existir.
 
 | Código | Qué ha pasado | Qué hacer |
 | --- | --- | --- |
-| N-401 | El núcleo de Nyx se ha cerrado tres veces seguidas al arrancar. | Bandeja → «Reiniciar núcleo». Si sigue, el detalle está en `%LOCALAPPDATA%\Nyx\logs\core.log`. |
+| N-401 | El núcleo de Nyx se ha cerrado tres veces seguidas al arrancar. | Bandeja → «Reiniciar». Si sigue, el detalle está en `%LOCALAPPDATA%\Nyx\logs\core.log`. |
 | N-402 | No se ha podido lanzar el núcleo de Nyx (falta o un antivirus lo bloquea). | Reinstala Nyx con «Instalar Nyx» (tus datos se quedan). |

@@ -11,21 +11,19 @@ use tauri::tray::TrayIconBuilder;
 use crate::{core_process, glass, settings_window};
 
 pub fn build(app: &AppHandle) -> tauri::Result<()> {
+    // Para el usuario, solo «Ajustes» y «Reiniciar» (y «Salir»). La galería del motor de
+    // cristal es una herramienta de desarrollo: solo en las compilaciones de depuración.
     let settings = MenuItem::with_id(app, "settings", "Ajustes", true, None::<&str>)?;
-    let glass_item =
-        MenuItem::with_id(app, "glass", "Motor gráfico (ejemplos)", true, None::<&str>)?;
-    let restart = MenuItem::with_id(app, "restart-core", "Reiniciar núcleo", true, None::<&str>)?;
+    let restart = MenuItem::with_id(app, "restart-core", "Reiniciar", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Salir", true, None::<&str>)?;
-    let menu = Menu::with_items(
-        app,
-        &[
-            &settings,
-            &glass_item,
-            &restart,
-            &PredefinedMenuItem::separator(app)?,
-            &quit,
-        ],
-    )?;
+    let separator = PredefinedMenuItem::separator(app)?;
+    let menu = if cfg!(debug_assertions) {
+        let glass_item =
+            MenuItem::with_id(app, "glass", "Motor gráfico (ejemplos)", true, None::<&str>)?;
+        Menu::with_items(app, &[&settings, &restart, &glass_item, &separator, &quit])?
+    } else {
+        Menu::with_items(app, &[&settings, &restart, &separator, &quit])?
+    };
 
     let mut builder = TrayIconBuilder::with_id("nyx")
         .tooltip("Nyx")
