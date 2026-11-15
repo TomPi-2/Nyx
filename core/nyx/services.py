@@ -68,6 +68,7 @@ from nyx.tts.base import TTSEngine
 from nyx.tts.piper import PiperTTS
 from nyx.tts.pocket import PocketTTS
 from nyx.tts.voices import Engine, voice_for
+from nyx.update.coordinator import UpdateCoordinator
 from nyx.update.moment import UpdateGate
 from nyx.wake.activations import ActivationLog
 from nyx.wake.base import WakeWordEngine
@@ -119,8 +120,12 @@ class Services:
         self.extensions_service: ExtensionsService | None = None
         # ¿Buen momento para actualizar? (SPEC §15; lo pregunta la app con Velopack, 9.06)
         self.update_gate = UpdateGate()
+        # Cuándo se aplica una versión descargada (9.06); «Nyx, actualízate» (nyx_update).
+        self.updates: UpdateCoordinator | None = None
 
     async def close(self) -> None:
+        if self.updates is not None:
+            self.updates.close()
         if self.notice is not None:
             self.notice.cancel()
         if self.extensions_service is not None:
@@ -413,6 +418,10 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     services.update_gate.add(
         "pending", lambda: "hay cosas pendientes para después de la partida" if game.queue else None
     )
+    # Actualizaciones (9.06): la app avisa al descargarla; aquí se decide cuándo. Por voz,
+    # «Nyx, actualízate» (herramienta nyx_update).
+    services.updates = UpdateCoordinator(bus, settings, services.update_gate)
+    tools_ctx.update_now = services.updates.by_voice
     services.game_detector = GameDetector(
         bus,
         always=settings.game.always,

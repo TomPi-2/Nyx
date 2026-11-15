@@ -64,6 +64,7 @@ ORDER = (
     "nyx_color",
     "nyx_panel",
     "nyx_size",
+    "nyx_update",
     "volume_up",
     "volume_down",
     "volume_set",

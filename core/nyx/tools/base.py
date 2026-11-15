@@ -103,6 +103,9 @@ class ToolContext:
     # Saca junto a Nyx el panel de su color, su tamaño o los paneles (nyx_panel, 9.11): «color»,
     # «size» o «tint»; la pone services.py.
     open_nyx_panel: Callable[[str], Awaitable[None]] | None = None
+    # «Nyx, actualízate» (nyx_update, 9.06): aplica la versión descargada o dice que no hay;
+    # devuelve lo que se dice. La pone services.py.
+    update_now: Callable[[], Awaitable[str]] | None = None
 
 
 @dataclass

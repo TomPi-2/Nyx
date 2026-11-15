@@ -77,6 +77,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.nyx_control import NyxControl
     from nyx.tools.nyx_info import NyxInfo
     from nyx.tools.nyx_panel import NyxPanel
+    from nyx.tools.nyx_update import NyxUpdate
     from nyx.tools.open_app import OpenApp
     from nyx.tools.open_nyx_settings import OpenNyxSettings
     from nyx.tools.open_path import OpenPath
@@ -138,6 +139,7 @@ def default_registry() -> ToolRegistry:
             NyxInfo(),
             NyxControl(),
             NyxPanel(),
+            NyxUpdate(),
             GetWeather(locator=Locator()),
             SystemInfo(),
             SystemPower(),

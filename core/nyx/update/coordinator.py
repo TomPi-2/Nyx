@@ -43,6 +43,8 @@ log = logging.getLogger(__name__)
 ASK_AGAIN_S = 4 * 3600
 #: Automático: el PC tiene que llevar este rato sin teclado ni ratón.
 IDLE_FOR_AUTO_S = 10 * 60
+#: «Nyx, actualízate»: lo que espera para que dé tiempo a decirlo.
+VOICE_DELAY_S = 4.0
 #: Cada cuánto se mira si ya es buen momento.
 POLL_S = 30.0
 
@@ -87,6 +89,7 @@ class UpdateCoordinator:
         self._told = False  # «Solo avisar»: ya se ha dicho
         self._applying = False
         self._task: asyncio.Task[None] | None = None
+        self._voice: asyncio.Task[None] | None = None
         self._unsubscribe = [
             bus.subscribe(UpdateOffered, self._on_offered),
             bus.subscribe(ActionChosen, self._on_action),
@@ -157,6 +160,20 @@ class UpdateCoordinator:
         elif event.id == LATER:
             self._ask_after = self._clock() + ASK_AGAIN_S
             await self.bus.publish(BubbleHidden())
+
+    async def by_voice(self) -> str:
+        """«Nyx, actualízate»: la versión descargada, ya (se pide, no hace falta esperar al
+        buen momento: lo ha pedido el usuario). Devuelve lo que se dice."""
+        if self.version is None:
+            return "Ya tienes la última versión."
+        version = self.version
+        # Unos segundos para que dé tiempo a decirlo antes de que la app pare el núcleo.
+        self._voice = asyncio.create_task(self._apply_after(VOICE_DELAY_S), name="update-voice")
+        return f"Me actualizo a la {version}. Vuelvo enseguida."
+
+    async def _apply_after(self, seconds: float) -> None:
+        await asyncio.sleep(seconds)
+        await self.apply()
 
     async def apply(self) -> None:
         """Copia de los datos y a la app: que pare el núcleo y cambie de versión."""

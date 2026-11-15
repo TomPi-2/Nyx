@@ -120,6 +120,16 @@ def _nyx_panel(m: re.Match[str], _: SystemIndex) -> Route:
 
 
 @rule(
+    "nyx_update",
+    # «Actualízate», «instala la actualización», «actualiza Nyx», «ponte al día» (9.06).
+    r"^(?:(?:puedes|quiero que te|venga)\s+)?(?:actualizate|actualizarte|actualiza(?:te)?\s+(?:a\s+)?(?:nyx|nix|la\s+version\s+nueva)"
+    r"|instala(?:r)?\s+(?:la|tu)\s+(?:actualizacion|version\s+nueva)|ponte\s+al\s+dia)$",
+)
+def _nyx_update(_: re.Match[str], __: SystemIndex) -> Route:
+    return _call("nyx_update", "nyx_update")
+
+
+@rule(
     "nyx_size",
     # «Hazte más grande», «ponte un poco más pequeña», «vuélvete enorme» (9.11; antes iba al
     # modelo, y en el primer arranque fallaba).

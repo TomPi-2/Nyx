@@ -174,6 +174,7 @@ _VERBS = {
     "undo": "deshacer",
     "nyx_control": "cambiar mi ajuste de",
     "nyx_panel": "sacar el panel de mi",
+    "nyx_update": "actualizarme",
 }
 
 
