@@ -132,9 +132,9 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
       en el escritorio que puso Velopack por su cuenta (ya no lo hará). Al instalar la nueva
       encima se arregla; o desinstálala desde Configuración → Aplicaciones (tus datos se
       quedan).
-    - **Códigos de error** (`docs/CODIGOS-DE-ERROR.md`): enlazan a `tepnyx.com/nyx/errores`,
-      que aún no existe. ¿Hago esa página en la web de Tepnyx (`../Decider/tepnyx_website`)
-      o irá en una web propia de Nyx? El catálogo ya está escrito para copiarlo.
+    - ~~Códigos de error~~ **Decidido** (2026-11-15): la página de errores irá en la web de
+      Tepnyx junto con la de Nyx, y se harán al final (apuntado en CLAUDE.md, antes de
+      publicar). Recompilar `whisper-server`: también en esa lista, para recordártelo.
 
 ## Qué probar
 

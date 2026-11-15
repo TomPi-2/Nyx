@@ -45,6 +45,7 @@ Fase actual: **versión 0.6 — Cerebro** (fase 6a): plan en [docs/PLAN-0.6.md](
 | 2026-11-13 | LoRA (6.27): se adopta la ronda 2 (`nyx-r2:7b`) aunque rompe 8 frases leves; la ronda 3 las corrige. Por defecto sigue `qwen2.5:7b` hasta que el instalador (0.9) pueda descargar el GGUF y crearlo en Ollama. |
 | 2026-11-13 | `run_powershell`: excepción verde para una lista cerrada de consultas de solo lectura (SPEC §7 y §8). Permiso para usar llama.cpp (MIT) en el entrenamiento, para exportar el LoRA a GGUF. |
 | 2026-11-14 | A «¿quién te ha creado?» Nyx contesta «Tepnyx». Nyx conoce todo Tepnyx y navega por ello: la web (tepnyx.com, código en `../Decider/tepnyx_website`), sus propias pantallas y las otras apps (Decider, Sorty). Instalador (0.9): instala Ollama oficial en silencio si falta; indicador de «Nyx listo» por defecto: onda. Sin el usuario, Claude avanza la 0.7 y partes de la 0.9 (instalador, actualizaciones, onda) y decide 7.05, 7.08, 7.10 y las animaciones del instalador con lo medido, apuntándolo en `REVISAR.md` para que lo confirme. |
+| 2026-11-15 | Voz propia de Nyx: sustituye a «lola» (y será la única voz de Nyx por ahora). La graba ella en su equipo con lo que le pase el usuario, lo más sencillo posible (no sabe mucho de ordenadores), en llamada de Discord con el usuario dirigiendo (repetir, entonación); muchas horas; su micrófono suena limpio y Claude limpia lo que haga falta. El contrato lo revisa el abogado (listo la semana del 2026-11-16); se puede ir preparando. Páginas de Nyx y de errores en la web de Tepnyx, al final. |
 | 2026-11-14 | Primera versión pública: **0.9.0 (beta)**. Códigos de error para el usuario (`docs/CODIGOS-DE-ERROR.md`, explicados en `tepnyx.com/nyx/errores`). El instalador con el cristal del motor (si la gráfica puede, borde siempre en movimiento) y la forma real de Nyx, sin girar, llenándose con lo instalado. Después: preparar la grabación de la voz de Nyx y la prueba larga de la beta. |
 | 2026-11-14 | Firma confirmada: clave `tepnyx-1`, la privada en `%LOCALAPPDATA%\Tepnyx\keys\`. Modo Noche abre Configuración. `ext/manifest.py`, `content.py` y `signing.py` también MIT (kit de extensiones). Extensiones de pago siempre de pago único, nunca suscripción. Permiso para la 7.05 (Python embeddable oficial). |
 | 2026-11-14 | Aprobados la propuesta de la 7.05 (AppContainer + escritorio aparte + job; JSON-RPC por entrada y salida estándar) y el prototipo del instalador y del primer arranque guiado (micrófono primero, nombres visibles, etiquetas propias). Python de las extensiones: 3.14.10 (a confirmar). Plan de construcción de la 0.9 (PLAN-0.9 §1b) aprobado; el núcleo pasa a Python 3.14 al empaquetarlo (9.07). |
@@ -65,6 +66,11 @@ Recuérdaselo al usuario al llegar a la fase 6.
 - [x] Auditoría de licencias de dependencias y modelos: `docs/LICENCIAS.md` (todo compatible;
   `nyx-v1` bajo CC BY-SA 4.0; créditos en la app, en la 0.9)
 - [ ] Cambiar la visibilidad en GitHub y configurar SignPath (cuando el usuario diga «publícalo»)
+- [ ] **Recordárselo al usuario al publicar:** recompilar `whisper-server` sin `GGML_NATIVE`
+  (con `GGML_BACKEND_DL` y `GGML_CPU_ALL_VARIANTS`, `docs/benchmarks/README.md`); el de
+  `C:\dev\tools` solo trae `ggml-cpu.dll` y se cae en procesadores sin AVX-512 (el portátil).
+- [ ] Las páginas de Nyx y de sus códigos de error (`tepnyx.com/nyx/errores`, desde
+  `docs/CODIGOS-DE-ERROR.md`) en la web de Tepnyx: se hacen al final (decisión 2026-11-15).
 
 ## Estructura
 
