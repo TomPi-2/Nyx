@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tienda de extensiones</title>
+<style>
+/*
+ * Prototipo (2026-11-15, propuesta de Claude): Ajustes → Extensiones como una tienda. Mismo
+ * estilo que Ajustes y que el prototipo aprobado de la 7.11 (SPEC §12: grises, translúcido,
+ * redondeado y sin bordes). Los datos son de ejemplo; las de 1.0 en adelante, también.
+ */
+:root {
+  --page: #0f0f11; --text: #f5f5f7; --text-2: rgba(235, 235, 245, 0.62);
+  --text-3: rgba(235, 235, 245, 0.34); --control: rgba(118, 118, 128, 0.26);
+  --control-hi: rgba(160, 160, 170, 0.42); --active: rgba(229, 229, 234, 0.92);
+  --on-active: #1c1c1e; --raised: rgba(58, 58, 60, 0.45); --tint: rgba(28, 28, 30, 0.72);
+  --chrome: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --page: #e9e9ee; --text: #1c1c1e; --text-2: rgba(60, 60, 67, 0.64);
+  --text-3: rgba(60, 60, 67, 0.36); --control: rgba(118, 118, 128, 0.14);
+  --control-hi: rgba(118, 118, 128, 0.28); --active: rgba(72, 72, 74, 0.92);
+  --on-active: #f5f5f7; --raised: rgba(255, 255, 255, 0.6); --tint: rgba(242, 242, 247, 0.8);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --page: #e9e9ee; --text: #1c1c1e; --text-2: rgba(60, 60, 67, 0.64);
+    --text-3: rgba(60, 60, 67, 0.36); --control: rgba(118, 118, 128, 0.14);
+    --control-hi: rgba(118, 118, 128, 0.28); --active: rgba(72, 72, 74, 0.92);
+    --on-active: #f5f5f7; --raised: rgba(255, 255, 255, 0.6); --tint: rgba(242, 242, 247, 0.8); color-scheme: light;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text); font-family: var(--chrome); }
+main { max-width: 1060px; margin: 0 auto; padding: 28px 16px 64px; display: grid; gap: 18px; }
+h1 { font: 600 30px/1.1 var(--display); margin: 0; }
+p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 90ch; }
+.bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.bar .label { font-size: 13px; color: var(--text-2); }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 999px; background: var(--control); }
+.seg button { border: 0; border-radius: 999px; padding: 7px 14px; background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer; }
+.seg button.on { background: var(--active); color: var(--on-active); }
+
+.window { display: grid; grid-template-columns: 190px 1fr; border-radius: 26px; overflow: hidden; min-height: 700px;
+  background: var(--tint); backdrop-filter: blur(24px); box-shadow: 0 18px 50px rgba(0,0,0,.3); position: relative; }
+@media (max-width: 760px) { .window { grid-template-columns: 1fr; } .side { display: none; } }
+.side { padding: 18px 10px; display: grid; align-content: start; gap: 2px; }
+.side div { padding: 8px 14px; border-radius: 12px; font-size: 13.5px; color: var(--text-2); }
+.side div.on { background: var(--control); color: var(--text); font-weight: 600; }
+.content { padding: 20px 24px 30px; display: grid; gap: 18px; align-content: start; min-width: 0; }
+
+.top { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.search { flex: 1; min-width: 200px; border: 0; border-radius: 999px; padding: 10px 16px; background: var(--control);
+  color: var(--text); font: inherit; font-size: 13.5px; outline: none; }
+.search::placeholder { color: var(--text-3); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { border: 0; border-radius: 999px; padding: 6px 13px; background: var(--control); color: var(--text-2); font: inherit; font-size: 12.5px; cursor: pointer; }
+.chip.on { background: var(--active); color: var(--on-active); font-weight: 600; }
+
+.sec-t { font: 600 15px/1.2 var(--display); margin: 2px 4px -6px; }
+.feature { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.hero { border-radius: 22px; padding: 18px; background: var(--raised); display: grid; gap: 10px; cursor: pointer; min-height: 150px; align-content: space-between; }
+.hero .k { font-size: 11.5px; letter-spacing: .02em; color: var(--text-2); text-transform: uppercase; font-weight: 600; }
+.hero .n { font: 600 20px/1.15 var(--display); }
+.hero .d { font-size: 13px; color: var(--text-2); line-height: 1.45; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.tile { border-radius: 18px; padding: 14px; background: var(--raised); display: grid; gap: 10px; cursor: pointer; align-content: start; }
+.tile:hover, .hero:hover { background: var(--control-hi); }
+.tile .head { display: flex; gap: 12px; align-items: center; }
+.tile .name { font-weight: 600; font-size: 14px; }
+.tile .who { font-size: 12px; color: var(--text-2); display: flex; gap: 6px; align-items: center; }
+.tile .d { font-size: 12.5px; color: var(--text-2); line-height: 1.45; }
+.tile .foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.icon { width: 42px; height: 42px; border-radius: 13px; background: var(--control-hi); flex: none; display: grid; place-items: center; font-weight: 700; font-size: 17px; }
+.icon.big { width: 72px; height: 72px; border-radius: 20px; font-size: 30px; }
+.badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--control); color: var(--text-2); white-space: nowrap; }
+.badge.strong { background: var(--active); color: var(--on-active); }
+.tick { display: inline-grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; background: var(--text-2); color: var(--page); font-size: 10px; font-weight: 800; }
+.btn { border: 0; border-radius: 999px; padding: 8px 16px; font: inherit; font-size: 13px; cursor: pointer; background: var(--control); color: var(--text); white-space: nowrap; }
+.btn.primary { background: var(--active); color: var(--on-active); font-weight: 600; }
+.btn.quiet { background: transparent; color: var(--text-2); }
+.btn:disabled { opacity: .5; cursor: default; }
+
+/* Ficha */
+.back { justify-self: start; }
+.detail-head { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.detail-head .grow { flex: 1; min-width: 200px; display: grid; gap: 4px; }
+.detail-head .title { font: 600 24px/1.1 var(--display); }
+.detail-head .sub { font-size: 13px; color: var(--text-2); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.cols { display: grid; grid-template-columns: 1fr 280px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+.box { border-radius: 18px; background: var(--raised); padding: 14px 16px; display: grid; gap: 10px; font-size: 13.5px; line-height: 1.5; }
+.box > .t { font: 600 14.5px/1.2 var(--display); }
+.box p { margin: 0; color: var(--text-2); }
+.says { display: flex; flex-wrap: wrap; gap: 6px; }
+.says span { padding: 6px 12px; border-radius: 999px; background: var(--control); font-size: 12.5px; }
+.list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.list li { display: flex; gap: 10px; align-items: baseline; }
+.list li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); flex: none; transform: translateY(-1px); }
+.list .why { color: var(--text-2); font-size: 12px; }
+.steps { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: start; counter-increment: s; }
+.steps li::before { content: counter(s); width: 26px; height: 26px; border-radius: 50%; background: var(--control); display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.steps li.auto::before { content: "✓"; background: var(--active); color: var(--on-active); }
+.steps .a { color: var(--text-2); font-size: 12.5px; }
+.facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 12.5px; }
+.facts dt { color: var(--text-2); }
+.facts dd { margin: 0; text-align: right; }
+.shots { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 1fr); gap: 10px; overflow-x: auto; }
+.shot { height: 130px; border-radius: 16px; background: var(--control); display: grid; place-items: center; color: var(--text-3); font-size: 12px; }
+
+/* Instaladas */
+.rows { display: grid; gap: 2px; border-radius: 18px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--raised); font-size: 13.5px; }
+.row .grow { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.row .name { font-weight: 600; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.row .hint { color: var(--text-2); font-size: 12.5px; line-height: 1.4; }
+.toggle { width: 40px; height: 24px; border-radius: 999px; background: var(--control-hi); position: relative; flex: none; cursor: pointer; }
+.toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--text); transition: left .2s; }
+.toggle.on { background: var(--active); }
+.toggle.on::after { left: 19px; background: var(--on-active); }
+.field { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.field input { flex: 1; min-width: 160px; border: 0; border-radius: 999px; padding: 9px 14px; background: var(--control); color: var(--text); font: inherit; font-size: 13px; outline: none; }
+.empty { border-radius: 22px; background: var(--raised); padding: 34px 24px; text-align: center; display: grid; gap: 8px; justify-items: center; }
+.empty .n { font: 600 19px/1.2 var(--display); }
+.empty p { margin: 0; color: var(--text-2); font-size: 13.5px; max-width: 52ch; line-height: 1.5; }
+
+/* Instalar */
+.sheet-bg { position: absolute; inset: 0; background: rgba(0,0,0,.35); display: none; place-items: center; padding: 16px; }
+.sheet-bg.open { display: grid; }
+.sheet { width: min(480px, 100%); border-radius: 26px; padding: 22px 22px 18px; display: grid; gap: 14px;
+  background: var(--tint); backdrop-filter: blur(24px); box-shadow: 0 18px 50px rgba(0,0,0,.4); animation: pop .4s cubic-bezier(.3,1.4,.5,1); }
+@keyframes pop { from { transform: scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
+.sheet .head { display: flex; gap: 12px; align-items: center; }
+.sheet .title { font: 600 19px/1.2 var(--display); }
+.sheet .actions { display: flex; gap: 8px; justify-content: flex-end; }
+.progress { height: 8px; border-radius: 999px; background: var(--control); overflow: hidden; }
+.progress div { height: 100%; width: 0; background: var(--active); border-radius: 999px; transition: width .25s; }
+.explain { font-size: 13px; line-height: 1.55; color: var(--text-2); }
+.explain b { color: var(--text); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Ajustes → Extensiones, como una tienda</h1>
+  <p class="lead">Propuesta del 2026-11-15. Tres pestañas: <b>Tienda</b> (buscar, categorías y una ficha completa por
+    extensión: qué puedes decirle, qué necesita, cómo se prepara —lo que Nyx hace sola, marcado—, qué podrá hacer y
+    sus novedades), <b>Instaladas</b> (activar, ajustes, actualizar y desinstalar, como ya está) y
+    <b>Desarrolladores</b>. En la beta no hay ninguna extensión: la tienda dice que llega con Nyx 1.0. Los datos de
+    abajo son de ejemplo.</p>
+  <div class="bar">
+    <span class="label">Tema</span>
+    <div class="seg" id="theme"><button data-v="dark" class="on">Oscuro</button><button data-v="light">Claro</button></div>
+    <span class="label">Versión de Nyx</span>
+    <div class="seg" id="stage"><button data-v="1.0" class="on">1.0 (con tienda)</button><button data-v="beta">0.9 beta</button></div>
+  </div>
+
+  <div class="window">
+    <nav class="side">
+      <div>General</div><div>Apariencia</div><div>Activación</div><div>Voz</div><div>Respuestas</div>
+      <div>Modo partida</div><div>Cerebro</div><div class="on">Extensiones</div><div>Caché</div><div>Privacidad</div><div>Ayuda</div>
+    </nav>
+    <section class="content" id="content"></section>
+    <div class="sheet-bg" id="sheet"></div>
+  </div>
+</main>
+
+<script>
+const CATS = ["Todas", "Streaming", "Música", "Productividad", "Juegos", "Hogar", "Formas", "Personalidad"];
+const EXT = [
+  {
+    id: "tepnyx.obs", name: "OBS Studio", author: "Tepnyx", signed: true, cat: "Streaming", price: "Gratis",
+    short: "Graba, haz directos, cambia de escena y guarda repeticiones con la voz.",
+    long: "Controla OBS por completo sin tocarlo: grabar, pausar, empezar el directo (te pregunta antes), guardar la repetición de lo último que ha pasado, cambiar de escena, silenciar el micro o una fuente, enseñar u ocultar la cámara y hacer capturas. Casi todo funciona también en partida.",
+    says: ["empieza a grabar", "cambia a la escena de charla", "guarda la repetición", "silencia el micro en OBS", "¿estoy grabando?"],
+    needs: ["OBS Studio 28 o posterior (gratis)", "OBS abierto cuando se lo pidas"],
+    setup: [
+      { auto: true, t: "Activar el servidor de OBS", a: "Nyx lo activa sola en la configuración de OBS (con OBS cerrado)." },
+      { auto: true, t: "La contraseña", a: "Nyx la lee de la configuración de OBS: no tienes que copiar nada." },
+    ],
+    perms: [["Controlar OBS Studio", "grabar, emitir, escenas y fuentes"], ["Leer la configuración de OBS", "solo la del servidor WebSocket"]],
+    facts: { Versión: "1.0.0", Actualizada: "12/2026", Tamaño: "28 KB", Licencia: "MIT", "Necesita Nyx": "1.0 o posterior" },
+    news: ["1.0.0 — Primera versión."], featured: true, installed: false,
+  },
+  {
+    id: "tepnyx.spotify", name: "Spotify", author: "Tepnyx", signed: true, cat: "Música", price: "Gratis",
+    short: "Pon la canción, el artista, el disco o la lista que digas.",
+    long: "Nyx busca y pone lo que le pidas en Spotify, añade a la cola, guarda en tus favoritas y pone aleatorio o repetir. Pausar, seguir y pasar de canción ya los hace Nyx sin extensión.",
+    says: ["pon Bohemian Rhapsody", "pon mi lista de correr", "añade esta a la cola", "me gusta esta canción"],
+    needs: ["Spotify Premium (Spotify solo deja controlar la música desde otra app con Premium)", "Una app tuya de Spotify (gratis, se crea una vez)"],
+    setup: [
+      { auto: false, t: "Crear tu app en Spotify", a: "Nyx te abre la página y te dice qué poner en cada campo (unos 3 minutos)." },
+      { auto: false, t: "Pegar el «Client ID»", a: "En el campo de abajo, al instalarla." },
+      { auto: true, t: "Conectar tu cuenta", a: "Nyx abre el navegador; entras y aceptas. Nyx nunca ve tu contraseña." },
+    ],
+    perms: [["Conectarse a Spotify", "api.spotify.com y accounts.spotify.com"], ["Guardar claves en el Administrador de credenciales de Windows", "nadie más las ve"], ["Abrir la app de Spotify", ""], ["Avisarte", ""]],
+    facts: { Versión: "1.0.0", Actualizada: "12/2026", Tamaño: "24 KB", Licencia: "MIT", "Necesita Nyx": "1.0 o posterior" },
+    news: ["1.0.0 — Primera versión."], featured: true, installed: false, setting: "Client ID de tu app de Spotify",
+  },
+  {
+    id: "tepnyx.discord", name: "Discord", author: "Tepnyx", signed: true, cat: "Productividad", price: "Gratis",
+    short: "Silenciar, ensordecer y saber quién habla, en lo que Discord permite.",
+    long: "Discord no deja que otras apps lean ni manden mensajes por ti. Lo que sí permite, con la voz.",
+    says: ["silénciame en Discord", "ensordéceme", "¿quién está en el canal?"], needs: ["Discord abierto"],
+    setup: [{ auto: true, t: "Nada que preparar", a: "" }], perms: [["Usar botones y atajos de Discord", "con aviso para deshacer"]],
+    facts: { Versión: "1.0.0", Licencia: "MIT", "Necesita Nyx": "1.0 o posterior" }, news: ["1.0.0 — Primera versión."], installed: false,
+  },
+  {
+    id: "tepnyx.luces", name: "Luces de casa", author: "Tepnyx", signed: true, cat: "Hogar", price: "Gratis",
+    short: "Philips Hue o Home Assistant: enciende, apaga y cambia el color.",
+    long: "Controla tus luces desde Nyx. Funciona con Philips Hue y con Home Assistant en tu red.",
+    says: ["apaga la luz del salón", "pon la luz en azul", "baja las luces al 30 %"], needs: ["Puente Hue o Home Assistant en tu red"],
+    setup: [{ auto: true, t: "Buscar el puente en tu red", a: "Nyx lo encuentra sola." }, { auto: false, t: "Pulsar el botón del puente Hue", a: "Una vez." }],
+    perms: [["Conectarse a un aparato de tu red", "el puente Hue o Home Assistant"]],
+    facts: { Versión: "1.0.0", Licencia: "MIT" }, news: ["1.0.0 — Primera versión."], installed: false,
+  },
+  {
+    id: "tepnyx.obs-pro", name: "OBS Pro", author: "Tepnyx", signed: true, cat: "Streaming", price: "Pago único · 4,99 €",
+    short: "Escenas automáticas al entrar en partida, avisos fuera del directo y más.",
+    long: "Para quien hace directos: cambia de escena sola según lo que juegas, oculta avisos de la pantalla compartida y más.",
+    says: ["cuando empiece la partida, pon la escena de juego"], needs: ["La extensión OBS Studio"],
+    setup: [{ auto: true, t: "Nada que preparar", a: "" }], perms: [["Controlar OBS Studio", ""]],
+    facts: { Versión: "1.1.0", Licencia: "Propietaria", "Necesita Nyx": "1.1 o posterior" }, news: [], installed: false,
+  },
+  {
+    id: "ana.gato", name: "Nyx gato", author: "Ana López", signed: true, cat: "Formas", price: "Gratis",
+    short: "Nyx con forma de gato: mueve las orejas cuando te escucha.",
+    long: "Una forma nueva para Nyx. Cambia su aspecto, nada más: no ejecuta código.",
+    says: [], needs: [], setup: [{ auto: true, t: "Nada que preparar", a: "Se elige en Ajustes → Apariencia." }],
+    perms: [], facts: { Versión: "1.2.0", Licencia: "CC BY 4.0" }, news: ["1.2.0 — Parpadea."], installed: true,
+  },
+];
+
+const state = { tab: "tienda", cat: "Todas", q: "", open: null, stage: "1.0" };
+const $ = (s) => document.querySelector(s);
+const letter = (e) => e.name[0].toUpperCase();
+const who = (e) => `${e.author}${e.signed ? ' <span class="tick" title="Revisada por Tepnyx">✓</span>' : ""}`;
+
+function tabs() {
+  const t = [["tienda", "Tienda"], ["instaladas", "Instaladas"], ["dev", "Desarrolladores"]];
+  return `<div class="top"><div class="seg">${t.map(([v, n]) => `<button data-tab="${v}" class="${state.tab === v ? "on" : ""}">${n}</button>`).join("")}</div></div>`;
+}
+
+function store() {
+  if (state.stage === "beta") {
+    return `<div class="empty"><div class="icon big">✦</div><div class="n">La tienda llega con Nyx 1.0</div>
+      <p>Nyx ya está preparada para las extensiones: cuando se publiquen, aparecerán aquí con todo lo que hace falta para
+      que funcionen. Mientras tanto, si haces una, puedes probarla en «Desarrolladores».</p></div>`;
+  }
+  const list = EXT.filter((e) => (state.cat === "Todas" || e.cat === state.cat)
+    && (e.name + e.short + e.cat).toLowerCase().includes(state.q.toLowerCase()));
+  const feat = list.filter((e) => e.featured);
+  return `
+    <div class="top"><input class="search" id="q" placeholder="Buscar extensiones" value="${state.q}"></div>
+    <div class="chips">${CATS.map((c) => `<button class="chip ${c === state.cat ? "on" : ""}" data-cat="${c}">${c}</button>`).join("")}</div>
+    ${feat.length && !state.q && state.cat === "Todas" ? `<div class="sec-t">Destacadas</div><div class="feature">${feat.map((e) => `
+      <div class="hero" data-open="${e.id}"><div class="k">${e.cat} · ${e.price}</div>
+        <div><div class="n">${e.name}</div><div class="d">${e.short}</div></div>
+        <div class="tile foot" style="padding:0;background:none"><span class="who">${who(e)}</span><span class="btn primary">Ver</span></div></div>`).join("")}</div>` : ""}
+    <div class="sec-t">${state.cat === "Todas" ? "Todas" : state.cat}</div>
+    ${list.length ? `<div class="grid">${list.map(tile).join("")}</div>` : `<p class="explain">No hay ninguna con «${state.q}».</p>`}`;
+}
+
+function tile(e) {
+  return `<div class="tile" data-open="${e.id}">
+    <div class="head"><span class="icon">${letter(e)}</span><div><div class="name">${e.name}</div><div class="who">${who(e)}</div></div></div>
+    <div class="d">${e.short}</div>
+    <div class="foot"><span class="badge">${e.price}</span>${e.installed ? '<span class="badge strong">Instalada</span>' : ""}</div></div>`;
+}
+
+function detail(e) {
+  return `<button class="btn quiet back" data-back>‹ Tienda</button>
+    <div class="detail-head"><span class="icon big">${letter(e)}</span>
+      <div class="grow"><div class="title">${e.name}</div>
+        <div class="sub"><span>${who(e)}</span><span>· ${e.cat}</span><span>· ${e.price}</span></div></div>
+      ${e.installed ? '<button class="btn" data-tab="instaladas">Gestionar</button>' : `<button class="btn primary" data-install="${e.id}">${e.price.startsWith("Gratis") ? "Instalar" : "Comprar e instalar"}</button>`}
+    </div>
+    <div class="shots"><div class="shot">Captura 1</div><div class="shot">Captura 2</div><div class="shot">Captura 3</div></div>
+    <div class="cols">
+      <div style="display:grid;gap:12px">
+        <div class="box"><div class="t">Qué hace</div><p>${e.long}</p></div>
+        ${e.says.length ? `<div class="box"><div class="t">Qué puedes decirle</div><div class="says">${e.says.map((s) => `<span>«${s}»</span>`).join("")}</div></div>` : ""}
+        ${e.needs.length ? `<div class="box"><div class="t">Lo que necesita</div><ul class="list">${e.needs.map((n) => `<li>${n}</li>`).join("")}</ul></div>` : ""}
+        <div class="box"><div class="t">Cómo se prepara</div><ol class="steps">${e.setup.map((s) => `<li class="${s.auto ? "auto" : ""}"><div>${s.t}${s.auto ? ' <span class="badge">Lo hace Nyx</span>' : ""}<div class="a">${s.a}</div></div></li>`).join("")}</ol></div>
+      </div>
+      <div style="display:grid;gap:12px">
+        <div class="box"><div class="t">Podrá</div>${e.perms.length ? `<ul class="list">${e.perms.map(([w, y]) => `<li><span>${w}${y ? `<span class="why"> · ${y}</span>` : ""}</span></li>`).join("")}</ul>` : "<p>Nada: solo cambia cómo se ve Nyx, no ejecuta código.</p>"}<p style="font-size:12px">Nunca puede tocar un juego ni saltarse lo que Nyx te pregunta antes de hacer.</p></div>
+        <div class="box"><div class="t">Información</div><dl class="facts">${Object.entries(e.facts).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></div>
+        ${e.news.length ? `<div class="box"><div class="t">Novedades</div>${e.news.map((n) => `<p>${n}</p>`).join("")}</div>` : ""}
+        <div class="box"><div class="t">Ayuda</div><p>Web de la extensión · Informar de un problema</p></div>
+      </div>
+    </div>`;
+}
+
+function installed() {
+  const mine = EXT.filter((e) => e.installed);
+  return `<div class="rows">${mine.map((e) => `
+    <div class="row"><span class="icon">${letter(e)}</span>
+      <div class="grow"><div class="name">${e.name}${e.setting && !e.ready ? '<span class="badge strong">Falta prepararla</span>' : ""}</div>
+        <div class="hint">${e.author} · ${e.facts.Versión}</div></div>
+      <button class="btn quiet" data-open="${e.id}">Ficha</button><div class="toggle on" data-toggle></div></div>
+    ${e.setting ? `<div class="row" style="padding-left:66px"><div class="grow"><div class="name" style="font-weight:500">${e.setting}</div>
+      <div class="field"><input placeholder="Pégalo aquí"><button class="btn">Guardar</button><button class="btn quiet">¿Dónde lo encuentro?</button></div></div></div>` : ""}`).join("")}</div>
+    <p class="explain">Desinstalar manda la extensión a la papelera y borra sus claves del Administrador de credenciales.</p>`;
+}
+
+function dev() {
+  return `<div class="rows">
+    <div class="row"><div class="grow"><div class="name">Modo desarrollador</div><div class="hint">Instalar extensiones sin revisar para probarlas. Salen como «Sin revisar».</div></div><div class="toggle" data-toggle></div></div>
+    <div class="row"><div class="grow"><div class="name">Desde un archivo</div><div class="hint">Un .nyxext que te hayas descargado.</div></div><button class="btn">Elegir archivo…</button></div>
+    <div class="row"><div class="grow"><div class="name">Cargar una carpeta</div><div class="hint">La extensión que estás haciendo, sin empaquetarla. Se recarga al cambiarla.</div></div><button class="btn">Elegir carpeta…</button></div>
+    <div class="row"><div class="grow"><div class="name">Guía para hacer extensiones</div><div class="hint">Kit gratuito (MIT): plantilla, pruebas y cómo publicarla en la tienda.</div></div><button class="btn">Abrir</button></div></div>`;
+}
+
+function render() {
+  const e = state.open && EXT.find((x) => x.id === state.open);
+  const body = state.tab === "tienda" ? (e ? detail(e) : store()) : state.tab === "instaladas" ? installed() : dev();
+  $("#content").innerHTML = tabs() + body;
+}
+
+function install(id) {
+  const e = EXT.find((x) => x.id === id);
+  const sheet = $("#sheet");
+  sheet.innerHTML = `<div class="sheet"><div class="head"><span class="icon">${letter(e)}</span><div><div class="title">${e.name}</div><div class="explain">${who(e)} · ${e.price}</div></div></div>
+    <div class="explain"><b>Podrá:</b></div><ul class="list">${e.perms.map(([w, y]) => `<li>${w}${y ? `<span class="why"> · ${y}</span>` : ""}</li>`).join("") || "<li>Nada: no ejecuta código.</li>"}</ul>
+    <div class="actions"><button class="btn" data-close>Cancelar</button><button class="btn primary" data-go="${id}">Instalar</button></div></div>`;
+  sheet.classList.add("open");
+}
+
+function go(id) {
+  const e = EXT.find((x) => x.id === id);
+  const sheet = $("#sheet");
+  sheet.innerHTML = `<div class="sheet"><div class="title">Instalando ${e.name}…</div><div class="progress"><div id="bar"></div></div></div>`;
+  let p = 0;
+  const t = setInterval(() => {
+    p += 20; $("#bar").style.width = p + "%";
+    if (p >= 100) {
+      clearInterval(t); e.installed = true;
+      const todo = e.setup.filter((s) => !s.auto);
+      sheet.innerHTML = `<div class="sheet"><div class="title">${e.name} está lista</div>
+        <ol class="steps">${e.setup.map((s) => `<li class="${s.auto ? "auto" : ""}"><div>${s.t}<div class="a">${s.auto ? "Hecho." : s.a}</div></div></li>`).join("")}</ol>
+        ${e.setting ? `<div class="field"><input placeholder="${e.setting}"><button class="btn quiet">Guíame</button></div>` : ""}
+        <div class="explain">${todo.length ? "Cuando quieras, dile a Nyx «prepara " + e.name + "» y te guía paso a paso." : "Pruébala: «" + (e.says[0] || "") + "»."}</div>
+        <div class="actions"><button class="btn primary" data-close>Listo</button></div></div>`;
+    }
+  }, 160);
+}
+
+document.addEventListener("click", (ev) => {
+  const el = ev.target.closest("[data-tab],[data-cat],[data-open],[data-back],[data-install],[data-close],[data-go],[data-toggle]");
+  if (!el) return;
+  if (el.dataset.tab) { state.tab = el.dataset.tab; state.open = null; }
+  if (el.dataset.cat) state.cat = el.dataset.cat;
+  if (el.dataset.open) { state.tab = "tienda"; state.open = el.dataset.open; }
+  if (el.hasAttribute("data-back")) state.open = null;
+  if (el.dataset.install) return install(el.dataset.install);
+  if (el.dataset.go) return go(el.dataset.go);
+  if (el.hasAttribute("data-close")) { $("#sheet").classList.remove("open"); }
+  if (el.hasAttribute("data-toggle")) { el.classList.toggle("on"); return; }
+  render();
+});
+document.addEventListener("input", (ev) => {
+  if (ev.target.id === "q") { state.q = ev.target.value; render(); const q = $("#q"); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+});
+document.querySelectorAll("#theme button").forEach((b) => b.onclick = () => {
+  document.querySelectorAll("#theme button").forEach((x) => x.classList.toggle("on", x === b));
+  document.documentElement.dataset.theme = b.dataset.v;
+});
+document.querySelectorAll("#stage button").forEach((b) => b.onclick = () => {
+  document.querySelectorAll("#stage button").forEach((x) => x.classList.toggle("on", x === b));
+  state.stage = b.dataset.v; state.open = null; state.tab = "tienda"; render();
+});
+render();
+</script>
+</body>
+</html>

@@ -221,6 +221,34 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
     (modos y formas). Mientras tanto empiezo por el núcleo de notas, listas y tareas (8.01),
     que no cambia nada visible. Dudas: ¿las notas rápidas también como archivo en
     `Documentos\Notas de Nyx`, o solo dentro de Nyx? (de momento, solo dentro, con deshacer).
+    *(Resuelto: las notas ya eran archivos con `save_note`; la 8.01 son listas y tareas.)*
+
+25. **Tienda de extensiones** (pedida el 2026-11-15). Prototipo:
+    `docs/prototipos/tienda-extensiones.html` (**necesita tu visto bueno** antes de hacerla).
+    Decidido ya por ti: la beta soporta extensiones pero no trae ninguna (`build-release.ps1`
+    solo mete las oficiales desde la 1.0.0); en la beta la tienda dice que llega con la 1.0.
+    Propuesta de arquitectura, para que esté lista cuando se publiquen:
+    - **Ficha en el manifiesto** (campos nuevos, opcionales): `summary`, `category`, `icon` y
+      `screenshots` (imágenes dentro del paquete), `examples` (frases de ejemplo), `requires`
+      (lo que necesita: «OBS 28 o posterior», «Spotify Premium») y `setup` (los pasos para
+      prepararla, cada uno marcado si lo hace Nyx sola o el usuario), más `CHANGELOG.md` en el
+      paquete para «Novedades».
+    - **Catálogo firmado** en tepnyx.com (como la lista de revocación): un JSON con cada
+      extensión, su ficha, la dirección del paquete, su huella SHA-256 y su precio (pago
+      único). Nyx lo baja, comprueba la firma de Tepnyx y lo enseña; al instalar comprueba la
+      huella y la firma del paquete. Sin cuenta.
+    - **Preparación automática** (lo que preguntaste): proveedores **dentro de Nyx**, en lista
+      cerrada, que rellenan los ajustes de una extensión sin que el usuario haga nada. El
+      primero, OBS: Nyx lee el puerto y la contraseña de la configuración de OBS
+      (`%APPDATA%\obs-studio\plugin_config\obs-websocket\config.json`; comprobado en tu PC) y,
+      si el servidor está apagado y OBS cerrado, lo activa. La extensión lo pide en su
+      manifiesto (`"from": "obs"`) y el usuario lo ve como un permiso más («Leer la
+      configuración de OBS»). Una extensión nunca lee archivos por su cuenta: solo lo que un
+      proveedor de Nyx sabe leer.
+    - **Spotify no tiene arreglo así**: su API exige una app propia del usuario (5 usuarios por
+      app) y Premium; controlar su app en segundo plano sin que se vea no se puede hacer bien
+      (lo que se puede automatizar es su ventana, y eso se ve y se rompe con cada versión).
+      Nyx guiará paso a paso y lo que pueda (conectar la cuenta) lo hará sola.
 
 ## Qué probar
 
