@@ -145,6 +145,16 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
     - En Ajustes → Extensiones falta «Cargar una carpeta» (modo desarrollador) del prototipo: de
       momento se prueba empaquetando con `core/scripts/nyx_ext.py`. ¿La hago?
 
+20. **Kit de extensiones (7.12), hecho sin ti el 2026-11-15.** Decidido para que lo confirmes:
+    - El SDK está en `sdk/` con licencia **MIT** (© Tepnyx): los tipos de `import nyx` para el
+      editor y un Nyx falso para probar con pytest. Sin dependencias, para que cualquiera lo
+      use.
+    - `nyx-ext` (crear, comprobar, **probar encerrada como en Nyx** con `run`, empaquetar) sigue
+      en `core/scripts/nyx_ext.py`, porque comprueba con el mismo código que Nyx al instalar.
+      Para que un desarrollador de fuera lo use sin el repositorio de Nyx habría que publicarlo
+      como paquete aparte (con `manifest.py`, `content.py` y `tools_spec.py`, que ya son MIT).
+      Lo dejo para cuando se abra la tienda (1.0); no se publica nada sin ti.
+
 ## Qué probar
 
 Probado y bien (2026-11-13): color de Nyx (6.23), ciudad automática (6.24) y falsas

@@ -171,7 +171,7 @@ def read_package(package: Path) -> tuple[Manifest, list[tuple[zipfile.ZipInfo, P
     return manifest, members
 
 
-def _check_code(folder: Path, manifest: Manifest) -> None:
+def check_code(folder: Path, manifest: Manifest) -> None:
     """Una extensión con herramientas trae su código y su `tools.json` válido (7.07)."""
     from nyx.ext.tools_spec import TOOLS_FILE, load_tools
 
@@ -328,7 +328,7 @@ class ExtensionStore:
                 if load_manifest((staging / MANIFEST_NAME).read_bytes()) != manifest:
                     raise PackageError("el manifiesto cambió al extraerlo")
                 if "tools" in manifest.kinds:
-                    _check_code(staging, manifest)
+                    check_code(staging, manifest)
                 final = self._folder(manifest.id, manifest.version)
                 if final.exists():
                     # Reinstalar la misma versión: la que hay se aparta y solo se tira cuando

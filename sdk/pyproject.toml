@@ -1,0 +1,17 @@
+[project]
+name = "nyx-sdk"
+version = "1.0.0"
+description = "Kit para hacer extensiones de Nyx: tipos de «import nyx» y un Nyx falso para probarlas"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# `nyx-stubs`: los tipos del módulo `nyx` que ve la extensión dentro de Nyx (PEP 561).
+packages = ["src/nyx_sdk", "src/nyx-stubs"]
