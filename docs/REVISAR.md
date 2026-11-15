@@ -250,6 +250,35 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
       (lo que se puede automatizar es su ventana, y eso se ve y se rompe con cada versión).
       Nyx guiará paso a paso y lo que pueda (conectar la cuenta) lo hará sola.
 
+26. **Datos de uso a Supabase (hecho el 2026-11-16).** En Nyx: `core/nyx/usage/` cuenta cada
+    día en local (`%LOCALAPPDATA%\Nyx\uso\`) y, **solo si activas los datos de uso**, envía
+    una vez al día los días ya terminados a `nyx.report`. Lo que se envía es exactamente la
+    tabla de la SPEC §8 (versión, gráfica, VRAM y RAM por tramos, peticiones por camino y su
+    latencia, uso de cada herramienta por su nombre, activaciones y códigos de error), con un id
+    aleatorio que cambia cada mes. En Decider (sin commit, para que lo revises):
+    `supabase/migrations/20261116_1_nyx_usage.sql` (esquema `nyx` con sus tablas, `nyx.report`
+    validado, funciones de administración y purga a los 400 días, como Sorty),
+    `supabase/config.toml` (expone `nyx`) y la página `/nyx` de la web de administración
+    (`NyxPage.tsx`; compila). **Lo que tienes que hacer tú** (cambia la base de datos real):
+    1. Aplicar la migración (`supabase db push` o el editor SQL). La he comprobado con el
+       analizador de Postgres (sintaxis), pero no contra una base de datos: Docker no estaba
+       abierto.
+    2. En el panel de Supabase: Settings → API → Exposed schemas, añadir `nyx`.
+    3. Crear `scripts/uso.local.json` en el repositorio de Nyx (no se sube a git) con
+       `{"url": "https://<proyecto>.supabase.co", "key": "<clave anon>"}`; el script de
+       versión lo mete en el núcleo. Sin él, esa versión no envía nada.
+    Falta «ver exactamente qué se envía» en Ajustes → Privacidad (prototipo antes).
+
+27. **Experiencia de voz con tus registros (2026-11-15/16).** Arreglado lo que te hacía repetir:
+    «dice que lo hace pero no lo hace» (ahora pide otra vez con herramientas o dice la verdad),
+    «salta la canción» en partida, «guarda esta canción en favoritos», «cierra tus ajustes»,
+    «reiníciate» (Nyx, no el PC), preguntas para Nyx que se ignoraban tras una respuesta, cortar
+    a media frase («¿cuánto dura?» [pausa]…; ahora espera 1,4 s si la frase está a medias), el
+    tope de 15 s a 20 s, y cabeceras con números sin relación. Batería de voz: cada frase del
+    router dicha de 11 formas como la transcribe Whisper («Nix. Nix.», repetida, «oye», «eh…»,
+    «Gracias.» inventado…), de 65 % a **100 %** (`scripts/voice_battery.py`). Batería del
+    cerebro: 410/427. Prueba de humo en Windows: 19/19 (`scripts/smoke_tools.py`).
+
 ## Qué probar
 
 Probado y bien (2026-11-13): color de Nyx (6.23), ciudad automática (6.24) y falsas

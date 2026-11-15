@@ -321,7 +321,7 @@ Desactivados por defecto. El asistente de primer arranque pregunta "¿Ayudar a m
 
 - Envío agrupado una vez al día, con un identificador aleatorio que cambia cada mes como máximo.
 - Botón opcional "enviar esta frase" cuando Nyx no entiende algo: muestra el texto exacto antes de enviarlo y alimenta la batería de pruebas.
-- El servicio se elige en la fase 6 (por ejemplo Aptabase, pensado para apps de escritorio y sin datos personales).
+- Servicio (decisión del 2026-11-15): la base de datos de Tepnyx en Supabase (la del proyecto Decider), en su propio esquema `nyx` (tablas y funciones aparte; la única entrada es `nyx.report`, que valida cada campo). Las cuentas del día se guardan siempre en local (`%LOCALAPPDATA%\Nyx\uso\`) y solo se envían con el permiso; el informe es un modelo estricto (`core/nyx/usage/report.py`) que no admite nada fuera de la tabla de arriba. Página en la web de administración de Tepnyx (`/nyx`).
 
 ## 9. Modo partida
 
