@@ -176,7 +176,9 @@ class SetupRequested:
     arg: str = ""
 
 
-ExtAction = Literal["list", "inspect", "install", "accept", "enable", "disable", "uninstall"]
+ExtAction = Literal[
+    "list", "inspect", "install", "accept", "enable", "disable", "uninstall", "setting"
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -186,6 +188,8 @@ class ExtRequested:
     action: ExtAction
     ext_id: str = ""
     path: str = ""  # el .nyxext elegido (inspect, install)
+    key: str = ""  # setting: qué ajuste de la extensión (7.14)
+    value: str = ""  # setting: su valor (vacío: quitarlo)
 
 
 @dataclass(frozen=True, slots=True)

@@ -66,6 +66,10 @@ async def fuera() -> None:
     await nyx.ask("net.fetch", {"url": "https://ejemplo.com/"})
 
 @nyx.tool
+async def ajuste(clave: str) -> object:
+    return await nyx.ask("settings.get", {"key": clave})
+
+@nyx.tool
 def sin_describir() -> None:
     pass
 """
@@ -81,6 +85,11 @@ SPECS: list[dict[str, Any]] = [
     },
     {"name": "clave", "description": "Lee la clave."},
     {"name": "fuera", "description": "Sale a internet."},
+    {
+        "name": "ajuste",
+        "description": "Lee un ajuste.",
+        "parameters": {"properties": {"clave": {"type": "string"}}, "required": ["clave"]},
+    },
 ]
 
 
@@ -88,7 +97,13 @@ def make(tmp: Path, main: str = MAIN, specs: list[dict[str, Any]] = SPECS) -> Pa
     folder = tmp / "ext"
     (folder / "tools").mkdir(parents=True)
     (folder / "manifest.json").write_text(
-        json.dumps({"id": "x.obs", "permissions": ["net:localhost:4455", "secrets"]}),
+        json.dumps(
+            {
+                "id": "x.obs",
+                "permissions": ["net:localhost:4455", "secrets"],
+                "settings": [{"key": "password", "label": "Contraseña"}],
+            }
+        ),
         encoding="utf-8",
     )
     (folder / "tools" / "main.py").write_text(main, encoding="utf-8")
@@ -140,3 +155,11 @@ def test_fake_nyx_needs_an_answer(tmp_path: Path) -> None:
     fake = FakeNyx(make(tmp_path))
     with pytest.raises(RuntimeError, match="answer"):
         fake.run("escena", nombre="a")
+
+
+def test_fake_nyx_settings(tmp_path: Path) -> None:
+    fake = FakeNyx(make(tmp_path), settings={"password": "1234"})
+    assert fake.run("ajuste", clave="password") == "1234"
+    assert FakeNyx(make(tmp_path / "b")).run("ajuste", clave="password") is None
+    with pytest.raises(RuntimeError, match="manifiesto"):
+        fake.run("ajuste", clave="otra")

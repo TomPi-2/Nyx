@@ -9,6 +9,7 @@ el manifiesto lo pide y el usuario lo ha aceptado (HOJA-DE-RUTA §4.5):
 | net.fetch                        | net:<servidor>:<puerto>    |
 | ws.open · ws.send · ws.recv · ws.close | net:<servidor>:<puerto> (OBS: localhost:4455) |
 | secrets.get · secrets.set · secrets.delete | secrets (Administrador de credenciales) |
+| settings.get                     | ninguno: los ajustes de su manifiesto, que pone el usuario |
 | notify                           | notify                     |
 | clipboard.read · clipboard.write | clipboard:read / :write    |
 | files.list · files.read          | files:read:<carpeta>       |
@@ -54,10 +55,15 @@ class ExtensionApi:
         *,
         folders: FolderMap | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
+        settings_of: Callable[[str], tuple[str, ...]] | None = None,
+        setting_reader: Callable[[str, str], str | None] | None = None,
     ) -> None:
-        """`permissions(id)`: los permisos aceptados de esa extensión (vacío si no está)."""
+        """`permissions(id)`: los permisos aceptados de esa extensión (vacío si no está).
+        `settings_of(id)`: las claves de `settings` de su manifiesto."""
         self.bus = bus
         self._permissions = permissions
+        self._settings_of = settings_of or (lambda _id: ())
+        self._read_setting = setting_reader or read_setting
         self._folders = folders or _known_folders
         self._transport = transport
         self._sockets: dict[str, dict[int, Any]] = {}
@@ -79,6 +85,7 @@ class ExtensionApi:
             "secrets.get": bind(self.secret_get),
             "secrets.set": bind(self.secret_set),
             "secrets.delete": bind(self.secret_delete),
+            "settings.get": bind(self.setting_get),
             "notify": bind(self.notify),
             "clipboard.read": bind(self.clipboard_read),
             "clipboard.write": bind(self.clipboard_write),
@@ -212,6 +219,14 @@ class ExtensionApi:
         self._need(ext_id, "secrets")
         await asyncio.to_thread(_cred_delete, self._target(ext_id, p))
 
+    # --- Ajustes que pone el usuario (7.14) ---------------------------------------------------
+
+    async def setting_get(self, ext_id: str, p: dict[str, Any]) -> str | None:
+        key = str(p.get("key", ""))
+        if key not in self._settings_of(ext_id):
+            raise RpcError(f"«{key[:40]}» no está en los ajustes de su manifiesto")
+        return await asyncio.to_thread(self._read_setting, ext_id, key)
+
     # --- Avisos y portapapeles ----------------------------------------------------------------
 
     async def notify(self, ext_id: str, p: dict[str, Any]) -> None:
@@ -293,6 +308,42 @@ class ExtensionApi:
             target.write_bytes(data)
 
         await asyncio.to_thread(run)
+
+
+# --- Ajustes de las extensiones (los escribe Ajustes, nunca la extensión) ---------------------
+
+
+def setting_target(ext_id: str, key: str) -> str:
+    """Aparte de sus secretos (`Nyx/ext/…`): con `secrets.set` no puede cambiar un ajuste."""
+    return f"Nyx/ext-ajustes/{ext_id}/{key}"
+
+
+def read_setting(ext_id: str, key: str) -> str | None:
+    return _cred_read(setting_target(ext_id, key))
+
+
+def write_setting(ext_id: str, key: str, value: str) -> None:
+    """Guarda un ajuste; vacío, lo quita."""
+    if len(value) > 2048:
+        raise ValueError("demasiado largo")
+    if value:
+        _cred_write(setting_target(ext_id, key), value)
+    else:
+        _cred_delete(setting_target(ext_id, key))
+
+
+def forget(ext_id: str) -> None:
+    """Al desinstalarla: fuera sus secretos y sus ajustes del Administrador de credenciales."""
+    import pywintypes
+    import win32cred
+
+    for pattern in (f"Nyx/ext/{ext_id}/*", f"Nyx/ext-ajustes/{ext_id}/*"):
+        try:
+            found = win32cred.CredEnumerate(pattern, 0) or ()
+        except pywintypes.error:
+            continue  # no hay ninguno
+        for cred in found:
+            _cred_delete(str(cred["TargetName"]))
 
 
 def _known_folders() -> dict[str, Path]:

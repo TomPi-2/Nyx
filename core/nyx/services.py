@@ -43,6 +43,7 @@ from nyx.events import (
 from nyx.executor import Executor
 from nyx.ext import revocation
 from nyx.ext.api import ExtensionApi
+from nyx.ext.api import forget as forget_credentials
 from nyx.ext.host import ExtensionHost
 from nyx.ext.manager import ExtensionManager
 from nyx.ext.sandbox import SandboxLauncher, delete_container
@@ -189,8 +190,12 @@ def _extensions(
         ext = next((e for e in store.installed() if e.id == ext_id), None)
         return tuple(ext.state.accepted) if ext is not None and ext.active else ()
 
+    def settings_of(ext_id: str) -> tuple[str, ...]:
+        ext = store.get(ext_id)
+        return tuple(s.key for s in ext.manifest.settings) if ext is not None else ()
+
     # Extensiones con código (7.06–7.07): encerradas, y lo que pidan, con su permiso.
-    api = ExtensionApi(bus, accepted)
+    api = ExtensionApi(bus, accepted, settings_of=settings_of)
 
     async def disabled(ext_id: str, reason: str) -> None:
         log.warning("Extensión %s desactivada: %s", ext_id, reason)
@@ -207,6 +212,9 @@ def _extensions(
         if removed:
             with contextlib.suppress(OSError):
                 await asyncio.to_thread(delete_container, ext_id)
+            # Sus claves y ajustes no se quedan en el Administrador de credenciales.
+            with contextlib.suppress(Exception):
+                await asyncio.to_thread(forget_credentials, ext_id)
 
     manager = ExtensionManager(
         store,

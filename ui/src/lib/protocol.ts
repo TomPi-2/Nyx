@@ -2,7 +2,7 @@
 
 import type { FontId, NyxColorId, PanelTintId } from "$theme/palette";
 
-export const PROTOCOL_VERSION = 21;
+export const PROTOCOL_VERSION = 22;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -108,7 +108,27 @@ export interface NyxSettings {
 
 /** v18: Ajustes → Extensiones (core/nyx/ext/service.py y manager.py). */
 export type ExtAction =
-  "list" | "inspect" | "install" | "accept" | "enable" | "disable" | "uninstall";
+  | "list"
+  | "inspect"
+  | "install"
+  | "accept"
+  | "enable"
+  | "disable"
+  | "uninstall"
+  /** v22: guardar un ajuste de la extensión (vacío: quitarlo). */
+  | "setting";
+
+/** v22: un dato que el usuario da a la extensión (la contraseña de OBS…). */
+export interface ExtSetting {
+  key: string;
+  label: string;
+  hint: string;
+  secret: boolean;
+  /** Si está puesto. */
+  set: boolean;
+  /** Su valor, solo si no es secreto (un secreto nunca vuelve a la ventana). */
+  value: string | null;
+}
 
 export interface ExtStatus {
   id: string;
@@ -125,6 +145,8 @@ export interface ExtStatus {
   /** Los que pide una actualización y aún no se han aceptado. */
   pending_permissions: string[];
   problems: string[];
+  /** v22: lo que hay que darle a mano en Ajustes. */
+  settings: ExtSetting[];
 }
 
 /** Lo que trae un paquete antes de instalarlo. */
@@ -277,7 +299,7 @@ export type ClientMessage =
   /** v12 */
   | { type: "setup"; action: SetupAction; arg?: string }
   /** v18: Ajustes → Extensiones (7.11). */
-  | { type: "ext"; action: ExtAction; id?: string; path?: string }
+  | { type: "ext"; action: ExtAction; id?: string; path?: string; key?: string; value?: string }
   /** v19 */
   | { type: "setup_flow"; action: SetupFlowAction; value?: string | number | boolean | null }
   /** v21: la app (Velopack) ha descargado una versión nueva (9.06). */

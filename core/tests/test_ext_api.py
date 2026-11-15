@@ -209,6 +209,24 @@ async def test_notify_and_secrets(monkeypatch: pytest.MonkeyPatch) -> None:
         await plain.notify("x.y", {"title": "x"})
 
 
+async def test_settings_only_its_own(monkeypatch: pytest.MonkeyPatch) -> None:
+    """7.14: lee sus ajustes sin permiso, solo los de su manifiesto, y con `secrets.set` no
+    puede cambiarlos (van aparte)."""
+    store: dict[str, str] = {}
+    monkeypatch.setattr(api_module, "_cred_write", lambda t, v: store.__setitem__(t, v))
+    monkeypatch.setattr(api_module, "_cred_read", store.get)
+    monkeypatch.setattr(api_module, "_cred_delete", lambda t: store.pop(t, None))
+    api = ExtensionApi(EventBus(), lambda _id: ("secrets",), settings_of=lambda _id: ("password",))
+    api_module.write_setting("x.y", "password", "1234")
+    assert await api.setting_get("x.y", {"key": "password"}) == "1234"
+    with pytest.raises(RpcError, match="manifiesto"):
+        await api.setting_get("x.y", {"key": "otra"})
+    await api.secret_set("x.y", {"key": "password", "value": "trampa"})
+    assert await api.setting_get("x.y", {"key": "password"}) == "1234"
+    api_module.write_setting("x.y", "password", "")
+    assert await api.setting_get("x.y", {"key": "password"}) is None
+
+
 async def test_websocket_to_an_allowed_server() -> None:
     import websockets
 

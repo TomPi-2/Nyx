@@ -7,18 +7,24 @@ lo que trae antes de instalarlo (nombre, autor, permisos y si lo firma Tepnyx).
 Instalar exige la firma de Tepnyx salvo con el modo desarrollador (`extensions.dev_mode`); en
 ese caso queda «sin revisar». Instalar solo se hace después de enseñar los permisos (la
 ventana manda `install` cuando el usuario ha pulsado «Instalar» en la vista de `inspect`).
+
+Los ajustes de cada extensión (`settings` del manifiesto: la contraseña de OBS…) se guardan en
+el Administrador de credenciales (`api.write_setting`). Los secretos no vuelven a la ventana:
+solo si están puestos.
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 from nyx.bus import EventBus
 from nyx.events import ExtRequested, ExtStatusChanged
+from nyx.ext import api
 from nyx.ext.manager import ExtensionManager
 from nyx.ext.signing import SignatureError, verify_package
 from nyx.ext.store import PACKAGE_SUFFIX, PackageError, read_package
@@ -28,10 +34,20 @@ log = logging.getLogger(__name__)
 
 
 class ExtensionsService:
-    def __init__(self, bus: EventBus, manager: ExtensionManager, settings: Settings) -> None:
+    def __init__(
+        self,
+        bus: EventBus,
+        manager: ExtensionManager,
+        settings: Settings,
+        *,
+        read_setting: Callable[[str, str], str | None] = api.read_setting,
+        write_setting: Callable[[str, str, str], None] = api.write_setting,
+    ) -> None:
         self.bus = bus
         self.manager = manager
         self.settings = settings
+        self._read_setting = read_setting
+        self._write_setting = write_setting
         self._unsubscribe = bus.subscribe(ExtRequested, self._on_request)
 
     def close(self) -> None:
@@ -51,7 +67,9 @@ class ExtensionsService:
                 await self.manager.set_enabled(req.ext_id, req.action == "enable")
             elif req.action == "uninstall":
                 await self.manager.uninstall(req.ext_id)
-        except (PackageError, OSError) as e:
+            elif req.action == "setting":
+                await self._set(req.ext_id, req.key, req.value)
+        except (PackageError, OSError, ValueError) as e:
             log.info("Extensiones (%s): %s", req.action, e)
             error = str(e)
         await self.publish(inspect=inspect, error=error)
@@ -59,10 +77,42 @@ class ExtensionsService:
     async def publish(
         self, *, inspect: dict[str, Any] | None = None, error: str | None = None
     ) -> None:
-        items = [asdict(s) for s in await asyncio.to_thread(self.manager.status)]
+        items = await asyncio.to_thread(self._items)
         await self.bus.publish(
             ExtStatusChanged(items, self.settings.extensions.dev_mode, inspect, error)
         )
+
+    def _items(self) -> list[dict[str, Any]]:
+        items = []
+        for status in self.manager.status():
+            item = asdict(status)
+            ext = self.manager.store.get(status.id)
+            item["settings"] = []
+            for s in ext.manifest.settings if ext is not None else ():
+                try:
+                    value = self._read_setting(status.id, s.key)
+                except Exception as e:  # el Administrador de credenciales no contesta
+                    log.warning("No se pudo leer un ajuste de %s: %s", status.id, e)
+                    value = None
+                item["settings"].append(
+                    {
+                        "key": s.key,
+                        "label": s.label,
+                        "hint": s.hint,
+                        "secret": s.secret,
+                        "set": bool(value),
+                        # Un secreto nunca vuelve a la ventana.
+                        "value": None if s.secret else (value or ""),
+                    }
+                )
+            items.append(item)
+        return items
+
+    async def _set(self, ext_id: str, key: str, value: str) -> None:
+        ext = self.manager.store.get(ext_id)
+        if ext is None or key not in {s.key for s in ext.manifest.settings}:
+            raise ValueError("esa extensión no tiene ese ajuste")
+        await asyncio.to_thread(self._write_setting, ext_id, key, value.strip())
 
     def _package(self, path: Path) -> Path:
         if path.suffix.lower() != PACKAGE_SUFFIX or not path.is_file():

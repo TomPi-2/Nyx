@@ -202,7 +202,14 @@ def validate(folder: Path) -> bool:
     return not problems
 
 
-def run(folder: Path, tool: str, args: dict[str, Any], *, isolated: bool) -> None:
+def run(
+    folder: Path,
+    tool: str,
+    args: dict[str, Any],
+    *,
+    isolated: bool,
+    settings: dict[str, str] | None = None,
+) -> None:
     """Llama a una herramienta como Nyx, con los permisos del manifiesto ya aceptados."""
     if not validate(folder):
         sys.exit("No se prueba: arregla lo de arriba")
@@ -210,11 +217,17 @@ def run(folder: Path, tool: str, args: dict[str, Any], *, isolated: bool) -> Non
     specs = {s.name: s for s in load_tools((folder / TOOLS_FILE).read_bytes(), manifest)}
     if tool not in specs:
         sys.exit(f"«{tool}» no está en {TOOLS_FILE} (hay: {', '.join(sorted(specs))})")
-    asyncio.run(_run(folder, manifest, tool, args, isolated=isolated))
+    asyncio.run(_run(folder, manifest, tool, args, isolated=isolated, settings=settings or {}))
 
 
 async def _run(
-    folder: Path, manifest: Manifest, tool: str, args: dict[str, Any], *, isolated: bool
+    folder: Path,
+    manifest: Manifest,
+    tool: str,
+    args: dict[str, Any],
+    *,
+    isolated: bool,
+    settings: dict[str, str],
 ) -> None:
     from nyx.bus import EventBus
     from nyx.events import BubbleShown
@@ -228,7 +241,18 @@ async def _run(
         print(f"[aviso] {event.display}" + (f" · {event.secondary}" if event.secondary else ""))
 
     bus.subscribe(BubbleShown, show)
-    api = ExtensionApi(bus, lambda _id: tuple(manifest.permissions))
+    from nyx.ext.api import read_setting
+
+    def setting(ext_id: str, key: str) -> str | None:
+        # Los de `--ajuste`; si no, los guardados en Ajustes (si la tienes instalada).
+        return settings[key] if key in settings else read_setting(ext_id, key)
+
+    api = ExtensionApi(
+        bus,
+        lambda _id: tuple(manifest.permissions),
+        settings_of=lambda _id: tuple(s.key for s in manifest.settings),
+        setting_reader=setting,
+    )
     launcher: Launcher
     if isolated:
         from nyx.ext.sandbox import SandboxLauncher
@@ -333,6 +357,7 @@ def main() -> None:
     p_run.add_argument("herramienta")
     p_run.add_argument("--args", default="{}", help="los argumentos, en JSON")
     p_run.add_argument("--sin-aislar", action="store_true")
+    p_run.add_argument("--ajuste", action="append", default=[], help="clave=valor (sus «settings»)")
     p_pack = sub.add_parser("pack")
     p_pack.add_argument("carpeta", type=Path)
     p_pack.add_argument("-o", "--salida", type=Path)
@@ -345,7 +370,14 @@ def main() -> None:
         tool_args = json.loads(args.args)
         if not isinstance(tool_args, dict):
             sys.exit("--args tiene que ser un objeto JSON")
-        run(args.carpeta, args.herramienta, tool_args, isolated=not args.sin_aislar)
+        pairs = dict(a.split("=", 1) for a in args.ajuste if "=" in a)
+        run(
+            args.carpeta,
+            args.herramienta,
+            tool_args,
+            isolated=not args.sin_aislar,
+            settings=pairs,
+        )
     else:
         pack(args.carpeta, args.salida)
 

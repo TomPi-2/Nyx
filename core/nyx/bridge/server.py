@@ -252,7 +252,7 @@ class UIBridge:
         elif isinstance(msg, SetupFlowMsg):
             await self._bus.publish(SetupFlowRequested(msg.action, msg.value))
         elif isinstance(msg, ExtMsg):
-            await self._bus.publish(ExtRequested(msg.action, msg.id, msg.path))
+            await self._bus.publish(ExtRequested(msg.action, msg.id, msg.path, msg.key, msg.value))
         elif isinstance(msg, UpdateMsg):
             await self._bus.publish(UpdateOffered(msg.version))
 

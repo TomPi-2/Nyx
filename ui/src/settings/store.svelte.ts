@@ -103,6 +103,11 @@ class SettingsStore {
     return this.core?.send({ type: "ext", action, id, path }) ?? false;
   }
 
+  /** v22: guarda un ajuste de una extensión (vacío: lo quita). */
+  extSetting(id: string, key: string, value: string): boolean {
+    return this.core?.send({ type: "ext", action: "setting", id, key, value }) ?? false;
+  }
+
   /** Primer arranque guiado por Nyx (9.10), otra vez desde Ajustes → Ayuda. */
   startGuidedSetup(): boolean {
     return this.core?.send({ type: "setup_flow", action: "start" }) ?? false;

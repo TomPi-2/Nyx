@@ -66,9 +66,11 @@ class FakeNyx:
         *,
         permissions: Iterable[str] | None = None,
         data_dir: str | Path | None = None,
+        settings: dict[str, str] | None = None,
     ) -> None:
         """`folder`: la carpeta de la extensión (con `manifest.json` y `tools/`).
-        `permissions`: los aceptados; por defecto, todos los del manifiesto."""
+        `permissions`: los aceptados; por defecto, todos los del manifiesto.
+        `settings`: lo que el usuario ha puesto en Ajustes (`settings.get`; sin poner, None)."""
         self.folder = Path(folder)
         self.manifest: dict[str, Any] = json.loads(
             (self.folder / "manifest.json").read_text(encoding="utf-8")
@@ -87,7 +89,10 @@ class FakeNyx:
         self.asks: list[tuple[str, dict[str, Any]]] = []
         #: Lo que ha escrito con `print` (y los errores).
         self.logs: list[str] = []
-        self._answers: dict[str, Any] = {}
+        self.settings = dict(settings or {})
+        self._answers: dict[str, Any] = {
+            "settings.get": lambda p: self.settings.get(str(p.get("key")))
+        }
         self._tools: dict[str, Callable[..., Any]] = {}
         self._loop: asyncio.AbstractEventLoop | None = None
         self._loaded = False
@@ -202,6 +207,12 @@ class FakeNyx:
         return json.loads(json.dumps(value, ensure_ascii=False, default=str))
 
     def _check_permission(self, method: str, params: dict[str, Any]) -> None:
+        if method == "settings.get":
+            # Sin permiso: solo los `settings` de su manifiesto (los pone el usuario en Ajustes).
+            keys = {s.get("key") for s in self.manifest.get("settings", [])}
+            if params.get("key") not in keys:
+                raise RuntimeError(f"«{params.get('key')}» no está en los ajustes de su manifiesto")
+            return
         if method in ("net.fetch", "ws.open"):
             parts = urlsplit(str(params.get("url", "")))
             schemes = ("http", "https") if method == "net.fetch" else ("ws", "wss")

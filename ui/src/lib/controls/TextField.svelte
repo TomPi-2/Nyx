@@ -8,9 +8,18 @@
     placeholder?: string;
     label?: string;
     maxLength?: number;
+    /** Contraseñas y claves: no se ven al escribir. */
+    secret?: boolean;
     onchange?: (value: string) => void;
   }
-  let { value, placeholder = "", label, maxLength = 60, onchange }: Props = $props();
+  let {
+    value,
+    placeholder = "",
+    label,
+    maxLength = 60,
+    secret = false,
+    onchange,
+  }: Props = $props();
 
   let draft = $state("");
   let editing = $state(false);
@@ -22,6 +31,8 @@
 </script>
 
 <input
+  type={secret ? "password" : "text"}
+  autocomplete="off"
   value={editing ? draft : value}
   {placeholder}
   aria-label={label}

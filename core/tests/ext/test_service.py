@@ -14,7 +14,7 @@ from nyx.ext.service import ExtensionsService
 from nyx.ext.store import ExtensionStore
 from nyx.settings.model import Settings
 from nyx.tools.registry import default_registry
-from tests.ext.conftest import TRUSTED, signed
+from tests.ext.conftest import TRUSTED, code_files, signed
 
 
 def package(tmp: Path, *, sign: bool) -> Path:
@@ -48,7 +48,21 @@ class Harness:
         self.manager = ExtensionManager(
             store, default_registry(), budget_chars=27033, apply_selector=apply
         )
-        self.service = ExtensionsService(self.bus, self.manager, self.settings)
+        self.creds: dict[tuple[str, str], str] = {}
+
+        def write(ext_id: str, key: str, value: str) -> None:
+            if value:
+                self.creds[ext_id, key] = value
+            else:
+                self.creds.pop((ext_id, key), None)
+
+        self.service = ExtensionsService(
+            self.bus,
+            self.manager,
+            self.settings,
+            read_setting=lambda i, k: self.creds.get((i, k)),
+            write_setting=write,
+        )
         self.seen: list[ExtStatusChanged] = []
 
         async def on_status(e: ExtStatusChanged) -> None:
@@ -99,3 +113,38 @@ async def test_only_nyxext_files(tmp_path: Path) -> None:
     other.write_text("hola", encoding="utf-8")
     answer = await h.ask("inspect", path=str(other))
     assert answer.error and ".nyxext" in answer.error
+
+
+async def test_settings_the_user_fills_in(tmp_path: Path) -> None:
+    """7.14: la contraseña de OBS se pone en Ajustes y nunca vuelve a la ventana."""
+    path = tmp_path / "obs.nyxext"
+    manifest = {
+        "id": "tepnyx.obs",
+        "name": "OBS",
+        "version": "1.0.0",
+        "author": "Tepnyx",
+        "nyx_api": "1.0",
+        "kinds": ["tools"],
+        "permissions": ["net:localhost:4455"],
+        "settings": [
+            {"key": "password", "label": "Contraseña"},
+            {"key": "port", "label": "Puerto", "secret": False},
+        ],
+    }
+    with zipfile.ZipFile(path, "w") as zf:
+        zf.writestr("manifest.json", json.dumps(manifest))
+        for member, blob in code_files().items():
+            zf.writestr(member, blob)
+    h = Harness(tmp_path)
+    await h.ask("install", path=str(signed(path)))
+    shown = await h.ask("setting", ext_id="tepnyx.obs", key="password", value=" 1234 ")
+    assert h.creds == {("tepnyx.obs", "password"): "1234"}
+    password, port = shown.items[0]["settings"]
+    assert password["set"] and password["value"] is None  # el secreto no sale
+    assert not port["set"] and port["value"] == ""
+    shown = await h.ask("setting", ext_id="tepnyx.obs", key="port", value="4455")
+    assert shown.items[0]["settings"][1]["value"] == "4455"
+    refused = await h.ask("setting", ext_id="tepnyx.obs", key="otra", value="x")
+    assert refused.error and ("tepnyx.obs", "otra") not in h.creds
+    await h.ask("setting", ext_id="tepnyx.obs", key="password", value="")
+    assert ("tepnyx.obs", "password") not in h.creds

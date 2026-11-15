@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 21
+PROTOCOL_VERSION = 22
 
 
 class _Msg(BaseModel):
@@ -65,12 +65,16 @@ class SettingsSetMsg(_Msg):
 
 
 class ExtMsg(_Msg):
-    """v18: Ajustes → Extensiones pide algo (7.11)."""
+    """v18: Ajustes → Extensiones pide algo (7.11). v22: `setting` (sus ajustes, 7.14)."""
 
     type: Literal["ext"] = "ext"
-    action: Literal["list", "inspect", "install", "accept", "enable", "disable", "uninstall"]
+    action: Literal[
+        "list", "inspect", "install", "accept", "enable", "disable", "uninstall", "setting"
+    ]
     id: str = Field(default="", max_length=100)
     path: str = Field(default="", max_length=1024)
+    key: str = Field(default="", max_length=32)
+    value: str = Field(default="", max_length=2048)
 
 
 class SetupMsg(_Msg):

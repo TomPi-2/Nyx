@@ -10,6 +10,7 @@
   import Button from "$lib/controls/Button.svelte";
   import Card from "$lib/controls/Card.svelte";
   import Row from "$lib/controls/Row.svelte";
+  import TextField from "$lib/controls/TextField.svelte";
   import Toggle from "$lib/controls/Toggle.svelte";
   import type { ExtStatus } from "$lib/protocol";
   import { settings } from "../store.svelte";
@@ -113,6 +114,7 @@
               {#if e.dev}<span class="badge strong">Sin revisar</span>{/if}
               {#if e.pending_permissions.length}<span class="badge">Actualización</span>{/if}
               {#if e.problems.length}<span class="badge strong">Con problemas</span>{/if}
+              {#if e.settings.some((s) => !s.set)}<span class="badge">Falta configurarla</span>{/if}
             </span>
             <span class="hint"
               >{e.author} · {e.version}{e.description ? ` · ${e.description}` : ""}</span
@@ -124,6 +126,33 @@
       {#if openId === e.id}
         <div class="more">
           {#each e.problems as problem (problem)}<p class="problem">{problem}</p>{/each}
+          {#each e.settings as s (s.key)}
+            <div class="setting">
+              <span class="grow">
+                <span class="label">{s.label}</span>
+                <span class="hint"
+                  >{s.hint}{s.secret
+                    ? `${s.hint ? " · " : ""}se guarda en el Administrador de credenciales de Windows`
+                    : ""}</span
+                >
+              </span>
+              <span class="field">
+                <TextField
+                  label={s.label}
+                  secret={s.secret}
+                  maxLength={2048}
+                  value={s.secret ? "" : (s.value ?? "")}
+                  placeholder={s.secret && s.set ? "Guardada" : ""}
+                  onchange={(v) => {
+                    if (v || !s.secret) settings.extSetting(e.id, s.key, v);
+                  }}
+                />
+              </span>
+              {#if s.secret && s.set}
+                <Button onclick={() => settings.extSetting(e.id, s.key, "")}>Quitar</Button>
+              {/if}
+            </div>
+          {/each}
           <p class="hint">Puede:</p>
           <ul class="perms">
             {#each e.permissions as p (p)}
@@ -318,6 +347,22 @@
     padding: 12px 14px;
     border-radius: 16px;
     background: var(--glass-raised);
+  }
+
+  .setting {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .setting .label {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .setting .field {
+    width: 220px;
+    flex: none;
   }
 
   .perms {

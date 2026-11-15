@@ -85,6 +85,19 @@ def test_no_code_kinds_need_no_permissions() -> None:
         ({"license": {"type": "paid"}}, "product"),
         ({"homepage": "http://inseguro.com"}, "homepage"),
         ({"name": ""}, "name"),
+        # 7.14: ajustes que pone el usuario
+        ({"settings": [{"key": "Clave", "label": "x"}]}, "key"),
+        ({"settings": [{"key": "a", "label": "x"}, {"key": "a", "label": "y"}]}, "repetidos"),
+        (
+            {
+                "kinds": ["knowledge"],
+                "permissions": [],
+                "groups": [],
+                "game_policy": {},
+                "settings": [{"key": "a", "label": "x"}],
+            },
+            "settings",
+        ),
     ],
 )
 def test_bad_manifests(changes: dict[str, Any], why: str) -> None:

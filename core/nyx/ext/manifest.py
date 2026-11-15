@@ -20,6 +20,11 @@ Formas exactas de los permisos (HOJA-DE-RUTA §4.5; ninguno sirve para tocar un 
     messages:<servicio>          mandar mensajes a otras personas (siempre rojo)
 
 `ui:widget` (1.1) y `screen` (1.2) aún no existen: se rechazan.
+
+`settings`: lo que el usuario tiene que darle a mano (la contraseña de OBS, un id de cliente…).
+Se rellena en Ajustes → Extensiones, se guarda en el Administrador de credenciales y la
+extensión lo lee con `nyx.ask("settings.get", {"key": ...})`. No hace falta permiso: solo ve
+los suyos.
 """
 
 from __future__ import annotations
@@ -184,6 +189,18 @@ class Group(BaseModel):
     tools: tuple[ToolName, ...] = Field(min_length=1, max_length=20)
 
 
+class Setting(BaseModel):
+    """Un dato que el usuario da a la extensión en Ajustes (7.14)."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+
+    key: str = Field(pattern=r"^[a-z][a-z0-9_]{0,31}$")
+    label: str = Field(min_length=1, max_length=40)
+    hint: str = Field(default="", max_length=160)
+    #: Secreto: no se vuelve a enseñar una vez guardado (solo «guardada»).
+    secret: bool = True
+
+
 class Manifest(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
 
@@ -197,6 +214,7 @@ class Manifest(BaseModel):
     permissions: tuple[str, ...] = ()
     game_policy: dict[ToolName, GamePolicy] = Field(default_factory=dict)
     groups: tuple[Group, ...] = ()
+    settings: tuple[Setting, ...] = Field(default=(), max_length=8)
     license: License = Field(default_factory=License)
     homepage: str = Field(default="", max_length=200, pattern=r"^(?:https://\S+)?$")
 
@@ -227,8 +245,13 @@ class Manifest(BaseModel):
         # Solo el código pide cosas a Nyx: lo demás (JSON, Markdown, formas) no ejecuta nada.
         if self.permissions and not code:
             raise ValueError("solo las extensiones con herramientas («tools») piden permisos")
-        if (self.game_policy or self.groups) and not code:
-            raise ValueError("«game_policy» y «groups» son para extensiones con herramientas")
+        if (self.game_policy or self.groups or self.settings) and not code:
+            raise ValueError(
+                "«game_policy», «groups» y «settings» son para extensiones con herramientas"
+            )
+        keys = [s.key for s in self.settings]
+        if len(set(keys)) != len(keys):
+            raise ValueError("ajustes («settings») repetidos")
         return self
 
     @property
