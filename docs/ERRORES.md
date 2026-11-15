@@ -7,16 +7,16 @@ Fallos vistos al usar Nyx que quedan pendientes de corregir. Se apuntan aquí pa
 | Fecha | Frase o situación | Qué pasa | Qué debería pasar | Pista |
 | --- | --- | --- | --- | --- |
 | 2026-11-14 | «Nyx, hazte un poco más grande» tras el primer arranque | Whisper lo transcribe en islandés («Hafði logo má grande») y se ignora como otro idioma. Aunque se entendiera, aún no hay regla para «hazte más grande» (es la 9.11). | Cambiar el tamaño. | La regla de tamaño ya está (9.11, `nyx_size`). Falta: con el nombre verificado, volver a transcribir con otro `prompt` antes de descartar. |
-| 2026-11-14 | «Recomiéndame una película y ábremela en Netflix», «Proponme algo» | El modelo dice «Perfecto, te abro Netflix» sin abrir nada (habla de una acción sin llamar a la herramienta). | Abrir Netflix (`open_url`) o no decir que lo hace. | `nyx-r2`: ejemplos para la ronda 4 de «dice que lo hace pero no lo hace». |
 | 2026-11-14 | «Dime cómo hacer galletas» | «Aún no sé hacer recetas» (y «Busca una receta…» sí funciona). | Buscar la receta (`web_search`). | El 97 de 354 respuestas de texto del entrenamiento son «Aún no sé hacer eso»: la ronda 4 debería bajar ese peso; o una regla «dime cómo hacer X». |
-| 2026-11-14 | «¿Quién te ha creado?», «¿Quién es tu creador?» | «Soy Nyx, tu asistente personal…» sin contestar. | Decir quién la ha hecho. | Falta en `brain/knowledge/nyx.md`; qué decir lo decide el usuario (`REVISAR.md`). |
-| 2026-11-14 | «¿Cuál es mi IP?» cuando iba al modelo | Tras `run_powershell` pidió además el tiempo (`get_weather`) y otra vez el mismo comando; al final se inventó una IP. | Una sola consulta y el dato real. | Ya no pasa por el modelo (regla `system_info` ip). Queda el bucle de agente que pide algo sin relación: ronda 4. |
 | 2026-11-14 | «Ábreme esa película» (tras proponer «El padrino») | «No encuentro esa película» (busca una app llamada así). | Buscarla en Netflix o preguntar dónde. | Abrir algo dentro de un servicio: 0.7 (extensiones). |
 
 ## Corregidos
 
 | Fecha | Error | Commit |
 | --- | --- | --- |
+| 2026-11-14 | «Recomiéndame una película y ábremela en Netflix», «Proponme algo»: El modelo dice «Perfecto, te abro Netflix» sin abrir nada (habla de una acción sin llamar a la herramienta). | Arreglado (2026-11-15): si dice que lo hace sin hacerlo, se le pide otra vez con herramientas o dice la verdad (`brain/service.py`, `claims_action`). |
+| 2026-11-14 | «¿Quién te ha creado?», «¿Quién es tu creador?»: «Soy Nyx, tu asistente personal…» sin contestar. | Arreglado: el router contesta con `nyx_info` («Tepnyx»). |
+| 2026-11-14 | «¿Cuál es mi IP?» cuando iba al modelo: Tras `run_powershell` pidió además el tiempo (`get_weather`) y otra vez el mismo comando; al final se inventó una IP. | Arreglado: el router usa `system_info` (ip), sin el modelo. |
 | 2026-11-15 | En el primer arranque y en los paneles por voz solo se le podía contestar diciendo «Nyx» delante: la tarea que habla abría la escucha al acabar y se tomaba a sí misma por «está hablando», así que nunca escuchaba (fallo de la 9.11). Con prueba que lo caza. | (tanda 2026-11-15) |
 | 2026-11-15 | «Quiero cambiarte el color» → «Listo»: el panel se cerraba y volvía a salir solo con la frase 2 s. Los paneles sueltos ya no se despiden en el panel (solo el primer arranque). | (tanda 2026-11-15) |
 | 2026-11-15 | Reiniciar Nyx desde Ajustes en mitad del primer arranque lo dejaba colgado (no iba ni se podía cerrar). Ahora, al reconectar, se olvida y, si no estaba terminado, vuelve a empezar solo. | (tanda 2026-11-15) |
