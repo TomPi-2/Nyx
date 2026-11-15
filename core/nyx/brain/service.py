@@ -66,6 +66,50 @@ def _after_header(text: str) -> str | None:
     return start[min(ends) + 1 :]
 
 
+# «Dice que lo hace pero no lo hace» (registros del 2026-11-15): «Vale, la guardo en tus
+# favoritos», «Vale, lo muteo», «Vale, te cierro los ajustes»… sin llamar a nada, y el usuario
+# tenía que repetirlo. Una primera frase que empieza así se retiene hasta verla entera; si
+# afirma una acción y no hay llamada, se pide otra vez con herramientas y, si tampoco, Nyx dice
+# la verdad en vez de fingir.
+_CLAIM_OPENER = re.compile(
+    r"^\s*(?:vale|claro|hecho|listo|perfecto|de acuerdo|ok|okey|venga|ahora mismo|enseguida|"
+    r"ya est[aá]|ah[ií] (?:va|lo tienes)|"
+    # «Te cierro…», «Lo muteo…»: al decidir solo se ha visto el pronombre; se espera a la frase.
+    r"te|se|me|lo|la|los|las|le|les|"
+    r"deshago|guardo|muteo|desmuteo|muto|desmuto|silencio|cierro|abro|pongo|quito|paso|activo|desactivo|"
+    r"cambio|subo|bajo|apago|enciendo|borro|muevo|creo|grabo|env[ií]o|mando|reinicio|"
+    r"actualizo|instalo|salto|tacho|apunto|a[nñ]ado|vac[ií]o)\b",
+    re.IGNORECASE,
+)
+_CLAIM = re.compile(
+    r"\b(?:(?:te |se |me |lo |la |los |las |le |les )+(?:guardo|muteo|desmuteo|muto|desmuto|"
+    r"silencio|cierro|abro|pongo|quito|paso|activo|desactivo|cambio|subo|bajo|apago|enciendo|borro|muevo|"
+    r"creo|grabo|env[ií]o|mando|reinicio|actualizo|instalo|salto|tacho|apunto|a[nñ]ado|vac[ií]o)"
+    r"|(?:guardo|muteo|desmuteo|muto|desmuto|silencio|cierro|abro|pongo|quito|activo|desactivo|subo|bajo|"
+    r"apago|enciendo|borro|muevo|grabo|reinicio|actualizo|instalo|salto|tacho|apunto)\s+"
+    r"(?:el|la|los|las|tu|tus|esta|este|eso|esa|ese|un|una)\b"
+    r"|^\s*(?:vale|ok|hecho|listo)[,.!]?\s+(?:pasa|pon|cambia|salta|la siguiente|cierra|abre|"
+    r"activa|desactiva|mutea|silencia|guarda|quita)\b)",
+    re.IGNORECASE,
+)
+#: Lo que se dice si, tras pedírselo otra vez, el modelo sigue sin actuar.
+HONEST = "Eso aún no sé hacerlo yo sola. Si me dices cómo lo harías, lo intento de otra forma."
+CLAIM_HINT = (
+    "IMPORTANTE: en tu respuesta anterior dijiste que lo hacías, pero no llamaste a ninguna "
+    "herramienta, así que no se ha hecho nada. Si alguna herramienta lo hace, llámala ahora. "
+    "Si ninguna lo hace, contesta solo: «Eso aún no sé hacerlo»."
+)
+
+
+_FIRST_SENTENCE_DONE = re.compile(r"[.!?…]\s|\n|[.!?…]$")
+
+
+def claims_action(spoken: str) -> bool:
+    """¿La respuesta afirma haber hecho (o estar haciendo) algo en el PC?"""
+    first = re.split(r"(?<=[.!?])\s|\n", spoken.strip(), maxsplit=1)[0]
+    return bool(_CLAIM.search(first))
+
+
 @dataclass(frozen=True, slots=True)
 class ReplyDone:
     reply: Reply
@@ -215,9 +259,23 @@ class Brain:
                     mode, piece = "call", ""
                 elif reroute is not None and not held.lstrip().startswith("["):
                     mode, piece = "command?", ""  # sin cabecera: ¿una orden escrita?
+                elif tools and not continuing and _CLAIM_OPENER.match(body):
+                    mode, piece = "claim?", ""  # «Vale, …»: ¿dice que lo hace?
                 else:
                     mode, piece, held = "text", held, ""
             if mode == "call":
+                held += piece
+                continue
+            if mode == "claim?":
+                held += piece
+                body = _after_header(held) or ""
+                if not _FIRST_SENTENCE_DONE.search(body) and len(body.split()) < 14:
+                    continue
+                if claims_action(body):
+                    mode = "claim"  # se retiene entera: se decide al final
+                    continue
+                mode, piece, held = "text", held, ""
+            if mode == "claim":
                 held += piece
                 continue
             if mode == "command?":
@@ -227,6 +285,23 @@ class Brain:
                 mode, piece, held = "text", held, ""
             for event in parser.feed(piece):
                 yield event
+        if not calls and mode in ("claim?", "claim"):
+            body = _after_header(held) or held
+            if claims_action(body):
+                retry, said = await self._retry_claim(text, extra, tools, names)
+                if retry:
+                    log.info("Dijo que lo hacía sin hacerlo (%r): segundo intento %s", body, retry)
+                    calls = retry
+                else:
+                    plain = _after_header(said) or said
+                    fixed = said if plain.strip() and not claims_action(plain) else HONEST
+                    log.info("Dijo que lo hacía sin hacerlo (%r): no puede, %r", body, fixed)
+                    for event in parser.feed(fixed):
+                        yield event
+            else:
+                for event in parser.feed(held):
+                    yield event
+            held = ""
         if not calls and held:
             calls = parse_text_calls(_after_header(held) or held, names)
             if calls:
@@ -260,6 +335,26 @@ class Brain:
         else:
             log.info("Respuesta que no se guarda en la memoria: %r", reply.spoken)
         yield ReplyDone(reply)
+
+    async def _retry_claim(
+        self, text: str, extra: str, tools: list[dict[str, Any]], names: Sequence[str]
+    ) -> tuple[list[LLMToolCall], str]:
+        """Segundo intento tras «vale, lo hago» sin llamada: (llamadas, texto que dijo)."""
+        hint = f"{extra}\n{CLAIM_HINT}" if extra else CLAIM_HINT
+        calls: list[LLMToolCall] = []
+        said = ""
+        try:
+            async for piece in self.llm.chat(self.build_messages(text, hint), tools=tools):
+                if isinstance(piece, list):
+                    calls += piece
+                else:
+                    said += piece
+        except LLMError as e:
+            log.warning("Segundo intento sin respuesta: %s", e)
+            return [], ""
+        if not calls and said:
+            calls = parse_text_calls(_after_header(said) or said, list(names))
+        return calls, said
 
     def remember_action(self, note: str) -> None:
         """Lo último que hizo Nyx (lo escribe el Pipeline tras ejecutar, con lo que pasó de

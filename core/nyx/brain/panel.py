@@ -103,6 +103,13 @@ def _stems(text: str) -> set[str]:
     return {w[:5] for w in _words(text) if len(w) >= 4}
 
 
+_NUMBER_WORDS = re.compile(
+    r"\b(?:cero|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|"
+    r"catorce|quince|veinte|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|"
+    r"ciento|mil|millones?|por ciento|grados?|minutos?|horas?|segundos?)\b"
+)
+
+
 def unrelated(display: str, secondary: str, spoken: str, asked: str = "") -> bool:
     """¿La cabecera no tiene nada que ver con lo que se dice ni con lo que se pidió?
 
@@ -111,8 +118,17 @@ def unrelated(display: str, secondary: str, spoken: str, asked: str = "") -> boo
     repite en todas las respuestas siguientes. Solo se mira una cabecera corta: con números
     («3 %», «1.440 minutos») vale siempre, porque la voz los dice en letra.
     """
-    if not spoken or len(_words(display)) > 3 or any(c.isdigit() for c in display):
+    if not spoken or len(_words(display)) > 3:
         return False
+    if any(c.isdigit() for c in display):
+        # Un número vale si lo dicho también habla de números (la voz puede decirlos en letra);
+        # si no, es un dato de otra cosa: «18 % · uso de CPU» al desmutear el micro (registros
+        # del 2026-11-15).
+        said = f"{spoken} {asked}"
+        if any(c.isdigit() for c in said) or _NUMBER_WORDS.search(said.lower()):
+            return False
+        words = _stems(f"{display} {secondary}")
+        return not words or not words & _stems(said)
     head = _stems(f"{display} {secondary}")
     if not head:
         return False

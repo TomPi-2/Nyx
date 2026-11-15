@@ -500,6 +500,13 @@ async def test_indicator_waits_for_whisper_confirmation() -> None:
         ("Vale, y luego Nix, ¿qué hora es?", True),  # dice «Nyx» en medio
         ("Sí, mañana quedamos a las cinco.", False),
         ("Qué bueno el vídeo.", False),
+        # Registros del 2026-11-15: se ignoraban y había que repetirlas con «Nyx».
+        ("¡Hey! ¡Cuéntame un chiste!", True),
+        ("¿Quién es tu creador?", True),
+        ("¿Estás bien?", True),
+        ("Explícame qué es un agujero negro.", True),
+        ("Soy una caca.", False),
+        ("Tú qué dices, tío.", False),  # no es una pregunta
     ],
 )
 def test_clearly_for_nyx_in_followup(text: str, for_nyx: bool) -> None:

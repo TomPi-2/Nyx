@@ -144,6 +144,15 @@ def test_fixed_texts_keep_their_accents() -> None:
         ("3 %", "probabilidad de lluvia", "Mañana, un tres por ciento.", "¿Lloverá?", False),
         ("Aún no sé hacer eso", "", "Puedo abrirte la app.", "Tweet.", False),
         ("IP", "", "Tu IP es esta.", "¿Cuál es mi IP?", False),
+        # Un número que no sale en lo dicho (registros del 2026-11-15).
+        (
+            "18 %",
+            "uso de CPU",
+            "Deshago eso y te desmuto el micrófono.",
+            "Quiero que me desmutes el micrófono.",
+            True,
+        ),
+        ("17 °C", "", "Son 17 grados en Madrid.", "¿Qué tiempo hace?", False),
     ],
 )
 def test_unrelated(display: str, secondary: str, spoken: str, asked: str, want: bool) -> None:

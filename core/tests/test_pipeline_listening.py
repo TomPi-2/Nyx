@@ -36,6 +36,37 @@ async def test_incomplete_phrase_keeps_listening() -> None:
     await h.p.close()
 
 
+async def test_short_open_question_waits_for_the_rest() -> None:
+    """Registros del 2026-11-15: «¿Cuánto dura?» [pausa] «…el reset en el Rocket League?»
+    se cortaba en la pausa y el resto se perdía."""
+    h = Harness()
+    h.stt.script = ["Nix, ¿cuánto dura?", "Nix, ¿cuánto dura el reset en el Rocket League?"]
+    await h.feed(SILENCE, n(0.5))
+    await h.feed(WAKE)
+    await h.feed(SPEECH, n(0.6))
+    await h.feed(SILENCE, n(0.45))  # pausa corta tras «¿cuánto dura?»
+    await h.feed(SPEECH, n(1.2))
+    await h.feed(SILENCE, n(0.7))
+    await h.p.wait_idle()
+    assert h.llm.asked == ["¿Cuánto dura el reset en el Rocket League?"]
+    await h.p.close()
+
+
+async def test_a_longer_doubt_mid_sentence_does_not_cut() -> None:
+    """«Abre la carpeta de…» [piensa ~1 s] «…Descargas»: antes cortaba a los 0,7 s."""
+    h = Harness()
+    h.stt.script = ["Nix, abre la carpeta de", "Nix, abre la carpeta de Descargas."]
+    await h.feed(SILENCE, n(0.5))
+    await h.feed(WAKE)
+    await h.feed(SPEECH, n(0.8))
+    await h.feed(SILENCE, n(1.0))  # piensa: más que los 0,7 s de siempre
+    await h.feed(SPEECH, n(0.6))
+    await h.feed(SILENCE, n(1.5))
+    await h.p.wait_idle()
+    assert h.llm.asked == ["Abre la carpeta de Descargas."]
+    await h.p.close()
+
+
 async def test_pause_transcription_is_reused_when_user_stops() -> None:
     h = Harness()
     await h.say()  # 1 s de voz + 0,7 s de silencio: hay transcripción en la pausa

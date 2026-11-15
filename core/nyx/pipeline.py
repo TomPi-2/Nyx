@@ -112,11 +112,21 @@ NOTICE_BUBBLE_S = 5.0  # avisos (alarma puesta…): se van solos
 MISS_LLM_MIN = 70.0  # «abre X» sin coincidencia: se consulta al LLM solo si algo se parece
 # Pausa tras la que se transcribe lo dicho para ver si la petición ya está completa.
 EARLY_PAUSE_S = 0.4
+# Silencio para dar por terminada una frase que se ha quedado a medias en una pausa.
+UNFINISHED_SILENCE_MS = 1400
 # Ventana de seguimiento: silencio previo exigido para que una frase cuente como nueva.
 FOLLOWUP_QUIET_S = 0.25
 # Una «pregunta» que acaba así está a medias («¿cómo se dice … de?»).
 _INCOMPLETE = "a al de del el la los las en con por para que y o u un una mi tu su como"
 INCOMPLETE_ENDINGS = frozenset(_INCOMPLETE.split(" "))
+# Pregunta corta que acaba en un verbo que pide algo más: «¿cuánto dura?» (…el reset de Rocket
+# League), «¿qué es?», «¿cuánto cuesta?». Se espera al final de la frase en vez de cortar en la
+# primera pausa (registros del 2026-11-15: cortaba y lo demás se perdía).
+_OPEN_VERBS = (
+    "dura duran es son era hay cuesta cuestan tarda tardan mide miden pesa pesan vale valen "
+    "significa llama llaman hace hacen queda quedan falta faltan pasa paso tiene tienen sale salen"
+)
+OPEN_QUESTION_ENDINGS = frozenset(_OPEN_VERBS.split())
 # Coletillas que, en la ventana de seguimiento, casi nunca van dirigidas a Nyx.
 FILLERS = frozenset(
     {
@@ -165,10 +175,19 @@ _COMMAND_WORDS = (
     "vuelve", "busca", "mueve", "copia", "borra", "dime", "repite", "cambia", "maximiza",
     "minimiza", "silencia", "apaga", "enciende", "crea", "guarda", "haz", "pasa", "salta",
     "otra", "siguiente", "anterior", "deshaz", "recupera", "avisame", "recuerdame",
+    # Registros del 2026-11-15: «¡Hey! ¡Cuéntame un chiste!» se tomó por charla con otra persona.
+    "cuentame", "explicame", "ensename", "ayudame", "hazme", "ponme", "dame", "traduce",
+    "calcula", "activa", "desactiva", "mutea", "desmutea", "graba", "escribe", "lee", "leeme",
+    "muestrame", "quiero", "necesito", "puedes", "podrias", "sabes", "tacha", "anade", "apunta",
 )  # fmt: skip
 COMMAND_VERBS = frozenset(_COMMAND_WORDS)
-# Imperativo con pronombre pegado: «reanúdalo», «súbela», «ciérralos», «pásamelo».
-_IMPERATIVE_CLITIC = re.compile(r"^[a-z]{3,}(?:melo|mela|selo|sela|lo|la|los|las|le|les)$")
+# Imperativo con pronombre pegado: «reanúdalo», «súbela», «ciérralos», «pásamelo», «cuéntame».
+_IMPERATIVE_CLITIC = re.compile(r"^[a-z]{3,}(?:melo|mela|selo|sela|lo|la|los|las|le|les|me|nos)$")
+# Le habla a ella: «¿quién es tu creador?», «¿estás bien?», «¿te gusta?» (registros del
+# 2026-11-15: se ignoraban y había que repetirlas diciendo «Nyx»).
+_TO_YOU = frozenset(
+    {"eres", "estas", "tienes", "puedes", "sabes", "quieres", "te", "tu", "tus", "ti", "contigo"}
+)
 
 
 def norm_words(text: str) -> list[str]:
@@ -691,9 +710,28 @@ class Pipeline:
         except STTError:
             return
         listening.spec_text = raw
-        if self._listening is listening and self._is_complete(raw):
+        if self._listening is not listening:
+            return
+        if self._is_complete(raw):
             log.info("Petición completa tras una pausa: %r; dejo de escuchar", raw)
             await self._end_listening(EndReason.COMPLETE, transcript=raw)
+        elif self._is_unfinished(raw):
+            # Duda a media frase («abre la carpeta de…», «¿cuánto dura?»): más margen antes de
+            # darla por terminada, para no cortar al usuario mientras piensa.
+            ep = listening.endpointer
+            if ep.silence_ms < UNFINISHED_SILENCE_MS:
+                log.info("Frase a medias tras una pausa: %r; espero un poco más", raw)
+                ep.silence_ms = UNFINISHED_SILENCE_MS
+
+    def _is_unfinished(self, raw: str) -> bool:
+        """¿Lo dicho hasta la pausa está claramente a medias?"""
+        text = self.wake_phrase.without(normalize(raw)).strip().rstrip(".,;:…")
+        words = text.rstrip("?").split()
+        if not words:
+            return False
+        last = words[-1].lower()
+        open_question = text.endswith("?") and len(words) <= 2 and last in OPEN_QUESTION_ENDINGS
+        return last in INCOMPLETE_ENDINGS or open_question
 
     def _is_complete(self, raw: str) -> bool:
         """¿Es ya una petición entera? Una orden que el router entiende o una pregunta."""
@@ -705,9 +743,10 @@ class Pipeline:
         if self.router is not None and isinstance(self.router(text), Route):
             return True
         words = text.rstrip("?").split()
-        return (
-            text.endswith("?") and len(words) >= 2 and words[-1].lower() not in INCOMPLETE_ENDINGS
-        )
+        last = words[-1].lower() if words else ""
+        if len(words) <= 2 and last in OPEN_QUESTION_ENDINGS:
+            return False
+        return text.endswith("?") and len(words) >= 2 and last not in INCOMPLETE_ENDINGS
 
     async def _end_listening(self, reason: EndReason, transcript: str | None = None) -> None:
         listening = self._listening
@@ -1042,8 +1081,12 @@ class Pipeline:
         El clasificador ignoró «reanúdalo» (mal transcrito) y Nyx se fue mientras se le hablaba."""
         if self.wake_phrase.heard(text):
             return True
+        words = norm_words(text)
         # Las tres primeras palabras: «O sea, reanúdalo» también es una orden.
-        return any(w in COMMAND_VERBS or _IMPERATIVE_CLITIC.match(w) for w in norm_words(text)[:3])
+        if any(w in COMMAND_VERBS or _IMPERATIVE_CLITIC.match(w) for w in words[:3]):
+            return True
+        # Una pregunta que le habla a ella («¿quién es tu creador?»).
+        return text.strip().endswith("?") and bool(_TO_YOU.intersection(words[:5]))
 
     def _wake_off_in_game(self) -> bool:
         """«Nyx en partida: desactivado»: solo el atajo de teclado (SPEC sección 9)."""

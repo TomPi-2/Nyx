@@ -51,7 +51,8 @@ class WakeSettings(_Section):
 
 class ListenSettings(_Section):
     silence_ms: int = Field(default=700, ge=200, le=3000)
-    max_s: float = Field(default=15.0, ge=2.0, le=60.0)
+    # 20 s (antes 15): una petición larga dicha despacio no se corta (2026-11-15).
+    max_s: float = Field(default=20.0, ge=2.0, le=60.0)
     # Tras la palabra de activación, tiempo máximo para empezar a hablar.
     start_timeout_s: float = Field(default=4.0, ge=1.0, le=15.0)
     # Ventana de seguimiento: seguir hablando sin repetir «Nyx» (0 = desactivada).
