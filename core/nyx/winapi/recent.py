@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -41,21 +42,24 @@ def recent_dir() -> Path:
     return Path(os.environ.get("APPDATA", "")) / "Microsoft" / "Windows" / "Recent"
 
 
-def _targets(links: list[Path]) -> list[tuple[Path, str]]:
+def _targets(links: list[Path]) -> Generator[tuple[Path, str]]:
+    """Uno a uno y bajo demanda: se para en cuanto hay bastantes (antes resolvía los 400
+    accesos directos y tardaba 2,6 s; prueba de humo del 2026-11-16)."""
     import pythoncom
     import win32com.client
 
     pythoncom.CoInitialize()  # en un hilo aparte
+    shell = None
     try:
         shell = win32com.client.Dispatch("WScript.Shell")
-        out = []
         for lnk in links:
             try:
-                out.append((lnk, str(shell.CreateShortcut(str(lnk)).TargetPath)))
+                target = str(shell.CreateShortcut(str(lnk)).TargetPath)
             except Exception:
                 continue
-        return out
+            yield lnk, target
     finally:
+        shell = None  # se suelta el objeto COM antes de cerrar COM
         pythoncom.CoUninitialize()
 
 
@@ -71,23 +75,27 @@ def recent_files(
     wanted = EXTENSIONS.get(kind)
     out: list[Recent] = []
     seen: set[str] = set()
-    for lnk, target in _targets(links[:MAX_LINKS]):
-        path = Path(target)
-        key = target.lower()
-        if not target or key in seen:
-            continue
-        if wanted is not None and path.suffix.lower() not in wanted:
-            continue
-        if wanted is None and path.suffix.lower() in ("", ".exe", ".lnk"):
-            continue  # carpetas y programas no son documentos
-        try:
-            if not path.is_file():
+    targets = _targets(links[:MAX_LINKS])
+    try:
+        for lnk, target in _targets(links[:MAX_LINKS]):
+            path = Path(target)
+            key = target.lower()
+            if not target or key in seen:
                 continue
-            opened = datetime.fromtimestamp(lnk.stat().st_mtime)
-        except OSError:
-            continue
-        seen.add(key)
-        out.append(Recent(path, opened))
-        if len(out) >= limit:
-            break
+            if wanted is not None and path.suffix.lower() not in wanted:
+                continue
+            if wanted is None and path.suffix.lower() in ("", ".exe", ".lnk"):
+                continue  # carpetas y programas no son documentos
+            try:
+                if not path.is_file():
+                    continue
+                opened = datetime.fromtimestamp(lnk.stat().st_mtime)
+            except OSError:
+                continue
+            seen.add(key)
+            out.append(Recent(path, opened))
+            if len(out) >= limit:
+                break
+    finally:
+        targets.close()  # cierra COM en este hilo aunque se pare antes
     return out
