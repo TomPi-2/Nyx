@@ -48,7 +48,11 @@ class DataFiles:
         ]
 
     def databases(self) -> list[Path]:
-        return [self.local / "alarms.db", self.local / "shortcuts.db"]
+        return [
+            self.local / "alarms.db",
+            self.local / "shortcuts.db",
+            self.local / "organizer.db",  # listas y tareas (8.01)
+        ]
 
     @property
     def backups(self) -> Path:
