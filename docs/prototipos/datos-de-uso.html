@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Datos de uso</title>
+<style>
+/*
+ * Prototipo (2026-11-16): Ajustes → Privacidad → «Ayudar a mejorar Nyx» con lo que se envía de
+ * verdad. Mismo estilo que Ajustes y los prototipos aprobados (SPEC §12). Lo de abajo son
+ * números de ejemplo; en Nyx sale el informe real del día (core/nyx/usage/report.py).
+ */
+:root {
+  --page: #0f0f11; --text: #f5f5f7; --text-2: rgba(235, 235, 245, 0.62);
+  --text-3: rgba(235, 235, 245, 0.34); --control: rgba(118, 118, 128, 0.26);
+  --control-hi: rgba(160, 160, 170, 0.42); --active: rgba(229, 229, 234, 0.92);
+  --on-active: #1c1c1e; --raised: rgba(58, 58, 60, 0.45); --tint: rgba(28, 28, 30, 0.72);
+  --chrome: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --page: #e9e9ee; --text: #1c1c1e; --text-2: rgba(60, 60, 67, 0.64);
+  --text-3: rgba(60, 60, 67, 0.36); --control: rgba(118, 118, 128, 0.14);
+  --control-hi: rgba(118, 118, 128, 0.28); --active: rgba(72, 72, 74, 0.92);
+  --on-active: #f5f5f7; --raised: rgba(255, 255, 255, 0.6); --tint: rgba(242, 242, 247, 0.8);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --page: #e9e9ee; --text: #1c1c1e; --text-2: rgba(60, 60, 67, 0.64);
+    --text-3: rgba(60, 60, 67, 0.36); --control: rgba(118, 118, 128, 0.14);
+    --control-hi: rgba(118, 118, 128, 0.28); --active: rgba(72, 72, 74, 0.92);
+    --on-active: #f5f5f7; --raised: rgba(255, 255, 255, 0.6); --tint: rgba(242, 242, 247, 0.8); color-scheme: light;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text); font-family: var(--chrome); }
+main { max-width: 980px; margin: 0 auto; padding: 28px 16px 64px; display: grid; gap: 18px; }
+h1 { font: 600 30px/1.1 var(--display); margin: 0; }
+p.lead { margin: 0; line-height: 1.5; color: var(--text-2); max-width: 88ch; }
+.bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.bar .label { font-size: 13px; color: var(--text-2); }
+.seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--control); }
+.seg button { border: 0; border-radius: 999px; padding: 7px 14px; background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer; }
+.seg button.on { background: var(--active); color: var(--on-active); }
+.window { display: grid; grid-template-columns: 190px 1fr; border-radius: 26px; overflow: hidden; min-height: 640px;
+  background: var(--tint); backdrop-filter: blur(24px); box-shadow: 0 18px 50px rgba(0,0,0,.3); }
+@media (max-width: 760px) { .window { grid-template-columns: 1fr; } .side { display: none; } }
+.side { padding: 18px 10px; display: grid; align-content: start; gap: 2px; }
+.side div { padding: 8px 14px; border-radius: 12px; font-size: 13.5px; color: var(--text-2); }
+.side div.on { background: var(--control); color: var(--text); font-weight: 600; }
+.content { padding: 22px 24px 30px; display: grid; gap: 16px; align-content: start; min-width: 0; }
+.card { display: grid; gap: 4px; }
+.card > .t { font: 600 15px/1.2 var(--display); margin: 2px 4px 6px; }
+.card > .note { font-size: 12.5px; color: var(--text-2); line-height: 1.45; margin: 4px 6px 0; }
+.rows { display: grid; gap: 2px; border-radius: 18px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--raised); font-size: 13.5px; }
+.row .grow { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.row .name { font-weight: 600; }
+.row .hint { color: var(--text-2); font-size: 12.5px; line-height: 1.4; }
+.toggle { width: 40px; height: 24px; border-radius: 999px; background: var(--control-hi); position: relative; flex: none; cursor: pointer; }
+.toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--text); transition: left .2s; }
+.toggle.on { background: var(--active); }
+.toggle.on::after { left: 19px; background: var(--on-active); }
+.btn { border: 0; border-radius: 999px; padding: 8px 16px; font: inherit; font-size: 13px; cursor: pointer; background: var(--control); color: var(--text); white-space: nowrap; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+.box { border-radius: 18px; background: var(--raised); padding: 14px 16px; display: grid; gap: 8px; font-size: 13px; line-height: 1.5; }
+.box .t { font-weight: 600; }
+.box ul { margin: 0; padding-left: 18px; color: var(--text-2); display: grid; gap: 3px; }
+.report { display: none; gap: 2px; border-radius: 18px; overflow: hidden; }
+.report.open { display: grid; }
+.report .line { display: flex; justify-content: space-between; gap: 12px; padding: 10px 16px; background: var(--raised); font-size: 13px; }
+.report .line span:first-child { color: var(--text-2); }
+.report .sub { padding-left: 32px; }
+.mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 12px; }
+.raw { display: none; margin: 0; padding: 14px 16px; border-radius: 18px; background: var(--raised); color: var(--text-2); white-space: pre-wrap; max-height: 300px; overflow: auto; }
+.raw.open { display: block; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Ajustes → Privacidad: datos de uso</h1>
+  <p class="lead">Propuesta del 2026-11-16 (REVISAR 26). La casilla de siempre («Ayudar a mejorar Nyx», apagada por
+    defecto) y, debajo, <b>exactamente lo que se envía</b>: lo de hoy en palabras normales, y el texto tal cual sale
+    del PC para quien quiera comprobarlo. También cuándo se envió por última vez y un botón para borrar las cuentas
+    guardadas. Los números son de ejemplo.</p>
+  <div class="bar">
+    <span class="label">Tema</span>
+    <div class="seg" id="theme"><button data-v="dark" class="on">Oscuro</button><button data-v="light">Claro</button></div>
+  </div>
+
+  <div class="window">
+    <nav class="side">
+      <div>General</div><div>Apariencia</div><div>Activación</div><div>Voz</div><div>Respuestas</div>
+      <div>Modo partida</div><div>Cerebro</div><div>Extensiones</div><div>Caché</div><div class="on">Privacidad</div><div>Ayuda</div>
+    </nav>
+    <section class="content">
+      <div class="card">
+        <div class="t">Ayudar a mejorar Nyx</div>
+        <div class="rows">
+          <div class="row">
+            <div class="grow"><span class="name">Enviar datos de uso anónimos</span>
+              <span class="hint">Una vez al día, a Tepnyx. Sirven para ver qué falla y qué va lento. Nunca lo que dices.</span></div>
+            <div class="toggle on" id="send"></div>
+          </div>
+          <div class="row">
+            <div class="grow"><span class="name">Último envío</span><span class="hint" id="last">Ayer a las 21:40 · el informe del sábado</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="two">
+        <div class="box"><div class="t">Se envía</div><ul>
+          <li>La versión de Nyx y de Windows</li>
+          <li>El fabricante de tu gráfica y cuánta memoria tiene, por tramos</li>
+          <li>Cuántas peticiones atiende y lo que tarda</li>
+          <li>Qué herramientas se usan y si salen bien (solo su nombre)</li>
+          <li>Cuántas veces se activa sin que la llames, y los códigos de error</li>
+          <li>Un número al azar que cambia cada mes, para contar equipos</li>
+        </ul></div>
+        <div class="box"><div class="t">Nunca se envía</div><ul>
+          <li>Tu voz, lo que dices o lo que escribes</li>
+          <li>Nombres de archivos, carpetas, apps, ventanas o webs</li>
+          <li>Lo que copias, tus capturas o tus grabaciones</li>
+          <li>Tu ciudad, tu IP o cualquier cosa que te identifique</li>
+        </ul></div>
+      </div>
+
+      <div class="card">
+        <div class="t">Lo que se enviará de hoy</div>
+        <div class="rows">
+          <div class="row">
+            <div class="grow"><span class="name">Ver el informe de hoy</span><span class="hint">Se envía mañana, cuando el día ha terminado.</span></div>
+            <button class="btn" id="show">Ver</button>
+          </div>
+        </div>
+        <div class="report" id="report">
+          <div class="line"><span>Nyx y Windows</span><span>0.9.0 · 10.0.26300</span></div>
+          <div class="line"><span>Gráfica</span><span>AMD · 8-12 GB · RAM 32 GB o más</span></div>
+          <div class="line"><span>Cerebro</span><span>nyx-r2:7b</span></div>
+          <div class="line"><span>Peticiones</span><span>42: 31 por el camino rápido, 11 con el modelo</span></div>
+          <div class="line"><span>Rapidez</span><span>camino rápido 9 ms · modelo 1,1 s (mediana)</span></div>
+          <div class="line"><span>Herramientas</span><span>open_app 8 · media_control 6 · get_weather 3 · 1 fallo</span></div>
+          <div class="line"><span>Activaciones</span><span>14 bien · 5 sin que la llamaras</span></div>
+          <div class="line"><span>Errores</span><span>D-201 una vez</span></div>
+          <div class="line"><span>Texto exacto</span><button class="btn" id="raw-btn">Ver el texto tal cual</button></div>
+        </div>
+        <pre class="raw mono" id="raw">{
+  "install_id": "Q2x9kR4vT7mWb1nZpA3s",
+  "day": "2026-11-16",
+  "app_version": "0.9.0",
+  "windows": "10.0.26300",
+  "gpu_vendor": "amd",
+  "vram_gb": "8-12",
+  "ram_gb": "32+",
+  "llm_model": "nyx-r2:7b",
+  "requests": {"router": 31, "llm": 11},
+  "latency_ms": {"router": {"p50": 9, "p90": 40, "n": 31}, "llm": {"p50": 1100, "p90": 2300, "n": 11}},
+  "first_token_ms": {"p50": 380, "p90": 700, "n": 11},
+  "tools": {"open_app": {"ok": 8, "fail": 0, "cancelled": 0}, "media_control": {"ok": 6, "fail": 1, "cancelled": 0}},
+  "activations": {"ok": 14, "false": 5},
+  "errors": {"D-201": 1}
+}</pre>
+        <div class="note">Lo guarda tu PC en %LOCALAPPDATA%\Nyx\uso, aunque esté apagado: así puedes verlo antes de activarlo.</div>
+      </div>
+
+      <div class="card">
+        <div class="t">Lo guardado en este PC</div>
+        <div class="rows">
+          <div class="row">
+            <div class="grow"><span class="name">Borrar las cuentas guardadas</span><span class="hint">Van a la papelera. Lo ya enviado se borra solo en Tepnyx a los 400 días.</span></div>
+            <button class="btn">Borrar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+document.querySelector("#show").onclick = (e) => {
+  const open = document.querySelector("#report").classList.toggle("open");
+  e.target.textContent = open ? "Ocultar" : "Ver";
+};
+document.querySelector("#raw-btn").onclick = () => document.querySelector("#raw").classList.toggle("open");
+document.querySelector("#send").onclick = (e) => {
+  const on = e.target.classList.toggle("on");
+  document.querySelector("#last").textContent = on ? "Ayer a las 21:40 · el informe del sábado" : "Apagado: no se envía nada";
+};
+document.querySelectorAll("#theme button").forEach((b) => b.onclick = () => {
+  document.querySelectorAll("#theme button").forEach((x) => x.classList.toggle("on", x === b));
+  document.documentElement.dataset.theme = b.dataset.v;
+});
+</script>
+</body>
+</html>
