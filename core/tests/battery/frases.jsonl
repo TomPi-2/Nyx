@@ -435,3 +435,8 @@
 {"frase": "apúntame en la agenda que el viernes 27 ceno con mis padres a las nueve de la noche", "tool": "calendar", "args": {"action": "add", "time": "21:00"}}
 {"frase": "¿tengo algo el sábado por la tarde?", "tool": "calendar", "args": {"action": "read", "weekday": "saturday"}}
 {"frase": "pon en el calendario el cumpleaños de mi madre el 3 de diciembre y que se repita cada año", "tool": "calendar", "args": {"action": "add", "repeat": "yearly"}}
+{"frase": "resume lo que tengo seleccionado", "tool": "read_text", "args": {"source": "selection"}}
+{"frase": "resume el PDF de Descargas", "tool": "read_text", "args": {"source": "document", "kind": "pdf"}}
+{"frase": "¿de qué va el PDF del contrato?", "tool": "read_text", "args": {"source": "document"}}
+{"frase": "hazme un resumen del documento de Word que tengo en el escritorio", "tool": "read_text", "args": {"source": "document", "kind": "word"}}
+{"frase": "explícame qué significa el párrafo que he subrayado", "tool": "read_text", "args": {"source": "selection"}}

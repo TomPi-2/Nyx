@@ -58,6 +58,10 @@ contesto con voz y en una burbuja.
 - Decirte qué apps están usando o han usado el micrófono o la cámara (ahora, hoy o esta
   semana).
 - Abrir el último documento que usaste («abre el último Word») o decirte cuáles abriste.
+- Resumir, traducir o explicarte lo que tienes seleccionado en cualquier programa («resume lo
+  que tengo seleccionado») o un documento PDF, Word o de texto («resume el PDF de Descargas»,
+  «¿de qué va el contrato?», «resume las páginas 5 a 10 del informe»). Solo lo leo: no abro
+  nada ni sigo lo que diga el documento.
 - Listas, tareas y citas no se borran del todo: al quitarlas se pueden deshacer.
 - La salida de audio no puedo cambiarla sola (Windows no deja): te abro los ajustes de sonido.
 

@@ -260,6 +260,20 @@ GROUPS: tuple[Group, ...] = (
         lazy=True,
     ),
     Group(
+        "documentos",
+        "leer lo seleccionado o un documento (PDF, Word, texto) para resumirlo o traducirlo",
+        ("read_text",),
+        (
+            r"seleccionad|marcad|subrayad|resaltad",
+            r"\bpdf\b",
+            r"\bword\b",
+            r"\bdocumento\b",  # en plural suele ser la carpeta o «qué documentos he abierto»
+            r"\bpaginas?\b",
+            r"de que (?:va|trata)",
+        ),
+        lazy=True,
+    ),
+    Group(
         "privacidad",
         "qué apps usan o han usado el micrófono y la cámara",
         ("privacy_check",),
