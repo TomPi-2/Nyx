@@ -308,12 +308,17 @@ class ExtensionStore:
         """
         manifest, members = read_package(package)
         if not dev:
-            from nyx.ext.signing import SignatureError, verify_package
+            from nyx.ext.signing import SignatureError, verify_signature
 
             try:
-                verify_package(package, [m for _, m in members], self._trusted)
+                _, approved = verify_signature(package, [m for _, m in members], self._trusted)
             except SignatureError as e:
                 raise PackageError(f"{e}. Sin firma, solo en modo desarrollador") from e
+            # Los permisos delicados, solo si Tepnyx los ha aprobado en la firma (2026-11-16).
+            if missing := sorted(set(manifest.restricted) - set(approved)):
+                raise PackageError(
+                    f"pide permisos delicados que Tepnyx no ha aprobado: {', '.join(missing)}"
+                )
         with self._lock:
             current = self._state.extensions.get(manifest.id)
             if current is not None and _key(manifest.version) < _key(current.version):

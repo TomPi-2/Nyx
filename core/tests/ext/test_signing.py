@@ -158,3 +158,39 @@ async def test_a_revoked_extension_is_not_loaded(tmp_path: Path) -> None:
     await manager.reload()
     (status,) = manager.status()
     assert not status.active and "retirado" in status.problems[0]
+
+
+# --- Permisos delicados aprobados por Tepnyx (2026-11-16) ------------------------------------
+
+
+def test_approved_permissions_go_inside_the_signature(tmp_path: Path) -> None:
+    import zipfile
+
+    from nyx.ext.signing import sign_package, verify_signature
+    from tests.ext.conftest import TEST_KEY, TRUSTED
+
+    path = tmp_path / "x.nyxext"
+    with zipfile.ZipFile(path, "w") as zf:
+        zf.writestr("manifest.json", "{}")
+    sign_package(path, TEST_KEY, "prueba-1", ("llm", "files:write:documentos"))
+    assert verify_signature(path, trusted=TRUSTED) == (
+        "prueba-1",
+        ("files:write:documentos", "llm"),
+    )
+    # Añadirse un permiso en la firma la rompe.
+    import json
+
+    with zipfile.ZipFile(path) as zf:
+        sig = json.loads(zf.read("signature"))
+    sig["approved"].append("clipboard:read")
+    forged = tmp_path / "y.nyxext"
+    with zipfile.ZipFile(path) as src, zipfile.ZipFile(forged, "w") as dst:
+        for info in src.infolist():
+            data = json.dumps(sig).encode() if info.filename == "signature" else src.read(info)
+            dst.writestr(info.filename, data)
+    import pytest
+
+    from nyx.ext.signing import SignatureError
+
+    with pytest.raises(SignatureError):
+        verify_signature(forged, trusted=TRUSTED)

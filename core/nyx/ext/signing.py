@@ -69,12 +69,29 @@ def _public_key(key_id: str, trusted: dict[str, str]) -> Ed25519PublicKey:
     return Ed25519PublicKey.from_public_bytes(base64.b64decode(raw))
 
 
+def _signed_bytes(digest: bytes, approved: tuple[str, ...]) -> bytes:
+    """Lo que se firma: el resumen del paquete y, si los hay, los permisos delicados que Tepnyx
+    ha aprobado (2026-11-16). Así nadie puede añadirse uno a una extensión ya firmada."""
+    if not approved:
+        return digest  # firmas de antes: igual que siempre
+    return digest + b"\0approved:" + ",".join(sorted(approved)).encode()
+
+
 def verify_package(
     package: Path,
     members: list[PurePosixPath] | None = None,
     trusted: dict[str, str] | None = None,
 ) -> str:
     """Comprueba la firma; devuelve el id de la clave. Lanza `SignatureError` si no vale."""
+    return verify_signature(package, members, trusted)[0]
+
+
+def verify_signature(
+    package: Path,
+    members: list[PurePosixPath] | None = None,
+    trusted: dict[str, str] | None = None,
+) -> tuple[str, tuple[str, ...]]:
+    """Comprueba la firma; devuelve (id de la clave, permisos delicados aprobados)."""
     keys = TRUSTED_KEYS if trusted is None else trusted
     try:
         with zipfile.ZipFile(package) as zf:
@@ -84,21 +101,28 @@ def verify_package(
     try:
         data = json.loads(raw)
         key_id, sig = str(data["key"]), base64.b64decode(data["sig"], validate=True)
+        approved = tuple(sorted(str(p) for p in data.get("approved", [])))
     except (ValueError, KeyError, TypeError) as e:
         raise SignatureError("la firma está mal formada") from e
     try:
-        _public_key(key_id, keys).verify(sig, package_digest(package, members))
+        signed = _signed_bytes(package_digest(package, members), approved)
+        _public_key(key_id, keys).verify(sig, signed)
     except InvalidSignature as e:
         raise SignatureError("la firma no coincide: el paquete ha cambiado") from e
-    return key_id
+    return key_id, approved
 
 
-def sign_package(package: Path, key: Ed25519PrivateKey, key_id: str) -> None:
-    """Añade (o sustituye) `signature` en el paquete. Solo para `scripts/sign_extension.py`."""
-    digest = package_digest(package)
-    signature = json.dumps(
-        {"key": key_id, "sig": base64.b64encode(key.sign(digest)).decode()}
-    ).encode()
+def sign_package(
+    package: Path, key: Ed25519PrivateKey, key_id: str, approved: tuple[str, ...] = ()
+) -> None:
+    """Añade (o sustituye) `signature` en el paquete. Solo para `scripts/sign_extension.py`.
+    `approved`: los permisos delicados que Tepnyx ha aprobado tras revisar la solicitud."""
+    approved = tuple(sorted(set(approved)))
+    signed = _signed_bytes(package_digest(package), approved)
+    payload: dict[str, object] = {"key": key_id, "sig": base64.b64encode(key.sign(signed)).decode()}
+    if approved:
+        payload["approved"] = list(approved)
+    signature = json.dumps(payload).encode()
     tmp = package.with_suffix(".firmando")
     with zipfile.ZipFile(package) as src, zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as dst:
         for info in src.infolist():

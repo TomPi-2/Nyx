@@ -76,6 +76,12 @@ def main() -> None:
     parser.add_argument("--nueva-clave", metavar="ID")
     parser.add_argument("--id", default="tepnyx-1", help="id de la clave con la que se firma")
     parser.add_argument("--clave", type=Path, help="ruta de la clave privada (PEM)")
+    parser.add_argument(
+        "--aprobar",
+        default="",
+        help="permisos delicados aprobados tras revisar la solicitud, separados por comas "
+        "(o «todos» los que pide); van dentro de la firma",
+    )
     parser.add_argument("--revocadas", type=Path, help="lista de revocación a firmar")
     args = parser.parse_args()
 
@@ -96,7 +102,23 @@ def main() -> None:
         manifest, _ = read_package(args.paquete)  # las mismas comprobaciones que hace Nyx
     except PackageError as e:
         sys.exit(f"No se firma: {e}")
-    sign_package(args.paquete, key, args.id)
+    restricted = set(manifest.restricted)
+    wanted = (
+        restricted
+        if args.aprobar == "todos"
+        else {p.strip() for p in args.aprobar.split(",") if p.strip()}
+    )
+    if extra := wanted - restricted:
+        sys.exit(
+            "No se firma: «--aprobar» incluye permisos que no pide o no son delicados: "
+            f"{sorted(extra)}"
+        )
+    if missing := restricted - wanted:
+        sys.exit(
+            f"No se firma: pide permisos delicados sin aprobar: {sorted(missing)}. "
+            "Revisa su solicitud y usa --aprobar."
+        )
+    sign_package(args.paquete, key, args.id, tuple(sorted(wanted)))
     verify_package(args.paquete, trusted=trusted)
     print(f"Firmada {manifest.id} {manifest.version} con la clave {args.id}.")
 

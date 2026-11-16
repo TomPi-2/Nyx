@@ -249,3 +249,27 @@ def test_a_damaged_state_file(tmp_path: Path) -> None:
     store = ExtensionStore(tmp_path / "ext", state)
     assert store.installed() == []
     assert (tmp_path / "extensions.json.dañado").exists()
+
+
+def test_restricted_permissions_need_tepnyx_approval(tmp_path: Path, store: ExtensionStore) -> None:
+    """2026-11-16: una extensión firmada con un permiso delicado sin aprobar no se instala."""
+    from nyx.ext.signing import sign_package
+    from tests.ext.conftest import TEST_KEY
+
+    asks = {
+        **BASE,
+        "permissions": ["notify", "llm"],
+        "why": {"llm": "Resume los textos que elige el usuario."},
+    }
+    path = package(tmp_path, manifest=asks)  # firmada, sin aprobar nada
+    with pytest.raises(PackageError, match="no ha aprobado: llm"):
+        store.install(path, accept=True)
+    sign_package(path, TEST_KEY, "prueba-1", ("llm",))
+    assert store.install(path, accept=True).status == "installed"
+
+
+def test_restricted_permissions_in_developer_mode(tmp_path: Path, store: ExtensionStore) -> None:
+    asks = {**BASE, "permissions": ["clipboard:read"]}
+    assert (
+        store.install(package(tmp_path, manifest=asks), accept=True, dev=True).status == "installed"
+    )

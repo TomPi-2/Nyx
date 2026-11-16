@@ -27,12 +27,12 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from battery import judge  # noqa: E402
+from battery import judge
 
-from nyx.brain.router import Route, refusal, route  # noqa: E402
-from nyx.executor import ToolCall  # noqa: E402
-from nyx.index.service import SystemIndex  # noqa: E402
-from nyx.stt.normalize import normalize  # noqa: E402
+from nyx.brain.router import Route, refusal, route
+from nyx.executor import ToolCall
+from nyx.index.service import SystemIndex
+from nyx.stt.normalize import normalize
 
 FRASES = Path(__file__).resolve().parents[1] / "tests" / "battery" / "frases.jsonl"
 

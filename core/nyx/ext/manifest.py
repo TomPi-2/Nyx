@@ -86,6 +86,12 @@ _MIN_RISK = {
 }
 
 
+#: Permisos delicados (decisión del usuario, 2026-11-16): solo con la aprobación de Tepnyx, que
+#: va dentro de la firma (signing.py), o en el modo desarrollador para probarlos («Sin revisar»).
+#: El desarrollador los solicita con `nyx-ext request` explicando por qué (`why`).
+RESTRICTED_KINDS = frozenset({"files:write", "clipboard:read", "apps:control", "llm", "messages"})
+
+
 @dataclass(frozen=True, slots=True)
 class Permission:
     """Un permiso ya entendido. `kind` es la familia («net», «files:read»…) y `target` su
@@ -100,6 +106,10 @@ class Permission:
     @property
     def min_risk(self) -> Risk:
         return _MIN_RISK[self.kind]
+
+    @property
+    def restricted(self) -> bool:
+        return self.kind in RESTRICTED_KINDS
 
 
 class ManifestError(ValueError):
@@ -215,6 +225,10 @@ class Manifest(BaseModel):
     game_policy: dict[ToolName, GamePolicy] = Field(default_factory=dict)
     groups: tuple[Group, ...] = ()
     settings: tuple[Setting, ...] = Field(default=(), max_length=8)
+    #: Por qué pide cada permiso delicado (lo lee Tepnyx al revisar la solicitud).
+    why: dict[str, Annotated[str, Field(min_length=10, max_length=300)]] = Field(
+        default_factory=dict, max_length=12
+    )
     license: License = Field(default_factory=License)
     homepage: str = Field(default="", max_length=200, pattern=r"^(?:https://\S+)?$")
 
@@ -252,7 +266,14 @@ class Manifest(BaseModel):
         keys = [s.key for s in self.settings]
         if len(set(keys)) != len(keys):
             raise ValueError("ajustes («settings») repetidos")
+        if extra := set(self.why) - set(self.permissions):
+            raise ValueError(f"«why» explica permisos que no pide: {', '.join(sorted(extra))}")
         return self
+
+    @property
+    def restricted(self) -> tuple[str, ...]:
+        """Los permisos delicados que pide (necesitan la aprobación de Tepnyx)."""
+        return tuple(p for p in self.permissions if parse_permission(p).restricted)
 
     @property
     def parsed_permissions(self) -> tuple[Permission, ...]:
