@@ -152,6 +152,7 @@ _VERBS = {
     "stopwatch": "usar el cronómetro",
     "list_items": "cambiar la lista",
     "task": "apuntar la tarea",
+    "calendar": "apuntar la cita",
     "privacy_check": "mirar quién usa el micrófono y la cámara",
     "close_nyx_settings": "cerrar los ajustes",
     "nyx_restart": "reiniciarme",

@@ -50,6 +50,25 @@ CREATE TABLE IF NOT EXISTS tasks (
     created REAL NOT NULL,
     deleted REAL
 );
+CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY,
+    title TEXT NOT NULL,
+    start REAL NOT NULL,
+    minutes INTEGER NOT NULL DEFAULT 60,
+    all_day INTEGER NOT NULL DEFAULT 0,
+    remind INTEGER,
+    repeat TEXT NOT NULL DEFAULT 'none',
+    uid TEXT,
+    created REAL NOT NULL,
+    deleted REAL
+);
+CREATE INDEX IF NOT EXISTS events_uid ON events(uid);
+CREATE TABLE IF NOT EXISTS event_alarms (
+    event_id INTEGER NOT NULL REFERENCES events(id),
+    occurrence REAL NOT NULL,
+    alarm_id TEXT NOT NULL,
+    PRIMARY KEY (event_id, occurrence)
+);
 """
 
 _LIST_WORDS = re.compile(
@@ -92,6 +111,21 @@ class Task:
     due: float | None
     alarm_id: str | None
     done: bool
+
+
+@dataclass(frozen=True, slots=True)
+class Event:
+    """Una cita del calendario (8.02). `start` en segundos (hora local del PC); `remind`,
+    minutos antes del aviso (None: sin aviso); `repeat`: none, weekly, monthly o yearly."""
+
+    id: int
+    title: str
+    start: float
+    minutes: int
+    all_day: bool
+    remind: int | None
+    repeat: str
+    uid: str | None = None
 
 
 class OrganizerStore:
@@ -258,3 +292,106 @@ class OrganizerStore:
                 "UPDATE tasks SET deleted = ? WHERE id = ?",
                 (self._now() if deleted else None, task_id),
             )
+
+    # --- Calendario (8.02) ----------------------------------------------------------------------
+
+    _EVENT_COLS = "id, title, start, minutes, all_day, remind, repeat, uid"
+
+    @staticmethod
+    def _event(row: tuple[object, ...]) -> Event:
+        i, title, start, minutes, all_day, remind, repeat, uid = row
+        return Event(
+            int(i),  # type: ignore[call-overload]
+            str(title),
+            float(start),  # type: ignore[arg-type]
+            int(minutes),  # type: ignore[call-overload]
+            bool(all_day),
+            None if remind is None else int(remind),  # type: ignore[call-overload]
+            str(repeat),
+            None if uid is None else str(uid),
+        )
+
+    def add_event(
+        self,
+        title: str,
+        start: float,
+        *,
+        minutes: int = 60,
+        all_day: bool = False,
+        remind: int | None = None,
+        repeat: str = "none",
+        uid: str | None = None,
+    ) -> Event:
+        title = title.strip()[:MAX_TEXT]
+        with self._lock:
+            cur = self._db.execute(
+                "INSERT INTO events (title, start, minutes, all_day, remind, repeat, uid, created)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (title, start, minutes, int(all_day), remind, repeat, uid, self._now()),
+            )
+        return Event(int(cur.lastrowid or 0), title, start, minutes, all_day, remind, repeat, uid)
+
+    def events(self) -> list[Event]:
+        """Todas las citas sin borrar (las que se repiten también, una vez)."""
+        with self._lock:
+            rows = self._db.execute(
+                f"SELECT {self._EVENT_COLS} FROM events WHERE deleted IS NULL ORDER BY start"
+            ).fetchall()
+        return [self._event(r) for r in rows]
+
+    def event(self, event_id: int) -> Event | None:
+        with self._lock:
+            row = self._db.execute(
+                f"SELECT {self._EVENT_COLS} FROM events WHERE id = ?", (event_id,)
+            ).fetchone()
+        return self._event(row) if row else None
+
+    def has_uid(self, uid: str) -> bool:
+        with self._lock:
+            row = self._db.execute(
+                "SELECT 1 FROM events WHERE uid = ? AND deleted IS NULL", (uid,)
+            ).fetchone()
+        return row is not None
+
+    def find_events(self, title: str) -> list[Event]:
+        """Las citas cuyo título encaja: igual, o que lo contiene («dentista» → «Dentista»)."""
+        wanted = strip_articles(normalize(title))
+        found = self.events()
+        exact = [e for e in found if strip_articles(normalize(e.title)) == wanted]
+        return exact or [e for e in found if wanted and wanted in normalize(e.title)]
+
+    def move_event(self, event_id: int, start: float) -> None:
+        with self._lock:
+            self._db.execute("UPDATE events SET start = ? WHERE id = ?", (start, event_id))
+
+    def delete_event(self, event_id: int, deleted: bool = True) -> None:
+        with self._lock:
+            self._db.execute(
+                "UPDATE events SET deleted = ? WHERE id = ?",
+                (self._now() if deleted else None, event_id),
+            )
+
+    def event_alarms(self, event_id: int) -> dict[float, str]:
+        """Los avisos ya puestos de una cita: {inicio de esa vez: id de la alarma}."""
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT occurrence, alarm_id FROM event_alarms WHERE event_id = ?", (event_id,)
+            ).fetchall()
+        return {float(o): str(a) for o, a in rows}
+
+    def set_event_alarm(self, event_id: int, occurrence: float, alarm_id: str) -> None:
+        with self._lock:
+            self._db.execute(
+                "INSERT OR REPLACE INTO event_alarms (event_id, occurrence, alarm_id)"
+                " VALUES (?, ?, ?)",
+                (event_id, occurrence, alarm_id),
+            )
+
+    def clear_event_alarms(self, event_id: int) -> list[str]:
+        """Olvida los avisos de una cita (al moverla o borrarla). Devuelve sus alarmas."""
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT alarm_id FROM event_alarms WHERE event_id = ?", (event_id,)
+            ).fetchall()
+            self._db.execute("DELETE FROM event_alarms WHERE event_id = ?", (event_id,))
+        return [str(a) for (a,) in rows]

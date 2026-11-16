@@ -58,6 +58,7 @@ class ToolRegistry:
 
 
 def default_registry() -> ToolRegistry:
+    from nyx.tools.agenda import CalendarTool
     from nyx.tools.alarms import CancelAlarm, ListAlarms
     from nyx.tools.app_action import AppAction
     from nyx.tools.audio_output import AudioOutput
@@ -145,6 +146,7 @@ def default_registry() -> ToolRegistry:
             Stopwatch(),
             ListItems(),
             TaskTool(),
+            CalendarTool(),
             PrivacyCheck(),
             RecentFiles(),
             NyxInfo(),

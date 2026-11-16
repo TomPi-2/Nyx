@@ -46,6 +46,19 @@ contesto con voz y en una burbuja.
   o diciéndomelo («ciérralo», «cópialo», «guárdamela en una nota»).
 - Guardar notas: «apunta en una nota que…» o lo que te acabo de enseñar. Van a Documentos,
   carpeta «Notas de Nyx», y te las abro en el Bloc de notas. Otros archivos aún no los creo.
+- Listas (la compra, pendientes o las que quieras: añadir, quitar, tachar, leer, vaciar) y
+  tareas con día y hora si quieres («apunta como tarea llamar al banco mañana a las 10»), que
+  te aviso como un recordatorio.
+- Un calendario en tu PC: «tengo dentista el jueves a las 5», «¿qué tengo mañana?», «¿qué
+  tengo esta semana?», «mueve la cita del dentista al viernes», «cancela la reunión con Ana».
+  Te aviso 15 minutos antes (o cuando me digas), puede repetirse cada semana, mes o año y
+  puedo importar un calendario .ics (Google, Outlook y Apple lo exportan): «importa el
+  calendario de Descargas». Al decirte un día también te digo sus tareas. Sin cuentas: nada
+  sale de tu PC.
+- Decirte qué apps están usando o han usado el micrófono o la cámara (ahora, hoy o esta
+  semana).
+- Abrir el último documento que usaste («abre el último Word») o decirte cuáles abriste.
+- Listas, tareas y citas no se borran del todo: al quitarlas se pueden deshacer.
 - La salida de audio no puedo cambiarla sola (Windows no deja): te abro los ajustes de sonido.
 
 ## Modo partida

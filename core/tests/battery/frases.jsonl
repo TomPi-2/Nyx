@@ -425,3 +425,13 @@
 {"frase": "¿qué documentos he abierto hoy?", "tool": "recent_files", "args": {"action": "list"}}
 {"frase": "ábreme otra vez el Excel que estaba usando antes", "tool": "recent_files", "args": {"action": "open", "kind": "excel"}}
 {"frase": "¿cómo se llamaba el PDF que abrí ayer?", "tool": "recent_files", "args": {"action": "list", "kind": "pdf"}}
+{"frase": "¿qué tengo mañana?", "tool": "calendar", "args": {"action": "read", "day": "tomorrow"}}
+{"frase": "¿qué tengo esta semana?", "tool": "calendar", "args": {"action": "read", "week": true}}
+{"frase": "tengo dentista el jueves a las 5", "tool": "calendar", "args": {"action": "add", "weekday": "thursday", "time": "17:00"}}
+{"frase": "tengo clase de inglés todos los martes a las 6", "tool": "calendar", "args": {"action": "add", "repeat": "weekly"}}
+{"frase": "mueve la cita del dentista al viernes", "tool": "calendar", "args": {"action": "move", "weekday": "friday"}}
+{"frase": "cancela la reunión con Ana", "tool": "calendar", "args": {"action": "delete"}}
+{"frase": "importa el calendario de Descargas", "tool": "calendar", "args": {"action": "import"}}
+{"frase": "apúntame en la agenda que el viernes 27 ceno con mis padres a las nueve de la noche", "tool": "calendar", "args": {"action": "add", "time": "21:00"}}
+{"frase": "¿tengo algo el sábado por la tarde?", "tool": "calendar", "args": {"action": "read", "weekday": "saturday"}}
+{"frase": "pon en el calendario el cumpleaños de mi madre el 3 de diciembre y que se repita cada año", "tool": "calendar", "args": {"action": "add", "repeat": "yearly"}}

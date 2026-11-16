@@ -244,6 +244,22 @@ GROUPS: tuple[Group, ...] = (
         lazy=True,
     ),
     Group(
+        "agenda",
+        "calendario: citas con día y hora, qué tengo un día o la semana, mover, borrar, importar",
+        ("calendar",),
+        (
+            r"calendario",
+            r"agenda",
+            r"\bcitas?\b",
+            r"reunion",
+            r"(?:que tengo|tengo algo) (?:hoy|manana|pasado|el|esta|para)",
+            r"\btengo (?:una? |la |el )?"
+            r"(?:medico|dentista|clase|examen|entrevista|cena|vuelo|consulta)",
+            r"\bics\b",
+        ),
+        lazy=True,
+    ),
+    Group(
         "privacidad",
         "qué apps usan o han usado el micrófono y la cámara",
         ("privacy_check",),

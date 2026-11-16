@@ -65,6 +65,7 @@ from nyx.index.scanners.games import steam_root
 from nyx.index.service import SystemIndex
 from nyx.index.watcher import IndexWatcher
 from nyx.models import MODELS
+from nyx.organizer.calendar import schedule_reminders
 from nyx.organizer.store import OrganizerStore
 from nyx.paths import local_dir
 from nyx.pipeline import Pipeline
@@ -514,7 +515,9 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     services = Services(
         pipeline, llm, stt, index, start_watcher(index), alarms=alarms, ringer=ringer
     )
-    services.alarms_start = asyncio.create_task(_start_alarms(alarms), name="alarms-start")
+    services.alarms_start = asyncio.create_task(
+        _start_alarms(alarms, tools_ctx.organizer), name="alarms-start"
+    )
     services.game_controller = GameController(
         bus,
         game,
@@ -585,11 +588,20 @@ def start_watcher(index: SystemIndex) -> IndexWatcher | None:
     return watcher
 
 
-async def _start_alarms(alarms: AlarmScheduler) -> None:
+async def _start_alarms(alarms: AlarmScheduler, organizer: OrganizerStore | None) -> None:
     # Tras dar tiempo a que la interfaz se conecte: el aviso de las alarmas que vencieron
     # con Nyx cerrado tiene que verse.
     await asyncio.sleep(NOTICE_DELAY_S)
     await alarms.start()
+    # Calendario (8.02): los avisos de los próximos días, renovados cada hora (las citas que
+    # se repiten cada semana o mes no caben en una sola alarma).
+    while organizer is not None:
+        try:
+            # En el bucle (no en otro hilo): `alarms.add` avisa a su espera de asyncio.
+            schedule_reminders(organizer, alarms)
+        except Exception as e:
+            log.warning("No se pudieron poner los avisos del calendario: %s", e)
+        await asyncio.sleep(3600)
 
 
 #: Lo que no funciona, dicho para cualquiera: qué pasa y qué puede hacer mientras tanto.

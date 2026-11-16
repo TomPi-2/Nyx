@@ -12,6 +12,7 @@ from nyx.brain.base import LLMToolCall
 
 # Cada tema registra sus reglas al importarse.
 from nyx.brain.router import (  # noqa: F401
+    agenda,
     alarmas,
     apps,
     archivos,
@@ -104,6 +105,11 @@ ORDER = (
     "alarm",
     "alarm_said",
     "reminder",
+    "agenda_read",
+    "agenda_add",
+    "agenda_move",
+    "agenda_delete",
+    "agenda_import",
     "list_add",
     "list_read",
     "list_clear",
