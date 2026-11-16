@@ -155,6 +155,7 @@ _VERBS = {
     "calendar": "apuntar la cita",
     "read_text": "leer el texto",
     "hide_apps": "ocultar la app",
+    "app_reminder": "apuntar el recordatorio",
     "privacy_check": "mirar quién usa el micrófono y la cámara",
     "close_nyx_settings": "cerrar los ajustes",
     "nyx_restart": "reiniciarme",

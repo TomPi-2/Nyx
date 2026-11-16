@@ -61,6 +61,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.agenda import CalendarTool
     from nyx.tools.alarms import CancelAlarm, ListAlarms
     from nyx.tools.app_action import AppAction
+    from nyx.tools.app_reminder import AppReminderTool
     from nyx.tools.audio_output import AudioOutput
     from nyx.tools.clipboard import Clipboard
     from nyx.tools.close_app import CloseApp
@@ -153,6 +154,7 @@ def default_registry() -> ToolRegistry:
             RecentFiles(),
             ReadText(),
             HideApps(),
+            AppReminderTool(),
             NyxInfo(),
             NyxControl(),
             NyxPanel(),

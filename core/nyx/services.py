@@ -66,6 +66,7 @@ from nyx.index.service import SystemIndex
 from nyx.index.watcher import IndexWatcher
 from nyx.models import MODELS
 from nyx.organizer.calendar import schedule_reminders
+from nyx.organizer.context import AppReminders
 from nyx.organizer.store import OrganizerStore
 from nyx.paths import local_dir
 from nyx.pipeline import Pipeline
@@ -123,6 +124,7 @@ class Services:
         self.alarms = alarms
         self.ringer = ringer
         self.alarms_start: asyncio.Task[None] | None = None
+        self.app_reminders: AppReminders | None = None
         self.game_detector: GameDetector | None = None
         self.game_controller: GameController | None = None
         self.llm = llm
@@ -554,6 +556,11 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         game_processes=lambda: {e.process for e in index.entries({Kind.GAME}) if e.process},
         mode=lambda: settings.game.mode,
     )
+    # Recordatorios al abrir una app (8.03): escuchan al detector de la ventana activa.
+    if tools_ctx.organizer is not None:
+        services.app_reminders = AppReminders(
+            bus, tools_ctx.organizer, alarms, playing=lambda: game.active
+        )
     await services.game_detector.start()
     if services.extensions.store.installed():
         # Solo si hay alguna: recargar recalienta el modelo con sus herramientas.

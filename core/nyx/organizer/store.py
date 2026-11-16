@@ -63,6 +63,15 @@ CREATE TABLE IF NOT EXISTS events (
     deleted REAL
 );
 CREATE INDEX IF NOT EXISTS events_uid ON events(uid);
+CREATE TABLE IF NOT EXISTS app_reminders (
+    id INTEGER PRIMARY KEY,
+    app TEXT NOT NULL,
+    process TEXT,
+    text TEXT NOT NULL,
+    created REAL NOT NULL,
+    fired REAL,
+    deleted REAL
+);
 CREATE TABLE IF NOT EXISTS event_alarms (
     event_id INTEGER NOT NULL REFERENCES events(id),
     occurrence REAL NOT NULL,
@@ -111,6 +120,16 @@ class Task:
     due: float | None
     alarm_id: str | None
     done: bool
+
+
+@dataclass(frozen=True, slots=True)
+class AppReminder:
+    """«Cuando abra Discord, recuérdame…» (8.03). `process`: el ejecutable si se conoce."""
+
+    id: int
+    app: str
+    process: str | None
+    text: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -395,3 +414,40 @@ class OrganizerStore:
             ).fetchall()
             self._db.execute("DELETE FROM event_alarms WHERE event_id = ?", (event_id,))
         return [str(a) for (a,) in rows]
+
+    # --- Recordatorios por app (8.03) -----------------------------------------------------------
+
+    def add_app_reminder(self, app: str, process: str | None, text: str) -> AppReminder:
+        app, text = app.strip()[:MAX_TEXT], text.strip()[:MAX_TEXT]
+        with self._lock:
+            cur = self._db.execute(
+                "INSERT INTO app_reminders (app, process, text, created) VALUES (?, ?, ?, ?)",
+                (app, process, text, self._now()),
+            )
+        return AppReminder(int(cur.lastrowid or 0), app, process, text)
+
+    def app_reminders(self) -> list[AppReminder]:
+        """Los que aún no han saltado."""
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT id, app, process, text FROM app_reminders "
+                "WHERE fired IS NULL AND deleted IS NULL ORDER BY id"
+            ).fetchall()
+        return [
+            AppReminder(int(i), str(a), None if p is None else str(p), str(t))
+            for i, a, p, t in rows
+        ]
+
+    def fire_app_reminder(self, reminder_id: int, fired: bool = True) -> None:
+        with self._lock:
+            self._db.execute(
+                "UPDATE app_reminders SET fired = ? WHERE id = ?",
+                (self._now() if fired else None, reminder_id),
+            )
+
+    def delete_app_reminder(self, reminder_id: int, deleted: bool = True) -> None:
+        with self._lock:
+            self._db.execute(
+                "UPDATE app_reminders SET deleted = ? WHERE id = ?",
+                (self._now() if deleted else None, reminder_id),
+            )

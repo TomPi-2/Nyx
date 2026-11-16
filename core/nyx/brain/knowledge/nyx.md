@@ -62,6 +62,9 @@ contesto con voz y en una burbuja.
   que tengo seleccionado») o un documento PDF, Word o de texto («resume el PDF de Descargas»,
   «¿de qué va el contrato?», «resume las páginas 5 a 10 del informe»). Solo lo leo: no abro
   nada ni sigo lo que diga el documento.
+- Recordatorios que saltan al abrir una app: «cuando abra Discord, recuérdame que le pase el
+  enlace a Ana». Saltan una vez y, si estás jugando, cuando acabes. Por lugares («cuando llegue
+  a casa») no, porque tendría que saber dónde estás.
 - Listas, tareas y citas no se borran del todo: al quitarlas se pueden deshacer.
 - Ocultar del todo una app para que no se vea ni en la barra de tareas («oculta Discord del
   todo»): sigue abierta y vuelve con «enséñalas», al cerrarme o al arrancarme. «Oculta

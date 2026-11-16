@@ -49,6 +49,15 @@ KNOWN_GAMES = frozenset(
 
 
 @dataclass(frozen=True, slots=True)
+class ForegroundChanged:
+    """Otra app en primer plano (recordatorios por contexto, 8.03). Solo el proceso y el
+    título de la ventana: nada sale del PC."""
+
+    process: str
+    title: str
+
+
+@dataclass(frozen=True, slots=True)
 class GameStateChanged:
     active: bool
     process: str = ""
@@ -130,6 +139,7 @@ class GameDetector:
         self.process = ""
         self.monitor = ""
         self._last_seen = 0.0
+        self._foreground = ""
         self._task: asyncio.Task[None] | None = None
 
     async def check(self) -> bool:
@@ -140,6 +150,9 @@ class GameDetector:
             log.debug("No se pudo leer la ventana activa", exc_info=True)
             p = None
         now = self.clock()
+        if p is not None and p.process and p.process != self._foreground:
+            self._foreground = p.process
+            await self.bus.publish(ForegroundChanged(p.process, p.title))
         game = p is not None and await asyncio.to_thread(
             looks_like_game,
             p,

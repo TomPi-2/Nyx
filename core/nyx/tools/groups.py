@@ -274,6 +274,17 @@ GROUPS: tuple[Group, ...] = (
         lazy=True,
     ),
     Group(
+        "al_abrir",
+        "recordatorios que saltan al abrir una app: apuntar, ver, quitar",
+        ("app_reminder",),
+        (
+            r"cuando (?:abra|entre|inicie|arranque)",
+            r"(?:proxima vez|en cuanto) (?:que )?(?:abra|entre)",
+            r"recordatorios? (?:de|para cuando|al abrir)",
+        ),
+        lazy=True,
+    ),
+    Group(
         "ocultar",
         "ocultar del todo una app (ni en la barra) y volver a enseñar las ocultas",
         ("hide_apps",),

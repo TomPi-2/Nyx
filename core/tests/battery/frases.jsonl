@@ -443,3 +443,5 @@
 {"frase": "apaga el wifi y bloquea", "plan": ["toggle_wifi", "system_power"]}
 {"frase": "me voy, bloquea", "tool": "system_power", "args": {"action": "lock"}}
 {"frase": "oculta Discord del todo", "tool": "hide_apps", "args": {"action": "hide"}}
+{"frase": "cuando abra Discord, recuérdame que le pase el enlace a Ana", "tool": "app_reminder", "args": {"action": "add"}}
+{"frase": "recuérdame mirar el correo cuando abra Outlook", "tool": "app_reminder", "args": {"action": "add"}}
