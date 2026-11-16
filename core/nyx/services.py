@@ -16,6 +16,8 @@ from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
+
 from nyx.alarms.ringer import AlarmRinger
 from nyx.alarms.scheduler import AlarmScheduler
 from nyx.alarms.store import AlarmStore
@@ -23,7 +25,7 @@ from nyx.audio.capture import AudioCapture
 from nyx.audio.playback import Player
 from nyx.audio.vad import SileroVAD
 from nyx.brain.answers import Answers
-from nyx.brain.base import LLMError
+from nyx.brain.base import ChatMessage, LLMError
 from nyx.brain.ollama import OllamaEngine, launch_ollama
 from nyx.brain.panel import tidy
 from nyx.brain.phrases import PhraseBook
@@ -43,10 +45,11 @@ from nyx.events import (
 )
 from nyx.executor import Executor
 from nyx.ext import revocation
-from nyx.ext.api import ExtensionApi
+from nyx.ext.api import ExtensionApi, LlmAsker, ToolRunner
 from nyx.ext.api import forget as forget_credentials
 from nyx.ext.host import ExtensionHost
 from nyx.ext.manager import ExtensionManager
+from nyx.ext.rpc import RpcError
 from nyx.ext.sandbox import SandboxLauncher, delete_container
 from nyx.ext.service import ExtensionsService
 from nyx.ext.store import ExtensionStore
@@ -179,8 +182,52 @@ async def _attempt[T](
         return None
 
 
+def _tool_runner(registry: ToolRegistry, ctx: ToolContext) -> ToolRunner:
+    """Las herramientas propias de Nyx para la API de extensiones (apps, sonido, ventanas).
+    Nunca las de otra extensión: solo las que no tienen dueño en el registro."""
+
+    async def run(name: str, args: dict[str, Any]) -> tuple[bool, str]:
+        tool = registry.get(name)
+        if tool is None or registry.owner_of(name) is not None:
+            return False, "no está disponible"
+        try:
+            params = tool.params_model.model_validate(args)
+        except ValidationError:
+            return False, "datos no válidos"
+        try:
+            result = await asyncio.wait_for(tool.run(params, ctx), tool.timeout_s)
+        except TimeoutError:
+            return False, "ha tardado demasiado"
+        return result.ok, result.message
+
+    return run
+
+
+def _llm_asker(brain: Brain) -> LlmAsker:
+    """`llm.ask` de las extensiones: una pregunta suelta al modelo de Nyx, sin herramientas
+    ni la memoria de la conversación (no ve nada del usuario)."""
+
+    async def ask(system: str, prompt: str) -> str:
+        messages = [ChatMessage("system", system)] if system else []
+        messages.append(ChatMessage("user", prompt))
+        out = ""
+        try:
+            async for piece in brain.llm.stream(messages):
+                out += piece
+        except LLMError as e:
+            raise RpcError("el modelo no está disponible ahora") from e
+        return out.strip()
+
+    return ask
+
+
 def _extensions(
-    bus: EventBus, registry: ToolRegistry, brain: Brain, game: GameGate, settings: Settings
+    bus: EventBus,
+    registry: ToolRegistry,
+    brain: Brain,
+    game: GameGate,
+    settings: Settings,
+    tools_ctx: ToolContext,
 ) -> ExtensionManager:
     """Extensiones (0.7): se cargan y se quitan en marcha. Al cambiar las herramientas, selector
     nuevo y el modelo se recalienta; nunca en partida (espera a que acabe)."""
@@ -203,7 +250,14 @@ def _extensions(
         return tuple(s.key for s in ext.manifest.settings) if ext is not None else ()
 
     # Extensiones con código (7.06–7.07): encerradas, y lo que pidan, con su permiso.
-    api = ExtensionApi(bus, accepted, settings_of=settings_of, playing=lambda: game.active)
+    api = ExtensionApi(
+        bus,
+        accepted,
+        settings_of=settings_of,
+        playing=lambda: game.active,
+        run_tool=_tool_runner(registry, tools_ctx),
+        ask_llm=_llm_asker(brain),
+    )
 
     async def disabled(ext_id: str, reason: str) -> None:
         log.warning("Extensión %s desactivada: %s", ext_id, reason)
@@ -469,7 +523,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         reload_llm=brain.warmup,
         brain=GameBrain(game, llm, brain.warmup),
     )
-    services.extensions = _extensions(bus, registry, brain, game, settings)
+    services.extensions = _extensions(bus, registry, brain, game, settings, tools_ctx)
     services.extensions_service = ExtensionsService(bus, services.extensions, settings)
     services.update_gate.add("pipeline", pipeline.busy)
     services.update_gate.add("game", lambda: "hay una partida" if game.active else None)

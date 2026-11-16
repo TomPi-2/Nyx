@@ -48,8 +48,8 @@
           : [`Leer archivos de tu carpeta ${target}`, ""];
       case "apps":
         return sub === "launch"
-          ? ["Abrir su app o sus páginas web", "solo las que Nyx permite"]
-          : [`Usar botones y atajos de ${target}`, "con aviso para deshacer"];
+          ? ["Abrir apps y sus páginas web", "solo las que Nyx permite"]
+          : [`Controlar ${target}`, "su ventana, botones y atajos; nunca en partida"];
       case "audio":
         return ["Cambiar el volumen", ""];
       case "media":
@@ -68,7 +68,7 @@
           "nadie más las ve",
         ];
       case "llm":
-        return ["Usar el cerebro de Nyx", "con un límite"];
+        return ["Usar el cerebro de Nyx", "con un límite por hora; nunca en partida"];
       case "messages":
         return [`Mandar mensajes por ${sub}`, "siempre te pregunta antes"];
       default:
@@ -86,6 +86,17 @@
       choosing = true;
       settings.ext("inspect", undefined, path);
     }
+  }
+
+  /** «Cargar una carpeta» (modo desarrollador): se empaqueta y se enseña como un paquete. */
+  async function chooseFolder() {
+    const path = await open({ multiple: false, directory: true });
+    if (typeof path === "string") reload(path);
+  }
+
+  function reload(folder: string) {
+    choosing = true;
+    settings.ext("inspect", undefined, folder);
   }
 
   function install() {
@@ -184,6 +195,9 @@
             </div>
           {/if}
           <div class="line">
+            {#if e.folder}
+              <Button onclick={() => reload(e.folder ?? "")}>Recargar</Button>
+            {/if}
             <Button
               confirm={`¿Desinstalar ${e.name}? Pulsa otra vez`}
               onclick={() => settings.ext("uninstall", e.id)}>Desinstalar</Button
@@ -230,7 +244,9 @@
             <span class="hint"
               >{pkg.author} · {pkg.version} · {pkg.signed
                 ? "Firmada por Tepnyx"
-                : "Sin revisar"}</span
+                : pkg.folder
+                  ? `Desde ${pkg.folder}`
+                  : "Sin revisar"}</span
             >
           </span>
         </div>
@@ -240,13 +256,21 @@
           <ul class="perms">
             {#each pkg.permissions as p (p)}
               {@const [what, why] = describe(p)}
-              <li>
+              {@const delicate = pkg.restricted?.includes(p) ?? false}
+              <li class:new={delicate && !pkg.signed}>
                 {what}{#if why}<span class="why"> · {why}</span>{/if}
+                {#if delicate && pkg.why?.[p]}<span class="reason">«{pkg.why[p]}»</span>{/if}
               </li>
             {:else}
               <li>No pide nada: solo contenido, no ejecuta código.</li>
             {/each}
           </ul>
+          {#if !pkg.signed && pkg.restricted?.length}
+            <p class="problem">
+              Pide permisos delicados que Tepnyx aún no ha aprobado: solo funcionan en el modo
+              desarrollador. Para publicarla, solicítalos con «nyx_ext.py solicitar».
+            </p>
+          {/if}
           <div class="line">
             <Button onclick={() => (choosing = false)}>Cancelar</Button>
             <Button primary onclick={install}
@@ -283,10 +307,24 @@
         onchange={(dev_mode) => settings.set({ extensions: { dev_mode } })}
       />
     </Row>
+    {#if settings.data?.extensions.dev_mode ?? ext.devMode}
+      <Row
+        label="Cargar una carpeta"
+        hint="La carpeta de una extensión que estés haciendo. Después, «Recargar» la vuelve a leer."
+      >
+        <Button onclick={() => void chooseFolder()}>Elegir carpeta…</Button>
+      </Row>
+    {/if}
   </Card>
 {/if}
 
 <style>
+  .reason {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
   .empty {
     margin: 0;
     font-size: 13px;

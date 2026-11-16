@@ -269,7 +269,11 @@ def test_restricted_permissions_need_tepnyx_approval(tmp_path: Path, store: Exte
 
 
 def test_restricted_permissions_in_developer_mode(tmp_path: Path, store: ExtensionStore) -> None:
-    asks = {**BASE, "permissions": ["clipboard:read"]}
+    asks = {
+        **BASE,
+        "permissions": ["clipboard:read"],
+        "why": {"clipboard:read": "Traduce lo que el usuario ha copiado."},
+    }
     assert (
         store.install(package(tmp_path, manifest=asks), accept=True, dev=True).status == "installed"
     )

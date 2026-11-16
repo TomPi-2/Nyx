@@ -16,6 +16,17 @@ el manifiesto lo pide y el usuario lo ha aceptado (HOJA-DE-RUTA §4.5):
 | clipboard.read · clipboard.write | clipboard:read / :write    |
 | files.list · files.read          | files:read:<carpeta>       |
 | files.write                      | files:write:<carpeta> (lo que se sustituye, a la papelera) |
+| apps.open                        | apps:launch (una app por su nombre, como «abre Spotify») |
+| audio.volume                     | audio                      |
+| media.control · media.playing    | media                      |
+| ui.panel                         | ui:panel (el panel largo de Nyx: texto o secciones) |
+| llm.ask                          | llm (el modelo de Nyx; nunca en partida, con cupo por hora) |
+| apps.window · apps.action · apps.keys | apps:control:<app> (solo esa app; nunca en partida) |
+
+Los delicados (files:write, clipboard:read, apps:control, llm, messages) necesitan además la
+aprobación de Tepnyx dentro de la firma (store.py). `messages:<servicio>` no tiene método: la
+extensión envía con su propia red, y el permiso sube sus herramientas a rojo (Nyx pregunta
+antes de cada envío).
 
 Lo que no está aquí no existe para una extensión: nada de teclas en juegos, ni de leer su
 memoria, ni de inyectarse.
@@ -30,7 +41,8 @@ import hashlib
 import logging
 import os
 import secrets as pysecrets
-from collections.abc import Callable
+import time
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlencode, urlsplit
@@ -38,7 +50,7 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 import httpx
 
 from nyx.bus import EventBus
-from nyx.events import BubbleShown
+from nyx.events import BubbleShown, LongSection
 from nyx.ext.manifest import KNOWN_FOLDERS, parse_permission
 from nyx.ext.rpc import Handler, RpcError
 
@@ -50,9 +62,21 @@ MAX_BODY = 1024 * 1024  # 1 MB por respuesta de red o archivo leído
 APP_SCHEMES = frozenset({"spotify"})
 MAX_SOCKETS = 4
 MAX_RECV_S = 30.0
+#: `llm.ask`: preguntas por hora y extensión, y tamaño de lo que se pregunta y se devuelve.
+LLM_PER_HOUR = 20
+MAX_PROMPT = 4000
+#: `ui.panel`: lo que cabe en el panel largo.
+MAX_SECTIONS = 6
+MAX_ITEMS = 20
+#: `apps.window`: lo que una extensión con `apps:control:<app>` puede hacer con su ventana.
+WINDOW_ACTIONS = frozenset({"focus", "minimize", "maximize", "restore", "close"})
 
 #: Carpetas que una extensión puede pedir, como en el manifiesto.
 FolderMap = Callable[[], dict[str, Path]]
+#: Ejecuta una herramienta de Nyx ya comprobada (nombre, argumentos) → (bien, lo que dice).
+ToolRunner = Callable[[str, dict[str, Any]], Awaitable[tuple[bool, str]]]
+#: Pregunta al modelo de Nyx (instrucciones, pregunta) → respuesta.
+LlmAsker = Callable[[str, str], Awaitable[str]]
 
 
 class ExtensionApi:
@@ -67,16 +91,25 @@ class ExtensionApi:
         setting_reader: Callable[[str, str], str | None] | None = None,
         open_url: Callable[[str], None] | None = None,
         playing: Callable[[], bool] = lambda: False,
+        run_tool: ToolRunner | None = None,
+        ask_llm: LlmAsker | None = None,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         """`permissions(id)`: los permisos aceptados de esa extensión (vacío si no está).
         `settings_of(id)`: las claves de `settings` de su manifiesto. `open_url`: abre una
-        URI ya comprobada (en Windows, `os.startfile`). `playing()`: si hay partida."""
+        URI ya comprobada (en Windows, `os.startfile`). `playing()`: si hay partida.
+        `run_tool`: las herramientas de Nyx que reutilizan apps, sonido y ventanas (sin ella,
+        esos métodos dicen que no están). `ask_llm`: el modelo de Nyx (`llm.ask`)."""
         self.bus = bus
         self._permissions = permissions
         self._settings_of = settings_of or (lambda _id: ())
         self._read_setting = setting_reader or read_setting
         self._open_url = open_url or _open_url
         self._playing = playing
+        self._run_tool = run_tool
+        self._ask_llm = ask_llm
+        self._clock = clock
+        self._llm_calls: dict[str, list[float]] = {}
         self._logins: set[str] = set()
         self._folders = folders or _known_folders
         self._transport = transport
@@ -108,6 +141,15 @@ class ExtensionApi:
             "files.list": bind(self.files_list),
             "files.read": bind(self.files_read),
             "files.write": bind(self.files_write),
+            "apps.open": bind(self.apps_open),
+            "audio.volume": bind(self.audio_volume),
+            "media.control": bind(self.media_control),
+            "media.playing": bind(self.media_playing),
+            "ui.panel": bind(self.ui_panel),
+            "llm.ask": bind(self.llm_ask),
+            "apps.window": bind(self.apps_window),
+            "apps.action": bind(self.apps_action),
+            "apps.keys": bind(self.apps_keys),
         }
 
     async def close(self, ext_id: str) -> None:
@@ -308,6 +350,143 @@ class ExtensionApi:
         if len(text) > MAX_BODY:
             raise RpcError("texto demasiado largo")
         await asyncio.to_thread(_clip_set, text)
+
+    # --- Apps, sonido y ventanas (con las herramientas de Nyx) ----------------------------------
+
+    async def _tool(self, name: str, args: dict[str, Any]) -> str:
+        """Ejecuta una herramienta de Nyx; si no sale, la extensión recibe el porqué."""
+        if self._run_tool is None:
+            raise RpcError("esta versión de Nyx no lo permite")
+        ok, message = await self._run_tool(name, args)
+        if not ok:
+            raise RpcError(message[:300] or "no ha salido")
+        return message[:300]
+
+    def _not_in_game(self, what: str) -> None:
+        if self._playing():
+            raise RpcError(f"en partida no se puede {what}")
+
+    @staticmethod
+    def _text(p: dict[str, Any], key: str, limit: int, *, required: bool = True) -> str:
+        value = p.get(key)
+        if value is None and not required:
+            return ""
+        if not isinstance(value, str) or not value.strip() or len(value) > limit:
+            raise RpcError(f"«{key}» tiene que ser un texto de 1 a {limit} caracteres")
+        return value.strip()
+
+    async def apps_open(self, ext_id: str, p: dict[str, Any]) -> str:
+        self._need(ext_id, "apps:launch")
+        self._not_in_game("abrir apps")
+        return await self._tool("open_app", {"name": self._text(p, "name", 100)})
+
+    async def audio_volume(self, ext_id: str, p: dict[str, Any]) -> str:
+        self._need(ext_id, "audio")
+        args: dict[str, Any] = {}
+        for key in ("level", "change"):
+            if key in p:
+                value = p[key]
+                if not isinstance(value, int) or isinstance(value, bool):
+                    raise RpcError(f"«{key}» tiene que ser un número entero")
+                args[key] = value
+        if "mute" in p:
+            if not isinstance(p["mute"], bool):
+                raise RpcError("«mute» tiene que ser true o false")
+            args["mute"] = p["mute"]
+        if not args:
+            raise RpcError("di «level», «change» o «mute»")
+        return await self._tool("set_volume", args)
+
+    async def media_control(self, ext_id: str, p: dict[str, Any]) -> str:
+        self._need(ext_id, "media")
+        args: dict[str, Any] = {"action": self._text(p, "action", 20)}
+        if source := self._text(p, "source", 60, required=False):
+            args["source"] = source
+        return await self._tool("media_control", args)
+
+    async def media_playing(self, ext_id: str, p: dict[str, Any]) -> str:
+        self._need(ext_id, "media")
+        return await self._tool("now_playing", {})
+
+    async def ui_panel(self, ext_id: str, p: dict[str, Any]) -> None:
+        self._need(ext_id, "ui:panel")
+        title = self._text(p, "title", 80)
+        text = self._text(p, "text", MAX_BODY // 256, required=False)  # 4 KB
+        raw = p.get("sections", [])
+        if not isinstance(raw, list) or len(raw) > MAX_SECTIONS:
+            raise RpcError(f"«sections» tiene que ser una lista de hasta {MAX_SECTIONS}")
+        sections: list[LongSection] = []
+        for s in raw:
+            if not isinstance(s, dict):
+                raise RpcError("cada sección es {title, items, ordered}")
+            items = s.get("items", [])
+            if (
+                not isinstance(items, list)
+                or not 0 < len(items) <= MAX_ITEMS
+                or not all(isinstance(i, str) and 0 < len(i) <= 200 for i in items)
+            ):
+                raise RpcError(f"«items»: de 1 a {MAX_ITEMS} textos de hasta 200 caracteres")
+            sections.append(
+                LongSection(
+                    title=self._text(s, "title", 60),
+                    items=tuple(i.strip() for i in items),
+                    ordered=bool(s.get("ordered", False)),
+                )
+            )
+        if not text and not sections:
+            raise RpcError("el panel necesita «text» o «sections»")
+        await self.bus.publish(
+            BubbleShown(display=title, kind="long", text=text, sections=tuple(sections))
+        )
+
+    async def llm_ask(self, ext_id: str, p: dict[str, Any]) -> str:
+        self._need(ext_id, "llm")
+        # En partida, la gráfica es del juego (SPEC §9): el modelo solo piensa para Nyx.
+        self._not_in_game("usar el modelo")
+        if self._ask_llm is None:
+            raise RpcError("esta versión de Nyx no lo permite")
+        prompt = self._text(p, "prompt", MAX_PROMPT)
+        system = self._text(p, "system", 1000, required=False)
+        now = self._clock()
+        recent = [t for t in self._llm_calls.get(ext_id, []) if now - t < 3600]
+        if len(recent) >= LLM_PER_HOUR:
+            raise RpcError(f"ya ha preguntado {LLM_PER_HOUR} veces esta hora")
+        self._llm_calls[ext_id] = [*recent, now]
+        try:
+            answer = await asyncio.wait_for(self._ask_llm(system, prompt), 90)
+        except TimeoutError as e:
+            raise RpcError("el modelo ha tardado demasiado") from e
+        return answer[:MAX_PROMPT]
+
+    def _controlled(self, ext_id: str, p: dict[str, Any]) -> str:
+        """La app que controla: tiene que ser la de su permiso `apps:control:<app>`."""
+        app = self._text(p, "app", 48).lower()
+        self._need(ext_id, "apps:control", app)
+        self._not_in_game("controlar apps")
+        return app
+
+    async def apps_window(self, ext_id: str, p: dict[str, Any]) -> str:
+        app = self._controlled(ext_id, p)
+        action = self._text(p, "action", 20)
+        if action not in WINDOW_ACTIONS:
+            raise RpcError(f"«action»: {', '.join(sorted(WINDOW_ACTIONS))}")
+        if action == "focus":
+            return await self._tool("focus_window", {"name": app})
+        if action == "close":
+            return await self._tool("close_app", {"name": app})
+        return await self._tool("window_layout", {"action": action, "name": app})
+
+    async def apps_action(self, ext_id: str, p: dict[str, Any]) -> str:
+        app = self._controlled(ext_id, p)
+        times = p.get("times", 1)
+        if not isinstance(times, int) or isinstance(times, bool) or not 1 <= times <= 10:
+            raise RpcError("«times» va de 1 a 10")
+        action = self._text(p, "action", 40)
+        return await self._tool("app_action", {"action": action, "app": app, "times": times})
+
+    async def apps_keys(self, ext_id: str, p: dict[str, Any]) -> str:
+        app = self._controlled(ext_id, p)
+        return await self._tool("send_hotkey", {"keys": self._text(p, "keys", 40), "app": app})
 
     # --- Archivos (solo en las carpetas con permiso) ------------------------------------------
 

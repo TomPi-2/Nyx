@@ -177,3 +177,92 @@ def test_official_extensions_validate_and_pack(tmp_path: Path, folder: Path) -> 
     nyx_ext.pack(folder, out)
     names = zipfile.ZipFile(out).namelist()
     assert "tools/main.py" in names and not any(n.startswith("tests/") for n in names)
+
+
+def _restricted_package(tmp_path: Path, why: dict[str, str] | None) -> Path:
+    folder = tmp_path / "pide"
+    nyx_ext.new(folder, "prueba.pide", "tools")
+    manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+    manifest["permissions"] = [*manifest.get("permissions", []), "clipboard:read"]
+    if why is not None:
+        manifest["why"] = why
+    (folder / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    out = tmp_path / "pide.nyxext"
+    nyx_ext.pack(folder, out)
+    return out
+
+
+def test_request_sends_what_tepnyx_needs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import httpx
+
+    package = _restricted_package(tmp_path, {"clipboard:read": "Para traducir lo copiado."})
+    monkeypatch.setattr(nyx_ext, "tepnyx_endpoint", lambda: ("https://x.supabase.co", "clave"))
+    sent: list[httpx.Request] = []
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        sent.append(req)
+        return httpx.Response(200, json="0b6f6c1e-6a7e-4c4e-9c1b-3f0a2d9e8b11")
+
+    number = nyx_ext.request(
+        package,
+        "https://ejemplo.com/pide.nyxext",
+        "dev@ejemplo.com",
+        transport=httpx.MockTransport(handler),
+    )
+    assert number == "0b6f6c1e-6a7e-4c4e-9c1b-3f0a2d9e8b11"
+    req = sent[0]
+    assert req.url.path == "/rest/v1/rpc/extension_request"
+    assert req.headers["Content-Profile"] == "nyx"
+    body = json.loads(req.content)["p_request"]
+    assert body["id"] == "prueba.pide"
+    assert "clipboard:read" in body["permissions"]
+    assert body["why"] == {"clipboard:read": "Para traducir lo copiado."}
+    assert body["tools"] and body["tools"][0]["name"]
+    assert len(body["sha256"]) == 64
+
+
+def test_request_needs_a_reason_and_a_delicate_permission(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    with pytest.raises(SystemExit):  # sin «why» ni siquiera valida
+        _restricted_package(tmp_path, None)
+    folder = tmp_path / "normal"
+    nyx_ext.new(folder, "prueba.normal", "tools")
+    out = tmp_path / "normal.nyxext"
+    nyx_ext.pack(folder, out)
+    with pytest.raises(SystemExit, match="no necesita aprobación"):
+        nyx_ext.build_request(out, "https://e.com/x", "dev@ejemplo.com")
+
+
+def test_request_without_tepnyx_leaves_a_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    package = _restricted_package(tmp_path, {"clipboard:read": "Para traducir lo copiado."})
+    monkeypatch.setattr(nyx_ext, "tepnyx_endpoint", lambda: None)
+    assert nyx_ext.request(package, "https://e.com/x", "dev@ejemplo.com") is None
+    saved = json.loads(package.with_suffix(".solicitud.json").read_text(encoding="utf-8"))
+    assert saved["contact"] == "dev@ejemplo.com"
+
+
+def test_status_shows_the_answer(monkeypatch: pytest.MonkeyPatch) -> None:
+    import httpx
+
+    monkeypatch.setattr(nyx_ext, "tepnyx_endpoint", lambda: ("https://x.supabase.co", "clave"))
+    answer = {"status": "aprobada", "approved": ["clipboard:read"], "reply": "Ok"}
+    transport = httpx.MockTransport(lambda req: httpx.Response(200, json=answer))
+    got = nyx_ext.status("0b6f6c1e-6a7e-4c4e-9c1b-3f0a2d9e8b11", transport=transport)
+    assert got["approved"] == ["clipboard:read"]
+    with pytest.raises(SystemExit):
+        nyx_ext.status("no-es-un-numero")
+
+
+def test_fake_nyx_controls_only_its_app(tmp_path: Path) -> None:
+    folder = tmp_path / "control"
+    nyx_ext.new(folder, "prueba.control", "tools")
+    fake = FakeNyx(folder, permissions=["apps:control:spotify", "llm"])
+    fake._check_permission("apps.keys", {"app": "Spotify", "keys": "space"})
+    fake._check_permission("llm.ask", {"prompt": "Hola"})
+    with pytest.raises(PermissionDeniedError):
+        fake._check_permission("apps.window", {"app": "discord", "action": "focus"})
+    with pytest.raises(PermissionDeniedError):
+        fake._check_permission("audio.volume", {"level": 10})

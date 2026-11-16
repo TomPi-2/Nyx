@@ -147,6 +147,13 @@ def parse_permission(text: str) -> Permission:
     raise ValueError(f"«{text}» no es un permiso de Nyx")
 
 
+def _restricted_text(text: str) -> bool:
+    try:
+        return parse_permission(text).restricted
+    except ValueError:
+        return False  # el validador de `permissions` ya dice qué le pasa
+
+
 def api_compatible(spec: str, api: tuple[int, int] = NYX_API) -> bool:
     """¿La API de Nyx cumple el rango del manifiesto («>=1.0 <2.0», «1.0», «>=1.2»)?"""
     terms = spec.split()
@@ -268,6 +275,13 @@ class Manifest(BaseModel):
             raise ValueError("ajustes («settings») repetidos")
         if extra := set(self.why) - set(self.permissions):
             raise ValueError(f"«why» explica permisos que no pide: {', '.join(sorted(extra))}")
+        # Cada permiso delicado, con su porqué: es lo que revisa Tepnyx para aprobarlo.
+        unexplained = [p for p in self.permissions if p not in self.why and _restricted_text(p)]
+        if unexplained:
+            raise ValueError(
+                f"explica en «why» para qué necesita: {', '.join(unexplained)} "
+                "(son permisos delicados: Tepnyx los revisa)"
+            )
         return self
 
     @property

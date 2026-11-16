@@ -196,6 +196,15 @@ válida, el servicio no contesta…), lanza `RuntimeError` con el motivo.
 | `clipboard.read` / `.write` | (`text`) | el texto | `clipboard:read` / `clipboard:write` |
 | `files.list` / `.read` | `folder`, `path` | lista, o `{text}` / `{base64}` (1 MB) | `files:read:<carpeta>` |
 | `files.write` | `folder`, `path`, `text` o `base64` | — | `files:write:<carpeta>` |
+| `apps.open` | `name` («Spotify») | lo que ha hecho | `apps:launch` |
+| `audio.volume` | `level` (0–100), `change` (−100…100) o `mute` | lo que ha hecho | `audio` |
+| `media.control` | `action` (`play`, `pause`, `play_pause`, `next`, `previous`, `stop`), (`source`) | lo que ha hecho | `media` |
+| `media.playing` | — | qué suena | `media` |
+| `ui.panel` | `title`, `text` y/o `sections` (`[{title, items, ordered}]`, 6 × 20) | — | `ui:panel` |
+| `llm.ask` | `prompt` (≤ 4.000), (`system`) | la respuesta | `llm` |
+| `apps.window` | `app`, `action` (`focus`, `minimize`, `maximize`, `restore`, `close`) | lo que ha hecho | `apps:control:<app>` |
+| `apps.action` | `app`, `action` (las acciones de Nyx: `save`, `new_tab`…), (`times`) | lo que ha hecho | `apps:control:<app>` |
+| `apps.keys` | `app`, `keys` («ctrl+l») | lo que ha hecho | `apps:control:<app>` |
 
 - **Secretos**: cada extensión ve solo los suyos, en el Administrador de credenciales de
   Windows. Al desinstalarla se borran.
@@ -210,6 +219,17 @@ válida, el servicio no contesta…), lanza `RuntimeError` con el motivo.
   `ms-settings:`, ni programas sueltos.
 - **Archivos**: carpetas por nombre (`documentos`, `descargas`, `escritorio`, `imagenes`,
   `musica`, `videos`), nunca rutas libres. Lo que `files.write` sustituye va a la papelera.
+- **Apps, volumen y música** (`apps.open`, `audio.volume`, `media.*`): Nyx lo hace con sus
+  propias herramientas, igual que si se lo pidiera el usuario, y te devuelve lo que ha hecho.
+- **Controlar una app** (`apps.window`, `apps.action`, `apps.keys`): solo la app de tu
+  permiso (`apps:control:spotify` → `"app": "spotify"`) y nunca en partida. Las teclas pasan
+  por el mismo filtro que las de Nyx.
+- **El cerebro de Nyx** (`llm.ask`): una pregunta suelta, sin herramientas ni la conversación
+  del usuario. 20 por hora y extensión; nunca en partida (la gráfica es del juego).
+- **Paneles** (`ui.panel`): el panel largo de Nyx, con texto o secciones (una lista, unos
+  pasos).
+- **Mensajes**: no hay método. Con `messages:<servicio>` envías con tu propia red y Nyx sube
+  tus herramientas a rojo: pregunta al usuario antes de cada envío.
 
 No existe nada para pulsar teclas en un juego, leer su memoria ni inyectarse en otro programa,
 y no existirá.
@@ -223,20 +243,32 @@ versión anterior hasta que lo acepte. Pide solo lo que uses.
 | Permiso | Para qué | Riesgo mínimo |
 | --- | --- | --- |
 | `net:<servidor>:<puerto>` | conectar con ese servidor (p. ej. `net:localhost:4455`, `net:api.spotify.com:443`) | verde |
-| `files:read:<carpeta>` / `files:write:<carpeta>` | leer o guardar en una carpeta conocida | verde / amarillo |
-| `apps:launch` | abrir su app o sus webs | verde |
-| `apps:control:<app>` | atajos y botones de una app (aún sin método) | amarillo |
-| `audio`, `media` | volumen y multimedia (aún sin método) | verde |
-| `clipboard:read`, `clipboard:write` | portapapeles | verde |
+| `files:read:<carpeta>` / `files:write:<carpeta>` ★ | leer o guardar en una carpeta conocida | verde / amarillo |
+| `apps:launch` | abrir apps y sus webs | verde |
+| `apps:control:<app>` ★ | la ventana, los botones y los atajos de una app | amarillo |
+| `audio`, `media` | volumen y multimedia | verde |
+| `clipboard:read` ★, `clipboard:write` | portapapeles | verde |
 | `notify` | avisos | verde |
-| `ui:panel` | paneles de Nyx (aún sin método) | verde |
+| `ui:panel` | paneles de Nyx | verde |
 | `secrets` | claves en el Administrador de credenciales | verde |
-| `llm` | usar el cerebro de Nyx (aún sin método) | verde |
-| `messages:<servicio>` | mandar mensajes a otras personas | rojo |
+| `llm` ★ | usar el cerebro de Nyx | verde |
+| `messages:<servicio>` ★ | mandar mensajes a otras personas | rojo |
 
-Los que dicen «aún sin método» se aceptan en el manifiesto, pero todavía no hay nada que
-pedir con ellos; si los necesitas, díselo a Tepnyx. `ui:widget` (1.1) y `screen` (1.2) aún no
-existen.
+`ui:widget` (1.1) y `screen` (1.2) aún no existen.
+
+### Permisos delicados (★)
+
+`files:write`, `clipboard:read`, `apps:control`, `llm` y `messages` necesitan la aprobación
+de Tepnyx, que va dentro de la firma: sin ella, la extensión solo se instala con el modo
+desarrollador. Cada uno lleva en el manifiesto su porqué, en `why` (de 10 a 300 caracteres),
+que es lo que lee Tepnyx al revisarlo:
+
+```json
+"permissions": ["clipboard:read", "notify"],
+"why": { "clipboard:read": "Traduce el texto que el usuario ha copiado cuando lo pide." }
+```
+
+Para pedirlos, sube el paquete a una dirección `https` y envía la solicitud (sección 11).
 
 ## 7. Ajustes que pone el usuario
 
@@ -321,8 +353,10 @@ Para el editor y mypy, el SDK trae los tipos de `import nyx` (`nyx-stubs`). Las 
 oficiales (`extensions/tepnyx.obs` y `extensions/tepnyx.spotify`) tienen pruebas completas
 con un OBS y un Spotify falsos: úsalas de modelo.
 
-Después, `nyx_ext.py run` la prueba encerrada como en Nyx, y en Nyx con el modo
-desarrollador.
+Después, `nyx_ext.py run` la prueba encerrada como en Nyx (lo que tocaría tu equipo, como el
+volumen, las teclas o el modelo, solo se enseña: «[Nyx haría] …»), y en Nyx con el modo
+desarrollador: Ajustes → Extensiones → **Cargar una carpeta** la instala directamente desde
+la carpeta en la que trabajas, y **Recargar** la vuelve a leer cuando cambias algo.
 
 ## 10. Buenas prácticas
 
@@ -354,6 +388,21 @@ por qué.
 La tienda llegará con Nyx 1.0 en tepnyx.com. Hasta entonces, si quieres que Tepnyx revise y
 firme la tuya, escribe a Tepnyx. Las extensiones de pago serán siempre de pago único.
 
+Si pide permisos delicados, envía antes la solicitud:
+
+```powershell
+uv run python scripts/nyx_ext.py pack mi-extension
+# sube el .nyxext a una dirección https (una Release de GitHub, tu web…)
+uv run python scripts/nyx_ext.py solicitar mi-extension-1.0.0.nyxext `
+  --url https://ejemplo.com/mi-extension-1.0.0.nyxext --contacto tu@correo.com
+uv run python scripts/nyx_ext.py estado <número>
+```
+
+Tepnyx recibe qué es, cada permiso con su porqué, tus herramientas y la huella (SHA-256) de ese
+paquete exacto. Lo baja, comprueba la huella, revisa el código y aprueba todos los permisos o
+solo algunos. Con `estado` ves la respuesta. Lo aprobado va dentro de la firma: si cambias el
+paquete, hace falta otra solicitud.
+
 ## 12. Límites
 
 | Qué | Límite |
@@ -365,6 +414,7 @@ firme la tuya, escribe a Tepnyx. Las extensiones de pago serán siempre de pago 
 | Conocimiento | 40 archivos de 64 KB |
 | Llamada a una herramienta | 20 s |
 | Red | 1 MB por respuesta, 30 s, 4 WebSocket abiertos |
+| Cerebro (`llm.ask`) | 20 preguntas por hora, 4.000 caracteres de pregunta y de respuesta, 90 s |
 | Proceso | 512 MB de memoria; 10 % del procesador (3 % en partida) |
 
 ## 13. Ejemplos

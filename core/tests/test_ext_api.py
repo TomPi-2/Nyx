@@ -359,3 +359,147 @@ async def test_open_uri_only_its_app_and_webs() -> None:
     plain = ExtensionApi(EventBus(), lambda _id: (), open_url=opened.append)
     with pytest.raises(RpcError, match="sin permiso"):
         await plain.open_uri("x.y", {"uri": "spotify:"})
+
+
+class Tools:
+    """Las herramientas de Nyx, falsas: apunta qué se ejecuta y con qué."""
+
+    def __init__(self, ok: bool = True) -> None:
+        self.calls: list[tuple[str, dict[str, Any]]] = []
+        self.ok = ok
+
+    async def __call__(self, name: str, args: dict[str, Any]) -> tuple[bool, str]:
+        self.calls.append((name, args))
+        return self.ok, f"{name} hecho" if self.ok else "No encuentro esa app"
+
+
+async def test_apps_sound_and_media_use_nyx_tools() -> None:
+    tools = Tools()
+    api, _ = make_api(("apps:launch", "audio", "media"), run_tool=tools)
+    assert await api.apps_open("x.y", {"name": "Spotify"}) == "open_app hecho"
+    await api.audio_volume("x.y", {"level": 30})
+    await api.media_control("x.y", {"action": "next", "source": "spotify"})
+    await api.media_playing("x.y", {})
+    assert tools.calls == [
+        ("open_app", {"name": "Spotify"}),
+        ("set_volume", {"level": 30}),
+        ("media_control", {"action": "next", "source": "spotify"}),
+        ("now_playing", {}),
+    ]
+    with pytest.raises(RpcError, match="level"):
+        await api.audio_volume("x.y", {})
+    with pytest.raises(RpcError, match="entero"):
+        await api.audio_volume("x.y", {"level": "mucho"})
+    bare, _ = make_api((), run_tool=tools)
+    for call in (bare.apps_open, bare.audio_volume, bare.media_control):
+        with pytest.raises(RpcError, match="sin permiso"):
+            await call("x.y", {"name": "a", "level": 1, "action": "next"})
+
+
+async def test_tool_failure_reaches_the_extension() -> None:
+    api, _ = make_api(("apps:launch",), run_tool=Tools(ok=False))
+    with pytest.raises(RpcError, match="No encuentro"):
+        await api.apps_open("x.y", {"name": "Nada"})
+    plain, _ = make_api(("apps:launch",))  # sin herramientas: lo dice
+    with pytest.raises(RpcError, match="no lo permite"):
+        await plain.apps_open("x.y", {"name": "Spotify"})
+
+
+async def test_ui_panel_shows_the_long_panel() -> None:
+    api, bus = make_api(("ui:panel",))
+    shown: list[BubbleShown] = []
+
+    async def on_bubble(e: BubbleShown) -> None:
+        shown.append(e)
+
+    bus.subscribe(BubbleShown, on_bubble)
+    await api.ui_panel(
+        "x.y",
+        {"title": "Cola", "sections": [{"title": "Siguientes", "items": ["Uno", "Dos"]}]},
+    )
+    assert shown[0].kind == "long" and shown[0].sections[0].items == ("Uno", "Dos")
+    with pytest.raises(RpcError, match="text"):
+        await api.ui_panel("x.y", {"title": "Vacío"})
+    with pytest.raises(RpcError, match="items"):
+        await api.ui_panel("x.y", {"title": "T", "sections": [{"title": "S", "items": []}]})
+
+
+async def test_llm_ask_with_quota_and_never_in_game() -> None:
+    asked: list[tuple[str, str]] = []
+    now = [0.0]
+
+    async def llm(system: str, prompt: str) -> str:
+        asked.append((system, prompt))
+        return "Resumen."
+
+    playing = [False]
+    api, _ = make_api(("llm",), ask_llm=llm, clock=lambda: now[0], playing=lambda: playing[0])
+    assert await api.llm_ask("x.y", {"prompt": "Resume esto", "system": "Breve"}) == "Resumen."
+    assert asked == [("Breve", "Resume esto")]
+    for _ in range(api_module.LLM_PER_HOUR - 1):
+        await api.llm_ask("x.y", {"prompt": "Otra"})
+    with pytest.raises(RpcError, match="esta hora"):
+        await api.llm_ask("x.y", {"prompt": "Una más"})
+    now[0] = 3601.0  # pasada la hora, vuelve a poder
+    await api.llm_ask("x.y", {"prompt": "Ya"})
+    playing[0] = True
+    with pytest.raises(RpcError, match="partida"):
+        await api.llm_ask("x.y", {"prompt": "En partida"})
+    without, _ = make_api((), ask_llm=llm)
+    with pytest.raises(RpcError, match="sin permiso"):
+        await without.llm_ask("x.y", {"prompt": "Hola"})
+
+
+async def test_apps_control_only_its_own_app() -> None:
+    tools = Tools()
+    playing = [False]
+    api, _ = make_api(("apps:control:spotify",), run_tool=tools, playing=lambda: playing[0])
+    await api.apps_window("x.y", {"app": "Spotify", "action": "focus"})
+    await api.apps_window("x.y", {"app": "spotify", "action": "minimize"})
+    await api.apps_action("x.y", {"app": "spotify", "action": "next_tab", "times": 2})
+    await api.apps_keys("x.y", {"app": "spotify", "keys": "ctrl+l"})
+    assert [c[0] for c in tools.calls] == [
+        "focus_window",
+        "window_layout",
+        "app_action",
+        "send_hotkey",
+    ]
+    assert tools.calls[3][1] == {"keys": "ctrl+l", "app": "spotify"}
+    with pytest.raises(RpcError, match="sin permiso"):
+        await api.apps_keys("x.y", {"app": "discord", "keys": "enter"})
+    with pytest.raises(RpcError, match="action"):
+        await api.apps_window("x.y", {"app": "spotify", "action": "borrar"})
+    playing[0] = True
+    with pytest.raises(RpcError, match="partida"):
+        await api.apps_keys("x.y", {"app": "spotify", "keys": "space"})
+
+
+async def test_tool_runner_never_runs_another_extensions_tool(ctx: ToolContext) -> None:
+    from nyx.services import _tool_runner
+    from nyx.tools.base import Params, Tool, ToolResult
+    from nyx.tools.registry import ToolRegistry
+
+    class EchoParams(Params):
+        text: str
+
+    class Echo(Tool[EchoParams]):
+        name = "echo"
+        description = "Repite."
+        risk = Risk.GREEN
+        game_policy = GamePolicy.ALLOWED
+        category = "system"
+        params_model = EchoParams
+
+        async def run(self, params: EchoParams, ctx: ToolContext) -> ToolResult:
+            return ToolResult(ok=True, message=params.text)
+
+    class Other(Echo):
+        name = "otra_echo"
+
+    registry = ToolRegistry([Echo()])
+    registry.register(Other(), owner="otra.extension")
+    run = _tool_runner(registry, ctx)
+    assert await run("echo", {"text": "hola"}) == (True, "hola")
+    assert await run("echo", {"nada": 1}) == (False, "datos no válidos")
+    assert (await run("otra_echo", {"text": "x"}))[0] is False
+    assert (await run("no_existe", {}))[0] is False

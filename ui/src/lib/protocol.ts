@@ -2,7 +2,7 @@
 
 import type { FontId, NyxColorId, PanelTintId } from "$theme/palette";
 
-export const PROTOCOL_VERSION = 23;
+export const PROTOCOL_VERSION = 24;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -147,6 +147,8 @@ export interface ExtStatus {
   problems: string[];
   /** v22: lo que hay que darle a mano en Ajustes. */
   settings: ExtSetting[];
+  /** v24: la carpeta de la que se cargó (modo desarrollador), para «Recargar». */
+  folder?: string | null;
 }
 
 /** v22: una extensión de Tepnyx que viene con Nyx, sin instalar (7.14). */
@@ -170,6 +172,11 @@ export interface ExtInspect {
   description: string;
   kinds: string[];
   permissions: string[];
+  /** v24: los delicados (necesitan la aprobación de Tepnyx) y por qué los pide cada uno. */
+  restricted?: string[];
+  why?: Record<string, string>;
+  /** v24: cargada desde esta carpeta (modo desarrollador). */
+  folder?: string | null;
   signed: boolean;
   installable: boolean;
   installed_version: string | null;

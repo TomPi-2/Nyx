@@ -158,6 +158,7 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
     - Si una extensión se cae tres veces seguidas, se desactiva y sale un aviso.
     - En Ajustes → Extensiones falta «Cargar una carpeta» (modo desarrollador) del prototipo: de
       momento se prueba empaquetando con `core/scripts/nyx_ext.py`. ¿La hago?
+    - **Hecho el 2026-11-16** (tu respuesta): todos los métodos y «Cargar una carpeta». Ver 28.
 
 20. **Kit de extensiones (7.12), hecho sin ti el 2026-11-15.** Decidido para que lo confirmes:
     - El SDK está en `sdk/` con licencia **MIT** (© Tepnyx): los tipos de `import nyx` para el
@@ -292,6 +293,33 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
     router dicha de 11 formas como la transcribe Whisper («Nix. Nix.», repetida, «oye», «eh…»,
     «Gracias.» inventado…), de 65 % a **100 %** (`scripts/voice_battery.py`). Batería del
     cerebro: 410/427. Prueba de humo en Windows: 19/19 (`scripts/smoke_tools.py`).
+
+28. **Permisos delicados y todas las herramientas para extensiones (2026-11-16, tu respuesta a
+    19).** Decidido para que lo confirmes:
+    - Delicados: `files:write`, `clipboard:read`, `apps:control`, `llm` y `messages`. Cada uno
+      con su porqué obligatorio en el manifiesto (`why`). Lo aprobado va dentro de la firma: si
+      el desarrollador cambia el paquete, otra solicitud.
+    - La solicitud (`nyx_ext.py solicitar`) llega a la base de datos de Tepnyx
+      (`Decider/supabase/migrations/20261116_2_nyx_extension_requests.sql`, **sin aplicar:
+      aplícala como la 1**) y la ves en la app de administración, Nyx → Solicitudes (sin
+      commit en Decider, para que lo revises): permisos con su porqué, herramientas, enlace al
+      paquete y su SHA-256, y el comando para firmar con lo aprobado. Como mucho 200
+      pendientes a la vez (para que nadie pueda llenarla).
+    - El kit envía a Tepnyx solo si sabe dónde está (el `uso.json` de Nyx o tu
+      `scripts/uso.local.json`); si no, deja la solicitud en un `.json` para mandarla por el
+      formulario de la web. Cuando el kit se publique para gente de fuera (1.0), habría que
+      poner en él la dirección y la clave pública (ya son públicas: van en la web). ¿Vale?
+    - Métodos nuevos: `apps.open`, `audio.volume`, `media.control` y `media.playing` (con las
+      herramientas de Nyx, como si lo pidiera el usuario), `ui.panel` (el panel largo),
+      `llm.ask` (una pregunta suelta, sin la conversación del usuario; **20 por hora y
+      extensión**, nunca en partida) y `apps.window`, `apps.action` y `apps.keys` (solo la app
+      de su permiso, nunca en partida). `messages` no tiene método: la extensión envía con su
+      propia red y Nyx pregunta antes de cada envío (rojo).
+    - `nyx_ext.py run` no toca el equipo del desarrollador con estos métodos: dice lo que haría
+      Nyx («[Nyx haría] set_volume {"level": 30}»).
+    - Ajustes → Extensiones (modo desarrollador): «Cargar una carpeta» la empaqueta con las
+      mismas comprobaciones que un paquete, enseña sus permisos (los delicados, con su porqué)
+      y la instala; «Recargar» la vuelve a leer. Protocolo v24.
 
 ## Qué probar
 

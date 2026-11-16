@@ -65,6 +65,7 @@ class Harness:
             read_setting=lambda i, k: self.creds.get((i, k)),
             write_setting=write,
             official_packages=lambda: list(official or []),
+            dev_dir=tmp / "ext-dev",
         )
         self.seen: list[ExtStatusChanged] = []
 
@@ -162,3 +163,64 @@ async def test_official_ones_are_offered_until_installed(tmp_path: Path) -> None
     assert offer["id"] == "tepnyx.luces" and offer["path"] == str(path) and not offer["update"]
     done = await h.ask("install", path=offer["path"])
     assert done.official == [] and done.items[0]["id"] == "tepnyx.luces"
+
+
+def folder(tmp: Path, text: str = "Se encienden.") -> Path:
+    path = tmp / "mis-luces"
+    (path / "knowledge").mkdir(parents=True, exist_ok=True)
+    manifest = {
+        "id": "yo.luces",
+        "name": "Mis luces",
+        "version": "0.1.0",
+        "author": "Yo",
+        "nyx_api": "1.0",
+        "kinds": ["knowledge"],
+    }
+    (path / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (path / "knowledge" / "a.md").write_text(f"## Luces\n\n{text}", encoding="utf-8")
+    return path
+
+
+async def test_load_a_folder_only_in_developer_mode(tmp_path: Path) -> None:
+    src = folder(tmp_path)
+    h = Harness(tmp_path)
+    assert "modo desarrollador" in (await h.ask("inspect", path=str(src))).error
+
+    h.settings.extensions.dev_mode = True
+    seen = await h.ask("inspect", path=str(src))
+    assert seen.inspect is not None and seen.inspect["folder"] == str(src)
+    assert seen.inspect["path"].endswith(".nyxext") and not seen.inspect["signed"]
+    status = await h.ask("install", path=str(src))
+    assert status.error is None
+    [item] = status.items
+    assert item["id"] == "yo.luces" and item["folder"] == str(src)
+
+    # «Recargar» tras cambiar algo: la misma versión, otra vez desde la carpeta.
+    folder(tmp_path, "Ahora también se apagan.")
+    assert (await h.ask("install", path=str(src))).error is None
+    ext = h.manager.store.get("yo.luces")
+    assert ext is not None
+    assert "apagan" in (ext.path / "knowledge" / "a.md").read_text(encoding="utf-8")
+
+
+async def test_inspect_shows_delicate_permissions(tmp_path: Path) -> None:
+    src = folder(tmp_path)
+    data = json.loads((src / "manifest.json").read_text(encoding="utf-8"))
+    data.update(
+        kinds=["tools"],
+        permissions=["clipboard:read"],
+        why={"clipboard:read": "Traduce lo que has copiado."},
+    )
+    (src / "manifest.json").write_text(json.dumps(data), encoding="utf-8")
+    for name, content in code_files().items():
+        (src / name).parent.mkdir(parents=True, exist_ok=True)
+        (src / name).write_bytes(content)
+    (src / "tools" / "main.py").write_text(
+        "import nyx\n\n@nyx.tool\ndef prueba():\n    return 'ok'\n", encoding="utf-8"
+    )
+    h = Harness(tmp_path, dev_mode=True)
+    seen = await h.ask("inspect", path=str(src))
+    assert seen.error is None, seen.error
+    assert seen.inspect is not None
+    assert seen.inspect["restricted"] == ["clipboard:read"]
+    assert seen.inspect["why"]["clipboard:read"].startswith("Traduce")

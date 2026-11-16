@@ -45,7 +45,15 @@ _PLAIN = {
     "notify": "notify",
     "clipboard.read": "clipboard:read",
     "clipboard.write": "clipboard:write",
+    "apps.open": "apps:launch",
+    "audio.volume": "audio",
+    "media.control": "media",
+    "media.playing": "media",
+    "ui.panel": "ui:panel",
+    "llm.ask": "llm",
 }
+#: Controlan una app: hace falta `apps:control:<app>` de esa misma app.
+_CONTROL = ("apps.window", "apps.action", "apps.keys")
 _SOCKET = ("ws.send", "ws.recv", "ws.close")
 #: Apps que se pueden abrir con `open.uri` (como `APP_SCHEMES` en Nyx).
 APP_SCHEMES = frozenset({"spotify"})
@@ -245,6 +253,8 @@ class FakeNyx:
             needed = f"files:{_FILES[method]}:{params.get('folder', '')}"
         elif method in _PLAIN:
             needed = _PLAIN[method]
+        elif method in _CONTROL:
+            needed = f"apps:control:{str(params.get('app', '')).lower()}"
         elif method in _SOCKET:
             return
         else:
