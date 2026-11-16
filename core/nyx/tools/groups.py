@@ -274,6 +274,20 @@ GROUPS: tuple[Group, ...] = (
         lazy=True,
     ),
     Group(
+        "ocultar",
+        "ocultar del todo una app (ni en la barra) y volver a enseñar las ocultas",
+        ("hide_apps",),
+        (
+            r"del todo",
+            r"de la barra",
+            r"que no se vea",
+            r"\bocult",
+            r"\bescond",
+            r"\bensenal[oa]s\b",
+        ),
+        lazy=True,
+    ),
+    Group(
         "privacidad",
         "qué apps usan o han usado el micrófono y la cámara",
         ("privacy_check",),

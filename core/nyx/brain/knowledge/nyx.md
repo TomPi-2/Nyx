@@ -63,6 +63,9 @@ contesto con voz y en una burbuja.
   «¿de qué va el contrato?», «resume las páginas 5 a 10 del informe»). Solo lo leo: no abro
   nada ni sigo lo que diga el documento.
 - Listas, tareas y citas no se borran del todo: al quitarlas se pueden deshacer.
+- Ocultar del todo una app para que no se vea ni en la barra de tareas («oculta Discord del
+  todo»): sigue abierta y vuelve con «enséñalas», al cerrarme o al arrancarme. «Oculta
+  Discord» a secas la minimiza. Los juegos no los oculto.
 - La salida de audio no puedo cambiarla sola (Windows no deja): te abro los ajustes de sonido.
 
 ## Modo partida

@@ -159,7 +159,8 @@ _PC_TARGET = r"(?:el\s+|mi\s+|la\s+)?(?:pc|ordenador|equipo|portatil|sistema|win
 
 @rule(
     "system_power",
-    rf"^(?:(?P<lock>bloquea(?:r)?\s+(?:{_PC_TARGET}|(?:la\s+)?(?:pantalla|sesion)))"
+    # «bloquea el PC», «bloquéalo», «bloquea» a secas, «me voy, bloquea» (8.08).
+    rf"^(?:(?P<lock>(?:me\s+voy\s+|ya\s+)?bloquea(?:r|lo)?(?:\s+(?:{_PC_TARGET}|(?:la\s+)?(?:pantalla|sesion)))?)"
     rf"|(?P<sleep>suspende(?:r)?\s+{_PC_TARGET}|pon(?:er)?\s+{_PC_TARGET}\s+(?:en\s+suspension|a\s+dormir))"
     rf"|(?P<restart>reinicia(?:r)?\s+{_PC_TARGET})"
     rf"|(?P<shutdown>apaga(?:r)?\s+{_PC_TARGET}))$",

@@ -23,6 +23,7 @@ from nyx.brain.router import (  # noqa: F401
     negativas,
     notas,
     nyx,
+    ocultar,
     portapapeles,
     privacidad,
     recientes,
@@ -139,6 +140,8 @@ ORDER = (
     "find",
     "list",
     "files_said",
+    "hide_app",
+    "show_hidden",
     "window_state",
     "window_side",
     "window_monitor",
@@ -242,7 +245,7 @@ def route(text: str, index: SystemIndex) -> Route | Miss | None:
 
 
 # Una orden nueva empieza por un verbo tras una coma o tras «y», «luego», «después».
-_CLAUSE_VERBS = rf"(?:{_VERBS}|muestrame|ensename|quita|para|reanuda|ve a|vete a|cambia a)"
+_CLAUSE_VERBS = rf"(?:{_VERBS}|muestrame|ensename|quita|para|reanuda|ve a|vete a|cambia a|bloquea|apaga|enciende|activa|desactiva)"
 _CLAUSE_SPLIT = re.compile(
     rf"\s+(?:y luego|y despues|luego|despues|y)\s+(?=(?:{_CLAUSE_VERBS})"
     r"(?:melo|mela|lo|la|los|las|le)?\b)"

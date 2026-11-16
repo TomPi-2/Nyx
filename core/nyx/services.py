@@ -75,6 +75,7 @@ from nyx.settings.live import apply_patch
 from nyx.settings.model import Settings
 from nyx.stt.whisper_server import WhisperServer
 from nyx.tools.base import ToolContext
+from nyx.tools.hide_apps import restore_hidden
 from nyx.tools.registry import ToolRegistry, default_registry
 from nyx.tts.base import TTSEngine
 from nyx.tts.piper import PiperTTS
@@ -140,6 +141,8 @@ class Services:
         self.usage: UsageSender | None = None
 
     async def close(self) -> None:
+        # Lo oculto con «oculta X del todo» (8.08) nunca se queda oculto sin Nyx.
+        await asyncio.to_thread(restore_hidden)
         if self.usage is not None:
             await self.usage.close()
         if self.updates is not None:
@@ -515,6 +518,9 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     services = Services(
         pipeline, llm, stt, index, start_watcher(index), alarms=alarms, ringer=ringer
     )
+    # Si Nyx se cerró de golpe con apps ocultas (8.08), vuelven a verse.
+    if restored := await asyncio.to_thread(restore_hidden):
+        log.info("Ventanas ocultas devueltas al arrancar: %d", restored)
     services.alarms_start = asyncio.create_task(
         _start_alarms(alarms, tools_ctx.organizer), name="alarms-start"
     )

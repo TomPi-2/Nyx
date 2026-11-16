@@ -71,6 +71,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.find_files import FindFiles
     from nyx.tools.focus_window import FocusWindow
     from nyx.tools.get_weather import GetWeather
+    from nyx.tools.hide_apps import HideApps
     from nyx.tools.install_app import InstallApp
     from nyx.tools.list_files import ListFiles
     from nyx.tools.list_items import ListItems
@@ -151,6 +152,7 @@ def default_registry() -> ToolRegistry:
             PrivacyCheck(),
             RecentFiles(),
             ReadText(),
+            HideApps(),
             NyxInfo(),
             NyxControl(),
             NyxPanel(),
