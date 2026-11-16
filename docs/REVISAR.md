@@ -4,6 +4,20 @@ Trabajo hecho sin el usuario (desde el 2026-11-13, por la tarde). Cada punto dic
 qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo que no, se apunta en
 `ERRORES.md` o se decide.
 
+## Respuestas del usuario del 2026-11-16
+
+- 16: se decide al entrenar con la voz nueva. 17, 18, 20, 21, 23, 25, 26 (falta el
+  prototipo de «ver qué se envía») y 27: aprobados. 18: sin «Cambiar carpeta».
+- 19: aprobado, y además **todas las herramientas para extensiones**; las más delicadas, solo
+  si el desarrollador las solicita y Tepnyx lo aprueba (la solicitud nos llega con todo lo
+  necesario para decidir). Y «Cargar una carpeta» en el modo desarrollador.
+- 22: Nyx aún no guiaba bien («¿cómo conecto Spotify?»): ahora lee la guía de la extensión.
+- 24: notas rápidas también en Documentos (ya lo son: `save_note`); las formas de Nyx, no
+  ahora (será una extensión, seguramente de pago). **El resto de la 0.8 se hace ahora.**
+- Antes de la beta: «ver qué se envía» (prototipo), soporte con el formulario de la web
+  (hecho), whisper-server recompilado (hecho), el cerebro en su Release y la publicación
+  (9.09) en cuanto se pueda, y reescribir el correo del historial de git.
+
 ## Decisiones pendientes
 
 1. ~~`run_powershell`, ¿excepción verde?~~ **Sí** (2026-11-13). Hecho: lista cerrada de consultas
