@@ -98,6 +98,15 @@ def find_title(topic: str) -> str:
     return best if scores[best] else "que se hacer"
 
 
+def extension_title(topic: str) -> str | None:
+    """El apartado de una extensión que responde a `topic` («¿cómo conecto Spotify?» →
+    «Cómo conecto Spotify»), si lo hay; si no (o si es de Nyx), None."""
+    if not _EXTENSIONS:
+        return None
+    title = find_title(topic)
+    return title if title in _EXTENSIONS and title not in sections() else None
+
+
 def find(topic: str) -> str:
     """El apartado que mejor encaja con `topic` (vacío: el resumen de qué sé hacer)."""
     return _all_sections()[find_title(topic)]

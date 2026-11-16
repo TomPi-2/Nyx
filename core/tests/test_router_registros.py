@@ -64,3 +64,18 @@ def test_the_game_still_is(index: SystemIndex, text: str) -> None:
 def test_restarting_the_pc_is_still_the_pc(index: SystemIndex) -> None:
     routed = route("reinicia el ordenador", index)
     assert isinstance(routed, Route) and routed.calls[0].name == "system_power"
+
+
+def test_how_to_reads_the_extension_guide(index: SystemIndex) -> None:
+    """REVISAR 22: «¿cómo conecto Spotify?» lee la guía de la extensión (no pulsa «conectar»)."""
+    from nyx.tools import nyx_info
+
+    assert route("¿Cómo conecto Spotify?", index) is None  # sin la extensión: al modelo
+    nyx_info.set_extension_knowledge({"como conecto spotify": ("Spotify", "1. Entra en…")})
+    try:
+        routed = route("¿Cómo conecto Spotify?", index)
+        assert isinstance(routed, Route)
+        assert routed.calls[0].name == "nyx_info"
+        assert not isinstance(route("¿Cómo se dice hola en alemán?", index), Route)
+    finally:
+        nyx_info.set_extension_knowledge({})

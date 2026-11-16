@@ -1,6 +1,7 @@
 <!-- Ajustes → Ayuda (SPEC sección 13): reiniciar Nyx, repetir el primer arranque, los registros y
   los créditos y licencias (0.9). -->
 <script lang="ts">
+  import { getVersion } from "@tauri-apps/api/app";
   import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import Button from "$lib/controls/Button.svelte";
@@ -10,6 +11,13 @@
   import { settings } from "../store.svelte";
 
   let showCredits = $state(false);
+
+  /** Soporte (0.9): el formulario de la web, con «Nyx» y la versión ya puestos. */
+  async function contact(subject: "Bug" | "Duda") {
+    const version = await getVersion().catch(() => "");
+    const query = new URLSearchParams({ asunto: subject, app: "Nyx", version });
+    await invoke("open_link", { url: `https://tepnyx.com/contact?${query}` });
+  }
 
   /** El primer arranque lo guía Nyx en persona (9.10): Ajustes se cierra para dejarle sitio. */
   function repeatWelcome() {
@@ -31,6 +39,18 @@
     hint="Nyx te vuelve a guiar: micrófono, su color y tamaño, los paneles, tu equipo y los datos anónimos."
   >
     <Button onclick={repeatWelcome}>Repetir</Button>
+  </Row>
+</Card>
+
+<Card
+  title="Contactar con soporte"
+  note="Se abre el formulario de tepnyx.com. Nyx no envía nada por su cuenta: lo que escribas lo mandas tú."
+>
+  <Row label="Algo no funciona" hint="Cuéntanos qué pasó y, si salió, el código de error.">
+    <Button onclick={() => void contact("Bug")}>Avisar de un fallo</Button>
+  </Row>
+  <Row label="Tengo una duda" hint="Cómo se hace algo, qué sabe hacer Nyx…">
+    <Button onclick={() => void contact("Duda")}>Preguntar</Button>
   </Row>
 </Card>
 

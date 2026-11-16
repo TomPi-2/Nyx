@@ -142,6 +142,22 @@ def _nyx_update(_: re.Match[str], __: SystemIndex) -> Route:
 
 
 @rule(
+    "ext_howto",
+    # «¿Cómo conecto Spotify?», «¿qué tengo que hacer para preparar OBS?»: si la guía de una
+    # extensión instalada lo explica, se lee esa guía (antes el modelo pulsaba «conectar» o se
+    # inventaba los pasos; REVISAR 22).
+    r"^(?:como|que\s+tengo\s+que\s+hacer\s+para|que\s+hago\s+para|ayudame\s+a|"
+    r"explicame\s+como)\s+(?P<x>.+)$",
+)
+def _ext_howto(m: re.Match[str], _: SystemIndex) -> Route | None:
+    from nyx.tools.nyx_info import extension_title
+
+    if extension_title(m.group(0)) is None:
+        return None
+    return _call("ext_howto", "nyx_info", topic=m.group(0)[:100])
+
+
+@rule(
     "nyx_restart",
     # «Reiníciate», «reiníciate tú», «reinicia Nyx», «reinicia tu núcleo» (registros del
     # 2026-11-15: el modelo elegía reiniciar el ordenador). «Reinicia el PC» sigue en equipo.py.

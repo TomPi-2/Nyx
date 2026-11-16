@@ -70,6 +70,7 @@ ORDER = (
     "nyx_size",
     "nyx_update",
     "nyx_restart",
+    "ext_howto",
     "volume_up",
     "volume_down",
     "volume_set",
