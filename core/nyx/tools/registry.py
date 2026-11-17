@@ -78,6 +78,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.list_files import ListFiles
     from nyx.tools.list_items import ListItems
     from nyx.tools.media_control import MediaControl
+    from nyx.tools.mode_tool import ModeTool
     from nyx.tools.move_files import MoveFiles
     from nyx.tools.now_playing import NowPlayingTool
     from nyx.tools.nyx_control import NyxControl
@@ -157,6 +158,7 @@ def default_registry() -> ToolRegistry:
             HideApps(),
             AppReminderTool(),
             DictationTool(),
+            ModeTool(),
             NyxInfo(),
             NyxControl(),
             NyxPanel(),

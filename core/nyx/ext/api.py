@@ -94,6 +94,7 @@ class ExtensionApi:
         run_tool: ToolRunner | None = None,
         ask_llm: LlmAsker | None = None,
         clock: Callable[[], float] = time.monotonic,
+        offline: Callable[[], bool] = lambda: False,
     ) -> None:
         """`permissions(id)`: los permisos aceptados de esa extensión (vacío si no está).
         `settings_of(id)`: las claves de `settings` de su manifiesto. `open_url`: abre una
@@ -109,6 +110,7 @@ class ExtensionApi:
         self._run_tool = run_tool
         self._ask_llm = ask_llm
         self._clock = clock
+        self._offline = offline
         self._llm_calls: dict[str, list[float]] = {}
         self._logins: set[str] = set()
         self._folders = folders or _known_folders
@@ -170,6 +172,8 @@ class ExtensionApi:
         raise RpcError(f"sin permiso «{wanted}»")
 
     def _need_host(self, ext_id: str, url: str, schemes: tuple[str, ...]) -> str:
+        if self._offline():
+            raise RpcError("sin internet: Nyx está en modo Privacidad")
         parts = urlsplit(url)
         if parts.scheme not in schemes or not parts.hostname:
             raise RpcError(f"dirección no válida: {url[:200]}")

@@ -125,6 +125,17 @@ EXAMPLES: dict[str, dict[str, object]] = {
             "settings": {"tts": {"speed": 0.9}, "responses": {"tone": "neutro"}},
         }
     },
+    "mode": {
+        "modes/estudio.json": {
+            "name": "Estudio",
+            "description": "Música baja y el navegador a un lado",
+            "voice": "baja",
+            "actions": [
+                {"tool": "set_volume", "args": {"level": 25}},
+                {"tool": "open_app", "args": {"name": "Spotify", "focus": False}},
+            ],
+        }
+    },
     "personality": {
         "personality.json": {
             "name": "Mi personalidad",

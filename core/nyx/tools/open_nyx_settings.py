@@ -21,6 +21,7 @@ Section = Literal[
     "voz",
     "respuestas",
     "partida",
+    "modos",
     "cerebro",
     "extensiones",
     "cache",
@@ -30,7 +31,7 @@ Section = Literal[
 
 
 class OpenNyxSettingsParams(Params):
-    section: Section = Field(default="", description="Sección (vacío = primera)")
+    section: Section = Field(default="", description="Sección")
 
 
 class OpenNyxSettings(Tool[OpenNyxSettingsParams]):

@@ -321,6 +321,18 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
       mismas comprobaciones que un paquete, enseña sus permisos (los delicados, con su porqué)
       y la instala; «Recargar» la vuelve a leer. Protocolo v24.
 
+29. **Modos y lo que quedó del plan de la 0.8 (2026-11-17).** Hecho con tus respuestas a
+    `MODOS.md`. Decidido sin prototipo para que lo confirmes:
+    - Sin indicador fijo junto a Nyx: obligaría a dejar una ventana visible en reposo (SPEC
+      §11). Al cambiar de modo sale una burbuja y Ajustes → Modos marca el activo. ¿Quieres
+      además un menú «Modos» en la bandeja?
+    - Voz más baja en Trabajo (60 %) y Noche (50 %); la velocidad no cambia.
+    - Sin panel de listas junto a Nyx ni aviso cuando una app empieza a usar la cámara
+      (8.07): ahora las listas, la agenda y el micrófono se dicen en la burbuja. Se pueden
+      hacer en la 0.9 si los quieres.
+    - Sin probar con el micrófono de verdad: dictado (8.04), leer la selección (8.05) y los
+      modos (sobre todo que Privacidad no deje activar por voz y que todo vuelva al salir).
+
 ## Qué probar
 
 Probado y bien (2026-11-13): color de Nyx (6.23), ciudad automática (6.24) y falsas

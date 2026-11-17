@@ -55,6 +55,8 @@ function merge<T>(base: T, patch: Record<string, unknown>): T {
 
 class SettingsStore {
   data = $state<NyxSettings | null>(null);
+  /** v25: el modo de Nyx activo (null: ninguno). */
+  mode = $state<string | null>(null);
   tools = $state<ToolInfo[]>([]);
   /** Micrófonos, altavoces y voces (Ajustes → Voz). */
   inputs = $state<string[]>([]);
@@ -111,6 +113,11 @@ class SettingsStore {
   }
 
   /** Primer arranque guiado por Nyx (9.10), otra vez desde Ajustes → Ayuda. */
+  /** Una orden a Nyx como si se la escribieran («modo trabajo»: Ajustes → Modos). */
+  say(text: string): boolean {
+    return this.core?.send({ type: "text", text }) ?? false;
+  }
+
   startGuidedSetup(): boolean {
     return this.core?.send({ type: "setup_flow", action: "start" }) ?? false;
   }
@@ -212,6 +219,9 @@ class SettingsStore {
       case "state":
         this.nyxState = msg.state;
         return;
+      case "mode":
+        this.mode = msg.mode;
+        break;
       case "extensions":
         this.extensions = {
           items: msg.items,

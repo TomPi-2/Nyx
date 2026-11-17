@@ -54,6 +54,7 @@ EDITABLE: tuple[str, ...] = (
     "web.",
     "updates.",
     "extensions.dev_mode",
+    "modes.",
 )
 #: Lo que solo se lee al arrancar: cambiarlo pide reiniciar Nyx.
 NEEDS_RESTART: tuple[str, ...] = (

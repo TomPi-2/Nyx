@@ -444,6 +444,8 @@ class Pipeline:
         self.setup: SetupHook | None = None
         # Dictado (8.04): mientras está activo, lo oído se escribe en su ventana.
         self.dictation: Dictation | None = None
+        # Modos (8.10): Privacidad apaga la activación por voz (solo el atajo).
+        self.wake_allowed: Callable[[], bool] = lambda: True
         self._dictation_heard: float | None = None  # última vez que se oyó algo dictando
         self._announcing: asyncio.Task[None] | None = None
         self._announce_text = ""  # lo que está diciendo (para no tomar su voz por la tuya)
@@ -511,6 +513,7 @@ class Pipeline:
             self.wake is not None
             and self.voice_enabled
             and not self._wake_off_in_game()
+            and self.wake_allowed()
             and self.wake.process(frame)
         ):
             # La puntuación se guarda ya: tras la activación el detector se reinicia a 0 y el

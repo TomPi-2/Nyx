@@ -292,6 +292,13 @@ GROUPS: tuple[Group, ...] = (
         lazy=True,
     ),
     Group(
+        "modos",
+        "modos de Nyx: trabajo, noche, privacidad (entrar, salir, cuál hay)",
+        ("mode",),
+        (r"\bmodo\b",),
+        lazy=True,
+    ),
+    Group(
         "ocultar",
         "ocultar del todo una app (ni en la barra) y volver a enseñar las ocultas",
         ("hide_apps",),

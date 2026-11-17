@@ -20,6 +20,7 @@
   import General from "./sections/General.svelte";
   import Privacidad from "./sections/Privacidad.svelte";
   import ModoPartida from "./sections/ModoPartida.svelte";
+  import Modos from "./sections/Modos.svelte";
   import Respuestas from "./sections/Respuestas.svelte";
   import Voz from "./sections/Voz.svelte";
   import { settings } from "./store.svelte";
@@ -31,6 +32,7 @@
     { id: "voz", label: "Voz", component: Voz },
     { id: "respuestas", label: "Respuestas", component: Respuestas },
     { id: "partida", label: "Modo partida", component: ModoPartida },
+    { id: "modos", label: "Modos", component: Modos },
     { id: "cerebro", label: "Cerebro", component: Cerebro },
     { id: "extensiones", label: "Extensiones", component: Extensiones },
     { id: "cache", label: "Caché", component: Cache },

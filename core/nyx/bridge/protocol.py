@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from nyx.events import NyxState
 
-PROTOCOL_VERSION = 24
+PROTOCOL_VERSION = 25
 
 
 class _Msg(BaseModel):
@@ -284,6 +284,7 @@ class OpenSettingsMsg(_Msg):
             "voz",
             "respuestas",
             "partida",
+            "modos",
             "cerebro",
             "cache",
             "privacidad",
@@ -363,6 +364,14 @@ class UpdateApplyMsg(_Msg):
     version: str
 
 
+class ModeMsg(_Msg):
+    """v25: el modo de Nyx ha cambiado (None: ninguno; 8.10)."""
+
+    type: Literal["mode"] = "mode"
+    mode: str | None
+    name: str = ""
+
+
 class NyxReadyMsg(_Msg):
     """v20: Nyx está lista; la interfaz enseña la onda (9.04) o lo elegido en Apariencia."""
 
@@ -388,6 +397,7 @@ ServerMessage = Annotated[
     | SetupFlowStateMsg
     | NyxReadyMsg
     | UpdateApplyMsg
+    | ModeMsg
     | CoreRestartMsg,
     Field(discriminator="type"),
 ]

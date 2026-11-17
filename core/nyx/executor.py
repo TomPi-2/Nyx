@@ -157,6 +157,7 @@ _VERBS = {
     "hide_apps": "ocultar la app",
     "app_reminder": "apuntar el recordatorio",
     "dictation": "dictar",
+    "mode": "cambiar de modo",
     "privacy_check": "mirar quién usa el micrófono y la cámara",
     "close_nyx_settings": "cerrar los ajustes",
     "nyx_restart": "reiniciarme",
@@ -266,6 +267,8 @@ class Executor:
         self.log = action_log
         self.confirm = confirm
         self.game = game  # modo partida: permitida, diferida o bloqueada (SPEC sección 9)
+        # Modos (8.10): lo que el modo no deja (Privacidad: nada de internet).
+        self.mode_block: Callable[[str], str | None] = lambda _name: None
         self.phrases = phrases or PhraseBook()
 
     def _record(
@@ -324,6 +327,10 @@ class Executor:
             self._record(tool, call.name, call.arguments, Decision.INVALID, result, phrase)
             return result
         args = params.model_dump(exclude_none=True)
+        if (why := self.mode_block(call.name)) is not None:
+            result = ToolResult.fail(why, "sal del modo para eso")
+            self._record(tool, call.name, args, Decision.BLOCKED, result, phrase)
+            return result
         if self.game is not None:
             policy = self.game.policy_for(tool)
             if policy is GamePolicy.BLOCKED:

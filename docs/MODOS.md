@@ -1,8 +1,8 @@
 # Modos de Nyx — propuesta (tarea 8.09)
 
-> **Propuesta de Claude del 2026-11-16, pendiente del visto bueno del usuario.** Nada de esto
-> está hecho: el plan (PLAN-0.8, 8.09) pide aprobarlo antes de tocar el modo partida. Parte
-> de HOJA-DE-RUTA §5 y de la decisión de la 7.10 (Noche abre Configuración).
+> **Aprobada por el usuario el 2026-11-17** con las respuestas de la sección 6; hecha en las
+> tareas 8.10–8.12 (`core/nyx/modes/manager.py`, Ajustes → Modos). Parte de HOJA-DE-RUTA §5 y
+> de la decisión de la 7.10 (Noche abre Configuración).
 
 ## 1. Qué es un modo
 
@@ -52,7 +52,10 @@ En Ajustes, una sección **Modos** con cada modo, sus apps y su disparador autom
 Nyx, un indicador pequeño del modo activo (y nada en Partida, como hasta ahora). Va en el
 prototipo de la 8.12, que se enseña antes de hacerlo.
 
-## 6. Dudas para el usuario
+## 6. Dudas para el usuario (respondidas el 2026-11-17)
+
+Respuestas: 1, Partida se queda tal cual por dentro; 2, Privacidad corta **toda** la red de
+Nyx; 3, los automáticos, apagados por defecto; 4, en Noche las alarmas suenan como siempre.
 
 1. ¿Vale que Partida se quede tal cual por dentro y solo se vea como un modo?
 2. ¿Privacidad bloquea toda la red de Nyx (búsqueda y webs) o solo la búsqueda?

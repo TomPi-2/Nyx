@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any
 
 from nyx.brain.select import ToolSelector, _chars
-from nyx.ext.content import ExtContent, Personality, Preset, load_content
+from nyx.ext.content import ExtContent, ModeSpec, Personality, Preset, load_content
 from nyx.ext.signing import RevocationList
 from nyx.ext.store import ExtensionStore, Installed, InstallResult
 from nyx.index.aliases import normalize
@@ -83,6 +83,7 @@ class ExtensionManager:
         self.problems: dict[str, list[str]] = {}
         self.presets: dict[str, Preset] = {}  # «id/nombre» → preajuste
         self.personalities: dict[str, Personality] = {}
+        self.modes: dict[str, ModeSpec] = {}  # «id/nombre» → modo (8.11)
         self.groups: tuple[Group, ...] = ()  # los de las extensiones
         #: Lista de revocación vigente (7.08): las que estén en ella no se cargan.
         self.revocations: RevocationList | None = None
@@ -162,7 +163,7 @@ class ExtensionManager:
     def _apply_content(self, contents: list[tuple[Installed, ExtContent]]) -> None:
         profiles = []
         knowledge: dict[str, tuple[str, str]] = {}
-        self.presets, self.personalities = {}, {}
+        self.presets, self.personalities, self.modes = {}, {}, {}
         for ext, content in contents:
             profiles += content.profiles
             for title, text in content.knowledge.items():
@@ -171,6 +172,8 @@ class ExtensionManager:
                 self.presets[f"{ext.id}/{stem}"] = preset
             if content.personality is not None:
                 self.personalities[ext.id] = content.personality
+            for stem, mode in content.modes.items():
+                self.modes[f"{ext.id}/{stem}"] = mode
         app_catalog.set_extension_profiles(profiles)
         nyx_info.set_extension_knowledge(knowledge)
 

@@ -209,6 +209,25 @@ class PrivacySettings(_Section):
     usage_data: bool = False
 
 
+_HHMM = r"^([01]\d|2[0-3]):[0-5]\d$"
+
+
+class ModeSettings(_Section):
+    """Modos (0.8, docs/MODOS.md). Los automáticos, apagados por defecto."""
+
+    # Trabajo: las apps que abre y coloca, y las que silencia mientras dura.
+    work_apps: list[str] = Field(default_factory=list, max_length=6)
+    work_mute: list[str] = Field(default_factory=lambda: ["Discord", "WhatsApp"], max_length=8)
+    # Trabajo automático al abrir una de estas apps (vacío: nunca).
+    work_auto_apps: list[str] = Field(default_factory=list, max_length=8)
+    # Noche: el volumen al entrar y, si se pone hora, automático de `night_from` a `night_to`.
+    night_volume: int = Field(default=20, ge=0, le=100)
+    night_from: str | None = Field(default=None, pattern=_HHMM)
+    night_to: str = Field(default="07:00", pattern=_HHMM)
+    # Privacidad: las apps que oculta del todo mientras dura.
+    privacy_hide: list[str] = Field(default_factory=list, max_length=8)
+
+
 class Settings(BaseModel):
     model_config = ConfigDict(extra="ignore", validate_assignment=True)
 
@@ -228,6 +247,7 @@ class Settings(BaseModel):
     web: WebSettings = Field(default_factory=WebSettings)
     updates: UpdateSettings = Field(default_factory=UpdateSettings)
     extensions: ExtensionSettings = Field(default_factory=ExtensionSettings)
+    modes: ModeSettings = Field(default_factory=ModeSettings)
 
 
 def settings_path() -> Path:

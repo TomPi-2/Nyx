@@ -66,6 +66,8 @@ from nyx.index.scanners.games import steam_root
 from nyx.index.service import SystemIndex
 from nyx.index.watcher import IndexWatcher
 from nyx.models import MODELS
+from nyx.modes.manager import GainPlayer, ModeManager
+from nyx.modes.manager import Runner as ModeRunner
 from nyx.organizer.calendar import schedule_reminders
 from nyx.organizer.context import AppReminders
 from nyx.organizer.store import OrganizerStore
@@ -76,7 +78,7 @@ from nyx.safety.paths import PathPolicy
 from nyx.settings.live import apply_patch
 from nyx.settings.model import Settings
 from nyx.stt.whisper_server import WhisperServer
-from nyx.tools.base import ToolContext
+from nyx.tools.base import ToolContext, ToolResult
 from nyx.tools.hide_apps import restore_hidden
 from nyx.tools.registry import ToolRegistry, default_registry
 from nyx.tts.base import TTSEngine
@@ -126,6 +128,7 @@ class Services:
         self.ringer = ringer
         self.alarms_start: asyncio.Task[None] | None = None
         self.app_reminders: AppReminders | None = None
+        self.modes: ModeManager | None = None
         self.game_detector: GameDetector | None = None
         self.game_controller: GameController | None = None
         self.llm = llm
@@ -144,6 +147,8 @@ class Services:
         self.usage: UsageSender | None = None
 
     async def close(self) -> None:
+        if self.modes is not None:
+            await self.modes.close()  # al cerrar, el PC como estaba antes del modo
         # Lo oculto con «oculta X del todo» (8.08) nunca se queda oculto sin Nyx.
         await asyncio.to_thread(restore_hidden)
         if self.usage is not None:
@@ -189,22 +194,32 @@ async def _attempt[T](
         return None
 
 
-def _tool_runner(registry: ToolRegistry, ctx: ToolContext) -> ToolRunner:
-    """Las herramientas propias de Nyx para la API de extensiones (apps, sonido, ventanas).
-    Nunca las de otra extensión: solo las que no tienen dueño en el registro."""
+def _own_tool(registry: ToolRegistry, ctx: ToolContext) -> ModeRunner:
+    """Una herramienta propia de Nyx, ejecutada directamente (para la API de extensiones y las
+    acciones de los modos). Nunca las de una extensión: solo las que no tienen dueño."""
 
-    async def run(name: str, args: dict[str, Any]) -> tuple[bool, str]:
+    async def run(name: str, args: dict[str, Any]) -> ToolResult:
         tool = registry.get(name)
         if tool is None or registry.owner_of(name) is not None:
-            return False, "no está disponible"
+            return ToolResult.fail("no está disponible")
         try:
             params = tool.params_model.model_validate(args)
         except ValidationError:
-            return False, "datos no válidos"
+            return ToolResult.fail("datos no válidos")
         try:
-            result = await asyncio.wait_for(tool.run(params, ctx), tool.timeout_s)
+            return await asyncio.wait_for(tool.run(params, ctx), tool.timeout_s)
         except TimeoutError:
-            return False, "ha tardado demasiado"
+            return ToolResult.fail("ha tardado demasiado")
+
+    return run
+
+
+def _tool_runner(registry: ToolRegistry, ctx: ToolContext) -> ToolRunner:
+    """Las herramientas de Nyx para la API de extensiones (apps, sonido, ventanas)."""
+    own = _own_tool(registry, ctx)
+
+    async def run(name: str, args: dict[str, Any]) -> tuple[bool, str]:
+        result = await own(name, args)
         return result.ok, result.message
 
     return run
@@ -235,6 +250,7 @@ def _extensions(
     game: GameGate,
     settings: Settings,
     tools_ctx: ToolContext,
+    offline: Callable[[], bool] = lambda: False,
 ) -> ExtensionManager:
     """Extensiones (0.7): se cargan y se quitan en marcha. Al cambiar las herramientas, selector
     nuevo y el modelo se recalienta; nunca en partida (espera a que acabe)."""
@@ -264,6 +280,7 @@ def _extensions(
         playing=lambda: game.active,
         run_tool=_tool_runner(registry, tools_ctx),
         ask_llm=_llm_asker(brain),
+        offline=offline,
     )
 
     async def disabled(ext_id: str, reason: str) -> None:
@@ -481,6 +498,10 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     yesno = VoskYesNo(vosk_model) if vosk_model is not None else None
     # Órdenes que el LLM escribe como texto («pon el volumen al 100»): al router (6.21).
     brain.reroute = lambda text: written_command(text, index, playing=game.active)
+    # Modos (8.10, docs/MODOS.md): Partida sigue igual por dentro (game/).
+    modes = ModeManager(bus, settings, _own_tool(registry, tools_ctx), playing=lambda: game.active)
+    tools_ctx.modes = modes
+    executor.mode_block = modes.blocked
     pipeline = Pipeline(
         bus,
         brain,
@@ -492,7 +513,8 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         vad=vad if capture is not None else None,
         stt=stt if capture is not None else None,
         tts=tts,
-        player=player,
+        # La voz de Nyx con el volumen del modo; las alarmas, con el reproductor de siempre.
+        player=GainPlayer(player, modes.voice_gain) if player is not None else None,  # type: ignore[arg-type]
         router=lambda text: route(text, index),
         refuse=lambda text: refusal(text, index, playing=game.active),
         executor=executor,
@@ -505,6 +527,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         phrases=phrases,
         answers=Answers(settings.responses.tone),
     )
+    pipeline.wake_allowed = modes.wake_on
     # Dictado (8.04): la herramienta lo empieza y el pipeline escribe lo que oye.
     if pipeline.voice_enabled:
         pipeline.dictation = tools_ctx.dictation = Dictation()
@@ -538,7 +561,9 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         reload_llm=brain.warmup,
         brain=GameBrain(game, llm, brain.warmup),
     )
-    services.extensions = _extensions(bus, registry, brain, game, settings, tools_ctx)
+    services.extensions = _extensions(
+        bus, registry, brain, game, settings, tools_ctx, offline=modes.offline
+    )
     services.extensions_service = ExtensionsService(bus, services.extensions, settings)
     services.update_gate.add("pipeline", pipeline.busy)
     services.update_gate.add("game", lambda: "hay una partida" if game.active else None)
@@ -550,7 +575,10 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     services.updates = UpdateCoordinator(bus, settings, services.update_gate)
     tools_ctx.update_now = services.updates.by_voice
     services.usage = UsageSender(
-        STATS, enabled=lambda: settings.privacy.usage_data, llm_model=lambda: settings.llm.model
+        STATS,
+        # En modo Privacidad, nada sale del PC (tampoco los datos de uso).
+        enabled=lambda: settings.privacy.usage_data and not modes.offline(),
+        llm_model=lambda: settings.llm.model,
     )
     services.usage.start()
     services.game_detector = GameDetector(
@@ -565,6 +593,9 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         services.app_reminders = AppReminders(
             bus, tools_ctx.organizer, alarms, playing=lambda: game.active
         )
+    services.modes = modes
+    modes.ext_source = lambda: services.extensions.modes if services.extensions else {}
+    modes.start()
     await services.game_detector.start()
     if services.extensions.store.installed():
         # Solo si hay alguna: recargar recalienta el modelo con sus herramientas.

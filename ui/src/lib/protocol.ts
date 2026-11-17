@@ -2,7 +2,7 @@
 
 import type { FontId, NyxColorId, PanelTintId } from "$theme/palette";
 
-export const PROTOCOL_VERSION = 24;
+export const PROTOCOL_VERSION = 25;
 
 export type NyxState =
   "idle" | "listening" | "thinking" | "speaking" | "confirm" | "error" | "muted";
@@ -61,6 +61,8 @@ export interface NyxSettings {
   updates: { mode: "preguntar" | "automatico" | "avisar"; channel: "estable" | "beta" };
   /** v18: modo desarrollador de las extensiones (7.08). */
   extensions: { dev_mode: boolean };
+  /** v25: modos (8.10, docs/MODOS.md); los automáticos, apagados por defecto. */
+  modes: ModeSettings;
   appearance: {
     indicator_size: number;
     glass: GlassInfo;
@@ -414,12 +416,25 @@ export type ServerMessage =
   | { type: "setup_flow_state"; state: SetupFlowState }
   /** v20: Nyx está lista (al arrancar o al acabar el primer arranque): la onda (9.04). */
   | { type: "nyx_ready" }
+  /** v25: el modo de Nyx ha cambiado (null: ninguno). */
+  | { type: "mode"; mode: string | null; name: string }
   /** v21: aplicar ya la actualización descargada (la app para el núcleo y reinicia; 9.06). */
   | { type: "update_apply"; version: string }
   /** v23: «reiníciate»: la isla pide a la app que reinicie el núcleo. */
   | { type: "core_restart" };
 
 /** Secciones de la ventana de Ajustes (ui/src/settings/Settings.svelte). */
+export interface ModeSettings {
+  work_apps: string[];
+  work_mute: string[];
+  work_auto_apps: string[];
+  night_volume: number;
+  /** «HH:MM» o null: Noche automática apagada. */
+  night_from: string | null;
+  night_to: string;
+  privacy_hide: string[];
+}
+
 export type SettingsSection =
   | "general"
   | "apariencia"
@@ -427,6 +442,7 @@ export type SettingsSection =
   | "voz"
   | "respuestas"
   | "partida"
+  | "modos"
   | "cerebro"
   | "extensiones"
   | "cache"

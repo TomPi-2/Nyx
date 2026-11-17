@@ -115,6 +115,8 @@ class ToolContext:
     update_now: Callable[[], Awaitable[str]] | None = None
     # Dictado (8.04): lo comparte con el pipeline, que escribe lo que oye; lo pone services.py.
     dictation: Any = None
+    # Modos (8.10): el gestor (nyx/modes/manager.py); lo pone services.py.
+    modes: Any = None
 
 
 @dataclass

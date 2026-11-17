@@ -211,6 +211,8 @@ async def run(args: argparse.Namespace) -> int:
             voice = not (args.no_voice or args.ask)
             services = await build_services(bus, settings, voice=voice)
             services.pipeline.setup = flow
+            if services.modes is not None:
+                bridge.private = services.modes.private  # Privacidad: burbujas sin contenido
             flow.speaker_ready.set()
             if settings.onboarding.done and not args.ask:
                 # Lista: la interfaz lo enseña con la onda o lo elegido en Apariencia (9.04).

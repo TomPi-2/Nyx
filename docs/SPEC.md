@@ -266,7 +266,7 @@ Unas 35 herramientas genéricas cubren miles de peticiones al combinarse. Cada u
 
 Nyx se amplía con paquetes `.nyxext` (guía para desarrolladores: `docs/extensiones/README.md`; plan y decisiones: `docs/PLAN-0.7.md`). Se instalan, actualizan, desactivan y desinstalan (a la papelera) desde Ajustes → Extensiones sin reiniciar Nyx; en partida, los cambios esperan a que acabe.
 
-- **Tipos:** herramientas con código (`tools`), atajos por app (`actions`; el catálogo de `app_action` es la extensión integrada `tepnyx.apps`), conocimiento (`knowledge`, que llega al modelo como información de fuera), preajustes (solo apariencia, voz y tono), personalidad y formas de Nyx (`shape`, contrato en `docs/extensiones/formas.md`). Los modos (`mode`) llegarán con el sistema de modos.
+- **Tipos:** herramientas con código (`tools`), atajos por app (`actions`; el catálogo de `app_action` es la extensión integrada `tepnyx.apps`), conocimiento (`knowledge`, que llega al modelo como información de fuera), preajustes (solo apariencia, voz y tono), personalidad y formas de Nyx (`shape`, contrato en `docs/extensiones/formas.md`). Y modos (`mode`, `modes/*.json`: nombre, voz normal o baja y hasta 8 acciones al entrar de la lista cerrada; nunca la activación por voz, las burbujas, la red ni políticas de herramientas).
 - **Manifiesto estricto** (`nyx/ext/manifest.py`): id `autor.nombre`, SemVer, rango de la API de Nyx (1.0), permisos con su forma exacta, grupos de herramientas, ajustes que pone el usuario y licencia (de pago, siempre pago único). Lo que no valida no se instala.
 - **Permisos** con su riesgo mínimo: `net:<servidor>:<puerto>`, `files:read|write:<carpeta conocida>`, `apps:launch`, `apps:control:<app>`, `audio`, `media`, `clipboard:read|write`, `notify`, `ui:panel`, `secrets`, `llm`, `messages:<servicio>` (rojo). Se enseñan en palabras normales antes de instalar; una actualización que pide más espera a que se acepte. **Ninguno sirve para tocar un juego** (ni teclas, ni pantalla, ni memoria, ni inyección).
 - **Permisos delicados** (decisión del usuario, 2026-11-16): `files:write`, `clipboard:read`, `apps:control`, `llm` y `messages` necesitan la aprobación de Tepnyx, que va dentro de la firma (`approved`); sin ella, solo con el modo desarrollador. Cada uno lleva su porqué en el manifiesto (`why`). El desarrollador lo solicita con `nyx_ext.py solicitar` (qué es, permisos con su porqué, herramientas, dirección y SHA-256 del paquete, contacto) a `nyx.extension_request` en la base de datos de Tepnyx; el equipo decide en la app de administración (/nyx → Solicitudes) y firma con `sign_extension.py --aprobar`.
@@ -363,6 +363,18 @@ El usuario puede mover cualquier herramienta entre columnas en ajustes.
 - **Voz:** salida opcional por un dispositivo distinto (por ejemplo, solo cascos) y sin atenuar el audio del juego.
 - **Al salir de la partida:** Nyx ejecuta las acciones diferidas y lo notifica en una burbuja breve.
 - **Juegos en ventana sin bordes:** se detectan por la lista de juegos aunque no estén en pantalla completa exclusiva.
+
+### 9.1 Modos (0.8; `docs/MODOS.md`, aprobado el 2026-11-17)
+
+Partida sigue igual por dentro y manda sobre cualquier modo; lo que se pida jugando se hace al acabar. Un solo modo elegido a la vez (`nyx/modes/manager.py`), por voz («modo trabajo», «sal del modo», «¿en qué modo estás?»), desde Ajustes → Modos o automático (apagado por defecto: Noche de una hora a otra, Trabajo al abrir una app). Al entrar se ejecutan acciones de una lista cerrada con las herramientas de Nyx y al salir (o al cerrar Nyx) se deshacen al revés.
+
+| Modo | Al entrar | Nyx |
+| --- | --- | --- |
+| Trabajo | Abre y coloca las apps elegidas (dos: una a cada lado); silencia las que distraen | Voz al 60 % |
+| Noche | Volumen al 20 % (ajustable); abre la luz nocturna y las notificaciones en Configuración | Voz al 50 %; las alarmas suenan como siempre |
+| Privacidad | Oculta del todo las apps elegidas | Solo `Win+Alt+H` (sin activación por voz), burbujas sin contenido (las confirmaciones sí dicen qué), **sin red**: búsqueda, webs, el tiempo, instalar, actualizar, la red de las extensiones y los datos de uso |
+
+Las extensiones pueden traer modos (tipo `mode`) con acciones de la misma lista y voz normal o baja, sin tocar nada de lo anterior.
 
 ## 10. Caché del sistema
 

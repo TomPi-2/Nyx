@@ -70,6 +70,12 @@ contesto con voz y en una burbuja.
   enlace a Ana». Saltan una vez y, si estás jugando, cuando acabes. Por lugares («cuando llegue
   a casa») no, porque tendría que saber dónde estás.
 - Listas, tareas y citas no se borran del todo: al quitarlas se pueden deshacer.
+- Modos: «modo trabajo» (abro y coloco tus apps y silencio las que distraen), «modo noche»
+  (bajo el volumen y mi voz, y te abro la luz nocturna y «no molestar»; las alarmas suenan
+  igual) y «modo privacidad» (solo te oigo con Win + Alt + H, no enseño nada en las
+  burbujas, no uso internet y oculto las apps que elijas). «Sal del modo» lo deja todo
+  como estaba. Se configuran en Ajustes → Modos. La partida no es un modo que elijas: la
+  detecto sola y manda siempre.
 - Ocultar del todo una app para que no se vea ni en la barra de tareas («oculta Discord del
   todo»): sigue abierta y vuelve con «enséñalas», al cerrarme o al arrancarme. «Oculta
   Discord» a secas la minimiza. Los juegos no los oculto.

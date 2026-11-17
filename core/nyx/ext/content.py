@@ -183,6 +183,33 @@ class Preset(BaseModel):
 Tone = Literal["cercano", "neutro", "divertido"]
 
 
+ModeTool = Literal[
+    "open_app", "window_layout", "set_volume", "media_control", "hide_apps", "open_settings"
+]
+MAX_MODES = 4
+
+
+class ModeAction(BaseModel):
+    """Una acción al entrar en el modo: una herramienta de la lista cerrada (8.11)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    tool: ModeTool
+    args: dict[str, str | int | bool] = Field(default_factory=dict, max_length=6)
+
+
+class ModeSpec(BaseModel):
+    """Un modo de una extensión (`modes/*.json`, 8.11): nombre, voz y acciones al entrar.
+    Nunca la activación por voz, las burbujas, la red ni políticas de herramientas."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    name: Label
+    description: str = Field(default="", max_length=200)
+    voice: Literal["normal", "baja"] = "normal"
+    actions: tuple[ModeAction, ...] = Field(default=(), max_length=8)
+
+
 class Personality(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -242,6 +269,7 @@ class ExtContent:
     knowledge: dict[str, str] = field(default_factory=dict)  # título → texto
     personality: Personality | None = None
     shape: Shape | None = None
+    modes: dict[str, ModeSpec] = field(default_factory=dict)
     problems: list[str] = field(default_factory=list)
 
 
@@ -330,6 +358,16 @@ def load_content(manifest: Manifest, folder: Path) -> ExtContent:
             out.personality = _validate(Personality, data, "personality.json")
 
         attempt("personalidad", personality)
+    if "mode" in manifest.kinds:
+
+        def modes() -> None:
+            files = sorted((folder / "modes").glob("*.json"))
+            if not files:
+                raise ContentError("no hay ningún modes/*.json")
+            for path in files[:MAX_MODES]:
+                out.modes[path.stem] = _validate(ModeSpec, _read_json(path), f"modes/{path.name}")
+
+        attempt("modos", modes)
     if "shape" in manifest.kinds:
 
         def shape() -> None:

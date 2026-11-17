@@ -10,7 +10,8 @@ from __future__ import annotations
 import asyncio
 import hmac
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import replace
 
 from pydantic import ValidationError
 from websockets.asyncio.server import Server, ServerConnection, serve
@@ -33,6 +34,7 @@ from nyx.bridge.protocol import (
     LevelMsg,
     LongSectionMsg,
     MicLevelMsg,
+    ModeMsg,
     NyxReadyMsg,
     OpenSettingsMsg,
     PanelNoteMsg,
@@ -87,6 +89,7 @@ from nyx.events import (
     UpdateOffered,
 )
 from nyx.game.detector import GameStateChanged
+from nyx.modes.manager import ModeChanged
 
 log = logging.getLogger(__name__)
 
@@ -122,6 +125,8 @@ class UIBridge:
         self.tools = list(tools)
         self.voices = list(voices)
         self.onboarding_done = onboarding_done
+        # Modo Privacidad (8.10): las burbujas sin contenido (lo pone services.py).
+        self.private: Callable[[], bool] = lambda: False
         # v10: fuente, color de Nyx y tinte de los paneles (Ajustes → Apariencia).
         self.look = {
             "font": "segoe",
@@ -158,6 +163,7 @@ class UIBridge:
             bus.subscribe(SetupFlowChanged, self._on_setup_flow),
             bus.subscribe(NyxReady, self._on_ready),
             bus.subscribe(UpdateApply, self._on_update_apply),
+            bus.subscribe(ModeChanged, self._on_mode),
             bus.subscribe(CoreRestart, self._on_core_restart),
         ]
 
@@ -277,6 +283,13 @@ class UIBridge:
         await self.broadcast(LevelMsg(rms=min(max(event.rms, 0.0), 1.0)))
 
     async def _on_bubble(self, event: BubbleShown) -> None:
+        if self.private() and event.kind != "confirm":
+            # Sin el texto de la nota, la cita, lo dictado o la respuesta: solo que algo
+            # ha pasado. Las confirmaciones sí dicen qué (se confirma eso).
+            generic = "Aviso" if event.alert else "Hecho"
+            event = replace(
+                event, display=generic, secondary=None, text="", sections=(), reading=False
+            )
         actions = [ActionButton(id=a.id, label=a.label, primary=a.primary) for a in event.actions]
         await self.broadcast(
             BubbleMsg(
@@ -296,6 +309,8 @@ class UIBridge:
         )
 
     async def _on_reading(self, event: ReadingAppended) -> None:
+        if self.private():
+            return
         await self.broadcast(ReadingMsg(text=event.text, duration_s=max(0.0, event.duration_s)))
 
     async def _on_panel_note(self, event: PanelNote) -> None:
@@ -345,6 +360,9 @@ class UIBridge:
 
     async def _on_core_restart(self, event: CoreRestart) -> None:
         await self.broadcast(CoreRestartMsg())
+
+    async def _on_mode(self, event: ModeChanged) -> None:
+        await self.broadcast(ModeMsg(mode=event.mode, name=event.name))
 
     async def _on_update_apply(self, event: UpdateApply) -> None:
         await self.broadcast(UpdateApplyMsg(version=event.version))
