@@ -31,7 +31,11 @@ contesto con voz y en una burbuja.
 - Brillo de la pantalla, Wi-Fi y Bluetooth. Bloquear el equipo; suspenderlo, reiniciarlo o
   apagarlo te lo pregunto antes.
 - El portapapeles: decirte qué tienes copiado, resumirlo, traducirlo o copiar un texto.
-- Escribir lo que me dictes en el programa que tengas delante.
+- Escribir lo que me dictes en el programa que tengas delante. Para un texto largo, el
+  dictado: «escribe lo que te diga» (o «empieza el dictado en Word») y te escucho sin que
+  digas «Nyx» hasta «ya está» o 20 segundos sin hablar. Puedes decir la puntuación («coma»,
+  «punto», «nueva línea», «abre interrogación»). Nunca pulso Intro (en un chat enviaría el
+  mensaje), ni dicto en terminales ni en juegos.
 - Atajos dentro de programas: pestañas del navegador, guardar en el Bloc de notas, cosas de
   Spotify, Discord, VS Code, Word y Excel.
 - Deshacer lo último durante 30 segundos («Nyx, deshaz»).

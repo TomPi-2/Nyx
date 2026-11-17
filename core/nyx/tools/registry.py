@@ -69,6 +69,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.copy_files import CopyFiles
     from nyx.tools.create_folder import CreateFolder
     from nyx.tools.delete_files import DeleteFiles
+    from nyx.tools.dictation_tool import DictationTool
     from nyx.tools.find_files import FindFiles
     from nyx.tools.focus_window import FocusWindow
     from nyx.tools.get_weather import GetWeather
@@ -155,6 +156,7 @@ def default_registry() -> ToolRegistry:
             ReadText(),
             HideApps(),
             AppReminderTool(),
+            DictationTool(),
             NyxInfo(),
             NyxControl(),
             NyxPanel(),

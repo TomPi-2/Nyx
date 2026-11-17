@@ -34,6 +34,7 @@ from nyx.brain.select import ToolSelector, tools_budget
 from nyx.brain.service import Brain
 from nyx.brain.shortcuts import ShortcutStore
 from nyx.bus import EventBus
+from nyx.dictation import Dictation
 from nyx.events import (
     BubbleHidden,
     BubbleShown,
@@ -504,6 +505,9 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         phrases=phrases,
         answers=Answers(settings.responses.tone),
     )
+    # Dictado (8.04): la herramienta lo empieza y el pipeline escribe lo que oye.
+    if pipeline.voice_enabled:
+        pipeline.dictation = tools_ctx.dictation = Dictation()
     log.info(
         "Servicios listos en %.1f s (voz: %s, activación: %s, respuesta hablada: %s)",
         time.perf_counter() - t0,

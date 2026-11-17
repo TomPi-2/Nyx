@@ -113,6 +113,8 @@ class ToolContext:
     # «Nyx, actualízate» (nyx_update, 9.06): aplica la versión descargada o dice que no hay;
     # devuelve lo que se dice. La pone services.py.
     update_now: Callable[[], Awaitable[str]] | None = None
+    # Dictado (8.04): lo comparte con el pipeline, que escribe lo que oye; lo pone services.py.
+    dictation: Any = None
 
 
 @dataclass

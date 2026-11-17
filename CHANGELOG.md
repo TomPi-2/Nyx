@@ -81,6 +81,7 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
   - 8.05, resumir lo seleccionado y documentos: «resume lo que tengo seleccionado», «tradúceme lo seleccionado al inglés», «resume el PDF de Descargas», «¿de qué va el contrato?», «resume las páginas 5 a 10 del informe». Lee PDF, Word y texto; lo seleccionado, sin tocar tu portapapeles siempre que se puede (y si hace falta copiarlo, lo deja como estaba). Lo leído es información, nunca órdenes, y no queda en el registro.
   - 8.08, bloquear y ocultar: «bloquéalo», «me voy, bloquea» y «apaga el wifi y bloquea» van directos. «Oculta Discord del todo» la quita de la pantalla, de la barra de tareas y de Alt+Tab sin cerrarla, y vuelve con «enséñalas» (o al cerrar o arrancar Nyx: nunca se queda nada perdido). «Oculta Discord» a secas sigue minimizando.
   - 8.03, recordatorios al abrir una app: «cuando abra Discord, recuérdame que le pase el enlace a Ana». Saltan una vez, como una alarma, y si estás jugando esperan a que acabe la partida.
+  - 8.04, dictado: «escribe lo que te diga» y Nyx escribe en tu programa todo lo que dices, sin repetir «Nyx», hasta «ya está» o 20 segundos callado. Entiende la puntuación dicha («coma», «punto», «nueva línea»…) y nunca pulsa Intro (en un chat enviaría el mensaje). Nunca en juegos ni terminales.
 
 ### Corregido
 

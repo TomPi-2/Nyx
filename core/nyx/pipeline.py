@@ -48,6 +48,9 @@ from nyx.brain.router import IN_GAME_REFUSAL, Miss, Route
 from nyx.brain.service import Brain, ReplyDone, ToolPlan
 from nyx.brain.shortcuts import ShortcutStore
 from nyx.bus import EventBus
+from nyx.dictation import SILENCE_S as DICTATION_SILENCE_S
+from nyx.dictation import Dictation
+from nyx.dictation import is_stop as is_dictation_stop
 from nyx.events import (
     ActionChosen,
     Announce,
@@ -439,6 +442,9 @@ class Pipeline:
         self._offer_until = 0.0
         # Primer arranque guiado (9.10): lo pone main.py; `announce` y `hush` son su voz.
         self.setup: SetupHook | None = None
+        # Dictado (8.04): mientras está activo, lo oído se escribe en su ventana.
+        self.dictation: Dictation | None = None
+        self._dictation_heard: float | None = None  # última vez que se oyó algo dictando
         self._announcing: asyncio.Task[None] | None = None
         self._announce_text = ""  # lo que está diciendo (para no tomar su voz por la tuya)
         if executor is not None and executor.confirm is None:
@@ -759,6 +765,22 @@ class Pipeline:
             for task in (listening.verify, listening.spec):
                 if task is not None:
                     task.cancel()
+            if listening.followup and self.dictation is not None and self.dictation.active:
+                # 20 s sin hablar desde lo último oído: el dictado termina solo. Si la
+                # escucha era más corta (la ventana de seguimiento tras «te escucho»), sigue.
+                if self._dictation_heard is None:
+                    self._dictation_heard = self._clock()
+                left = DICTATION_SILENCE_S - (self._clock() - self._dictation_heard)
+                if left > 0.5:
+                    await self.start_listening(followup=True, timeout_s=left)
+                    return
+                self._dictation_heard = None
+                self.dictation.stop()
+                await self.bus.publish(
+                    BubbleShown(display="Dictado terminado", secondary="sin oírte un rato")
+                )
+                await self._go_idle()
+                return
             if listening.followup and self.setup is not None and self.setup.active:
                 # Primer arranque: se le sigue escuchando sin «Nyx» hasta que acabe (un
                 # «siguiente» tardío se perdía, ERRORES.md 2026-11-14).
@@ -794,6 +816,8 @@ class Pipeline:
         text = event.text.strip()
         if not text:
             return
+        if self.dictation is not None:
+            self.dictation.stop()  # escribir a Nyx termina el dictado
         self._drop_listening()
         await self._cancel_request()
         self.mode = Mode.BUSY
@@ -881,6 +905,9 @@ class Pipeline:
         if not verified:
             log.info("Activación descartada: whisper no ha oído «Nyx»")
             await self._go_idle()
+            return
+        if self.dictation is not None and self.dictation.active:
+            await self._dictate(raw)
             return
         if self.setup is not None and self.setup.active:
             # Primer arranque guiado: «Nyx» es la prueba de la activación y lo demás, una
@@ -1623,7 +1650,31 @@ class Pipeline:
 
     # --- estado y burbuja ---
 
+    async def _dictate(self, raw: str) -> None:
+        """Un trozo del dictado: «ya está» lo termina; lo demás se escribe y se sigue oyendo."""
+        assert self.dictation is not None
+        self._dictation_heard = self._clock()
+        if is_dictation_stop(raw):
+            self.dictation.stop()
+            await self.bus.publish(BubbleShown(display="Dictado terminado"))
+        elif not await asyncio.to_thread(self.dictation.type, raw):
+            target = self.dictation.target
+            self.dictation.stop()
+            where = target.title if target else "la ventana"
+            await self._fail("No puedo seguir escribiendo", f"¿se ha cerrado {where}?", None)
+            return
+        await self._go_idle()
+
     async def _go_idle(self) -> None:
+        if self.dictation is not None and self.dictation.active:
+            if not self._playing():
+                # Dictando: se sigue escuchando sin «Nyx» hasta «ya está» o 20 s callado.
+                if self._dictation_heard is None:
+                    self._dictation_heard = self._clock()
+                await self.start_listening(followup=True, timeout_s=DICTATION_SILENCE_S)
+                return
+            self.dictation.stop()  # empieza una partida: nunca se escribe en el juego
+        self._dictation_heard = None
         self.mode = Mode.IDLE
         await self._set_state(NyxState.IDLE)
 

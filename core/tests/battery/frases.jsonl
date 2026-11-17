@@ -445,3 +445,5 @@
 {"frase": "oculta Discord del todo", "tool": "hide_apps", "args": {"action": "hide"}}
 {"frase": "cuando abra Discord, recuérdame que le pase el enlace a Ana", "tool": "app_reminder", "args": {"action": "add"}}
 {"frase": "recuérdame mirar el correo cuando abra Outlook", "tool": "app_reminder", "args": {"action": "add"}}
+{"frase": "escribe lo que te diga", "tool": "dictation", "args": {"action": "start"}}
+{"frase": "empieza el dictado en Word", "tool": "dictation", "args": {"action": "start"}}

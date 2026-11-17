@@ -285,6 +285,13 @@ GROUPS: tuple[Group, ...] = (
         lazy=True,
     ),
     Group(
+        "dictado",
+        "dictado: escribir en la app lo que el usuario vaya diciendo",
+        ("dictation",),
+        (r"\bdicta", r"lo que te (?:diga|vaya diciendo)"),
+        lazy=True,
+    ),
+    Group(
         "ocultar",
         "ocultar del todo una app (ni en la barra) y volver a enseñar las ocultas",
         ("hide_apps",),
