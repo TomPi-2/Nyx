@@ -168,6 +168,11 @@ async def test_a_failed_download_carries_its_code(
 
     monkeypatch.setattr(setup_service, "download", broken)
     service = SetupService(bus, Settings(), root=tmp_path)
+
+    async def ollama_ready() -> bool:
+        return True  # sin tocar el Ollama de verdad (en CI no lo hay e intentaba instalarlo)
+
+    monkeypatch.setattr(service, "_pull_ollama", ollama_ready)
     await service._download()
     errors_seen = [e.error for e in seen if isinstance(e, SetupProgress) and e.error]
     assert errors_seen[0].startswith("D-202 · ")
