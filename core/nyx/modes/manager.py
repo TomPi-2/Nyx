@@ -34,6 +34,8 @@ log = logging.getLogger(__name__)
 Bubbles = Literal["all", "no_content"]
 #: Herramientas que usan internet (Privacidad las bloquea).
 NETWORK_TOOLS = frozenset({"web_search", "open_url", "get_weather", "install_app", "nyx_update"})
+#: Lo que abre ventanas: un modo automático no lo hace (solo pedido por voz o «Activar»).
+OPENS_WINDOWS = frozenset({"open_app", "open_settings"})
 #: Lo que un modo puede hacer al entrar (también los de extensiones, 8.11). Nunca borrar,
 #: escribir, mandar nada ni tocar la seguridad.
 ACTION_TOOLS = frozenset(
@@ -208,6 +210,8 @@ class ModeManager:
             self._active = active
             failed = 0
             for tool, args in actions_for(mode, self.settings):
+                if auto and tool in OPENS_WINDOWS:
+                    continue  # sin pedirlo, nada se abre solo (decisión 2026-11-15)
                 try:
                     result = await self._run(tool, args)
                 except Exception:

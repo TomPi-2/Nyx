@@ -79,7 +79,9 @@ _CLAIM_OPENER = re.compile(
     r"te|se|me|lo|la|los|las|le|les|"
     r"deshago|guardo|muteo|desmuteo|muto|desmuto|silencio|cierro|abro|pongo|quito|paso|activo|desactivo|"
     r"cambio|subo|bajo|apago|enciendo|borro|muevo|creo|grabo|env[ií]o|mando|reinicio|"
-    r"actualizo|instalo|salto|tacho|apunto|a[nñ]ado|vac[ií]o)\b",
+    r"actualizo|instalo|salto|tacho|apunto|a[nñ]ado|vac[ií]o|"
+    # «He borrado…», «Ya he guardado…» (prueba del 2026-11-17: lo decía sin hacerlo).
+    r"he|ya he|lo he|la he|te he)\b",
     re.IGNORECASE,
 )
 _CLAIM = re.compile(
@@ -90,6 +92,12 @@ _CLAIM = re.compile(
     r"apago|enciendo|borro|muevo|grabo|reinicio|actualizo|instalo|salto|tacho|apunto)\s+"
     r"(?:el|la|los|las|tu|tus|esta|este|eso|esa|ese|un|una)\b"
     # «Voy a bajarlo un poco», «Bajamos el volumen» (batería del 2026-11-16).
+    # «He borrado…», «Ya te he puesto…» (prueba del 2026-11-17: lo decía sin hacerlo).
+    r"|\b(?:(?:ya|lo|la|los|las|te|se) )*he (?:(?:lo|la|los|las|te) )?(?:borrado|actualizado|"
+    r"guardado|cambiado|puesto|quitado|cerrado|abierto|escrito|pegado|copiado|creado|enviado|"
+    r"mandado|movido|activado|desactivado|silenciado|apagado|encendido|instalado|a[nñ]adido|"
+    r"apuntado|vaciado|deshecho|subido|bajado|configurado|eliminado|limpiado|ajustado|"
+    r"establecido|programado|reiniciado|grabado)\b"
     r"|\bvoy a (?:bajar|subir|poner|quitar|cerrar|abrir|activar|desactivar|apagar|encender|"
     r"silenciar|mutear|guardar|borrar|mover|cambiar|pasar|reiniciar|instalar)\w*"
     r"|^\s*(?:bajamos|subimos|ponemos|quitamos|cerramos|abrimos|apagamos|silenciamos)\b"

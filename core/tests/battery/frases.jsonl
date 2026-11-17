@@ -450,3 +450,9 @@
 {"frase": "modo trabajo", "tool": "mode", "args": {"action": "enter"}}
 {"frase": "sal del modo noche", "tool": "mode", "args": {"action": "exit"}}
 {"frase": "pon el modo privacidad que voy a compartir pantalla", "tool": "mode", "args": {"action": "enter"}}
+{"frase": "pégalo en la nota", "tool": "send_hotkey", "args": {"keys": "ctrl+v"}}
+{"frase": "te voy a dictar y tienes que escribir lo que te diga", "tool": "dictation", "args": {"action": "start"}}
+{"frase": "guarda mi ciudad en la configuración", "tool": "nyx_control", "args": {"setting": "ciudad"}}
+{"frase": "cuéntame todo lo que sepas de Tepnyx", "tool": "nyx_info"}
+{"frase": "¿qué tiempo va a hacer mañana?", "tool": "get_weather", "args": {"day": "tomorrow"}}
+{"frase": "dezatlo", "tool": "undo"}

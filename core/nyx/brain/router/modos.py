@@ -24,6 +24,9 @@ def _mode(m: re.Match[str], _: SystemIndex) -> Route | None:
         return _call("mode", "mode", action="exit")
     name = m.group("m")
     # «modo avión», «modo oscuro», «modo partida»: no son modos de Nyx (Windows o el juego).
-    if name in ("avion", "oscuro", "claro", "partida", "juego", "desarrollador", "incognito"):
+    # «modo dictado» es el dictado (dictado.py), no un modo.
+    if name in (
+        "avion", "oscuro", "claro", "partida", "juego", "desarrollador", "incognito", "dictado"
+    ):  # fmt: skip
         return None
     return _call("mode", "mode", action="enter", mode=name)

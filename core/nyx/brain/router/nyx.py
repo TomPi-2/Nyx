@@ -74,6 +74,19 @@ def _city_set(m: re.Match[str], _: SystemIndex) -> Route:
 
 
 @rule(
+    "city_here",
+    # «Guarda mi ciudad (en la configuración)», «actualiza mi ciudad», «guárdame (la) ciudad»:
+    # sin decir cuál, la de la ubicación (prueba del 2026-11-17: guardaba «La Configuración»).
+    r"^(?:guarda(?:me)?|actualiza(?:me)?|pon(?:me)?|apunta(?:me)?|configura(?:me)?)\s+"
+    r"(?:mi\s+|la\s+|tu\s+)?(?:ciudad|suidad|siudad)(?:\s+actual)?"
+    r"(?:\s+(?:en\s+(?:la\s+|mis\s+|tus\s+|los\s+)?(?:configuracion|ajustes|opciones)|"
+    r"de\s+(?:ahora|aqui)|donde\s+estoy))?$",
+)
+def _city_here(_: re.Match[str], __: SystemIndex) -> Route:
+    return _call("city_here", "nyx_control", setting="ciudad", value="aqui")
+
+
+@rule(
     "city_live",
     # «vivo en Sevilla» (6.25); «vivo en un piso» o «vivo en casa de mis padres» no.
     r"^vivo\s+en\s+(?P<city>(?!(?:un|una|el|la|los|las|mi|mis|casa|el\s+centro)\b)[a-z ]+)$",
@@ -243,10 +256,15 @@ _TEPNYX_THINGS = (
     rf"|(?:hablame|que\s+sabes)\s+de\s+(?:el\s+|la\s+)?(?P<b>{_TEPNYX_THINGS})"
     r"|que\s+(?:apps|aplicaciones|productos|cosas)\s+(?:tiene|hace|ha\s+hecho)\s+(?P<c>tepnyx|tepnix)"
     rf"|(?:para\s+que\s+sirve|como\s+funciona)\s+(?:el\s+|la\s+)?(?P<d>{_TEPNYX_THINGS})"
+    # «Cuéntame todo lo que sepas de Tepnyx», «háblame sobre Tepnyx» (2026-11-17: se lo inventaba).
+    rf"|(?:todo\s+)?lo\s+que\s+sepas\s+(?:de|sobre)\s+(?:el\s+|la\s+)?(?P<e>{_TEPNYX_THINGS})"
+    rf"|(?:hablame|que\s+sabes)\s+sobre\s+(?:el\s+|la\s+)?(?P<f>{_TEPNYX_THINGS})"
+    r"|quien\s+te\s+ha\s+creado\s+y\s+(?:que|quien)\s+es(?P<g>)"
     r")$",
 )
 def _tepnyx_info(m: re.Match[str], __: SystemIndex) -> Route:
-    what = next(g for g in (m.group("a"), m.group("b"), m.group("c"), m.group("d")) if g)
+    groups = ("a", "b", "c", "d", "e", "f")
+    what = next((m.group(g) for g in groups if m.group(g)), None) or "tepnyx"
     return _call("tepnyx_info", "nyx_info", topic=what)
 
 

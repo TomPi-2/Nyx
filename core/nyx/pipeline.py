@@ -346,6 +346,14 @@ class _Speech:
             self._player.clear()
 
 
+#: «Escríbeme todo ese texto», «escríbemelo», «ponlo por escrito», «enséñamelo escrito».
+WRITE_LAST = re.compile(
+    r"^(?:escribe(?:me)?(?:lo|la|melo|mela)?|ponmelo|ponlo|pasamelo|ensename(?:lo)?|dejamelo)"
+    r"(?:\s+(?:todo\s+)?(?:ese|eso|lo\s+que\s+(?:has|me\s+has)\s+dicho)(?:\s+texto)?)?"
+    r"(?:\s+por\s+escrito|\s+escrito)?$"
+)
+
+
 class SetupHook(Protocol):
     """El primer arranque guiado (setup/flow.py): mientras está en marcha, lo que se oye o
     se escribe es para él, no para el router ni el cerebro."""
@@ -969,6 +977,12 @@ class Pipeline:
             # «Nyx, para» con la alarma sonando: es para ella, no para la música.
             await self.ringer.stop()
             await self._hide_bubble()
+            return
+        if WRITE_LAST.match(normalize_alias(text)) and (turn := self.brain.memory.last_turn()):
+            # «Escríbeme todo ese texto»: lo que acaba de decir, en el panel largo (se puede
+            # copiar o guardar en una nota). Antes contestaba «Aún no sé crear archivos».
+            await self._show_long(LongAnswer(title="Lo que te he dicho", text=turn[1]))
+            await self._go_idle()
             return
         if (command := self._panel_wants(text)) is not None:
             # Con un panel largo abierto, «ciérralo», «cópialo» o «guárdamela» son para él

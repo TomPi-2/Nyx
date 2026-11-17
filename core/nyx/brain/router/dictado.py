@@ -15,10 +15,12 @@ _IN = r"(?:\s+en\s+(?:el\s+|la\s+)?(?P<app>.+))?"
 
 @rule(
     "dictation",
-    r"^(?:(?:escribe|escribeme|apunta|transcribe)(?:\s+(?:tu|todo))?\s+lo\s+que\s+(?:te\s+)?"
-    r"(?:diga|vaya\s+diciendo|dicte|voy\s+a\s+decir)"
-    r"|(?:empieza|activa|inicia|pon|comienza|abre)\s+(?:el\s+|un\s+)?dictado"
-    r"|(?:voy\s+a|quiero)\s+dictar(?:te)?(?:\s+algo)?"
+    r"^(?:(?:ahora\s+)?(?:escribe|escribeme|apunta|transcribe|redacta|redactame)"
+    r"(?:\s+(?:tu|todo))?\s+lo\s+que\s+(?:yo\s+)?(?:te\s+)?"
+    r"(?:diga|vaya\s+diciendo|dicte|voy\s+a\s+decir|vaya\s+a\s+decir)"
+    r"|(?:empieza|activa|inicia|pon|comienza|abre)\s+(?:el\s+|un\s+)?(?:modo\s+)?dictado"
+    # «Te voy a dictar y tienes que escribir lo que te diga» (2026-11-17)
+    r"|(?:te\s+)?(?:voy\s+a|quiero)\s+dictar(?:te)?(?:\s+algo)?(?:\s+y\s+.+)?"
     rf"|dictado){_IN}$"
     r"|^(?P<stop>(?:termina|para|desactiva|acaba|cierra|quita)\s+(?:el\s+)?dictado)$",
 )

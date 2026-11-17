@@ -27,6 +27,7 @@ from nyx.brain.router import (  # noqa: F401
     notas,
     nyx,
     ocultar,
+    pegar,
     portapapeles,
     privacidad,
     recientes,
@@ -64,6 +65,7 @@ __all__ = [
 ORDER = (
     "nyx_settings_close",
     "nyx_settings",
+    "city_here",
     "city_set",
     "city_live",
     "nyx_change",
@@ -168,6 +170,8 @@ ORDER = (
     "clipboard_read",
     "note_save",
     "clipboard_write",
+    "paste",
+    "clear_text",
     "type_text_in_app",
     "type_text",
     "zoom",
@@ -251,7 +255,7 @@ def route(text: str, index: SystemIndex) -> Route | Miss | None:
 
 
 # Una orden nueva empieza por un verbo tras una coma o tras «y», «luego», «después».
-_CLAUSE_VERBS = rf"(?:{_VERBS}|muestrame|ensename|quita|para|reanuda|ve a|vete a|cambia a|bloquea|apaga|enciende|activa|desactiva)"
+_CLAUSE_VERBS = rf"(?:{_VERBS}|muestrame|ensename|quita|para|reanuda|ve a|vete a|cambia a|bloquea|apaga|enciende|activa|desactiva|redacta|dicta)"
 _CLAUSE_SPLIT = re.compile(
     rf"\s+(?:y luego|y despues|luego|despues|y)\s+(?=(?:{_CLAUSE_VERBS})"
     r"(?:melo|mela|lo|la|los|las|le)?\b)"

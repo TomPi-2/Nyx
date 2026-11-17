@@ -102,18 +102,48 @@ def _quality(said: str, _: Any) -> Any:
 _SMALL_CITY_WORDS = {"de", "del", "la", "las", "los", "el", "y"}
 
 
-def _city(raw: str, _: Any = None) -> str | None:
-    cleaned = " ".join(raw.strip(" .,;:!?¡¿\"'«»").split())
-    norm = normalize(cleaned)
-    if not norm or norm in {
+#: «Esta», «aquí», «la de ahora»: la ciudad en la que está el PC.
+HERE = frozenset({"", "aqui", "esta", "la de ahora", "la actual", "donde estoy", "auto"})
+
+
+async def _located_city() -> str | None:
+    from nyx.winapi.location import FALLBACK_NAME, Locator
+
+    try:
+        place = await Locator().place()
+    except Exception:
+        return None
+    if place is None or not place.name or place.name == FALLBACK_NAME:
+        return None  # sin nombre de ciudad («tu ubicación») no se guarda nada
+    return place.name
+
+
+#: Lo que se oye como «ciudad» y no lo es («Guarda mi ciudad en la configuración» guardaba
+#: «La Configuración», 2026-11-17). Se compara sin tildes.
+NOT_A_CITY = frozenset(
+    normalize(x)
+    for x in (
         "mi ciudad",
-        "la mia",
+        "la mía",
         "ninguna",
         "otra",
         "el de siempre",
-        "no se",
+        "no sé",
         "nada",
-    }:
+        "la configuración",
+        "configuración",
+        "los ajustes",
+        "mis ajustes",
+        "tus ajustes",
+        "ajustes",
+    )
+)
+
+
+def _city(raw: str, _: Any = None) -> str | None:
+    cleaned = " ".join(raw.strip(" .,;:!?¡¿\"'«»").split())
+    norm = normalize(cleaned)
+    if not norm or norm in NOT_A_CITY:
         return None
     if cleaned.islower():
         words = cleaned.split()
@@ -232,6 +262,14 @@ class NyxControl(Tool[NyxControlParams]):
             return ToolResult.fail("No puedo cambiar mis ajustes ahora")
         setting = SETTINGS[params.setting]
         current = _get(ctx.settings.model_dump(mode="json"), setting.path)
+        if params.setting == "ciudad" and normalize(params.value) in HERE:
+            # «Guarda mi ciudad» sin decir cuál: la de la ubicación de Windows (la del tiempo).
+            here = await _located_city()
+            if here is None:
+                return ToolResult.fail(
+                    "No sé dónde estás", "dime tu ciudad o activa la ubicación de Windows"
+                )
+            params = params.model_copy(update={"value": here})
         raw_or_norm = params.value if params.setting == "ciudad" else normalize(params.value)
         value = setting.parse(raw_or_norm, current)
         if value is None:

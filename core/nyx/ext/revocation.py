@@ -70,6 +70,9 @@ async def refresh(
         s = await client.get(url.removesuffix(".json") + ".sig", timeout=TIMEOUT_S)
         r.raise_for_status()
         s.raise_for_status()
+        if r.content.lstrip()[:1] == b"<":
+            # La web devuelve su propia página para lo que no existe (aún no se publica).
+            raise ValueError("aún no está publicada en la web")
         if len(r.content) > MAX_BYTES or len(s.content) > 4096:
             raise ValueError("demasiado grande")
         fresh = verify_revocations(r.content, s.content, trusted)

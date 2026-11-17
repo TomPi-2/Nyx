@@ -122,10 +122,21 @@ def _type_text_in_app(m: re.Match[str], index: SystemIndex) -> Route | None:
     "type_text",
     r"^(?:escribe|teclea|dicta)\s+(?!en\s+|un\s+|una\s+)(?P<text>.+)$",
 )
-def _type_text(m: re.Match[str], __: SystemIndex) -> Route:
+def _type_text(m: re.Match[str], index: SystemIndex) -> Route:
     rm = re.search(r"(?:escribe|teclea|dicta)[:\s]+(.+)$", _RAW_EXACT.get().strip(), re.I)
     text = _clean_dictated(rm.group(1)) if rm else ""
-    return _call("type_text", "type_text", text=text or _original(m.group("text")))
+    text = text or _original(m.group("text"))
+    # «Escribe hola en el Bloc de notas»: la app va al final (2026-11-17 escribía «hola en el
+    # Bloc de notas»). Solo si es una app conocida o una ventana abierta.
+    if tail := re.match(
+        r"^(?P<text>.+?)\s+en\s+(?:el\s+|la\s+)?(?P<app>[^,.:]{2,40})$", text, re.I
+    ):
+        cand = strip_articles(normalize(tail.group("app")))
+        best = index.confident(index.resolve(cand, {Kind.APP})) if cand else None
+        if best is not None or (cand and comun._find_windows(cand, None)):
+            app_name = best.entry.name if best is not None else tail.group("app").strip()
+            return _call("type_text", "type_text", app=app_name, text=tail.group("text"))
+    return _call("type_text", "type_text", text=text)
 
 
 # --- zoom y buscar en la página (6.25) ---

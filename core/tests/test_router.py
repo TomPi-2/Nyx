@@ -499,12 +499,12 @@ def test_alarm_in_seconds_is_a_timer(index: SystemIndex) -> None:
 @pytest.mark.parametrize(
     ("text", "args"),
     [
-        ("¿va a llover mañana?", {}),
+        ("¿va a llover mañana?", {"day": "tomorrow"}),
         ("¿qué temperatura hace?", {}),
         ("¿qué tiempo hace hoy?", {}),
         ("¿qué tiempo hace en Madrid?", {"city": "Madrid"}),
-        ("¿va a llover mañana en Sevilla?", {"city": "Sevilla"}),
-        ("¿qué tiempo hará en Valencia mañana?", {"city": "Valencia"}),
+        ("¿va a llover mañana en Sevilla?", {"city": "Sevilla", "day": "tomorrow"}),
+        ("¿qué tiempo hará en Valencia mañana?", {"city": "Valencia", "day": "tomorrow"}),
         ("¿hace falta paraguas hoy en Bilbao?", {"city": "Bilbao"}),
         ("¿hace frío afuera?", {}),
     ],

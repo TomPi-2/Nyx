@@ -108,3 +108,21 @@ async def test_normal_replies_are_not_held_back() -> None:
     events = await run(llm)
     assert spoken(events) == "Vale, te propongo «El padrino». Es un clásico."
     assert len(llm.asked) == 1  # sin segundo intento
+
+
+@pytest.mark.parametrize(
+    "said",
+    [
+        "He borrado el contenido del portapapeles.",
+        "He actualizado tu ciudad en la Configuración.",
+        "Ya he guardado tu ciudad.",
+        "Te he puesto el volumen al 30.",
+    ],
+)
+def test_past_tense_claims(said: str) -> None:
+    # Prueba del 2026-11-17: decía que lo había hecho sin llamar a ninguna herramienta.
+    assert claims_action(said)
+
+
+def test_past_tense_that_is_not_an_action() -> None:
+    assert not claims_action("He visto que te gusta el rock.")

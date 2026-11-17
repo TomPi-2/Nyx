@@ -20,7 +20,7 @@ from nyx.tools.open_url import to_url
 
 @rule(
     "undo",
-    r"^(?:deshaz(?:lo)?|deshacer|deshaz eso|deshaz lo ultimo|vuelve atras|revierte(?:lo)?|anula(?:lo)?|anula eso|(?:recupera|restaura)(?:lo|la|los|las)?(?: (?:el|la|los|las) (?:archivos?|carpetas?|fotos?))?(?: de la papelera)?)$",
+    r"^(?:deshaz(?:lo)?|de[sz]h?a[sz]?t?lo|deshacer|deshaz eso|deshaz lo ultimo|vuelve atras|revierte(?:lo)?|anula(?:lo)?|anula eso|(?:recupera|restaura)(?:lo|la|los|las)?(?: (?:el|la|los|las) (?:archivos?|carpetas?|fotos?))?(?: de la papelera)?)$",
 )
 def _undo(m: re.Match[str], _: SystemIndex) -> Route:
     return _call("undo", "undo")

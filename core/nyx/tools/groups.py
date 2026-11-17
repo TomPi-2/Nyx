@@ -93,6 +93,7 @@ GROUPS: tuple[Group, ...] = (
         "pulsar o leer un botón o texto por su nombre",
         ("app_action", "send_hotkey", "type_text", "ui_action"),
         (
+            r"\bpega",
             r"pulsa",
             r"boton",
             r"casilla",
@@ -442,6 +443,7 @@ GROUPS: tuple[Group, ...] = (
         "ajustes y lo pendiente para después de la partida",
         ("nyx_info", "nyx_control", "open_nyx_settings", "pending"),
         (
+            r"tepnyx|tepnix",
             r"nyx",
             r"puedes",
             r"sabes",

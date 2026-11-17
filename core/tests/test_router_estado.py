@@ -58,12 +58,16 @@ def routed(text: str, index: SystemIndex) -> tuple[str, dict[str, Any]] | None:
         # tiempo
         ("¿tengo que coger chaqueta para salir?", "get_weather", {}),
         ("¿hace falta llevar paraguas?", "get_weather", {}),
-        ("¿qué tal día va a hacer mañana?", "get_weather", {}),
+        ("¿qué tal día va a hacer mañana?", "get_weather", {"day": "tomorrow"}),
         ("¿hará bueno este finde en Valencia?", "get_weather", {"city": "Valencia"}),
-        ("¿va a hacer frío mañana?", "get_weather", {}),
+        ("¿va a hacer frío mañana?", "get_weather", {"day": "tomorrow"}),
         ("¿está nublado ahora?", "get_weather", {}),
         ("¿está lloviendo en Bilbao?", "get_weather", {"city": "Bilbao"}),
-        ("¿cuántos grados va a hacer mañana en Barcelona?", "get_weather", {"city": "Barcelona"}),
+        (
+            "¿cuántos grados va a hacer mañana en Barcelona?",
+            "get_weather",
+            {"city": "Barcelona", "day": "tomorrow"},
+        ),
         ("tengo frío, ¿qué temperatura hace fuera?", "get_weather", {}),
         # lo que suena
         ("¿cómo se llama lo que estoy escuchando?", "now_playing", {}),

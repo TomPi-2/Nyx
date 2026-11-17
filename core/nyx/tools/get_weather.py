@@ -12,10 +12,11 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 from pydantic import Field
+from pydantic.json_schema import SkipJsonSchema
 
 from nyx.index.aliases import normalize
 from nyx.tools.base import Category, GamePolicy, Params, Risk, Tool, ToolContext, ToolResult
@@ -140,6 +141,35 @@ def format_weather(place: str, data: dict[str, Any]) -> ToolResult:
 
 class GetWeatherParams(Params):
     city: str = Field(default="", max_length=100, description="Ciudad (vacío = la de Ajustes)")
+    # Solo lo pone el router («¿qué tiempo hará mañana?»): fuera del esquema del modelo, que
+    # tiene el contexto justo (presupuesto de herramientas, 6.20b).
+    day: SkipJsonSchema[Literal["today", "tomorrow"] | None] = None
+
+
+def tomorrow_only(result: ToolResult) -> ToolResult:
+    """«¿Qué tiempo hará mañana?»: solo el de mañana (prueba del 2026-11-17)."""
+    daily = result.data.get("daily") or {}
+    place = str(result.data.get("city") or "")
+    summary = _day_summary("Mañana", daily, 1)
+    if not result.ok or not summary:
+        return result
+    highs = daily.get("temperature_2m_max") or []
+    lows = daily.get("temperature_2m_min") or []
+    shown = place[:1].upper() + place[1:]
+    temps = (
+        f" · máx. {round(float(highs[1]))}° mín. {round(float(lows[1]))}°"
+        if len(highs) > 1 and len(lows) > 1 and highs[1] is not None and lows[1] is not None
+        else ""
+    )
+    codes = daily.get("weather_code") or []
+    sky = describe_code(codes[1]) if len(codes) > 1 else "variable"
+    return result.model_copy(
+        update={
+            "message": f"Tiempo en {place}. {summary}.",
+            "display": f"Mañana · {sky.capitalize()}",
+            "secondary": f"{shown}{temps} · open-meteo.com",
+        }
+    )
 
 
 class GetWeather(Tool[GetWeatherParams]):
@@ -173,6 +203,10 @@ class GetWeather(Tool[GetWeatherParams]):
         self._coords.clear()
 
     async def run(self, params: GetWeatherParams, ctx: ToolContext) -> ToolResult:
+        result = await self._forecast(params, ctx)
+        return tomorrow_only(result) if params.day == "tomorrow" else result
+
+    async def _forecast(self, params: GetWeatherParams, ctx: ToolContext) -> ToolResult:
         city = (params.city or ctx.settings.general.city).strip()
         here = None
         if not city and self._locator is not None:

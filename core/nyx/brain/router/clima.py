@@ -54,4 +54,7 @@ _NOT_A_CITY = (
 def _weather(m: re.Match[str], __: SystemIndex) -> Route:
     raw = re.sub(rf"(?:^|\s+){_WHEN_WEATHER}$", "", m.group("city") or "").strip()
     city = _original(raw) if raw else None
-    return _call("weather", "get_weather", city=city)
+    # «¿Qué tiempo va a hacer mañana?»: solo mañana (prueba del 2026-11-17).
+    said = m.group(0)
+    tomorrow = re.search(r"\bmanana\b", said) is not None and "pasado manana" not in said
+    return _call("weather", "get_weather", city=city, day="tomorrow" if tomorrow else None)
