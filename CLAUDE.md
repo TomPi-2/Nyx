@@ -63,8 +63,10 @@ Recuérdaselo al usuario al llegar a la fase 6.
   usuario; mejor que lo mire también el abogado) — 2026-11-13
 - [x] `SECURITY.md` y `CONTRIBUTING.md` (aceptados, 2026-11-13)
 - [x] Revisar todo el historial de git en busca de secretos: ninguno
-- [ ] Correo del autor (y usuario de Windows en 5 líneas antiguas) en el historial:
-  reescribirlo justo antes de publicar, pendiente de que el usuario lo confirme (`REVISAR.md`)
+- [x] Correo del autor y usuario de Windows reescritos en todo el historial (2026-11-17, con
+  `git-filter-repo`): el `noreply` de GitHub (`200746407+TomPi-2@users.noreply.github.com`),
+  también para los commits nuevos (`git config user.email` del repositorio); copia de antes
+  en `../Nyx-copia-antes-de-reescribir-2026-11-17.bundle`
 - [x] Auditoría de licencias de dependencias y modelos: `docs/LICENCIAS.md` (todo compatible;
   `nyx-v1` bajo CC BY-SA 4.0; créditos en la app, en la 0.9)
 - [ ] Cambiar la visibilidad en GitHub y configurar SignPath (cuando el usuario diga «publícalo»)
