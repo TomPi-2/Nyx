@@ -73,7 +73,7 @@ Recuérdaselo al usuario al llegar a la fase 6.
   (todas las variantes de CPU y Vulkan). **Las versiones se compilan con
   `-Whisper C:\dev\tools\whisper.cpp\build-portable\bin\Release`**; el de `build\` se cae en
   procesadores sin AVX-512.
-- [ ] Subir el cerebro de Nyx a la Release `cerebro-r2`: los trozos de `dist\brain\`
+- [x] Subir el cerebro de Nyx a la Release `cerebro-r2` (2026-11-17, huellas comprobadas): los trozos de `dist\brain\`
   (`core/scripts/export_brain.py`; el manifiesto con sus huellas ya va en
   `core/nyx/brain/data/cerebro.json`). Sin ellos, el primer arranque baja `qwen2.5:7b`.
 - [ ] Las páginas de Nyx y de sus códigos de error (`tepnyx.com/nyx/errores`, desde
