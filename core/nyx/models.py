@@ -24,6 +24,9 @@ from nyx.paths import models_dir
 log = logging.getLogger(__name__)
 
 CHUNK = 1 << 20
+# Las de Hugging Face, fijadas a una versión concreta (no «main»): si cambian el archivo, la
+# huella deja de coincidir y nadie puede instalar (D-202 de un tester, 2026-11-18: el 17 de
+# noviembre rhasspy cambió los .onnx.json de las voces de Piper).
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,7 +85,7 @@ CATALOG: tuple[ModelFile, ...] = (
     ModelFile(
         key="stt",
         filename="ggml-large-v3-turbo-q5_0.bin",
-        url="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin",
+        url="https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-large-v3-turbo-q5_0.bin",
         sha256="394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
         size_mb=547,
         license="MIT",
@@ -91,7 +94,7 @@ CATALOG: tuple[ModelFile, ...] = (
     ModelFile(
         key="voice-davefx",
         filename="es_ES-davefx-medium.onnx",
-        url="https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_ES/davefx/medium/es_ES-davefx-medium.onnx",
+        url="https://huggingface.co/rhasspy/piper-voices/resolve/e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c/es/es_ES/davefx/medium/es_ES-davefx-medium.onnx",
         sha256="d2c9224e122321aac3c33343957fff4d0f465226cb74c66b0f520ca3f8c0dd07",
         size_mb=64,
         license="CC0",
@@ -99,7 +102,7 @@ CATALOG: tuple[ModelFile, ...] = (
     ModelFile(
         key="voice-davefx-config",
         filename="es_ES-davefx-medium.onnx.json",
-        url="https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_ES/davefx/medium/es_ES-davefx-medium.onnx.json",
+        url="https://huggingface.co/rhasspy/piper-voices/resolve/e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c/es/es_ES/davefx/medium/es_ES-davefx-medium.onnx.json",
         sha256="531c4051502e1acbc10b42437f11679bfce9e3919e1796e51fabd73e01e7fd2e",
         size_mb=1,
         license="CC0",
@@ -107,7 +110,7 @@ CATALOG: tuple[ModelFile, ...] = (
     ModelFile(
         key="voice-daniela",
         filename="es_AR-daniela-high.onnx",
-        url="https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_AR/daniela/high/es_AR-daniela-high.onnx",
+        url="https://huggingface.co/rhasspy/piper-voices/resolve/e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c/es/es_AR/daniela/high/es_AR-daniela-high.onnx",
         sha256="7ceb1fc0dab349418c5b54a639ae9ee595212d7c9ea422220d8419163d5cc985",
         size_mb=115,
         license="CC-BY-SA-4.0 (datos: OpenSLR 61)",
@@ -115,7 +118,7 @@ CATALOG: tuple[ModelFile, ...] = (
     ModelFile(
         key="voice-daniela-config",
         filename="es_AR-daniela-high.onnx.json",
-        url="https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_AR/daniela/high/es_AR-daniela-high.onnx.json",
+        url="https://huggingface.co/rhasspy/piper-voices/resolve/e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c/es/es_AR/daniela/high/es_AR-daniela-high.onnx.json",
         sha256="aedbf69647e1d754c62ecf8e0366ca5f16af3e768e3c6b5329af6eb6bde3852b",
         size_mb=1,
         license="CC-BY-SA-4.0 (datos: OpenSLR 61)",

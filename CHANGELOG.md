@@ -89,6 +89,9 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
 
 ### Corregido
 
+- Instalar en un PC nuevo fallaba (I-131 y D-202 con `es_ES-davefx-medium.onnx.json`): Hugging Face cambió ese archivo el 17 de noviembre. Ahora todo se baja de versiones fijas.
+- Ya no parpadean ventanas de cmd al arrancar Nyx o cargar el cerebro: Ollama arranca con su consola oculta.
+
 - Instalador (I-131 de un tester): las descargas del oído y la voz se reintentan y siguen donde se cortaron, la voz enseña su avance, el motivo de un fallo se guarda en `logs\instalador.log`, y la forma de Nyx se llena suave a la velocidad de la descarga, sin saltos.
 
 - Prueba del 2026-11-17: Nyx ya no dice que ha hecho algo sin hacerlo («He borrado…»); «pégalo en la nota» pega lo copiado; «borra todo lo de la nota» la vacía (con Ctrl+Z para deshacer); «escríbeme todo ese texto» lo enseña en el panel; el dictado empieza con más formas de pedirlo («te voy a dictar», «abre el bloc de notas y redacta…»); «guarda mi ciudad» guarda la de tu ubicación (antes, «La Configuración»); el tiempo de mañana es el de mañana; lo que sabe de Tepnyx ya no se lo inventa; «escribe hola en el Bloc de notas» escribe solo «hola»; y un modo automático nunca abre ventanas.

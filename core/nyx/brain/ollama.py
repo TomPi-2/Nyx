@@ -60,13 +60,20 @@ def launch_ollama() -> bool:
     if sys.platform != "win32":
         subprocess.Popen(cmd, start_new_session=True)
         return True
-    base = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+    # Con su propia consola, pero oculta. Sin consola (DETACHED_PROCESS, hasta el 2026-11-18),
+    # cada programa que lanza Ollama (llama-server, gpu-discover…) abría la suya y se veían
+    # ventanas de cmd parpadeando al arrancar Nyx y al cargar el cerebro.
+    base = subprocess.CREATE_NEW_CONSOLE | subprocess.CREATE_NEW_PROCESS_GROUP
+    hidden = subprocess.STARTUPINFO()
+    hidden.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    hidden.wShowWindow = 0  # SW_HIDE
     # Fuera del job object de Nyx (ver winjob.py) para no cerrarlo al salir de Nyx.
     for flags in (base | subprocess.CREATE_BREAKAWAY_FROM_JOB, base):
         try:
             subprocess.Popen(
                 cmd,
                 creationflags=flags,
+                startupinfo=hidden,
                 # En su carpeta: si heredara la de Nyx, al seguir abierto no dejaría
                 # reinstalar ni actualizar Nyx (I-110).
                 cwd=Path(cmd[0]).parent,

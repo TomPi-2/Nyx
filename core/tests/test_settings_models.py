@@ -187,3 +187,10 @@ def test_download_retries_and_gives_up(tmp_path: Path, monkeypatch: pytest.Monke
     with pytest.raises(DownloadError):
         download(model, tmp_path, client=httpx.Client(transport=httpx.MockTransport(broken)))
     assert len(waits) == models.ATTEMPTS - 1
+
+
+def test_hugging_face_downloads_are_pinned() -> None:
+    """«main» cambia: un archivo nuevo rompe la huella y nadie puede instalar (2026-11-18)."""
+    from nyx.models import CATALOG
+
+    assert not [m.url for m in CATALOG if "/resolve/main/" in m.url]
