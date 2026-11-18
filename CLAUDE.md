@@ -70,7 +70,9 @@ Recuérdaselo al usuario al llegar a la fase 6.
   en `../Nyx-copia-antes-de-reescribir-2026-11-17.bundle`
 - [x] Auditoría de licencias de dependencias y modelos: `docs/LICENCIAS.md` (todo compatible;
   `nyx-v1` bajo CC BY-SA 4.0; créditos en la app, en la 0.9)
-- [ ] Cambiar la visibilidad en GitHub y configurar SignPath (cuando el usuario diga «publícalo»)
+- [x] Repositorio público (2026-11-18, con el sí del usuario). **Sin instaladores en GitHub**:
+  el usuario los pasa a mano a los testers hasta que lo diga (no subir Releases de versión).
+- [ ] Configurar SignPath (firma del instalador) y la Release de la versión, cuando el usuario lo diga
 - [x] `whisper-server` recompilado sin `GGML_NATIVE` (con `GGML_BACKEND_DL` y
   `GGML_CPU_ALL_VARIANTS`) el 2026-11-16: `C:\dev\tools\whisper.cpp\build-portable\bin\Release`
   (todas las variantes de CPU y Vulkan). **Las versiones se compilan con
