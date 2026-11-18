@@ -1,0 +1,326 @@
+# Palabras y frases en otros idiomas para la voz de Nyx (decisión del usuario, 2026-11-18):
+# que «¿cómo se dice hola en inglés?» suene «hello» con acento inglés (aunque un poco
+# españolizado), no leído como en español. Formato: idioma | texto | pista de pronunciación
+# para quien graba (la pista no se lee). Idiomas: en, fr, it, de, pt; «marca» son nombres de
+# apps y servicios dichos como se dicen en su idioma. Se graban en sesiones aparte, al final.
+# El texto se transcribe por trozos de idioma (español fuera de las comillas, el idioma de la
+# línea dentro) para entrenar con fonemas de cada idioma.
+
+# Inglés: frases con «se dice»
+en | En inglés se dice «hello». | jelóu, con la jota suave como una h inglesa
+en | En inglés se dice «thank you». | zénk iú, la «th» con la lengua entre los dientes
+en | En inglés se dice «goodbye». | gudbái
+en | En inglés se dice «please». | plíis
+en | En inglés se dice «good morning». | gud mórnin, la r suave
+en | En inglés se dice «good night». | gud náit
+en | En inglés se dice «how are you?». | jáu ar iú
+en | En inglés se dice «I love you». | ái lav iú, la v suave con el labio
+en | En inglés se dice «sorry». | sóri, la r inglesa
+en | En inglés se dice «excuse me». | ekskiús mi
+en | En inglés se dice «nice to meet you». | náis tu míit iú
+en | En inglés se dice «welcome». | uélcam
+en | En inglés se dice «see you later». | síi iú léiter
+en | En inglés se dice «happy birthday». | jápi bérzdei
+en | En inglés se dice «cheers». | chíers
+en | En inglés se dice «water». | uóter
+en | En inglés se dice «house». | jáus
+en | En inglés se dice «computer». | compiúter
+en | En inglés se dice «keyboard». | kíbord
+en | En inglés se dice «mouse». | máus
+en | En inglés se dice «window». | uíndou
+en | En inglés se dice «weather». | uéder, la «th» suave como una d entre los dientes
+en | En inglés se dice «three». | zrii, con la lengua entre los dientes
+en | En inglés se dice «thirty». | zérti
+en | En inglés se dice «the». | da, con la lengua entre los dientes
+en | En inglés se dice «this». | dis, con la lengua entre los dientes
+en | En inglés se dice «brother». | bráder
+en | En inglés se dice «world». | uérld
+en | En inglés se dice «girl». | guérl
+en | En inglés se dice «cat». | kat, una a abierta, casi e
+en | En inglés se dice «cup». | kap
+en | En inglés se dice «book». | buk
+en | En inglés se dice «food». | fuud, la u larga
+en | En inglés se dice «ship». | ship, la i corta
+en | En inglés se dice «sheep». | shiip, la i larga
+en | En inglés se dice «vision». | víyen, la «s» como la j francesa
+en | En inglés se dice «judge». | yach
+en | En inglés se dice «zero». | zírou, la z zumbando
+en | En inglés se dice «very». | véri, la v con el labio
+en | En inglés se dice «yellow». | iélou
+en | En inglés se dice «orange». | órinch
+en | En inglés se dice «purple». | pérpl
+en | En inglés se dice «Monday». | mándei
+en | En inglés se dice «Wednesday». | uénsdei
+en | En inglés se dice «Thursday». | zérsdei
+en | En inglés se dice «Saturday». | sáterdei
+en | En inglés se dice «January». | yániueri
+en | En inglés se dice «February». | fébrueri
+en | En inglés se dice «one, two, three». | uan, tu, zrii
+en | En inglés se dice «seven». | séven
+en | En inglés se dice «eight». | éit
+en | En inglés se dice «a hundred». | a jándred
+en | En inglés se dice «a thousand». | a záusand
+en | En inglés se dice «beautiful». | biútiful
+en | En inglés se dice «awesome». | ósam
+en | En inglés se dice «difficult». | díficalt
+en | En inglés se dice «easy». | íisi
+en | En inglés se dice «I don't know». | ái dóunt nóu
+en | En inglés se dice «what time is it?». | uát táim is it
+en | En inglés se dice «where is the bathroom?». | uér is de bázrum
+en | En inglés se dice «how much is it?». | jáu mach is it
+en | En inglés se dice «I'm hungry». | áim jángri
+en | En inglés se dice «I'm tired». | áim táierd
+en | En inglés se dice «let's go». | lets góu
+en | En inglés se dice «good luck». | gud lak
+en | En inglés se dice «congratulations». | congrachuléishons
+en | En inglés se dice «Merry Christmas». | méri crísmas
+en | En inglés se dice «Happy New Year». | jápi niú íer
+en | En inglés se dice «strawberry». | stróberi
+en | En inglés se dice «chicken». | chíken
+en | En inglés se dice «bread». | bred
+en | En inglés se dice «cheese». | chiis
+en | En inglés se dice «breakfast». | brékfast
+en | En inglés se dice «friend». | frend
+en | En inglés se dice «family». | fámili
+en | En inglés se dice «school». | skuul
+en | En inglés se dice «job». | yob
+en | En inglés se dice «money». | máni
+en | En inglés se dice «phone». | fóun
+en | En inglés se dice «screen». | skriin
+en | En inglés se dice «download». | dáunloud
+en | En inglés se dice «settings». | sétings
+en | En inglés se dice «shortcut». | shórtcat
+# Inglés: palabras sueltas que salen en respuestas
+en | Hello. | jelóu
+en | Thank you very much. | zénk iú véri mach
+en | Yes. | ies
+en | No. | nóu
+en | Okay. | oukéi
+en | Of course. | of cors
+en | Right now. | ráit náu
+en | Good job. | gud yob
+en | Game over. | guéim óuver
+en | Ready? | rédi
+en | Let's play. | lets pléi
+en | Full screen. | ful skriin
+en | Low battery. | lóu báteri
+en | Update. | apdéit
+en | Weekend. | uíkend
+en | Streaming. | strímin
+en | Feedback. | fídbak
+en | Email. | ímeil
+en | Online. | onláin
+en | Password. | pásuord
+# Inglés: títulos y nombres
+en | «The Lord of the Rings». | de lord of de rings
+en | «Breaking Bad». | bréiking bad
+en | «Stranger Things». | stréinyer zings
+en | «Game of Thrones». | guéim of zróuns
+en | «The Beatles». | de bítls
+en | «Bohemian Rhapsody». | bojímian rápsodi
+en | «New York». | niú iórk
+en | «London». | lándon
+en | «Shakespeare». | shéikspir
+en | «Microsoft». | máicrosoft
+
+# Francés
+fr | En francés se dice «bonjour». | bonyúr, la j como en «jardin» francés y r de garganta
+fr | En francés se dice «merci». | mersí, r de garganta
+fr | En francés se dice «au revoir». | o revuár
+fr | En francés se dice «s'il vous plaît». | sil vu plé
+fr | En francés se dice «bonsoir». | bonsuár, «on» nasal
+fr | En francés se dice «bonne nuit». | bon nuí, la u con los labios redondos
+fr | En francés se dice «comment ça va?». | comán sa va, «an» nasal
+fr | En francés se dice «je t'aime». | ye tem, la j suave francesa
+fr | En francés se dice «pardon». | pardón, «on» nasal
+fr | En francés se dice «excusez-moi». | exkiuzé muá
+fr | En francés se dice «enchanté». | anshanté, nasales
+fr | En francés se dice «bienvenue». | bienvenü, la ü francesa
+fr | En francés se dice «à bientôt». | a bientó
+fr | En francés se dice «joyeux anniversaire». | yuayö anivercér
+fr | En francés se dice «l'eau». | lo
+fr | En francés se dice «la maison». | la mesón, «on» nasal
+fr | En francés se dice «l'ordinateur». | lordinatör
+fr | En francés se dice «le clavier». | le claviér
+fr | En francés se dice «la fenêtre». | la fenétr
+fr | En francés se dice «le temps». | le tan, nasal
+fr | En francés se dice «trois». | truá
+fr | En francés se dice «vingt». | ven, nasal
+fr | En francés se dice «cent». | san, nasal
+fr | En francés se dice «lundi». | landí, nasal
+fr | En francés se dice «beau». | bo
+fr | En francés se dice «difficile». | difisíl
+fr | En francés se dice «je ne sais pas». | ye ne se pa
+fr | En francés se dice «quelle heure est-il?». | kel ör etíl
+fr | En francés se dice «où sont les toilettes?». | u son le tualét
+fr | En francés se dice «combien ça coûte?». | combián sa cut
+fr | En francés se dice «j'ai faim». | ye fan, nasal
+fr | En francés se dice «allons-y». | alonsí
+fr | En francés se dice «bonne chance». | bon shans
+fr | En francés se dice «félicitations». | felisitasión
+fr | En francés se dice «joyeux Noël». | yuayö noél
+fr | En francés se dice «le pain». | le pan, nasal
+fr | En francés se dice «le fromage». | le fromash, la j suave
+fr | En francés se dice «l'ami». | lamí
+fr | En francés se dice «la famille». | la famíi
+fr | En francés se dice «l'école». | lecól
+fr | Bonjour. | bonyúr
+fr | Merci beaucoup. | mersí bocú
+fr | Oui. | uí
+fr | «Paris». | parí, r de garganta
+fr | «La Tour Eiffel». | la tur efél
+fr | «Champs-Élysées». | shan selisé
+
+# Italiano
+it | En italiano se dice «ciao». | chao
+it | En italiano se dice «grazie». | grátsie
+it | En italiano se dice «prego». | prégo
+it | En italiano se dice «buongiorno». | buonyórno
+it | En italiano se dice «buonanotte». | buonanót-te, con la doble t marcada
+it | En italiano se dice «arrivederci». | arrivedérchi
+it | En italiano se dice «per favore». | per favóre
+it | En italiano se dice «come stai?». | come stái
+it | En italiano se dice «ti amo». | ti ámo
+it | En italiano se dice «scusa». | skúsa
+it | En italiano se dice «piacere». | piachére
+it | En italiano se dice «benvenuto». | benvenúto
+it | En italiano se dice «a presto». | a présto
+it | En italiano se dice «buon compleanno». | buon compleán-no
+it | En italiano se dice «l'acqua». | lák-kua
+it | En italiano se dice «la casa». | la kása, la s sonora
+it | En italiano se dice «il computer». | il compiúter
+it | En italiano se dice «la finestra». | la finéstra
+it | En italiano se dice «il tempo». | il témpo
+it | En italiano se dice «tre». | tre
+it | En italiano se dice «venti». | vénti
+it | En italiano se dice «lunedì». | lunedí
+it | En italiano se dice «bello». | bél-lo
+it | En italiano se dice «difficile». | dif-fíchile
+it | En italiano se dice «non lo so». | non lo so
+it | En italiano se dice «che ore sono?». | ke óre sóno
+it | En italiano se dice «dov'è il bagno?». | dové il báño
+it | En italiano se dice «quanto costa?». | kuánto kósta
+it | En italiano se dice «ho fame». | o fáme
+it | En italiano se dice «andiamo». | andiámo
+it | En italiano se dice «in bocca al lupo». | in bók-ka al lúpo
+it | En italiano se dice «complimenti». | compliménti
+it | En italiano se dice «buon Natale». | buon natále
+it | En italiano se dice «la pizza». | la pít-tsa
+it | En italiano se dice «gli amici». | lli amíchi, la «gli» como una ll suave
+it | En italiano se dice «la famiglia». | la famíllia
+it | En italiano se dice «la scuola». | la skuóla
+it | Grazie mille. | grátsie míl-le
+it | «Roma». | róma
+it | «Firenze». | firéntse
+
+# Alemán
+de | En alemán se dice «hallo». | hálo, la h aspirada
+de | En alemán se dice «danke». | dánke
+de | En alemán se dice «bitte». | bíte
+de | En alemán se dice «guten Morgen». | gúten mórguen
+de | En alemán se dice «gute Nacht». | gúte naj, la j suave de garganta
+de | En alemán se dice «auf Wiedersehen». | auf vídersen
+de | En alemán se dice «wie geht's?». | vi guets
+de | En alemán se dice «ich liebe dich». | ij líbe dij, la «ch» como un siseo suave
+de | En alemán se dice «Entschuldigung». | entshúldigun
+de | En alemán se dice «willkommen». | vilkómen
+de | En alemán se dice «bis bald». | bis balt
+de | En alemán se dice «alles Gute zum Geburtstag». | ales gúte tsum gebúrtstak
+de | En alemán se dice «das Wasser». | das váser
+de | En alemán se dice «das Haus». | das haus
+de | En alemán se dice «der Computer». | der kompiúter
+de | En alemán se dice «das Fenster». | das fénster
+de | En alemán se dice «das Wetter». | das véter
+de | En alemán se dice «drei». | drai
+de | En alemán se dice «zwanzig». | tsvántsij
+de | En alemán se dice «Montag». | móntak
+de | En alemán se dice «schön». | shön, la ö con los labios redondos
+de | En alemán se dice «schwierig». | shvírij
+de | En alemán se dice «ich weiß nicht». | ij vais nijt
+de | En alemán se dice «wie spät ist es?». | vi shpet ist es
+de | En alemán se dice «wo ist die Toilette?». | vo ist di toaléte
+de | En alemán se dice «wie viel kostet das?». | vi fil kóstet das
+de | En alemán se dice «ich habe Hunger». | ij hábe húnguer
+de | En alemán se dice «los geht's». | los guets
+de | En alemán se dice «viel Glück». | fil glük
+de | En alemán se dice «frohe Weihnachten». | fróe váinajten
+de | En alemán se dice «das Brot». | das brot
+de | En alemán se dice «der Käse». | der kése
+de | En alemán se dice «der Freund». | der froind
+de | En alemán se dice «die Familie». | di famílie
+de | En alemán se dice «die Schule». | di shúle
+de | Danke schön. | dánke shön
+de | Ja. | ia
+de | «München». | münjen
+de | «Berlin». | berlín
+
+# Portugués
+pt | En portugués se dice «olá». | olá
+pt | En portugués se dice «obrigado». | obrigádu
+pt | En portugués se dice «obrigada». | obrigáda
+pt | En portugués se dice «por favor». | pur favór
+pt | En portugués se dice «bom dia». | bom día, «om» nasal
+pt | En portugués se dice «boa noite». | bóa nóite
+pt | En portugués se dice «tchau». | chau
+pt | En portugués se dice «tudo bem?». | túdu bein
+pt | En portugués se dice «eu te amo». | éu te ámu
+pt | En portugués se dice «desculpa». | desculpa, la s final como sh
+pt | En portugués se dice «prazer». | prasér
+pt | En portugués se dice «bem-vindo». | bein víndu
+pt | En portugués se dice «até logo». | até lógu
+pt | En portugués se dice «feliz aniversário». | felish aniversáriu
+pt | En portugués se dice «a água». | a água
+pt | En portugués se dice «a casa». | a cása
+pt | En portugués se dice «o computador». | u computadór
+pt | En portugués se dice «a janela». | a yanéla, la j suave
+pt | En portugués se dice «o tempo». | u tempu, nasal
+pt | En portugués se dice «três». | tresh
+pt | En portugués se dice «vinte». | vínchi
+pt | En portugués se dice «segunda-feira». | segunda féira
+pt | En portugués se dice «bonito». | bunítu
+pt | En portugués se dice «difícil». | difísiu
+pt | En portugués se dice «não sei». | naun sei, nasal
+pt | En portugués se dice «que horas são?». | ki óras saun
+pt | En portugués se dice «onde fica o banheiro?». | ondi fica u bañéiru
+pt | En portugués se dice «quanto custa?». | cuántu cústa
+pt | En portugués se dice «estou com fome». | estó com fómi
+pt | En portugués se dice «vamos». | vámush
+pt | En portugués se dice «boa sorte». | bóa sórchi
+pt | En portugués se dice «parabéns». | parabéins
+pt | En portugués se dice «feliz Natal». | felish natáu
+pt | En portugués se dice «o pão». | u paun, nasal
+pt | Muito obrigado. | múintu obrigádu
+pt | «Lisboa». | lishbóa
+pt | «São Paulo». | saun páulu
+
+# Marcas y apps, dichas como en su idioma
+marca | Te abro YouTube. | iútub
+marca | Te abro Twitch. | tuích
+marca | Te abro Netflix. | nétflix
+marca | Te abro WhatsApp. | uatsáp
+marca | Te abro Google Chrome. | gúgl crom
+marca | Te abro Microsoft Edge. | máicrosoft edch
+marca | Te abro Spotify. | spótifai
+marca | Te abro Discord. | díscord
+marca | Te abro Steam. | stíim
+marca | Te abro Visual Studio Code. | víshual stúdio cóud
+marca | Te abro PowerPoint. | páuerpoint
+marca | Te abro OneDrive. | uándraif
+marca | Te abro Outlook. | áutluk
+marca | Te abro Teams. | tíims
+marca | Te abro Photoshop. | fóutoshop
+marca | Te abro Firefox. | fáierfox
+marca | Te abro Epic Games. | épic guéims
+marca | Te abro Battle.net. | bátl net
+marca | Te abro Fortnite. | fórtnait
+marca | Te abro League of Legends. | líig of léyends
+marca | Te abro Valorant. | válorant
+marca | Te abro Minecraft. | máincraft
+marca | Te abro Rocket League. | róket líig
+marca | Te abro Call of Duty. | col of diúti
+marca | Te abro Counter-Strike. | cáunter stráik
+marca | Te abro Overwatch. | óveruach
+marca | Te abro Apex Legends. | éipex léyends
+marca | Te abro OBS Studio. | ou bi es stúdio
+marca | Te abro Amazon Prime Video. | ámason práim vídeo
+marca | Te abro Disney Plus. | dísni plas

@@ -16,7 +16,18 @@
     texto: string;
     tono: string;
     fuente: string;
+    /** Idioma de lo que va entre comillas («es» si todo es español) y cómo se pronuncia. */
+    idioma?: string;
+    pista?: string;
   }
+  const IDIOMAS: Record<string, string> = {
+    en: "inglés",
+    fr: "francés",
+    it: "italiano",
+    de: "alemán",
+    pt: "portugués",
+    marca: "nombre en su idioma",
+  };
   interface Analysis {
     seconds: number;
     peak_db: number;
@@ -288,6 +299,12 @@
     <section class="card line" class:rec={recording}>
       <div class="tone">{TONOS[linea.tono] ?? linea.tono}</div>
       <p class="text">{linea.texto}</p>
+      {#if linea.pista}
+        <!-- No se lee: cómo suena lo de otro idioma (con acento, sin exagerar). -->
+        <p class="hint">
+          {IDIOMAS[linea.idioma ?? ""] ?? linea.idioma}: suena «{linea.pista}» · no lo leas
+        </p>
+      {/if}
       <div class="meta">
         {#if recording}
           <span class="dot"></span> Grabando… {seconds.toFixed(1)} s
@@ -437,6 +454,12 @@
     margin: 0;
     font: 500 30px/1.35 var(--display);
     text-wrap: balance;
+  }
+
+  .hint {
+    margin: 10px 0 0;
+    font-size: 15px;
+    opacity: 0.7;
   }
 
   .meta {

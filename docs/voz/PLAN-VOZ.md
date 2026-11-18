@@ -40,3 +40,36 @@ a grabar cambia los ids: hacerlo solo antes de la primera sesión, o añadir ses
 Con la primera sesión recibida: comprobar las tomas (`tomas.jsonl` trae el análisis de cada
 una), limpiar y montar el primer conjunto de entrenamiento. Con la primera hora: probar los
 modelos y escucharlos juntos antes de que grabe el resto.
+
+## Otros idiomas con su acento (decisión del usuario, 2026-11-18)
+
+Que «¿cómo se dice hola en inglés?» suene *hello* con acento inglés (un poco españolizado
+vale), y en general que las palabras de otro idioma no se lean como en español.
+
+**El guion:** las sesiones 19 a 21 (305 frases, `core/training/voz/frases_idiomas.txt`)
+son solo para esto: «En inglés se dice «thank you».», palabras sueltas y nombres en inglés,
+francés, italiano, alemán y portugués, y apps y juegos dichos como en su idioma («Te abro
+YouTube»). Cada frase lleva su idioma y una **pista** de cómo suena, que la grabadora enseña
+debajo del texto y no se lee. Se graban al final, sin tocar las 18 primeras. Con ellas salen
+los sonidos que el español no tiene: la *th* inglesa, la *h* aspirada, las vocales nasales
+del francés y el portugués, la *ü* y la *ö*, las dobles del italiano.
+
+**Para dirigir estas sesiones:** que las diga como una española que sabe pronunciarlas, sin
+imitar a un nativo. Repetir si una palabra sale leída en español («jello» por *hello*), no por
+acento.
+
+**Lo que hace falta además (no basta con grabar):**
+
+1. **Entrenar con fonemas y no con letras.** El texto de cada frase se pasa a fonemas por
+   trozos: lo que va fuera de las comillas con el español de `espeak-ng` y lo de dentro con
+   el idioma de la frase (`en-us`, `fr`, `it`, `de`, `pt`). Así el modelo aprende qué sonido
+   es cada fonema inglés o francés, con su voz. Piper (VITS) entrena así. Con letras, *hello*
+   siempre sonará «elo».
+2. **Que Nyx marque lo que está en otro idioma** al hablar: las respuestas de «¿cómo se
+   dice…?» ya traen el idioma en la cabecera (`[Hallo | hola · alemán]`). Las fijas y el
+   modelo marcarán el trozo (por ejemplo `«hello»{en}`) y la voz lo pasará a fonemas con su
+   idioma. Los nombres de apps y juegos, con una lista de pronunciaciones.
+3. **Probarlo antes de grabar todo:** con la primera hora y la sesión 19, un modelo de prueba
+   y escucharlo juntos.
+
+Mientras tanto, la voz de ahora («lola», Pocket TTS) lee todo como en español.

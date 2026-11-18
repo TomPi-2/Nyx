@@ -380,10 +380,16 @@ la carpeta en la que trabajas, y **Recargar** la vuelve a leer cuando cambias al
 
 ## 11. Firmar y publicar
 
-Las extensiones que revisa Tepnyx van firmadas (Ed25519 sobre la huella de cada archivo) y se
-instalan sin el modo desarrollador. Sin firma, solo con el modo desarrollador y como «Sin
-revisar». Si Tepnyx retira una extensión (lista de revocación firmada), Nyx la desactiva y dice
-por qué.
+**Toda extensión que se publique pasa por la revisión de Tepnyx**, pida los permisos que pida
+(no solo las de permisos delicados). Tepnyx revisa el código, los permisos y que haga lo que
+dice, y la firma (Ed25519 sobre la huella de cada archivo): solo las firmadas se instalan sin
+el modo desarrollador y salen en la tienda. Sin firma, solo con el modo desarrollador y como
+«Sin revisar», para probar las tuyas. Si Tepnyx retira una extensión (lista de revocación
+firmada), Nyx la desactiva y dice por qué.
+
+**Recompensa por publicar:** quien publique una extensión (revisada y aprobada) recibe **10 €
+de saldo en su cuenta de Tepnyx**. Está por decidir si se puede gastar en todo Tepnyx o solo en
+extensiones.
 
 La tienda llegará con Nyx 1.0 en tepnyx.com. Hasta entonces, si quieres que Tepnyx revise y
 firme la tuya, escribe a Tepnyx. Las extensiones de pago serán siempre de pago único.

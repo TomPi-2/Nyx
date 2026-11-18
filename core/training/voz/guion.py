@@ -38,6 +38,8 @@ HERE = Path(__file__).resolve().parent
 OUT = CORE.parent / "tools" / "grabadora" / "src" / "guion.json"
 CV = HERE / "fuentes" / "commonvoice-es.txt"
 OWN = HERE / "frases_nyx.txt"
+#: Palabras en otros idiomas (2026-11-18): sesiones aparte, al final, sin tocar las demás.
+LANGS = HERE / "frases_idiomas.txt"
 
 PER_SESSION = 150
 #: Cuántas frases de Common Voice: con las demás, unas 2.900 (3–4 horas grabadas).
@@ -52,6 +54,9 @@ class Line:
     texto: str
     tono: str
     fuente: str
+    #: Idioma de lo que va entre comillas (es: todo en español) y cómo se pronuncia (no se lee).
+    idioma: str = "es"
+    pista: str = ""
 
 
 # --- Números en letra ---------------------------------------------------------------------
@@ -411,7 +416,28 @@ def build() -> list[Line]:
         rng.shuffle(bucket)
         for i, (text, tone, key) in enumerate(bucket, start=1):
             lines.append(Line(f"s{s:02d}-{i:03d}", s, text, tone, key))
-    return lines
+    return lines + language_lines(len(buckets))
+
+
+def language_lines(after: int) -> list[Line]:
+    """Las frases de otros idiomas, en sesiones nuevas tras la `after` (los ids de las demás no
+    cambian). Con su idioma y una pista de pronunciación para quien graba."""
+    if not LANGS.exists():
+        return []
+    items: list[tuple[str, str, str]] = []
+    for raw in LANGS.read_text(encoding="utf-8").splitlines():
+        if not raw.strip() or raw.startswith("#"):
+            continue
+        lang, text, hint = (part.strip() for part in raw.split("|", 2))
+        items.append((lang, text, hint))
+    random.Random(SEED + 1).shuffle(items)
+    out: list[Line] = []
+    for n, (lang, text, hint) in enumerate(items):
+        session = after + 1 + n // PER_SESSION
+        index = n % PER_SESSION + 1
+        tone = "pregunta" if text.endswith("?»") or text.endswith("?") else "cercana"
+        out.append(Line(f"s{session:02d}-{index:03d}", session, text, tone, "idiomas", lang, hint))
+    return out
 
 
 def main() -> None:
