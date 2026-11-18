@@ -153,7 +153,11 @@ pub fn relaunch(stopped: &[(PathBuf, bool)]) {
 pub fn names(stopped: &[(PathBuf, bool)]) -> String {
     stopped
         .iter()
-        .filter_map(|(p, _)| Path::new(p).file_stem().map(|s| s.to_string_lossy().into_owned()))
+        .filter_map(|(p, _)| {
+            Path::new(p)
+                .file_stem()
+                .map(|s| s.to_string_lossy().into_owned())
+        })
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -174,7 +178,10 @@ mod tests {
     fn names_of_what_was_closed() {
         let stopped = vec![
             (PathBuf::from(r"C:\Programas\Ollama\ollama app.exe"), false),
-            (PathBuf::from(r"C:\Program Files\Everything\Everything.exe"), true),
+            (
+                PathBuf::from(r"C:\Program Files\Everything\Everything.exe"),
+                true,
+            ),
         ];
         assert_eq!(names(&stopped), "ollama app, Everything");
     }

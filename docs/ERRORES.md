@@ -15,6 +15,7 @@ Fallos vistos al usar Nyx que quedan pendientes de corregir. Se apuntan aquí pa
 
 | Fecha | Error | Commit |
 | --- | --- | --- |
+| 2026-11-18 | Un tester: I-131 al bajar el oído y la voz, con la barra parada en el 60 %. Una descarga cortada se tiraba entera y no se reintentaba; la voz (Pocket TTS) no avisaba de su avance; y el instalador no guardaba el motivo. | Arreglado: cada descarga se reintenta cinco veces y sigue donde se cortó; la voz avisa de su avance; el motivo queda en `logs\instalador.log` y en el detalle del error; y la forma de Nyx se llena suave, sin saltos ni retrocesos. (Comprobado: la voz baja bien sin cuenta de Hugging Face en un equipo limpio.) |
 | 2026-11-17 | Decía que había hecho cosas sin hacerlas («He borrado…», «He actualizado tu ciudad…»). | Arreglado: el control de 2026-11-15 reconoce también el pasado («he borrado / guardado / actualizado / puesto…»), pide otra vez con herramientas o dice la verdad. |
 | 2026-11-17 | «Pégalo en la nota» leía en voz alta lo copiado; «Escribe lo que tengo en el portapapeles en la nota» escribía la frase tal cual. | Arreglado: Ctrl+V en esa app (`router/pegar.py`). |
 | 2026-11-17 | «Borra todo lo que hay en la nota abierta» no hacía nada. | Arreglado: Ctrl+A y Retroceso en el Bloc de notas (se deshace con Ctrl+Z); nunca carpetas ni archivos. |

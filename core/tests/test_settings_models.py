@@ -140,3 +140,50 @@ def test_memory_last_turn_reads_spoken() -> None:
     assert memory.last_turn() is None
     memory.add("¿Qué hora es?", '{"spoken": "Son las siete.", "display": "19:00"}')
     assert memory.last_turn() == ("¿Qué hora es?", "Son las siete.")
+
+
+def test_download_resumes_after_a_cut(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Prueba del 2026-11-18: una conexión cortada a medias ya no tira lo bajado."""
+    import hashlib
+
+    import httpx
+
+    import nyx.models as models
+
+    monkeypatch.setattr(models, "_sleep", lambda s: None)
+    content = b"0123456789" * 1000
+    model = _model(content, name="grande.bin")
+    calls: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        rng = request.headers.get("range")
+        calls.append(rng)
+        if rng is None:
+            raise httpx.ReadTimeout("se cortó", request=request)
+        start = int(rng.removeprefix("bytes=").rstrip("-"))
+        return httpx.Response(206, content=content[start:])
+
+    # La primera vez deja 4.000 bytes en el .part y se corta.
+    (tmp_path / "grande.bin.part").write_bytes(content[:4000])
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    final = download(model, tmp_path, client=client)
+    assert final.read_bytes() == content
+    assert calls == ["bytes=4000-"]
+    assert hashlib.sha256(final.read_bytes()).hexdigest() == model.sha256
+
+
+def test_download_retries_and_gives_up(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import httpx
+
+    import nyx.models as models
+
+    waits: list[float] = []
+    monkeypatch.setattr(models, "_sleep", waits.append)
+    model = _model(b"x", name="c.bin")
+
+    def broken(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("sin red", request=request)
+
+    with pytest.raises(DownloadError):
+        download(model, tmp_path, client=httpx.Client(transport=httpx.MockTransport(broken)))
+    assert len(waits) == models.ATTEMPTS - 1

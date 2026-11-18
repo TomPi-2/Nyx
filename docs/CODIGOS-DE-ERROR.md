@@ -26,7 +26,7 @@ Los números no se reutilizan aunque un error deje de existir.
 | I-121 | No se ha podido poner «Arrancar con Windows». | Nyx funciona igual; ábrela desde el menú Inicio. |
 | I-122 | No se ha podido crear el acceso directo del escritorio. | Nyx está en el menú Inicio y en la bandeja. |
 | I-130 | No se ha podido preparar el oído y la voz (el núcleo de Nyx no arranca). | Pulsa «Reintentar». Si sigue, abre Nyx: lo bajará ella en su panel de descargas. |
-| I-131 | Alguna descarga del oído o la voz ha fallado. | Abre Nyx: reintenta sola lo que falte, donde lo dejó. |
+| I-131 | Alguna descarga del oído o la voz ha fallado (cada una se reintenta cinco veces y sigue donde se cortó). | Abre Nyx: reintenta sola lo que falte, donde lo dejó. El motivo queda en `%LOCALAPPDATA%\Nyx\logs\instalador.log`. |
 | I-140 | Nyx está instalada pero no se ha podido abrir. | Ábrela desde el menú Inicio. |
 
 ## D · Descargas del primer arranque

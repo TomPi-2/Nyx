@@ -59,12 +59,19 @@
   const voiceTotal = $derived(voice.reduce((a, p) => a + p.total_mb, 0));
   const voiceDone = $derived(voice.reduce((a, p) => a + Math.min(p.done_mb, p.total_mb), 0));
   const voiceFinished = $derived(voice.length > 0 && voice.every((p) => p.finished));
-  /** Lo hecho de todo (0–1): la forma de Nyx se llena con esto. */
-  const overall = $derived(
-    ((app?.finished ? 1 : 0) * 0.4 + (voiceTotal > 0 ? (voiceDone / voiceTotal) * 0.6 : 0)) *
-      (screen === "done" ? 0 : 1) +
-      (screen === "done" ? 1 : 0),
+  /** Lo hecho de verdad (0–1): la app cuenta según avanza, no de golpe al acabar, y el oído y
+   *  la voz con su total ya conocido desde el principio (el núcleo los anuncia todos). */
+  const appShare = $derived(
+    app ? (app.finished ? 1 : app.total_mb > 0 ? Math.min(1, app.done_mb / app.total_mb) : 0) : 0,
   );
+  const target = $derived(
+    screen === "done"
+      ? 1
+      : appShare * 0.4 + (voiceTotal > 0 ? Math.min(1, voiceDone / voiceTotal) * 0.6 : 0),
+  );
+  /** Lo que se enseña: va hacia `target` suave, a la velocidad de la descarga, sin saltos ni
+   *  retrocesos (prueba del usuario, 2026-11-18). */
+  let overall = $state(0);
 
   const gb = (v: number) => `${v.toFixed(1).replace(".", ",")} GB`;
   const pct = (done: number, total: number) =>
@@ -110,6 +117,22 @@
     });
     fit.observe(card);
     return () => fit.disconnect();
+  });
+
+  // Cada fotograma se acerca un poco a lo real (la mitad del camino en ~0,35 s); nunca baja.
+  $effect(() => {
+    let frame = 0;
+    let last = performance.now();
+    const step = (now: number) => {
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      const goal = Math.max(overall, target);
+      const next = overall + (goal - overall) * (1 - Math.exp(-dt * 2));
+      overall = goal - next < 0.0005 ? goal : next;
+      frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
   });
 
   onMount(() => {

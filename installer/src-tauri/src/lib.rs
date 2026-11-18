@@ -95,6 +95,38 @@ fn app_progress(done: f64, total: f64, finished: bool, error: Option<String>) ->
     }
 }
 
+/// Lo que contó la descarga del oído y la voz, para saber qué falló (no hay otra forma de
+/// verlo: el instalador no abre consolas). Se añade al final de `logs\instalador.log`.
+fn write_log(output: &str, errors: &[String]) {
+    use std::io::Write;
+    let Some(dir) = local_appdata().map(|d| d.join("Nyx").join("logs")) else {
+        return;
+    };
+    if std::fs::create_dir_all(&dir).is_err() {
+        return;
+    }
+    let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(dir.join("instalador.log"))
+    else {
+        return;
+    };
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let _ = writeln!(
+        file,
+        "--- Instalador {} · oído y voz (unix {stamp})",
+        env!("CARGO_PKG_VERSION")
+    );
+    let _ = file.write_all(output.as_bytes());
+    for error in errors {
+        let _ = writeln!(file, "Error: {error}");
+    }
+}
+
 fn local_appdata() -> Option<PathBuf> {
     std::env::var_os("LOCALAPPDATA").map(PathBuf::from)
 }
@@ -334,7 +366,9 @@ async fn download_voice(app: &AppHandle) -> Result<(), Fail> {
     ])
     .stdin(Stdio::null())
     .stdout(Stdio::piped())
-    .stderr(Stdio::null());
+    // Lo que cuenta la descarga (y sus errores) va a `logs\instalador.log`: sin él no se sabía
+    // por qué fallaba (I-131 de un tester, 2026-11-18).
+    .stderr(Stdio::piped());
     #[cfg(windows)]
     cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
     let mut child = cmd
@@ -347,9 +381,25 @@ async fn download_voice(app: &AppHandle) -> Result<(), Fail> {
             "sin salida",
         )
     })?;
+    let stderr = child.stderr.take();
+    let log = tokio::spawn(async move {
+        let mut text = String::new();
+        if let Some(stderr) = stderr {
+            let mut lines = BufReader::new(stderr).lines();
+            while let Ok(Some(line)) = lines.next_line().await {
+                text.push_str(&line);
+                text.push('\n');
+            }
+        }
+        text
+    });
+    let mut errors: Vec<String> = Vec::new();
     let mut lines = BufReader::new(stdout).lines();
     while let Ok(Some(line)) = lines.next_line().await {
         if let Ok(p) = serde_json::from_str::<Progress>(&line) {
+            if let Some(error) = &p.error {
+                errors.push(error.clone());
+            }
             emit(app, p);
         }
     }
@@ -357,13 +407,20 @@ async fn download_voice(app: &AppHandle) -> Result<(), Fail> {
         .wait()
         .await
         .map_err(|e| fail("I-130", "No he podido preparar el oído y la voz", e))?;
+    let output = log.await.unwrap_or_default();
+    write_log(&output, &errors);
     if status.success() {
         Ok(())
     } else {
+        let detail = if errors.is_empty() {
+            format!("{status} · más en %LOCALAPPDATA%\\Nyx\\logs\\instalador.log")
+        } else {
+            errors.join(" · ")
+        };
         Err(fail(
             "I-131",
             "No he podido bajar todo el oído y la voz (Nyx lo reintentará al abrirse)",
-            status,
+            detail,
         ))
     }
 }

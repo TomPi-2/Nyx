@@ -89,6 +89,8 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
 
 ### Corregido
 
+- Instalador (I-131 de un tester): las descargas del oído y la voz se reintentan y siguen donde se cortaron, la voz enseña su avance, el motivo de un fallo se guarda en `logs\instalador.log`, y la forma de Nyx se llena suave a la velocidad de la descarga, sin saltos.
+
 - Prueba del 2026-11-17: Nyx ya no dice que ha hecho algo sin hacerlo («He borrado…»); «pégalo en la nota» pega lo copiado; «borra todo lo de la nota» la vacía (con Ctrl+Z para deshacer); «escríbeme todo ese texto» lo enseña en el panel; el dictado empieza con más formas de pedirlo («te voy a dictar», «abre el bloc de notas y redacta…»); «guarda mi ciudad» guarda la de tu ubicación (antes, «La Configuración»); el tiempo de mañana es el de mañana; lo que sabe de Tepnyx ya no se lo inventa; «escribe hola en el Bloc de notas» escribe solo «hola»; y un modo automático nunca abre ventanas.
 
 - Experiencia de voz, con los registros reales del usuario: Nyx ya no dice «vale, lo hago» sin hacerlo (lo vuelve a intentar con herramientas y, si no puede, lo dice); «salta la canción» en partida ya no se toma por saltar en el juego; «guarda esta canción en favoritos», «pasa la canción», «cierra tus ajustes» y «reiníciate» (Nyx, no el ordenador) funcionan a la primera; tras una respuesta, «¡cuéntame un chiste!» o «¿quién es tu creador?» ya no se ignoran; si dudas a media frase («¿cuánto dura?»…), espera a que acabes; y lo que transcribe mal Whisper («Nix. Nix.», «Siguiente. Siguiente.», «oye…», un «Gracias.» que nadie dijo) ya no estropea la orden.

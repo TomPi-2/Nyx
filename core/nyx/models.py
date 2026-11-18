@@ -159,6 +159,51 @@ def safe_extract(archive: Path, dest: Path) -> None:
 
 Progress = Callable[[ModelFile, int, int], None]
 
+#: Intentos por archivo y la espera base entre ellos (2, 4, 6… s).
+ATTEMPTS = 5
+RETRY_WAIT_S = 2.0
+
+
+def _sleep(seconds: float) -> None:
+    import time
+
+    time.sleep(seconds)
+
+
+def _discard(path: Path) -> None:
+    """Lo descargado que no sirve (un temporal de la descarga, no un archivo del usuario)."""
+    path.unlink(missing_ok=True)
+
+
+def _sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        while chunk := f.read(CHUNK):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _fetch(http: httpx.Client, model: ModelFile, part: Path, progress: Progress | None) -> None:
+    """Baja `model` a `part`, siguiendo lo que ya haya si el servidor lo permite."""
+    have = part.stat().st_size if part.exists() else 0
+    headers = {"Range": f"bytes={have}-"} if have else {}
+    with http.stream("GET", model.url, headers=headers) as resp:
+        if resp.status_code == 416:  # ya estaba entero
+            return
+        resp.raise_for_status()
+        resumed = have > 0 and resp.status_code == 206
+        if not resumed:
+            have = 0
+        length = int(resp.headers.get("content-length", 0))
+        total = have + length if length else 0
+        done = have
+        with part.open("ab" if resumed else "wb") as out:
+            for chunk in resp.iter_bytes(CHUNK):
+                out.write(chunk)
+                done += len(chunk)
+                if progress:
+                    progress(model, done, total)
+
 
 def download(
     model: ModelFile,
@@ -176,27 +221,24 @@ def download(
 
     part = root / (model.filename + ".part")
     own_client = client is None
-    http = client or httpx.Client(follow_redirects=True, timeout=httpx.Timeout(30.0, read=120.0))
+    http = client or httpx.Client(follow_redirects=True, timeout=httpx.Timeout(30.0, read=60.0))
     try:
-        h = hashlib.sha256()
-        with http.stream("GET", model.url) as resp, part.open("wb") as out:
-            resp.raise_for_status()
-            total = int(resp.headers.get("content-length", 0))
-            done = 0
-            for chunk in resp.iter_bytes(CHUNK):
-                out.write(chunk)
-                h.update(chunk)
-                done += len(chunk)
-                if progress:
-                    progress(model, done, total)
-        if h.hexdigest() != model.sha256:
-            part.unlink(missing_ok=True)
+        # Una conexión que se corta (la del tester del 2026-11-18 se quedó al 60 %) no tira lo
+        # bajado: se reintenta y sigue donde lo dejó (Range), con esperas cada vez más largas.
+        for attempt in range(1, ATTEMPTS + 1):
+            try:
+                _fetch(http, model, part, progress)
+                break
+            except httpx.HTTPError as e:
+                log.warning("%s: intento %d de %d: %s", model.filename, attempt, ATTEMPTS, e)
+                if attempt == ATTEMPTS:
+                    raise DownloadError(f"{model.filename}: {e}") from e
+                _sleep(RETRY_WAIT_S * attempt)
+        if _sha256(part) != model.sha256:
+            _discard(part)
             raise DownloadError(
                 f"{model.filename}: la huella SHA-256 no coincide", errors.DOWNLOAD_HASH
             )
-    except httpx.HTTPError as e:
-        part.unlink(missing_ok=True)
-        raise DownloadError(f"{model.filename}: {e}") from e
     finally:
         if own_client:
             http.close()
@@ -213,8 +255,9 @@ def download(
     return final
 
 
-#: Lo que baja Pocket TTS de Hugging Face (modelo en español y voz), para el progreso.
-POCKET_MB = 440
+#: Lo que baja Pocket TTS de Hugging Face (modelo en español, tokenizador y voz «lola»),
+#: medido en un equipo limpio el 2026-11-18, para el progreso.
+POCKET_MB = 220
 
 
 def download_pocket() -> None:
@@ -224,6 +267,37 @@ def download_pocket() -> None:
     from nyx.tts.pocket import PocketTTS
 
     asyncio.run(PocketTTS("lola").load())
+
+
+def _with_size_progress(work: Callable[[], None], report: Callable[[float], None]) -> None:
+    """Pocket TTS baja con Hugging Face, que no avisa del avance: se mira cuánto crece su
+    carpeta cada medio segundo (hasta el 99 %: el 100 % lo dice el final)."""
+    import threading
+
+    from nyx.tts.pocket import cache_dir
+
+    folder = cache_dir()
+
+    def size_mb() -> float:
+        try:
+            return sum(f.stat().st_size for f in folder.rglob("*") if f.is_file()) / 1e6
+        except OSError:
+            return 0.0
+
+    start = size_mb()
+    stop = threading.Event()
+
+    def watch() -> None:
+        while not stop.wait(0.5):
+            report(min(POCKET_MB * 0.99, max(0.0, size_mb() - start)))
+
+    watcher = threading.Thread(target=watch, daemon=True)
+    watcher.start()
+    try:
+        work()
+    finally:
+        stop.set()
+        watcher.join(timeout=2)
 
 
 def download_all(
@@ -258,6 +332,14 @@ def download_all(
             emit(model.key, model.filename, done / 1e6, total / 1e6, False)
             print(f"\r  {model.filename}: {pct:3d} %", end="", file=sys.stderr, flush=True)
 
+    # Primero, todo lo que se va a bajar (con lo que ya está, entero): el total no cambia
+    # mientras avanza, y el instalador llena la forma de Nyx sin saltos ni retrocesos.
+    for model in CATALOG:
+        if model.key not in skip:
+            ready = is_present(model, root)
+            emit(model.key, model.filename, model.size_mb if ready else 0, model.size_mb, ready)
+    emit("pocket", "Voz de Nyx", 0, POCKET_MB, False)
+
     for model in CATALOG:
         if model.key in skip:
             print(f"· {model.filename}: ya configurado en los ajustes", file=sys.stderr)
@@ -276,9 +358,10 @@ def download_all(
             print(f"\n  Error: {e}", file=sys.stderr)
             emit(model.key, model.filename, 0, model.size_mb, True, str(e))
     print("· Voz predeterminada (Pocket TTS, CC BY 4.0, Kyutai)", file=sys.stderr)
-    emit("pocket", "Voz de Nyx", 0, POCKET_MB, False)
     try:
-        download_pocket()
+        _with_size_progress(
+            download_pocket, lambda mb: emit("pocket", "Voz de Nyx", mb, POCKET_MB, False)
+        )
         print("  voz: lista", file=sys.stderr)
         emit("pocket", "Voz de Nyx", POCKET_MB, POCKET_MB, True)
     except Exception as e:
