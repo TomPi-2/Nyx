@@ -333,6 +333,17 @@ qué decisiones quedan. Al revisarlo, lo que esté bien se borra de aquí; lo qu
     - Sin probar con el micrófono de verdad: dictado (8.04), leer la selección (8.05) y los
       modos (sobre todo que Privacidad no deje activar por voz y que todo vuelva al salir).
 
+30. **La página de Nyx en la web y repartir el instalador (2026-11-18).** Revisada la web
+    (`../Decider/tepnyx_website/src/nyx`): cuadra con Nyx. Sin cambiarla, para cuando toque:
+    - Nyx enlaza `tepnyx.com/nyx/errores` (códigos de error) y busca
+      `tepnyx.com/nyx/extensiones/revocadas.json`: aún no existen.
+    - La tienda de la web abre `nyx://extension/<id>` para instalar: Nyx aún no atiende esos
+      enlaces (hace falta registrar `nyx://` en la app; con la 1.0, cuando haya extensiones).
+    - La web dice que Tepnyx revisa «las que piden permisos delicados»: desde hoy, todas.
+    - Repartir el instalador con el repositorio privado: funciona si se pasan juntos
+      `Instalar Nyx.exe` y `TepnyxNyx-win-Setup.exe`; el cerebro de Nyx y las actualizaciones
+      solo llegan con el repositorio público (si no, usa `qwen2.5:7b` y no se actualiza).
+
 ## Qué probar
 
 Probado y bien (2026-11-13): color de Nyx (6.23), ciudad automática (6.24) y falsas

@@ -84,6 +84,8 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
   - 8.04, dictado: «escribe lo que te diga» y Nyx escribe en tu programa todo lo que dices, sin repetir «Nyx», hasta «ya está» o 20 segundos callado. Entiende la puntuación dicha («coma», «punto», «nueva línea»…) y nunca pulsa Intro (en un chat enviaría el mensaje). Nunca en juegos ni terminales.
 
   - Modos (8.09–8.12): «modo trabajo» abre y coloca tus apps y silencia las que distraen; «modo noche» baja el volumen y la voz de Nyx y te abre la luz nocturna y «no molestar» (las alarmas suenan igual); «modo privacidad» para compartir pantalla: Nyx solo te oye con el atajo, las burbujas no enseñan nada, no usa internet y oculta las apps que elijas. Al salir (o al cerrar Nyx) todo vuelve como estaba. Se configuran en Ajustes → Modos; los automáticos (Noche por horas, Trabajo al abrir una app) vienen apagados. Partida sigue igual y manda siempre. Las extensiones pueden traer sus propios modos.
+  - Ajustes → Extensiones, como una tienda (prototipo aprobado el 2026-11-15): pestañas Tienda (buscar, categorías, destacadas y la ficha de cada extensión: qué hace, qué decirle, qué necesita, cómo se prepara, qué podrá hacer y novedades), Instaladas y Desarrolladores. En la beta se ven OBS Studio y Spotify, que se instalan con Nyx 1.0.0. Toda extensión que se publica la revisa Tepnyx, y quien publica una recibe 10 € de saldo.
+  - Voz de Nyx: el guion trae 305 frases en inglés, francés, italiano, alemán y portugués (y nombres de apps y juegos) para que diga las palabras de otros idiomas con su acento; la grabadora enseña cómo suena cada una.
 
 ### Corregido
 
