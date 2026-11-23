@@ -44,6 +44,7 @@ dev = [
     "types-send2trash>=2.1.0.20260408",
     "onnx>=1.23.2",
     "pillow>=13.0.0",
+    "soundcard>=0.4.4",
 ]
 
 [project.scripts]

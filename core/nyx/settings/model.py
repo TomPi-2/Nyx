@@ -207,6 +207,9 @@ class PrivacySettings(_Section):
     """Privacidad (SPEC sección 8). Desactivado por defecto: solo con permiso explícito."""
 
     usage_data: bool = False
+    # Guardar en este equipo el audio de las peticiones que se corrigen o deshacen, para
+    # entrenar a Nyx (plan «Cerebro 2», C0; nyx/learn/store.py). Nunca sale del equipo.
+    save_corrections: bool = False
 
 
 _HHMM = r"^([01]\d|2[0-3]):[0-5]\d$"

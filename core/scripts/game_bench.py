@@ -5,6 +5,13 @@ configuraciones del cerebro mientras simula a Nyx pensando: cada pocos segundos 
 una frase con el Whisper de Nyx y responde una pregunta con el prompt y las herramientas
 reales de Nyx. Así se ve qué cerebro se puede usar en partida sin tirones.
 
+Configuraciones (`--configs`):
+- `sin`: el juego solo (la referencia).
+- `<modelo>@gpu` / `<modelo>@cpu`: Whisper + una respuesta del LLM cada `--every` s.
+- `verificar` (C0, 2026-11-23): solo las comprobaciones de «Nyx» (Whisper con 2 s de audio,
+  sin LLM), como las activaciones falsas de los registros. El LLM queda cargado, sin usarse.
+- `whisper`: solo la transcripción de una frase entera, sin LLM.
+
 Antes:
 1. Descarga PresentMon (la versión de consola, «PresentMon-…-x64.exe») de
    https://github.com/GameTechDev/PresentMon/releases
@@ -45,8 +52,9 @@ import numpy as np
 from check_whisper import synthesize
 from hwinfo import REPORTS_DIR, hardware, save_report
 
+from nyx.bench import locate
+from nyx.bench.resmon import ResourceMonitor
 from nyx.brain.prompts import SYSTEM
-from nyx.services import whisper_server_path
 from nyx.settings.model import load_settings
 from nyx.stt.whisper_server import WhisperServer
 from nyx.tools.registry import default_registry
@@ -55,7 +63,8 @@ OLLAMA = "http://127.0.0.1:11434"
 # «modelo@gpu» o «modelo@cpu»; «sin» = el juego solo (la referencia).
 # Un solo cerebro desde el 2026-11-11 (el 14B, qwen3:4b y el procesador ya se midieron y se
 # descartaron): por defecto, el juego solo y el 7B en la gráfica. Se pueden pasar con --configs.
-DEFAULT_CONFIGS = ["sin", "qwen2.5:7b@gpu"]
+DEFAULT_CONFIGS = ["sin", "verificar", "whisper", "qwen2.5:7b@gpu"]
+WHISPER_ONLY = {"verificar", "whisper"}  # sin LLM (el de los ajustes, cargado y quieto)
 QUESTION = "Explícame en dos frases qué es un agujero negro."
 PHRASE = "Nyx, ¿qué tiempo hace mañana en Valencia?"
 SPIKE = 2.0  # un fotograma que tarda más del doble que la mediana es un tirón
@@ -67,12 +76,14 @@ class Result:
     frames: int = 0
     avg_fps: float = 0.0
     low1_fps: float = 0.0  # FPS del 1 % de fotogramas más lentos
+    low01_fps: float = 0.0  # y del 0,1 %
     median_ms: float = 0.0
     worst_ms: float = 0.0
     spikes: int = 0
     thinks: int = 0  # veces que «pensó» durante la medida
     think_s: list[float] = field(default_factory=list)  # lo que tardó cada respuesta
     note: str = ""
+    nyx_gpu: str = ""  # uso de la gráfica de Whisper y del LLM (media / máx)
 
 
 def is_admin() -> bool:
@@ -121,6 +132,7 @@ def summarize(result: Result, times: list[float]) -> None:
     result.frames = len(times)
     result.avg_fps = round(1000 / statistics.fmean(times), 1)
     result.low1_fps = round(1000 / statistics.fmean(slowest), 1)
+    result.low01_fps = round(1000 / statistics.fmean(ordered[-max(1, len(ordered) // 1000) :]), 1)
     result.median_ms = round(median, 2)
     result.worst_ms = round(ordered[-1], 1)
     result.spikes = sum(1 for t in times if t > SPIKE * median)
@@ -185,8 +197,14 @@ async def run_config(
 ) -> Result:
     result = Result(config)
     request: dict[str, Any] | None = None
-    if config != "sin":
+    if config in WHISPER_ONLY:
+        if stt is None:
+            result.note = "sin Whisper"
+            return result
+        model, where = load_settings().llm.model, "gpu"
+    else:
         model, _, where = config.partition("@")
+    if config != "sin":
         if model not in have and f"{model}:latest" not in have:
             result.note = f"no instalado (ollama pull {model})"
             print(f"  · {config}: {result.note}, se salta")
@@ -215,14 +233,26 @@ async def run_config(
         stderr=subprocess.DEVNULL,
     )
     end = time.monotonic() + args.seconds
+    monitor = ResourceMonitor(include_self=False, interval_s=0.25).start()
     if request is not None:
         await asyncio.sleep(2)
         while time.monotonic() < end - 3:
-            took = await think(client, stt, pcm, request)
+            t0 = time.perf_counter()
+            if config == "verificar" and stt is not None:
+                await stt.transcribe(pcm[-2 * 16_000 :], prompt="Nyx.")
+            elif config == "whisper" and stt is not None:
+                await stt.transcribe(pcm)
+            else:
+                await think(client, stt, pcm, request)
+            took = time.perf_counter() - t0
             result.thinks += 1
             result.think_s.append(round(took, 2))
             await asyncio.sleep(max(0.0, args.every - took))
     await pm.wait()
+    monitor.stop()
+    gpu = [g for name, st in monitor.procs.items() if name != "ollama.exe" for g in st.gpu]
+    if gpu:
+        result.nyx_gpu = f"{statistics.fmean(gpu):.1f} % / {max(gpu):.0f} %"
     try:
         summarize(result, frame_times(csv_path))
     except (OSError, RuntimeError) as exc:
@@ -246,19 +276,19 @@ def markdown(results: list[Result], hw: dict[str, Any], args: argparse.Namespace
         "fotograma como mucho 1,5× el del juego solo** mientras Nyx piensa. Tirones: "
         f"fotogramas de más de {SPIKE:g}× la mediana.",
         "",
-        "| Configuración | FPS medios | Cambio | 1 % más lento | Tirones | Peor fotograma | "
-        "Respuesta (mediana) |",
-        "| --- | --- | --- | --- | --- | --- | --- |",
+        "| Configuración | FPS medios | Cambio | 1 % más lento | 0,1 % más lento | Tirones "
+        "| Peor fotograma | Respuesta (mediana) | Gráfica de Nyx (media / máx) |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for r in results:
         if not r.frames:
-            lines.append(f"| {r.config} | — | — | — | — | — | {r.note} |")
+            lines.append(f"| {r.config} | — | — | — | — | — | — | {r.note} | — |")
             continue
         change = f"{(r.avg_fps / base.avg_fps - 1) * 100:+.1f} %" if base and r is not base else "—"
         took = f"{statistics.median(r.think_s):.1f} s" if r.think_s else "—"
         lines.append(
-            f"| {r.config} | {r.avg_fps} | {change} | {r.low1_fps} | {r.spikes} | "
-            f"{r.worst_ms} ms | {took} |"
+            f"| {r.config} | {r.avg_fps} | {change} | {r.low1_fps} | {r.low01_fps} | {r.spikes} "
+            f"| {r.worst_ms} ms | {took} | {r.nyx_gpu or '—'} |"
         )
     return "\n".join(lines) + "\n"
 
@@ -275,13 +305,13 @@ async def main_async(args: argparse.Namespace) -> int:
         pcm = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
 
     stt: WhisperServer | None = None
-    server = whisper_server_path(settings)
-    if args.whisper and server.exists():
+    server = locate.whisper_server(None, settings)
+    if args.whisper and server is not None:
         stt = WhisperServer(server, settings.stt.model, gpu=settings.stt.gpu)
         await stt.start()
         print(f"Whisper en {stt.device_name or 'su tarjeta'}")
     elif args.whisper:
-        print(f"Sin Whisper: no encuentro {server}")
+        print("Sin Whisper: no encuentro whisper-server.exe")
 
     results: list[Result] = []
     async with httpx.AsyncClient(base_url=OLLAMA, timeout=300) as client:

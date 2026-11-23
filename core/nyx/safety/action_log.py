@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass
+from collections import deque
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
@@ -35,6 +36,8 @@ class Decision(StrEnum):
 @dataclass
 class ActionLog:
     folder: Path
+    # Las últimas, en memoria: lo que hizo cada petición (para guardar correcciones, C0).
+    recent: deque[dict[str, Any]] = field(default_factory=lambda: deque(maxlen=50))
 
     @classmethod
     def default(cls) -> ActionLog:
@@ -65,6 +68,7 @@ class ActionLog:
             "ok": ok,
             "message": message,
         }
+        self.recent.append(record)
         try:
             self.folder.mkdir(parents=True, exist_ok=True)
             path = self.folder / f"{now:%Y-%m-%d}.jsonl"
@@ -72,6 +76,10 @@ class ActionLog:
                 f.write(json.dumps(record, ensure_ascii=False, default=str) + "\n")
         except OSError:
             log.warning("No se pudo escribir el registro de acciones", exc_info=True)
+
+    def for_request(self, request: str) -> list[dict[str, Any]]:
+        """Lo que se hizo (o se intentó) en una petición, de las últimas en memoria."""
+        return [r for r in self.recent if r.get("request") == request]
 
     def prune(self, today: date | None = None) -> None:
         limit = (today or date.today()) - timedelta(days=KEEP_DAYS)

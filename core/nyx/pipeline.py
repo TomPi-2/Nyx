@@ -70,7 +70,8 @@ from nyx.events import (
 from nyx.executor import Confirmation, Executor, ToolCall, fix_enums, with_waits
 from nyx.game.policy import GameGate
 from nyx.index.aliases import normalize as normalize_alias
-from nyx.log import new_request_id
+from nyx.learn.store import CorrectionStore
+from nyx.log import new_request_id, request_id
 from nyx.safety.undo import UNDO_TTL_S
 from nyx.settings.model import ListenSettings
 from nyx.stt.base import STTEngine, STTError
@@ -398,6 +399,7 @@ class Pipeline:
         game: GameGate | None = None,
         phrases: PhraseBook | None = None,
         answers: Answers | None = None,
+        corrections: CorrectionStore | None = None,
         clock: Callable[[], float] = time.perf_counter,
     ) -> None:
         self.bus = bus
@@ -422,6 +424,8 @@ class Pipeline:
         self.phrases = phrases or PhraseBook()
         # Respuestas habladas con variantes según el tono (6.26).
         self.answers = answers or Answers()
+        # Peticiones que el usuario corrige o deshace, para entrenar (plan «Cerebro 2», C0).
+        self.corrections = corrections
         # Umbral del detector sin el ajuste por errores (para recalcularlo al apuntar uno).
         threshold = getattr(wake, "threshold", None)
         offset = activations.offset if activations is not None else 0.0
@@ -935,6 +939,11 @@ class Pipeline:
         if not text:
             await self._go_idle()
             return
+        if self.corrections is not None:
+            # Si esta frase corrige la anterior («deshazlo», «no, el otro»), se guarda la anterior.
+            turn = self.brain.memory.last_turn()
+            self.corrections.begin(request_id.get(), raw, text, audio)
+            self.corrections.check(text, reply=turn[1] if turn else "")
         # Con «Nyx, …» delante va a Nyx aunque sea en la ventana de seguimiento (ERRORES.md,
         # 2026-11-14: «Nix, ¿quién es tu creador?» se ignoraba).
         followup = listening is not None and listening.followup and not addressed_by_name(raw)

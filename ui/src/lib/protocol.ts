@@ -90,7 +90,7 @@ export interface NyxSettings {
   /** v12: modelo de Ollama y tiempo máximo de respuesta (Ajustes → Cerebro). */
   llm: { model: string; timeout_s: number };
   onboarding: { done: boolean };
-  privacy: { usage_data: boolean };
+  privacy: { usage_data: boolean; save_corrections: boolean };
   /** 6.06: buscar en internet (DuckDuckGo o Wikipedia) y el buscador para el navegador. */
   web: { enabled: boolean; search_url: string };
   game: {

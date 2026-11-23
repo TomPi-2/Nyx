@@ -65,6 +65,7 @@ from nyx.index.scanners.folders import known_folders
 from nyx.index.scanners.games import steam_root
 from nyx.index.service import SystemIndex
 from nyx.index.watcher import IndexWatcher
+from nyx.learn.store import CorrectionStore
 from nyx.models import MODELS
 from nyx.modes.manager import GainPlayer, ModeManager
 from nyx.modes.manager import Runner as ModeRunner
@@ -526,7 +527,10 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
         game=game,
         phrases=phrases,
         answers=Answers(settings.responses.tone),
+        corrections=CorrectionStore.default(enabled=settings.privacy.save_corrections),
     )
+    if executor.log is not None and pipeline.corrections is not None:
+        pipeline.corrections.actions = executor.log.for_request
     pipeline.wake_allowed = modes.wake_on
     # Dictado (8.04): la herramienta lo empieza y el pipeline escribe lo que oye.
     if pipeline.voice_enabled:

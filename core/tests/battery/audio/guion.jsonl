@@ -1,0 +1,394 @@
+{"id": "act001", "categoria": "activacion", "frase": "Nyx", "como": "Normal, a tu distancia de siempre", "tipo": "no_sabe"}
+{"id": "act002", "categoria": "activacion", "frase": "Nyx", "como": "En voz baja", "tipo": "no_sabe"}
+{"id": "act003", "categoria": "activacion", "frase": "Nyx", "como": "Más alto o con prisa", "tipo": "no_sabe"}
+{"id": "act004", "categoria": "activacion", "frase": "Nyx", "como": "Alejándote 1–2 m del micro", "tipo": "no_sabe"}
+{"id": "act005", "categoria": "activacion", "frase": "Nyx", "como": "Como de pasada, sin vocalizar", "tipo": "no_sabe"}
+{"id": "act006", "categoria": "activacion", "frase": "Nyx", "como": "Alargando la y: «Nyyyx»", "tipo": "no_sabe"}
+{"id": "act007", "categoria": "activacion", "frase": "Nyx", "como": "Con la cabeza girada, sin mirar al micro", "tipo": "no_sabe"}
+{"id": "act008", "categoria": "activacion", "frase": "Nyx", "como": "Normal", "tipo": "no_sabe"}
+{"id": "ord001", "categoria": "orden", "frase": "Nyx, ensordéceme", "tool": "app_action", "args": {"action": "toggle_deafen"}}
+{"id": "ord002", "categoria": "orden", "frase": "Nyx, reabre la pestaña cerrada", "tool": "app_action", "args": {"action": "reopen_tab"}}
+{"id": "ord003", "categoria": "orden", "frase": "Nyx, abre una ventana de incógnito", "tool": "app_action", "args": {"action": "incognito"}}
+{"id": "ord004", "categoria": "orden", "frase": "Nyx, abre una nota nueva en el bloc de notas", "tool": "app_action|open_app"}
+{"id": "ord005", "categoria": "orden", "frase": "Nyx, guarda el documento", "tool": "app_action|send_hotkey"}
+{"id": "ord006", "categoria": "orden", "frase": "Nyx, acerca la página, que no veo la letra", "tool": "app_action|send_hotkey"}
+{"id": "ord007", "categoria": "orden", "frase": "Nyx, vuelve a la página anterior", "tool": "app_action|send_hotkey"}
+{"id": "ord008", "categoria": "orden", "frase": "Nyx, pon el navegador en pantalla completa", "tool": "app_action|send_hotkey|window_layout"}
+{"id": "ord009", "categoria": "orden", "frase": "Nyx, el Spotify se oye muy bajito", "tool": "app_action|set_volume", "args": {"app": "Spotify"}}
+{"id": "ord010", "categoria": "orden", "frase": "Nyx, cuando abra Discord, recuérdame que le pase el enlace a Ana", "tool": "app_reminder", "args": {"action": "add"}}
+{"id": "ord011", "categoria": "orden", "frase": "Nyx, recuérdame mirar el correo cuando abra Outlook", "tool": "app_reminder", "args": {"action": "add"}}
+{"id": "ord012", "categoria": "orden", "frase": "Nyx, cambia el sonido a los cascos", "tool": "audio_output"}
+{"id": "ord013", "categoria": "orden", "frase": "Nyx, el sonido sigue saliendo por los cascos en vez de por el monitor", "tool": "audio_output", "args": {"device": "monitor"}}
+{"id": "ord014", "categoria": "orden", "frase": "Nyx, pon el sonido en los auriculares", "tool": "audio_output"}
+{"id": "ord015", "categoria": "orden", "frase": "Nyx, tengo clase de inglés todos los martes a las 6", "tool": "calendar", "args": {"action": "add", "repeat": "weekly"}}
+{"id": "ord016", "categoria": "orden", "frase": "Nyx, ¿qué tengo esta semana?", "tool": "calendar", "args": {"action": "read", "week": true}}
+{"id": "ord017", "categoria": "orden", "frase": "Nyx, importa el calendario de Descargas", "tool": "calendar", "args": {"action": "import"}}
+{"id": "ord018", "categoria": "orden", "frase": "Nyx, quita la alarma de las 7", "tool": "cancel_alarm"}
+{"id": "ord019", "categoria": "orden", "frase": "Nyx, quita todas las alarmas", "tool": "cancel_alarm"}
+{"id": "ord020", "categoria": "orden", "frase": "Nyx, olvida el recordatorio de llamar a mamá", "tool": "cancel_alarm", "args": {"which": "mamá"}}
+{"id": "ord021", "categoria": "orden", "frase": "Nyx, ¿qué tengo copiado?", "tool": "clipboard", "args": {"action": "read"}}
+{"id": "ord022", "categoria": "orden", "frase": "Nyx, pásame al inglés el texto que he copiado", "tool": "clipboard", "args": {"action": "read"}}
+{"id": "ord023", "categoria": "orden", "frase": "Nyx, guárdame en el portapapeles la dirección calle Mayor 5", "tool": "clipboard", "args": {"action": "write", "text": "calle Mayor 5"}}
+{"id": "ord024", "categoria": "orden", "frase": "Nyx, cierra el bloc de notas", "tool": "close_app", "args": {"name": "bloc de notas"}}
+{"id": "ord025", "categoria": "orden", "frase": "Nyx, cierra Spotify", "tool": "close_app", "args": {"name": "Spotify"}}
+{"id": "ord026", "categoria": "orden", "frase": "Nyx, he terminado con el Excel, quítalo", "tool": "close_app", "args": {"name": "Excel"}}
+{"id": "ord027", "categoria": "orden", "frase": "Nyx, hazme una carpeta en el escritorio que se llame Facturas", "tool": "create_folder", "args": {"name": "Facturas", "parent": "Escritorio"}}
+{"id": "ord028", "categoria": "orden", "frase": "Nyx, crea la carpeta Fondos en Imágenes", "tool": "create_folder", "args": {"name": "Fondos"}}
+{"id": "ord029", "categoria": "orden", "frase": "Nyx, crea una carpeta en Documentos llamada Facturas", "tool": "create_folder", "args": {"name": "Facturas"}}
+{"id": "ord030", "categoria": "orden", "frase": "Nyx, limpia Descargas de archivos comprimidos", "tool": "delete_files", "args": {"folder": "Descargas", "kind": "archives"}}
+{"id": "ord031", "categoria": "orden", "frase": "Nyx, borra el último archivo de Descargas", "tool": "delete_files", "args": {"newest": 1}}
+{"id": "ord032", "categoria": "orden", "frase": "Nyx, tira a la papelera los instaladores de Descargas", "tool": "delete_files", "args": {"folder": "Descargas", "kind": "installers"}}
+{"id": "ord033", "categoria": "orden", "frase": "Nyx, empieza el dictado en Word", "tool": "dictation", "args": {"action": "start"}}
+{"id": "ord034", "categoria": "orden", "frase": "Nyx, escribe lo que te diga", "tool": "dictation", "args": {"action": "start"}}
+{"id": "ord035", "categoria": "orden", "frase": "Nyx, te voy a dictar y tienes que escribir lo que te diga", "tool": "dictation", "args": {"action": "start"}}
+{"id": "ord036", "categoria": "orden", "frase": "Nyx, no encuentro el Excel del presupuesto", "tool": "find_files", "args": {"query": "presupuesto"}}
+{"id": "ord037", "categoria": "orden", "frase": "Nyx, ¿tengo algún archivo que se llame curriculum?", "tool": "find_files", "args": {"query": "curriculum"}}
+{"id": "ord038", "categoria": "orden", "frase": "Nyx, busca los pdf de Documentos", "tool": "find_files"}
+{"id": "ord039", "categoria": "orden", "frase": "Nyx, encuentra el último vídeo que grabé", "tool": "find_files|list_files"}
+{"id": "ord040", "categoria": "orden", "frase": "Nyx, ábreme el último documento que descargué", "tool": "find_files|list_files|open_path"}
+{"id": "ord041", "categoria": "orden", "frase": "Nyx, vuelve al Discord", "tool": "focus_window", "args": {"name": "Discord"}}
+{"id": "ord042", "categoria": "orden", "frase": "Nyx, ve a Chrome", "tool": "focus_window", "args": {"name": "Chrome"}}
+{"id": "ord043", "categoria": "orden", "frase": "Nyx, llévame a la ventana del Discord", "tool": "focus_window", "args": {"name": "Discord"}}
+{"id": "ord044", "categoria": "orden", "frase": "Nyx, enséñame el Spotify que lo tengo abierto", "tool": "focus_window|open_app", "args": {"name": "Spotify"}}
+{"id": "ord045", "categoria": "orden", "frase": "Nyx, ¿está nublado ahora?", "tool": "get_weather"}
+{"id": "ord046", "categoria": "orden", "frase": "Nyx, ¿qué tiempo hace en Madrid?", "tool": "get_weather", "args": {"city": "Madrid"}}
+{"id": "ord047", "categoria": "orden", "frase": "Nyx, ¿qué tal día va a hacer mañana?", "tool": "get_weather"}
+{"id": "ord048", "categoria": "orden", "frase": "Nyx, oculta Discord del todo", "tool": "hide_apps", "args": {"action": "hide"}}
+{"id": "ord049", "categoria": "orden", "frase": "Nyx, ¿tengo algo programado?", "tool": "list_alarms"}
+{"id": "ord050", "categoria": "orden", "frase": "Nyx, ¿a qué hora suena mi alarma?", "tool": "list_alarms"}
+{"id": "ord051", "categoria": "orden", "frase": "Nyx, ¿cuánto falta para que suene el temporizador?", "tool": "list_alarms"}
+{"id": "ord052", "categoria": "orden", "frase": "Nyx, ¿tengo algo en el escritorio?", "tool": "list_files", "args": {"folder": "Escritorio"}}
+{"id": "ord053", "categoria": "orden", "frase": "Nyx, ¿tengo algo en Descargas?", "tool": "list_files", "args": {"folder": "Descargas"}}
+{"id": "ord054", "categoria": "orden", "frase": "Nyx, ¿qué hay en descargas?", "tool": "list_files"}
+{"id": "ord055", "categoria": "orden", "frase": "Nyx, ¿cuántos vídeos tengo en la carpeta de vídeos?", "tool": "list_files|find_files"}
+{"id": "ord056", "categoria": "orden", "frase": "Nyx, ¿qué fotos hay en Imágenes?", "tool": "list_files|find_files"}
+{"id": "ord057", "categoria": "orden", "frase": "Nyx, dime qué he descargado últimamente", "tool": "list_files|find_files"}
+{"id": "ord058", "categoria": "orden", "frase": "Nyx, añade leche y pan a la lista de la compra", "tool": "list_items", "args": {"action": "add"}}
+{"id": "ord059", "categoria": "orden", "frase": "Nyx, acuérdate de que tengo que comprar pilas, ponlo en la lista de la compra", "tool": "list_items", "args": {"action": "add"}}
+{"id": "ord060", "categoria": "orden", "frase": "Nyx, quita el pan de la lista de la compra", "tool": "list_items", "args": {"action": "remove"}}
+{"id": "ord061", "categoria": "orden", "frase": "Nyx, esta canción no me gusta, pásala", "tool": "media_control", "args": {"action": "next"}}
+{"id": "ord062", "categoria": "orden", "frase": "Nyx, quiero que pares la música", "tool": "media_control", "args": {"action": "pause"}}
+{"id": "ord063", "categoria": "orden", "frase": "Nyx, dale al play", "tool": "media_control", "args": {"action": "play"}}
+{"id": "ord064", "categoria": "orden", "frase": "Nyx, pon algo para relajarme", "tool": "media_control|open_app"}
+{"id": "ord065", "categoria": "orden", "frase": "Nyx, sal del modo noche", "tool": "mode", "args": {"action": "exit"}}
+{"id": "ord066", "categoria": "orden", "frase": "Nyx, modo trabajo", "tool": "mode", "args": {"action": "enter"}}
+{"id": "ord067", "categoria": "orden", "frase": "Nyx, pon el modo privacidad que voy a compartir pantalla", "tool": "mode", "args": {"action": "enter"}}
+{"id": "ord068", "categoria": "orden", "frase": "Nyx, quita los instaladores de Descargas y ponlos en la carpeta Instaladores", "tool": "move_files", "args": {"kind": "installers", "destination": "Instaladores"}}
+{"id": "ord069", "categoria": "orden", "frase": "Nyx, mueve los tres últimos archivos de Descargas a Documentos", "tool": "move_files", "args": {"newest": 3}}
+{"id": "ord070", "categoria": "orden", "frase": "Nyx, lleva los PDF de Descargas a Documentos", "tool": "move_files", "args": {"folder": "Descargas", "destination": "Documentos", "extension": "pdf"}}
+{"id": "ord071", "categoria": "orden", "frase": "Nyx, ¿qué canción es esta?", "tool": "now_playing"}
+{"id": "ord072", "categoria": "orden", "frase": "Nyx, ¿de quién es este tema?", "tool": "now_playing"}
+{"id": "ord073", "categoria": "orden", "frase": "Nyx, ¿qué grupo es este?", "tool": "now_playing"}
+{"id": "ord074", "categoria": "orden", "frase": "Nyx, habla más despacio", "tool": "nyx_control", "args": {"setting": "velocidad de la voz"}}
+{"id": "ord075", "categoria": "orden", "frase": "Nyx, no te actives tan fácilmente", "tool": "nyx_control", "args": {"setting": "sensibilidad"}}
+{"id": "ord076", "categoria": "orden", "frase": "Nyx, guarda mi ciudad en la configuración", "tool": "nyx_control", "args": {"setting": "ciudad"}}
+{"id": "ord077", "categoria": "orden", "frase": "Nyx, cuéntame todo lo que sepas de Tepnyx", "tool": "nyx_info"}
+{"id": "ord078", "categoria": "orden", "frase": "Nyx, ¿guardas lo que te digo?", "tool": "nyx_info"}
+{"id": "ord079", "categoria": "orden", "frase": "Nyx, ¿qué haces cuando estoy jugando?", "tool": "nyx_info"}
+{"id": "ord080", "categoria": "orden", "frase": "Nyx, me hace falta la calculadora", "tool": "open_app", "args": {"name": "Calculadora"}}
+{"id": "ord081", "categoria": "orden", "frase": "Nyx, necesito el Excel", "tool": "open_app", "args": {"name": "Excel"}}
+{"id": "ord082", "categoria": "orden", "frase": "Nyx, quiero usar el Paint", "tool": "open_app", "args": {"name": "Paint"}}
+{"id": "ord083", "categoria": "orden", "frase": "Nyx, quiero escuchar música en Spotify", "tool": "open_app|media_control"}
+{"id": "ord084", "categoria": "orden", "frase": "Nyx, quiero cambiar tu voz", "tool": "open_nyx_settings", "args": {"section": "voz"}}
+{"id": "ord085", "categoria": "orden", "frase": "Nyx, enséñame tus opciones de privacidad", "tool": "open_nyx_settings", "args": {"section": "privacidad"}}
+{"id": "ord086", "categoria": "orden", "frase": "Nyx, quiero cambiarte la voz", "tool": "open_nyx_settings", "args": {"section": "voz"}}
+{"id": "ord087", "categoria": "orden", "frase": "Nyx, ¿dónde veo los atajos que has aprendido?", "tool": "open_nyx_settings|nyx_info"}
+{"id": "ord088", "categoria": "orden", "frase": "Nyx, enséñame la carpeta de las descargas", "tool": "open_path", "args": {"target": "Descargas"}}
+{"id": "ord089", "categoria": "orden", "frase": "Nyx, llévame a mis documentos", "tool": "open_path", "args": {"target": "Documentos"}}
+{"id": "ord090", "categoria": "orden", "frase": "Nyx, abre la carpeta de descargas", "tool": "open_path"}
+{"id": "ord091", "categoria": "orden", "frase": "Nyx, abre los ajustes del bluetooth", "tool": "open_settings", "args": {"page": "bluetooth"}}
+{"id": "ord092", "categoria": "orden", "frase": "Nyx, no me va el micrófono, llévame a donde se configura", "tool": "open_settings"}
+{"id": "ord093", "categoria": "orden", "frase": "Nyx, ¿cómo cambio el fondo de pantalla?", "tool": "open_settings"}
+{"id": "ord094", "categoria": "orden", "frase": "Nyx, abre marca.com", "tool": "open_url"}
+{"id": "ord095", "categoria": "orden", "frase": "Nyx, entra en mi correo de Gmail", "tool": "open_url", "args": {"target": "Gmail"}}
+{"id": "ord096", "categoria": "orden", "frase": "Nyx, llévame a la web de Marca", "tool": "open_url", "args": {"target": "Marca"}}
+{"id": "ord097", "categoria": "orden", "frase": "Nyx, olvida lo que te dije para después de la partida", "tool": "pending", "args": {"action": "cancel"}}
+{"id": "ord098", "categoria": "orden", "frase": "Nyx, ¿qué te había pedido para cuando acabe de jugar?", "tool": "pending", "args": {"action": "list"}}
+{"id": "ord099", "categoria": "orden", "frase": "Nyx, oye, ¿hay algún programa espiándome por la webcam?", "tool": "privacy_check", "args": {"device": "camera"}}
+{"id": "ord100", "categoria": "orden", "frase": "Nyx, ¿alguien me está escuchando?", "tool": "privacy_check", "args": {"device": "microphone"}}
+{"id": "ord101", "categoria": "orden", "frase": "Nyx, ¿quién está usando el micro?", "tool": "privacy_check", "args": {"device": "microphone"}}
+{"id": "ord102", "categoria": "orden", "frase": "Nyx, abre el último Word", "tool": "recent_files", "args": {"action": "open", "kind": "word"}}
+{"id": "ord103", "categoria": "orden", "frase": "Nyx, ¿qué documentos he abierto hoy?", "tool": "recent_files", "args": {"action": "list"}}
+{"id": "ord104", "categoria": "orden", "frase": "Nyx, ¿cómo se llamaba el PDF que abrí ayer?", "tool": "recent_files", "args": {"action": "list", "kind": "pdf"}}
+{"id": "ord105", "categoria": "orden", "frase": "Nyx, toma nota de comprar pilas y leche", "tool": "save_note"}
+{"id": "ord106", "categoria": "orden", "frase": "Nyx, necesito acordarme de llamar al fontanero, apúntalo en una nota", "tool": "save_note"}
+{"id": "ord107", "categoria": "orden", "frase": "Nyx, apunta en una nota que mañana tengo dentista a las cinco", "tool": "save_note"}
+{"id": "ord108", "categoria": "orden", "frase": "Nyx, captura esta ventana", "tool": "screenshot", "args": {"target": "window"}}
+{"id": "ord109", "categoria": "orden", "frase": "Nyx, guárdame lo que se ve ahora mismo en la pantalla", "tool": "screenshot"}
+{"id": "ord110", "categoria": "orden", "frase": "Nyx, haz un pantallazo solo de esta ventana", "tool": "screenshot", "args": {"target": "window"}}
+{"id": "ord111", "categoria": "orden", "frase": "Nyx, pégalo en la nota", "tool": "send_hotkey", "args": {"keys": "ctrl+v"}}
+{"id": "ord112", "categoria": "orden", "frase": "Nyx, pulsa control s", "tool": "send_hotkey|app_action"}
+{"id": "ord113", "categoria": "orden", "frase": "Nyx, pulsa control z", "tool": "send_hotkey|undo"}
+{"id": "ord114", "categoria": "orden", "frase": "Nyx, a las 5 de la tarde tengo médico, avísame", "tool": "set_alarm", "args": {"time": "17:00"}}
+{"id": "ord115", "categoria": "orden", "frase": "Nyx, quiero que me despiertes a las 9 los fines de semana", "tool": "set_alarm", "args": {"time": "09:00", "repeat": "weekends"}}
+{"id": "ord116", "categoria": "orden", "frase": "Nyx, pon una alarma todos los días laborables a las 7", "tool": "set_alarm", "args": {"time": "07:00", "repeat": "weekdays"}}
+{"id": "ord117", "categoria": "orden", "frase": "Nyx, pon el brillo al 50", "tool": "set_brightness", "args": {"level": 50}}
+{"id": "ord118", "categoria": "orden", "frase": "Nyx, no veo nada, la pantalla está muy oscura", "tool": "set_brightness"}
+{"id": "ord119", "categoria": "orden", "frase": "Nyx, me deslumbra la pantalla", "tool": "set_brightness"}
+{"id": "ord120", "categoria": "orden", "frase": "Nyx, cuenta tres minutos para el té", "tool": "set_timer", "args": {"minutes": 3}}
+{"id": "ord121", "categoria": "orden", "frase": "Nyx, en un cuarto de hora tengo que salir, avísame", "tool": "set_timer", "args": {"minutes": 15}}
+{"id": "ord122", "categoria": "orden", "frase": "Nyx, cuenta cinco minutos para la lavadora", "tool": "set_timer", "args": {"minutes": 5}}
+{"id": "ord123", "categoria": "orden", "frase": "Nyx, baja el volumen de Discord al 20", "tool": "set_volume", "args": {"level": 20}}
+{"id": "ord124", "categoria": "orden", "frase": "Nyx, silencia", "tool": "set_volume", "args": {"mute": true}}
+{"id": "ord125", "categoria": "orden", "frase": "Nyx, baja el volumen un poco", "tool": "set_volume", "args": {"change": -10}}
+{"id": "ord126", "categoria": "orden", "frase": "Nyx, para el cronómetro", "tool": "stopwatch", "args": {"action": "stop"}}
+{"id": "ord127", "categoria": "orden", "frase": "Nyx, para de cronometrar", "tool": "stopwatch", "args": {"action": "stop"}}
+{"id": "ord128", "categoria": "orden", "frase": "Nyx, ¿cuánto lleva el cronómetro?", "tool": "stopwatch", "args": {"action": "status"}}
+{"id": "ord129", "categoria": "orden", "frase": "Nyx, ¿me queda sitio para instalar un juego de 100 gigas?", "tool": "system_info", "args": {"what": "disk"}}
+{"id": "ord130", "categoria": "orden", "frase": "Nyx, ¿cuánta batería me queda?", "tool": "system_info", "args": {"what": "battery"}}
+{"id": "ord131", "categoria": "orden", "frase": "Nyx, ¿qué dirección IP tiene mi ordenador?", "tool": "system_info", "args": {"what": "ip"}}
+{"id": "ord132", "categoria": "orden", "frase": "Nyx, suspende el ordenador", "tool": "system_power", "args": {"action": "sleep"}}
+{"id": "ord133", "categoria": "orden", "frase": "Nyx, me voy, bloquea", "tool": "system_power", "args": {"action": "lock"}}
+{"id": "ord134", "categoria": "orden", "frase": "Nyx, pon el ordenador a dormir", "tool": "system_power", "args": {"action": "sleep"}}
+{"id": "ord135", "categoria": "orden", "frase": "Nyx, ¿qué tareas tengo hoy?", "tool": "task", "args": {"action": "read", "day": "today"}}
+{"id": "ord136", "categoria": "orden", "frase": "Nyx, ya he llamado al banco, márcalo como hecho en mis tareas", "tool": "task", "args": {"action": "done"}}
+{"id": "ord137", "categoria": "orden", "frase": "Nyx, apunta como tarea renovar el DNI", "tool": "task", "args": {"action": "add"}}
+{"id": "ord138", "categoria": "orden", "frase": "Nyx, enciende lo del bluetooth que voy a usar los cascos", "tool": "toggle_bluetooth", "args": {"enabled": true}}
+{"id": "ord139", "categoria": "orden", "frase": "Nyx, apaga el bluetooth", "tool": "toggle_bluetooth", "args": {"enabled": false}}
+{"id": "ord140", "categoria": "orden", "frase": "Nyx, quítame internet un rato", "tool": "toggle_wifi", "args": {"enabled": false}}
+{"id": "ord141", "categoria": "orden", "frase": "Nyx, vuelve a encender el wifi", "tool": "toggle_wifi", "args": {"enabled": true}}
+{"id": "ord142", "categoria": "orden", "frase": "Nyx, desactiva el wifi", "tool": "toggle_wifi", "args": {"enabled": false}}
+{"id": "ord143", "categoria": "orden", "frase": "Nyx, redáctame en Word: Querido Juan", "tool": "type_text", "args": {"app": "Word", "text": "Querido Juan"}}
+{"id": "ord144", "categoria": "orden", "frase": "Nyx, pon en el bloc de notas: comprar leche", "tool": "type_text", "args": {"app": "Bloc de notas", "text": "comprar leche"}}
+{"id": "ord145", "categoria": "orden", "frase": "Nyx, escribe en el bloc de notas. Hola, ¿qué tal?", "tool": "type_text", "args": {"app": "Bloc de notas", "text": "Hola, ¿qué tal?"}}
+{"id": "ord146", "categoria": "orden", "frase": "Nyx, me he equivocado, déjalo como estaba", "tool": "undo"}
+{"id": "ord147", "categoria": "orden", "frase": "Nyx, dezatlo", "tool": "undo"}
+{"id": "ord148", "categoria": "orden", "frase": "Nyx, recupéralo", "tool": "undo"}
+{"id": "ord149", "categoria": "orden", "frase": "Nyx, busca una receta de tortilla de patatas", "tool": "web_search"}
+{"id": "ord150", "categoria": "orden", "frase": "Nyx, búscame un tutorial para hacer tablas dinámicas en Excel", "tool": "web_search"}
+{"id": "ord151", "categoria": "orden", "frase": "Nyx, hazme la ventana más grande", "tool": "window_layout", "args": {"action": "maximize"}}
+{"id": "ord152", "categoria": "orden", "frase": "Nyx, minimiza esto", "tool": "window_layout", "args": {"action": "minimize"}}
+{"id": "ord153", "categoria": "orden", "frase": "Nyx, pon el Chrome en grande", "tool": "window_layout", "args": {"action": "maximize", "name": "Chrome"}}
+{"id": "com001", "categoria": "compuesta", "frase": "Nyx, abre Spotify y maximízalo", "plan": ["open_app", "wait_for_window", "window_layout"]}
+{"id": "com002", "categoria": "compuesta", "frase": "Nyx, busca en esta página la palabra precio", "plan": ["app_action", "type_text"]}
+{"id": "com003", "categoria": "compuesta", "frase": "Nyx, haz una captura y abre la carpeta de capturas", "plan": ["screenshot", "open_path"]}
+{"id": "com004", "categoria": "compuesta", "frase": "Nyx, apaga el wifi y bloquea", "plan": ["toggle_wifi", "system_power"]}
+{"id": "com005", "categoria": "compuesta", "frase": "Nyx, crea la carpeta Fondos en Imágenes y mueve allí las fotos de Descargas", "plan": ["create_folder", "move_files"]}
+{"id": "com006", "categoria": "compuesta", "frase": "Nyx, pon el bloc de notas a la derecha y el Chrome a la izquierda", "plan": ["window_layout", "window_layout"]}
+{"id": "com007", "categoria": "compuesta", "frase": "Nyx, cierra el Chrome y abre el Discord", "plan": ["close_app", "open_app"]}
+{"id": "com008", "categoria": "compuesta", "frase": "Nyx, abre el bloc de notas y pon el volumen a 20", "plan": ["open_app", "set_volume"]}
+{"id": "nom001", "categoria": "nombre", "frase": "Nyx, abre el Fortnite", "tool": "open_app", "args": {"name": "Fortnite"}}
+{"id": "nom002", "categoria": "nombre", "frase": "Nyx, lanza el Valorant", "tool": "open_app", "args": {"name": "VALORANT"}}
+{"id": "nom003", "categoria": "nombre", "frase": "Nyx, abre el Rocket League", "tool": "open_app", "args": {"name": "Rocket League"}}
+{"id": "nom004", "categoria": "nombre", "frase": "Nyx, abre el Epic Games", "tool": "open_app", "args": {"name": "Epic Games"}}
+{"id": "nom005", "categoria": "nombre", "frase": "Nyx, abre el Opera GX", "tool": "open_app", "args": {"name": "Opera GX"}}
+{"id": "nom006", "categoria": "nombre", "frase": "Nyx, abre el cliente de Riot", "tool": "open_app", "args": {"name": "Riot"}}
+{"id": "nom007", "categoria": "nombre", "frase": "Nyx, abre Battle.net", "tool": "open_app", "args": {"name": "Battle.net"}}
+{"id": "nom008", "categoria": "nombre", "frase": "Nyx, abre el Overwatch", "tool": "open_app", "args": {"name": "Overwatch"}}
+{"id": "nom009", "categoria": "nombre", "frase": "Nyx, abre el Minecraft", "tool": "open_app", "args": {"name": "Minecraft"}}
+{"id": "nom010", "categoria": "nombre", "frase": "Nyx, abre el Roblox", "tool": "open_app", "args": {"name": "Roblox"}}
+{"id": "nom011", "categoria": "nombre", "frase": "Nyx, abre el OBS", "tool": "open_app", "args": {"name": "OBS"}}
+{"id": "nom012", "categoria": "nombre", "frase": "Nyx, abre el DaVinci Resolve", "tool": "open_app", "args": {"name": "DaVinci"}}
+{"id": "nom013", "categoria": "nombre", "frase": "Nyx, abre el Steam", "tool": "open_app", "args": {"name": "Steam"}}
+{"id": "nom014", "categoria": "nombre", "frase": "Nyx, abre el Discord", "tool": "open_app", "args": {"name": "Discord"}}
+{"id": "nom015", "categoria": "nombre", "frase": "Nyx, abre el Google Chrome", "tool": "open_app", "args": {"name": "Chrome"}}
+{"id": "nom016", "categoria": "nombre", "frase": "Nyx, abre el Logitech G HUB", "tool": "open_app", "args": {"name": "G HUB"}}
+{"id": "nom017", "categoria": "nombre", "frase": "Nyx, abre el Bakkes Mod", "tool": "open_app", "args": {"name": "BakkesMod"}}
+{"id": "nom018", "categoria": "nombre", "frase": "Nyx, abre el Overwolf", "tool": "open_app", "args": {"name": "Overwolf"}}
+{"id": "nom019", "categoria": "nombre", "frase": "Nyx, abre el PowerPoint", "tool": "open_app", "args": {"name": "PowerPoint"}}
+{"id": "nom020", "categoria": "nombre", "frase": "Nyx, abre el Everything", "tool": "open_app", "args": {"name": "Everything"}}
+{"id": "nom021", "categoria": "nombre", "frase": "Nyx, abre el Modrinth", "tool": "open_app", "args": {"name": "Modrinth"}}
+{"id": "nom022", "categoria": "nombre", "frase": "Nyx, abre Prime Video", "tool": "open_app", "args": {"name": "Prime Video"}}
+{"id": "nom023", "categoria": "nombre", "frase": "Nyx, cierra el Fortnite", "tool": "close_app", "args": {"name": "Fortnite"}}
+{"id": "nom024", "categoria": "nombre", "frase": "Nyx, cierra el Opera", "tool": "close_app", "args": {"name": "Opera"}}
+{"id": "nom025", "categoria": "nombre", "frase": "Nyx, cierra el Discord", "tool": "close_app", "args": {"name": "Discord"}}
+{"id": "nom026", "categoria": "nombre", "frase": "Nyx, ve al Spotify", "tool": "focus_window|open_app", "args": {"name": "Spotify"}}
+{"id": "nom027", "categoria": "nombre", "frase": "Nyx, cambia al Discord", "tool": "focus_window|open_app", "args": {"name": "Discord"}}
+{"id": "nom028", "categoria": "nombre", "frase": "Nyx, abre YouTube", "tool": "open_url", "args": {"target": "YouTube"}}
+{"id": "nom029", "categoria": "nombre", "frase": "Nyx, abre Twitch", "tool": "open_url", "args": {"target": "Twitch"}}
+{"id": "nom030", "categoria": "nombre", "frase": "Nyx, abre la web de Marca", "tool": "open_url", "args": {"target": "marca"}}
+{"id": "com009", "categoria": "compuesta", "frase": "Nyx, cierra Spotify y abre el Discord", "plan": ["close_app", "open_app"]}
+{"id": "com010", "categoria": "compuesta", "frase": "Nyx, abre Spotify y pon el volumen al treinta", "plan": ["open_app", "set_volume"]}
+{"id": "com011", "categoria": "compuesta", "frase": "Nyx, pausa la música y abre el Valorant", "plan": ["media_control", "open_app"]}
+{"id": "com012", "categoria": "compuesta", "frase": "Nyx, sube el brillo y baja el volumen", "plan": ["set_brightness", "set_volume"]}
+{"id": "com013", "categoria": "compuesta", "frase": "Nyx, cierra el Opera y el Spotify y apaga el ordenador", "plan": ["close_app", "close_app", "system_power"]}
+{"id": "com014", "categoria": "compuesta", "frase": "Nyx, abre el Steam y el Discord", "plan": ["open_app", "open_app"]}
+{"id": "com015", "categoria": "compuesta", "frase": "Nyx, pon música y sube el volumen", "plan": ["media_control|open_app", "set_volume"]}
+{"id": "com016", "categoria": "compuesta", "frase": "Nyx, abre el bloc de notas y escribe hola", "plan": ["open_app", "type_text"]}
+{"id": "com017", "categoria": "compuesta", "frase": "Nyx, cierra el Chrome y abre el Opera", "plan": ["close_app", "open_app"]}
+{"id": "com018", "categoria": "compuesta", "frase": "Nyx, pon un temporizador de diez minutos y baja el volumen", "plan": ["set_timer", "set_volume"]}
+{"id": "com019", "categoria": "compuesta", "frase": "Nyx, abre la carpeta de descargas y maximízala", "plan": ["open_path", "window_layout"]}
+{"id": "com020", "categoria": "compuesta", "frase": "Nyx, silencia el sonido y bloquea el ordenador", "plan": ["set_volume", "system_power"]}
+{"id": "pau001", "categoria": "pausa", "frase": "Nyx, abre la carpeta de… Descargas", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "open_path"}
+{"id": "pau002", "categoria": "pausa", "frase": "Nyx, pon el volumen al… cuarenta", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "set_volume", "args": {"level": 40}}
+{"id": "pau003", "categoria": "pausa", "frase": "Nyx, pon una alarma a las… siete y media", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "set_alarm"}
+{"id": "pau004", "categoria": "pausa", "frase": "Nyx, ¿qué tiempo va a hacer… mañana?", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "get_weather"}
+{"id": "pau005", "categoria": "pausa", "frase": "Nyx, abre el… Discord", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "open_app", "args": {"name": "Discord"}}
+{"id": "pau006", "categoria": "pausa", "frase": "Nyx, cierra el… Spotify", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "close_app", "args": {"name": "Spotify"}}
+{"id": "pau007", "categoria": "pausa", "frase": "Nyx, busca en internet… cómo hacer una tortilla de patatas", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "web_search"}
+{"id": "pau008", "categoria": "pausa", "frase": "Nyx, pon un temporizador de… diez minutos", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "set_timer", "args": {"minutes": 10}}
+{"id": "pau009", "categoria": "pausa", "frase": "Nyx, eh… ¿cuánta RAM estoy usando?", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "system_info"}
+{"id": "pau010", "categoria": "pausa", "frase": "Nyx, añade a la lista de la compra… huevos y… harina", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "list_items", "args": {"action": "add"}}
+{"id": "pau011", "categoria": "pausa", "frase": "Nyx, mueve los PDF de Descargas a… Documentos", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "move_files"}
+{"id": "pau012", "categoria": "pausa", "frase": "Nyx, quiero que… abras el Rocket League", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "open_app", "args": {"name": "Rocket League"}}
+{"id": "pau013", "categoria": "pausa", "frase": "Nyx, sube el brillo… al máximo", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "set_brightness"}
+{"id": "pau014", "categoria": "pausa", "frase": "Nyx, pasa a la… siguiente canción", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "media_control", "args": {"action": "next"}}
+{"id": "pau015", "categoria": "pausa", "frase": "Nyx, a ver… ¿qué tengo mañana?", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "calendar"}
+{"id": "pau016", "categoria": "pausa", "frase": "Nyx, pon… música de Spotify", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "media_control|open_app"}
+{"id": "pau017", "categoria": "pausa", "frase": "Nyx, abre el… el… el Steam", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "open_app", "args": {"name": "Steam"}}
+{"id": "pau018", "categoria": "pausa", "frase": "Nyx, recuérdame en… media hora que saque la ropa", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "set_timer|set_alarm"}
+{"id": "pau019", "categoria": "pausa", "frase": "Nyx, minimiza… el Chrome", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "window_layout"}
+{"id": "pau020", "categoria": "pausa", "frase": "Nyx, haz una captura de… la pantalla", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "screenshot"}
+{"id": "pau021", "categoria": "pausa", "frase": "Nyx, baja el volumen del… Spotify", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "app_action|set_volume"}
+{"id": "pau022", "categoria": "pausa", "frase": "Nyx, ¿cuánto… cuánta batería le queda al portátil?", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "system_info"}
+{"id": "pau023", "categoria": "pausa", "frase": "Nyx, apaga el… wifi", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "toggle_wifi", "args": {"enabled": false}}
+{"id": "pau024", "categoria": "pausa", "frase": "Nyx, pon el sonido por… los cascos", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "audio_output"}
+{"id": "pau025", "categoria": "pausa", "frase": "Nyx, abre la configuración de… Bluetooth", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tool": "open_settings"}
+{"id": "pau026", "categoria": "pausa", "frase": "Nyx, ¿cómo se dice… ventana en inglés?", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tipo": "respuesta"}
+{"id": "pau027", "categoria": "pausa", "frase": "Nyx, cuéntame… un chiste", "como": "Haz una pausa de 1–2 s en los puntos suspensivos, como si pensaras", "tipo": "respuesta"}
+{"id": "med001", "categoria": "a_medias", "frase": "Nyx, abre la carpeta de", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "med002", "categoria": "a_medias", "frase": "Nyx, pon una alarma a las", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "med003", "categoria": "a_medias", "frase": "Nyx, cierra el", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "med004", "categoria": "a_medias", "frase": "Nyx, pon el volumen al", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "med005", "categoria": "a_medias", "frase": "Nyx, busca", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "med006", "categoria": "a_medias", "frase": "Nyx, mueve los archivos de Descargas a", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "med007", "categoria": "a_medias", "frase": "Nyx, recuérdame que", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "med008", "categoria": "a_medias", "frase": "Nyx, abre el", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "med009", "categoria": "a_medias", "frase": "Nyx, ¿cuánto", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "med010", "categoria": "a_medias", "frase": "Nyx, cambia a", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "med011", "categoria": "a_medias", "frase": "Nyx, pon un temporizador de", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "med012", "categoria": "a_medias", "frase": "Nyx, apunta en la lista de la compra", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "med013", "categoria": "a_medias", "frase": "Nyx, borra el archivo", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "med014", "categoria": "a_medias", "frase": "Nyx, quiero que", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "med015", "categoria": "a_medias", "frase": "Nyx, ¿qué tiempo hace en", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "med016", "categoria": "a_medias", "frase": "Nyx, renombra la carpeta", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "med017", "categoria": "a_medias", "frase": "Nyx, abre la página de", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "med018", "categoria": "a_medias", "frase": "Nyx, escribe en el bloc de notas", "como": "Dila y déjala a medias: calla y espera sin terminarla", "tipo": "preguntar"}
+{"id": "cor001", "categoria": "correccion", "frase": "Nyx, sube el volumen", "grupo": "c01", "tool": "set_volume"}
+{"id": "cor002", "categoria": "correccion", "frase": "Más", "grupo": "c01", "nyx": false, "como": "Justo después de que Nyx responda, sin decir «Nyx»", "tool": "set_volume"}
+{"id": "cor003", "categoria": "correccion", "frase": "Nyx, abre Spotify", "grupo": "c02", "tool": "open_app", "args": {"name": "Spotify"}}
+{"id": "cor004", "categoria": "correccion", "frase": "No, mejor ciérralo", "grupo": "c02", "nyx": false, "como": "Justo después de que Nyx responda, sin decir «Nyx»", "tool": "close_app", "args": {"name": "Spotify"}}
+{"id": "cor005", "categoria": "correccion", "frase": "Nyx, pon el volumen al cincuenta", "grupo": "c03", "tool": "set_volume", "args": {"level": 50}}
+{"id": "cor006", "categoria": "correccion", "frase": "Un poco menos", "grupo": "c03", "nyx": false, "como": "Justo después de que Nyx responda, sin decir «Nyx»", "tool": "set_volume"}
+{"id": "cor007", "categoria": "correccion", "frase": "Nyx, pon una alarma a las siete", "grupo": "c04", "tool": "set_alarm"}
+{"id": "cor008", "categoria": "correccion", "frase": "No, a las siete y media", "grupo": "c04", "nyx": false, "como": "Justo después de que Nyx responda, sin decir «Nyx»", "tool": "set_alarm|cancel_alarm"}
+{"id": "cor009", "categoria": "correccion", "frase": "Nyx, crea una carpeta llamada Pruebas en el escritorio", "grupo": "c05", "tool": "create_folder", "args": {"name": "Pruebas"}}
+{"id": "cor010", "categoria": "correccion", "frase": "Deshazlo", "grupo": "c05", "nyx": false, "como": "Justo después de que Nyx responda, sin decir «Nyx»", "tool": "undo"}
+{"id": "cor011", "categoria": "correccion", "frase": "Nyx, pon música", "grupo": "c06", "tool": "media_control|open_app"}
+{"id": "cor012", "categoria": "correccion", "frase": "Para", "grupo": "c06", "nyx": false, "como": "Justo después de que Nyx responda, sin decir «Nyx»", "tool": "media_control", "args": {"action": "pause"}}
+{"id": "cor013", "categoria": "correccion", "frase": "Nyx, baja el brillo", "grupo": "c07", "tool": "set_brightness"}
+{"id": "cor014", "categoria": "correccion", "frase": "Más", "grupo": "c07", "nyx": false, "como": "Justo después de que Nyx responda, sin decir «Nyx»", "tool": "set_brightness"}
+{"id": "cor015", "categoria": "correccion", "frase": "Nyx, ¿qué tiempo hace?", "grupo": "c08", "tool": "get_weather"}
+{"id": "cor016", "categoria": "correccion", "frase": "¿Y mañana?", "grupo": "c08", "nyx": false, "como": "Justo después de que Nyx responda, sin decir «Nyx»", "tool": "get_weather"}
+{"id": "cor017", "categoria": "correccion", "frase": "Nyx, ¿cómo se dice hola en alemán?", "grupo": "c09", "tipo": "respuesta"}
+{"id": "cor018", "categoria": "correccion", "frase": "¿Y en francés?", "grupo": "c09", "nyx": false, "como": "Justo después de que Nyx responda, sin decir «Nyx»", "tipo": "respuesta"}
+{"id": "cor019", "categoria": "correccion", "frase": "Nyx, apunta en una nota comprar pilas", "grupo": "c10", "tool": "save_note"}
+{"id": "cor020", "categoria": "correccion", "frase": "No, eso no, bórralo", "grupo": "c10", "nyx": false, "como": "Justo después de que Nyx responda, sin decir «Nyx»", "tool": "undo"}
+{"id": "cor021", "categoria": "correccion", "frase": "Nyx, abre el Discord", "grupo": "c11", "tool": "open_app", "args": {"name": "Discord"}}
+{"id": "cor022", "categoria": "correccion", "frase": "No, el Spotify", "grupo": "c11", "nyx": false, "como": "Justo después de que Nyx responda, sin decir «Nyx»", "tool": "open_app|focus_window", "args": {"name": "Spotify"}}
+{"id": "cor023", "categoria": "correccion", "frase": "Nyx, pon un temporizador de cinco minutos", "grupo": "c12", "tool": "set_timer", "args": {"minutes": 5}}
+{"id": "cor024", "categoria": "correccion", "frase": "Mejor de diez", "grupo": "c12", "nyx": false, "como": "Justo después de que Nyx responda, sin decir «Nyx»", "tool": "set_timer", "args": {"minutes": 10}}
+{"id": "pre001", "categoria": "pregunta", "frase": "Nyx, ¿qué hora es?", "tipo": "respuesta"}
+{"id": "pre002", "categoria": "pregunta", "frase": "Nyx, ¿qué día es hoy?", "tipo": "respuesta"}
+{"id": "pre003", "categoria": "pregunta", "frase": "Nyx, ¿cuántos días tiene febrero este año?", "tipo": "respuesta"}
+{"id": "pre004", "categoria": "pregunta", "frase": "Nyx, ¿cuál es la capital de Australia?", "tipo": "respuesta"}
+{"id": "pre005", "categoria": "pregunta", "frase": "Nyx, ¿cómo se dice gracias en japonés?", "tipo": "respuesta"}
+{"id": "pre006", "categoria": "pregunta", "frase": "Nyx, cuéntame un chiste", "tipo": "respuesta"}
+{"id": "pre007", "categoria": "pregunta", "frase": "Nyx, ¿cuánto es quince por ocho?", "tipo": "respuesta"}
+{"id": "pre008", "categoria": "pregunta", "frase": "Nyx, ¿qué es un agujero negro?", "tipo": "respuesta"}
+{"id": "pre009", "categoria": "pregunta", "frase": "Nyx, recomiéndame una película de miedo", "tipo": "respuesta"}
+{"id": "pre010", "categoria": "pregunta", "frase": "Nyx, dame una idea para cenar", "tipo": "respuesta"}
+{"id": "pre011", "categoria": "pregunta", "frase": "Nyx, ¿cuántas calorías tiene un plátano?", "tipo": "respuesta"}
+{"id": "pre012", "categoria": "pregunta", "frase": "Nyx, explícame qué es la memoria RAM", "tipo": "respuesta"}
+{"id": "pre013", "categoria": "pregunta", "frase": "Nyx, ¿qué significa GG?", "tipo": "respuesta"}
+{"id": "pre014", "categoria": "pregunta", "frase": "Nyx, ¿cómo se hace un aéreo en Rocket League?", "tipo": "respuesta"}
+{"id": "pre015", "categoria": "pregunta", "frase": "Nyx, ¿cuánto falta para Navidad?", "tipo": "respuesta"}
+{"id": "pre016", "categoria": "pregunta", "frase": "Nyx, dime una palabra que rime con casa", "tipo": "respuesta"}
+{"id": "pre017", "categoria": "pregunta", "frase": "Nyx, ¿cómo estás?", "tipo": "respuesta"}
+{"id": "pre018", "categoria": "pregunta", "frase": "Nyx, ¿cuántos grados son cien Fahrenheit?", "tipo": "respuesta"}
+{"id": "pre019", "categoria": "pregunta", "frase": "Nyx, ¿quién pintó el Guernica?", "tipo": "respuesta"}
+{"id": "pre020", "categoria": "pregunta", "frase": "Nyx, ¿cuántos metros tiene una milla?", "tipo": "respuesta"}
+{"id": "pre021", "categoria": "pregunta", "frase": "Nyx, dime algo bonito", "tipo": "respuesta"}
+{"id": "pre022", "categoria": "pregunta", "frase": "Nyx, ¿qué me recomiendas para dormir mejor?", "tipo": "respuesta"}
+{"id": "pre023", "categoria": "pregunta", "frase": "Nyx, ¿cuál es el planeta más grande?", "tipo": "respuesta"}
+{"id": "pre024", "categoria": "pregunta", "frase": "Nyx, ¿cómo se escribe zanahoria en inglés?", "tipo": "respuesta"}
+{"id": "pre025", "categoria": "pregunta", "frase": "Nyx, ¿por qué el cielo es azul?", "tipo": "respuesta"}
+{"id": "pre026", "categoria": "pregunta", "frase": "Nyx, ¿qué es mejor, Valorant o Counter-Strike?", "tipo": "respuesta"}
+{"id": "pre027", "categoria": "pregunta", "frase": "Nyx, ¿quién te ha creado?", "tool": "nyx_info"}
+{"id": "pre028", "categoria": "pregunta", "frase": "Nyx, ¿qué puedes hacer?", "tool": "nyx_info"}
+{"id": "pre029", "categoria": "pregunta", "frase": "Nyx, ¿qué tiempo hace?", "tool": "get_weather"}
+{"id": "pre030", "categoria": "pregunta", "frase": "Nyx, ¿va a llover esta tarde?", "tool": "get_weather"}
+{"id": "pre031", "categoria": "pregunta", "frase": "Nyx, ¿qué está sonando?", "tool": "now_playing"}
+{"id": "pre032", "categoria": "pregunta", "frase": "Nyx, ¿cuánta CPU estoy usando?", "tool": "system_info", "args": {"what": "cpu"}}
+{"id": "amb001", "categoria": "ambigua", "frase": "Nyx, ábrelo", "tipo": "preguntar"}
+{"id": "amb002", "categoria": "ambigua", "frase": "Nyx, ciérralo", "tipo": "preguntar"}
+{"id": "amb003", "categoria": "ambigua", "frase": "Nyx, pon eso", "tipo": "preguntar"}
+{"id": "amb004", "categoria": "ambigua", "frase": "Nyx, bórralo", "tipo": "preguntar"}
+{"id": "amb005", "categoria": "ambigua", "frase": "Nyx, abre la carpeta", "tipo": "preguntar"}
+{"id": "amb006", "categoria": "ambigua", "frase": "Nyx, pon una alarma", "tipo": "preguntar"}
+{"id": "amb007", "categoria": "ambigua", "frase": "Nyx, pon un temporizador", "tipo": "preguntar"}
+{"id": "amb008", "categoria": "ambigua", "frase": "Nyx, mueve los archivos", "tipo": "preguntar"}
+{"id": "amb009", "categoria": "ambigua", "frase": "Nyx, busca el archivo", "tipo": "preguntar"}
+{"id": "amb010", "categoria": "ambigua", "frase": "Nyx, renombra el documento", "tipo": "preguntar"}
+{"id": "amb011", "categoria": "ambigua", "frase": "Nyx, abre el juego", "tipo": "preguntar"}
+{"id": "amb012", "categoria": "ambigua", "frase": "Nyx, recuérdame algo", "tipo": "preguntar"}
+{"id": "amb013", "categoria": "ambigua", "frase": "Nyx, apunta", "tipo": "preguntar"}
+{"id": "amb014", "categoria": "ambigua", "frase": "Nyx, pon la del otro día", "tipo": "preguntar"}
+{"id": "amb015", "categoria": "ambigua", "frase": "Nyx, haz lo de siempre", "tipo": "preguntar"}
+{"id": "amb016", "categoria": "ambigua", "frase": "Nyx, borra los archivos", "tipo": "preguntar"}
+{"id": "amb017", "categoria": "ambigua", "frase": "Nyx, apaga", "tipo": "preguntar"}
+{"id": "amb018", "categoria": "ambigua", "frase": "Nyx, pon el volumen", "tipo": "preguntar"}
+{"id": "amb019", "categoria": "ambigua", "frase": "Nyx, busca eso en internet", "tipo": "preguntar"}
+{"id": "amb020", "categoria": "ambigua", "frase": "Nyx, ¿y eso?", "tipo": "preguntar"}
+{"id": "amb021", "categoria": "ambigua", "frase": "Nyx, cambia la ventana", "tipo": "preguntar"}
+{"id": "amb022", "categoria": "ambigua", "frase": "Nyx, ponlo más alto", "tipo": "preguntar"}
+{"id": "amb023", "categoria": "ambigua", "frase": "Nyx, mándaselo a Pablo", "tipo": "no_sabe"}
+{"id": "amb024", "categoria": "ambigua", "frase": "Nyx, manda un WhatsApp a mi madre", "tipo": "no_sabe"}
+{"id": "npn001", "categoria": "no_para_nyx", "frase": "Venga, vamos a por otra partida", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn002", "categoria": "no_para_nyx", "frase": "Gracias, tío, buena jugada", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn003", "categoria": "no_para_nyx", "frase": "Pásamela, que estoy solo", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn004", "categoria": "no_para_nyx", "frase": "Qué lag tengo, madre mía", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn005", "categoria": "no_para_nyx", "frase": "¿Qué vas a cenar hoy?", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn006", "categoria": "no_para_nyx", "frase": "Espera, que voy al baño", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn007", "categoria": "no_para_nyx", "frase": "Rota, rota, que viene por la izquierda", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn008", "categoria": "no_para_nyx", "frase": "No, no, sí, no", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn009", "categoria": "no_para_nyx", "frase": "Bueno, mañana hablamos", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn010", "categoria": "no_para_nyx", "frase": "Ja, ja, ja, qué malo eres", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn011", "categoria": "no_para_nyx", "frase": "Vale, vale, ya voy", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn012", "categoria": "no_para_nyx", "frase": "¿Me escuchas bien?", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn013", "categoria": "no_para_nyx", "frase": "Esto está roto", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn014", "categoria": "no_para_nyx", "frase": "Gracias", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn015", "categoria": "no_para_nyx", "frase": "¿Qué?", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn016", "categoria": "no_para_nyx", "frase": "Está rotísima esa arma", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn017", "categoria": "no_para_nyx", "frase": "Abre tú la puerta, que yo no puedo", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn018", "categoria": "no_para_nyx", "frase": "Sube un poco, que no te oigo", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn019", "categoria": "no_para_nyx", "frase": "Ponte en la portería", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn020", "categoria": "no_para_nyx", "frase": "Cierra la ventana, que hace frío", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx", "tipo": "ignorar"}
+{"id": "npn021", "categoria": "no_para_nyx", "frase": "El Nyx este me ha laggeado el juego", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx (hablando DE Nyx)", "tipo": "ignorar"}
+{"id": "npn022", "categoria": "no_para_nyx", "frase": "Le he puesto Nyx porque me gustaba el nombre", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx (hablando DE Nyx)", "tipo": "ignorar"}
+{"id": "npn023", "categoria": "no_para_nyx", "frase": "Mira, esto es Nyx, mi asistente", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx (hablando DE Nyx)", "tipo": "ignorar"}
+{"id": "npn024", "categoria": "no_para_nyx", "frase": "Nyx es muy pesada a veces", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx (hablando DE Nyx)", "tipo": "ignorar"}
+{"id": "npn025", "categoria": "no_para_nyx", "frase": "¿Has probado el Nyx que te pasé?", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx (hablando DE Nyx)", "tipo": "ignorar"}
+{"id": "npn026", "categoria": "no_para_nyx", "frase": "Para que no tenga Nyx bien hecho no me voy a decir nada", "nyx": false, "como": "Como si hablaras con un amigo (en Discord o en la habitación), no con Nyx (hablando DE Nyx)", "tipo": "ignorar"}
+{"id": "dic001", "categoria": "dictado", "frase": "Nyx, escribe lo que te diga", "tool": "dictation", "args": {"action": "start"}}
+{"id": "dic002", "categoria": "dictado", "frase": "Nyx, empieza el dictado en el bloc de notas", "tool": "dictation", "args": {"action": "start"}}
+{"id": "dic003", "categoria": "dictado", "frase": "Nyx, apunta en una nota que mañana tengo dentista a las cinco", "tool": "save_note"}
+{"id": "dic004", "categoria": "dictado", "frase": "Nyx, toma nota de comprar pilas y leche", "tool": "save_note"}
+{"id": "dic005", "categoria": "dictado", "frase": "Nyx, guarda en una nota: comprar un regalo para Ana", "tool": "save_note"}
+{"id": "dic006", "categoria": "dictado", "frase": "Nyx, apunta en el bloc de notas pizza cuatro estaciones", "tool": "type_text", "args": {"text": "pizza cuatro estaciones", "app": "Bloc de notas"}}
+{"id": "dic007", "categoria": "dictado", "frase": "Nyx, escribe hola qué tal en el bloc de notas", "tool": "type_text", "args": {"text": "hola"}}
+{"id": "dic008", "categoria": "dictado", "frase": "Nyx, escribe: llego en diez minutos", "tool": "type_text", "args": {"text": "llego en"}}
+{"id": "dic009", "categoria": "dictado", "frase": "Nyx, añade leche y pan a la lista de la compra", "tool": "list_items", "args": {"action": "add"}}
+{"id": "dic010", "categoria": "dictado", "frase": "Nyx, apunta como tarea llamar al médico", "tool": "task", "args": {"action": "add"}}
+{"id": "dic011", "categoria": "dictado", "frase": "Nyx, borra todo lo que hay en la nota abierta", "plan": ["send_hotkey|app_action", "send_hotkey|app_action"]}
+{"id": "dic012", "categoria": "dictado", "frase": "Nyx, pégalo en la nota", "tool": "send_hotkey", "args": {"keys": "ctrl+v"}}
+{"id": "reg001", "categoria": "registro", "frase": "Nyx, apunta en el blog de notas pizza caprese", "tool": "type_text", "args": {"text": "pizza caprese"}}
+{"id": "reg002", "categoria": "registro", "frase": "Nyx, abre el Epic Games", "tool": "open_app", "args": {"name": "Epic Games"}}
+{"id": "reg003", "categoria": "registro", "frase": "Nyx, cierra todas las aplicaciones y apaga el ordenador", "tipo": "preguntar"}
+{"id": "reg004", "categoria": "registro", "frase": "Nyx, cierra todo y apaga el ordenador", "tipo": "preguntar"}
+{"id": "reg005", "categoria": "registro", "frase": "Nyx, hazte un poco más grande", "tool": "nyx_control"}
+{"id": "reg006", "categoria": "registro", "frase": "Nyx, dime cómo hacer galletas", "tool": "web_search"}
+{"id": "reg007", "categoria": "registro", "frase": "Nyx, ¿cuál es mi IP?", "tool": "system_info", "args": {"what": "ip"}}
+{"id": "reg008", "categoria": "registro", "frase": "Vale, Nyx, ábreme el Netflix", "tool": "open_app|open_url"}
+{"id": "reg009", "categoria": "registro", "frase": "Nyx, arranca el Discord que voy a hablar con los colegas", "tool": "open_app", "args": {"name": "Discord"}}
+{"id": "reg010", "categoria": "registro", "frase": "Nyx, pon la música en aleatorio", "tool": "app_action|media_control"}
+{"id": "reg011", "categoria": "registro", "frase": "Nyx, busca en esta página la palabra precio", "plan": ["app_action|send_hotkey", "type_text"]}
+{"id": "reg012", "categoria": "registro", "frase": "Nyx, ¿qué tiempo va a hacer mañana?", "tool": "get_weather"}
+{"id": "reg013", "categoria": "registro", "frase": "Nyx, mi ciudad es Valencia", "tool": "nyx_control"}
+{"id": "reg014", "categoria": "registro", "frase": "Nyx, ¿cuánta RAM uso?", "tool": "system_info"}
+{"id": "reg015", "categoria": "registro", "frase": "Nyx, deshazlo", "tool": "undo"}
+{"id": "reg016", "categoria": "registro", "frase": "Nyx, ¿qué programa está consumiendo más?", "tool": "system_info"}
+{"id": "reg017", "categoria": "registro", "frase": "Nyx, abre el bluetooth para emparejar unos cascos", "tool": "open_settings"}
+{"id": "reg018", "categoria": "registro", "frase": "Nyx, minimiza el navegador", "tool": "window_layout"}
+{"id": "reg019", "categoria": "registro", "frase": "No me ha hecho nada. Nyx, ¿qué hora es?", "tipo": "respuesta"}
+{"id": "reg020", "categoria": "registro", "frase": "Esto está roto. Nyx, ¿qué día es hoy?", "tipo": "respuesta"}

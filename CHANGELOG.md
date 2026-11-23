@@ -6,6 +6,11 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
 
 ### Añadido
 
+- Plan «Cerebro 2» (`docs/PLAN-CEREBRO-2.md`), fase C0: banco de pruebas de verdad.
+  - Batería de audio: 394 frases para grabar con tu voz (órdenes, nombres difíciles, compuestas, con pausas, a medias, correcciones, preguntas, ambiguas, frases que no van para Nyx, dictado y fallos reales), una grabadora guiada por tandas que no empieza con Nyx abierto, y otra para grabar fondos (el micro mientras juegas y lo que suena por la salida de audio).
+  - La batería pasa cada frase por la cadena real de Nyx al ritmo real, limpia y mezclada con cada fondo, sin ejecutar nada, y mide cada etapa: activación, fin de frase (cortes y esperas de más), errores de palabras de Whisper, qué hizo (bien, preguntó, mal o nada), latencias y recursos.
+  - Medidor de CPU, RAM, gráfica y VRAM por proceso (contadores de Windows, en cualquier idioma) y `game_bench.py` mide además lo que cuestan en partida las comprobaciones de «Nyx» y la transcripción solas, con el 0,1 % de fotogramas más lentos.
+  - Nyx puede guardar en tu equipo el audio de las peticiones que corriges o deshaces («deshazlo», «no, el otro», «eso no era para ti») para entrenarla (`privacy.save_corrections`, apagado por defecto).
 - 0.9, adelantado (`docs/PLAN-0.9.md`, borrador):
   - Primer arranque guiado por Nyx en la app: Nyx aparece, te habla y saca un panel por paso (micrófono primero, su color, su tamaño, el color de los paneles, el escaneo y los datos anónimos). Todo se puede contestar hablando («ponte coral», «más grande», «siguiente») y cada cambio se ve al momento. Si pasas de paso mientras habla, se calla en un instante. Lo que falte por descargar sale en un panel arriba a la derecha. Se repite desde Ajustes → Ayuda.
   - Lo que faltaba para la beta: el cerebro entrenado de Nyx se descarga en el primer arranque (si aún no está publicado, el de siempre); créditos y licencias en Ajustes → Ayuda; «Arrancar con Windows» en Ajustes → General; «Nyx, actualízate» por voz; y si una versión nueva no arranca, Nyx vuelve sola a la anterior y te lo dice. El asistente antiguo de primer arranque ya no está.

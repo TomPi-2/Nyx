@@ -6,6 +6,10 @@ Fallos vistos al usar Nyx que quedan pendientes de corregir. Se apuntan aquí pa
 
 | Fecha | Frase o situación | Qué pasa | Qué debería pasar | Pista |
 | --- | --- | --- | --- | --- |
+| 2026-11-23 | «Nyx, abre Battle.net» | Abre la web «battle punto net». | Abrir la app Battle.net (está instalada). | Batería de audio (C0): `nom007`. |
+| 2026-11-23 | «Cierra el Opera y el Spotify y apaga el ordenador» | Busca una app llamada «opera y el spotify». | Cerrar las dos y apagar (con confirmación). | `_clauses` no parte «X y el Y» sin verbo; `com013`. |
+| 2026-11-23 | «Busca eso en internet», «Busca el archivo» | Busca «eso» / «archivo». | Preguntar qué buscar. | Router: `web_search` y `find` aceptan palabras vacías; `amb019`, `amb009`. |
+| 2026-11-23 | «Abre la carpeta de… Descargas» con una pausa de ~1,5 s | Corta en la pausa: «No encuentro de.» | Esperar al resto. | Fin de turno (C2); `pau001`. |
 | 2026-11-17 | Lista de revocación de extensiones | «No se ha podido actualizar (demasiado grande)»: `tepnyx.com/nyx/extensiones/revocadas.json` no existe y la web devuelve su HTML. | Publicar el archivo (vacío y firmado) en la web. | El mensaje ya es claro («aún no está publicada»); falta el archivo, con las páginas de Nyx en la web. |
 | 2026-11-14 | «Nyx, hazte un poco más grande» tras el primer arranque | Whisper lo transcribe en islandés («Hafði logo má grande») y se ignora como otro idioma. Aunque se entendiera, aún no hay regla para «hazte más grande» (es la 9.11). | Cambiar el tamaño. | La regla de tamaño ya está (9.11, `nyx_size`). Falta: con el nombre verificado, volver a transcribir con otro `prompt` antes de descartar. |
 | 2026-11-14 | «Dime cómo hacer galletas» | «Aún no sé hacer recetas» (y «Busca una receta…» sí funciona). | Buscar la receta (`web_search`). | El 97 de 354 respuestas de texto del entrenamiento son «Aún no sé hacer eso»: la ronda 4 debería bajar ese peso; o una regla «dime cómo hacer X». |

@@ -72,4 +72,6 @@ class ShortMemory:
         return user, spoken
 
     def clear(self) -> None:
+        """Olvida la conversación y lo último hecho (las baterías empiezan así cada frase)."""
         self._turns.clear()
+        self._action = ""
