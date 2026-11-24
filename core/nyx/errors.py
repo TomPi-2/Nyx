@@ -17,6 +17,11 @@ DOWNLOAD_HASH = "D-202"
 OLLAMA_INSTALL = "D-210"
 OLLAMA_START = "D-211"
 BRAIN_PULL = "D-220"
+BRAIN_JOIN = "D-221"
+
+# Núcleo.
+LLM_START = "N-410"
+LLM_CPU = "N-411"
 
 CODE = re.compile(r"^([IDAN]-\d{3})\b")
 

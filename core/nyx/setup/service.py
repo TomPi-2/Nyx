@@ -140,6 +140,17 @@ class SetupService:
 
     async def _ollama_status(self) -> dict[str, Any]:
         wanted = self.settings.llm.model
+        if self.settings.llm.engine == "llamacpp":
+            # Sin Ollama (C5.1): «en marcha» siempre (lo lanza el núcleo) y el modelo es el
+            # archivo del cerebro. Mismas claves para que la interfaz no cambie.
+            path = self.settings.llm.model_path or brain.gguf_path()
+            has = await asyncio.to_thread(path.is_file)
+            return {
+                "running": True,
+                "models": [wanted] if has else [],
+                "wanted": wanted,
+                "has_wanted": has,
+            }
         try:
             async with httpx.AsyncClient(timeout=1.5) as http:
                 resp = await http.get(f"{self.settings.llm.host}/api/tags")
@@ -196,7 +207,8 @@ class SetupService:
                     await self.bus.publish(
                         SetupProgress(model.key, model.filename, 0, model.size_mb, True, text)
                     )
-            if not await self._pull_ollama():
+            pull = self._brain_file if self.settings.llm.engine == "llamacpp" else self._pull_ollama
+            if not await pull():
                 failed.append(self.settings.llm.model)
         finally:
             self._downloading = False
@@ -262,6 +274,30 @@ class SetupService:
             return False
         # Por el mismo camino que Ajustes (lo guarda y avisa a las ventanas).
         await self.bus.publish(SettingsRequested({"llm": {"model": name}}))
+        await self.bus.publish(SetupProgress(key, name, 1, 1, True))
+        return True
+
+    async def _brain_file(self) -> bool:
+        """Con llama-server (C5.1): el cerebro de Nyx en un `.gguf`, sin Ollama."""
+        if self.settings.llm.model_path is not None:
+            return self.settings.llm.model_path.is_file()  # uno propio: no se baja nada
+        data = brain.manifest()
+        name = str(data["name"]) if data else self.settings.llm.model
+        key = f"cerebro:{name}"
+
+        async def progress(done: float, total: float) -> None:
+            await self.bus.publish(SetupProgress(key, name, done, total))
+
+        try:
+            await brain.ensure_file(progress)
+        except brain.BrainError as err:
+            text = (
+                str(err) if errors.code_of(str(err)) else errors.coded(errors.BRAIN_PULL, str(err))
+            )
+            self._failed_code = errors.code_of(text) or errors.BRAIN_PULL
+            log.warning("%s", text)
+            await self.bus.publish(SetupProgress(key, name, 0, 1, True, text))
+            return False
         await self.bus.publish(SetupProgress(key, name, 1, 1, True))
         return True
 

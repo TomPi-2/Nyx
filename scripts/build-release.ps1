@@ -4,8 +4,8 @@
 
 .DESCRIPTION
   1. El núcleo empaquetado (core/scripts/package_core.py): Python 3.14 oficial, dependencias
-     de uv.lock con sus huellas, el núcleo, whisper-server y, desde la 1.0.0, las extensiones
-     oficiales firmadas (core/scripts/pack_official.py, con la clave de Tepnyx de este equipo).
+     de uv.lock con sus huellas, el núcleo, whisper-server, llama-server y, desde la 1.0.0,
+     las extensiones oficiales firmadas (core/scripts/pack_official.py, con la clave de Tepnyx de este equipo).
   2. La app (Tauri, sin instalador propio: lo pone Velopack).
   3. El paquete de Velopack (vpk, herramienta local: .config/dotnet-tools.json):
      TepnyxNyx-win-Setup.exe, el paquete completo y el feed para las actualizaciones.
@@ -22,13 +22,19 @@
   Carpeta con whisper-server.exe y sus DLL, compilado con Vulkan y sin GGML_NATIVE
   (docs/benchmarks/README.md). Por defecto, NYX_WHISPER_DIR.
 
+.PARAMETER Llama
+  Carpeta con llama-server.exe y sus DLL (core/scripts/fetch_llama.py: la compilación oficial
+  de llama.cpp con Vulkan, versión fija y huella). Por defecto, NYX_LLAMA_DIR; si no hay, se
+  baja a dist\llama (C5.1: el cerebro sin Ollama).
+
 .EXAMPLE
   .\scripts\build-release.ps1 -Version 0.9.0 -Whisper C:\dev\tools\whisper.cpp\build\bin\Release
 #>
 [CmdletBinding()]
 param(
   [string]$Version,
-  [string]$Whisper = $env:NYX_WHISPER_DIR
+  [string]$Whisper = $env:NYX_WHISPER_DIR,
+  [string]$Llama = $env:NYX_LLAMA_DIR
 )
 
 # En PowerShell 5.1, con «Stop» cualquier línea que un programa escriba en stderr (uv, npm,
@@ -67,7 +73,12 @@ New-Item -ItemType Directory -Force $Out, $Pack -ErrorAction Stop | Out-Null
 
 Step "Núcleo empaquetado"
 Push-Location "$Repo\core"
-uv run python scripts/package_core.py --out "$Pack\core" --whisper "$Whisper"; Check "package_core"
+if (-not $Llama) {
+  $Llama = Join-Path $Repo "dist\llama"
+  uv run python scripts/fetch_llama.py --out "$Llama"; Check "fetch_llama"
+}
+uv run python scripts/package_core.py --out "$Pack\core" --whisper "$Whisper" --llama "$Llama"
+Check "package_core"
 # Datos de uso anónimos (SPEC §8): a dónde se envían, si el usuario lo permite. La dirección
 # y la clave pública de Supabase están en scripts\uso.local.json, fuera de git. Sin ese
 # archivo, esta versión no envía nada.

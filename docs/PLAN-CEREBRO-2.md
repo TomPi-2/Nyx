@@ -242,6 +242,19 @@ whisper.cpp. Solo se adopta si baja el WER de la batería de audio sin subir la 
 Tono que se adapta a la conversación, latencias por debajo del objetivo en todos los caminos,
 y la batería de audio pasando con la voz propia de Nyx cuando esté grabada.
 
+### C9. Cada parte en su lenguaje (estudio del 2026-11-24, `docs/LENGUAJES.md`)
+
+1. **Voz sin PyTorch**: la voz propia de Nyx se entrena en formato Piper/VITS y se exporta a
+   ONNX; al adoptarla salen torch y pocket-tts del núcleo (−~300 MB de RAM y varios segundos
+   de arranque; −518 MB de paquete).
+2. **Bucle del micro**: medirlo con py-spy en C0b; solo si sale caro, pasarlo a Rust (PyO3).
+3. Las piezas nuevas (C2, C3, C1.4, C5.1) se hacen ya con motores nativos (ONNX Runtime,
+   `tokenizers`, rapidfuzz, llama-server).
+
+### Hecho fuera de orden (2026-11-24)
+
+- **C5.1, motor `llama-server`** (con el visto bueno del usuario, para quitar Ollama): ver §10.
+
 ## 4. Orden y dependencias
 
 ```text
@@ -365,3 +378,47 @@ No cambia nada de lo que hace Nyx salvo los puntos 1 y 8 (guardar audio en local
 3. Cuando esté, Claude pasa `audio_battery.py` (≈ 1,5 h por condición, mejor de noche) y
    escribe el informe base; luego, una vez, `game_bench.py` como administrador con el juego
    abierto.
+
+## 10. C5.1 adelantado: el cerebro sin Ollama (hecho el 2026-11-24, falta medirlo)
+
+**Qué se consigue:** Nyx lanza y vigila ella misma el cerebro con `llama-server` (llama.cpp,
+MIT), como ya hace con whisper-server: el usuario no instala nada más, no queda nada abierto
+al salir y se puede controlar lo que Ollama no deja (gramáticas, confianza por palabra, caché
+del prefijo, LoRA sin recargar). **Apagado por defecto** (`llm.engine: "ollama"`) hasta medirlo.
+
+| Archivo | Qué hace |
+| --- | --- |
+| `core/nyx/brain/llamacpp.py` | `LlamaCppEngine`: la misma interfaz que el de Ollama, por la API compatible con OpenAI (SSE). Junta las llamadas a herramientas que llegan a trozos; esquema JSON por gramática; caché del prefijo; semilla; un reintento si el servidor no responde. |
+| `core/nyx/brain/llamacpp_process.py` | `LlamaServer`: lanza `llama-server` oculto en un puerto libre con `-np 1`, `--jinja`, todo en la GPU elegida por Vulkan (`-v --list-devices`, la dedicada si no se elige); se cierra con Nyx; si con la GPU no arranca, sigue con la CPU (N-411). «Liberar la VRAM» = pararlo. Con el cerebro de Nyx o Qwen 2.5 pasa la plantilla oficial de Qwen 2.5 (`nyx/brain/data/qwen2.5.jinja`), porque el GGUF de Nyx se hizo para Ollama. |
+| `core/nyx/settings/model.py` | `llm.engine` (`ollama` / `llamacpp`), `llm.server`, `llm.model_path`, `llm.gpu`. |
+| `core/nyx/services.py` | Elige el motor; avisos N-410 (no arranca o falta el cerebro) y N-411 (con la CPU), sin hablar de Ollama. |
+| `core/nyx/setup/brain.py` y `service.py` | Con `llamacpp`, el primer arranque baja los trozos del cerebro y los une en un `.gguf` comprobando la huella del total (D-221), sin Ollama. |
+| `core/scripts/fetch_llama.py` | Baja la compilación oficial de llama.cpp con Vulkan, **versión fija `b12240` (2026-11-10) y su SHA-256**, con las variantes de CPU ya incluidas; solo `llama-server`, sus DLL y las licencias (86 MB). |
+| `core/scripts/package_core.py`, `scripts/build-release.ps1` | `--llama` / `-Llama` (o NYX_LLAMA_DIR; si no, lo baja): `core\bin\llama`. |
+| `core/scripts/battery.py`, `game_bench.py` | `--motor llamacpp` y las configuraciones `llamacpp@gpu` / `llamacpp@cpu`. |
+| Pruebas | `tests/test_llamacpp.py` (motor y proceso, 18), `test_brain_download.py` (+3), `test_startup_notice.py` (+2). |
+
+Comprobado en el portátil: el zip coincide con su huella, `llama-server` arranca con solo los
+archivos elegidos y ve las dos gráficas (la integrada con `uma: 1`). No se ha cargado ningún
+modelo aquí (pruebas pesadas, solo en el PC).
+
+### 10.1 Qué tiene que hacer el usuario (en el PC)
+
+Desde `core/`, con Nyx cerrada (bandeja → Salir):
+
+1. `uv sync` y `uv run python scripts/fetch_llama.py` (→ `%LOCALAPPDATA%\Nyx\llama`).
+2. El cerebro ya está en el PC, dentro de Ollama: es el archivo
+   `C:\Users\<usuario>\.ollama\models\blobs\sha256-d323312a31bcf9418fb7cf2a814c48e214bd6466d99239cf97bd945b2a1c7441`
+   (la huella de `cerebro.json`). En `%APPDATA%\Nyx\settings.json`, dentro de `"llm"`:
+   `"model": "nyx-r2:7b"` y `"model_path": "<esa ruta, con \ dobles>"`. Sin cambiar `engine`.
+3. Batería con los dos motores, misma semilla:
+   `uv run python scripts/battery.py --motor ollama --modelo nyx-r2:7b` y
+   `uv run python scripts/battery.py --motor llamacpp`.
+4. Partida, como administrador y con el juego abierto:
+   `uv run python scripts/game_bench.py --presentmon <ruta> --process RocketLeague.exe --configs sin nyx-r2:7b@gpu llamacpp@gpu`.
+5. Si va bien, `"engine": "llamacpp"` en los ajustes, abrir Nyx y usarla un día: que no se
+   abra ninguna consola, que conteste igual y que al salir no quede `llama-server` abierto.
+
+**Se adopta si** la batería no baja (±2 frases), el primer token y la respuesta no son más
+lentos, en partida no pierde más FPS ni da más tirones, y el uso normal va bien. Entonces:
+quitar Ollama del instalador y del primer arranque, y el cambio en la SPEC §6.

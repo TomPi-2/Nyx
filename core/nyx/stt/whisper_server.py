@@ -76,7 +76,7 @@ def to_wav(pcm: npt.NDArray[np.int16]) -> bytes:
     return buf.getvalue()
 
 
-def _free_port() -> int:
+def free_port() -> int:
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
         port: int = s.getsockname()[1]
@@ -158,7 +158,7 @@ class WhisperServer:
             raise STTError(f"no existe whisper-server: {self._server}")
         if not self._model.exists():
             raise STTError(f"no existe el modelo de whisper: {self._model}")
-        port = _free_port()
+        port = free_port()
         args = [
             str(self._server),
             "-m",

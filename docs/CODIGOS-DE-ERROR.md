@@ -37,7 +37,8 @@ Los números no se reutilizan aunque un error deje de existir.
 | D-202 | Una descarga no coincide con su huella SHA-256: no se usa. | «Reintentar». Si se repite, avisa. |
 | D-210 | No se ha podido instalar Ollama (falta winget o ha fallado). | Instala Ollama desde ollama.com y pulsa «Reintentar». |
 | D-211 | Ollama está instalado pero no responde. | Abre Ollama desde el menú Inicio y pulsa «Reintentar». |
-| D-220 | Ollama no ha podido bajar el cerebro de Nyx. | Comprueba la conexión y el espacio libre (unos 5 GB) y pulsa «Reintentar». |
+| D-220 | No se ha podido bajar el cerebro de Nyx (con Ollama o, sin él, a su carpeta). | Comprueba la conexión y el espacio libre (unos 5 GB) y pulsa «Reintentar». |
+| D-221 | El cerebro de Nyx se ha bajado entero, pero al unir sus partes no coincide con su huella: no se usa. | Pulsa «Reintentar». Si se repite, avisa. |
 
 ## A · Actualizaciones
 
@@ -54,3 +55,5 @@ Los números no se reutilizan aunque un error deje de existir.
 | --- | --- | --- |
 | N-401 | El núcleo de Nyx se ha cerrado tres veces seguidas al arrancar. | Bandeja → «Reiniciar». Si sigue, el detalle está en `%LOCALAPPDATA%\Nyx\logs\core.log`. |
 | N-402 | No se ha podido lanzar el núcleo de Nyx (falta o un antivirus lo bloquea). | Reinstala Nyx con «Instalar Nyx» (tus datos se quedan). |
+| N-410 | El cerebro de Nyx no arranca: falta su archivo (`%LOCALAPPDATA%\Nyx\models\cerebro`) o `llama-server` no se puede abrir. Mientras, Nyx solo hace lo sencillo (abrir apps, volumen, alarmas…). | Si el panel de descargas tiene algo pendiente, pulsa «Reintentar». Si no, bandeja → «Reiniciar»; si sigue, mira si un antivirus bloquea `llama-server.exe`. |
+| N-411 | El cerebro funciona con el procesador porque la tarjeta gráfica no ha podido usarse (Vulkan): responde, pero más lento. | Actualiza el controlador de la tarjeta gráfica y reinicia Nyx. |

@@ -136,3 +136,38 @@ def test_the_real_manifest() -> None:
     assert all(int(p["size"]) < 2 * 1024**3 for p in data["parts"])
     assert sum(int(p["size"]) for p in data["parts"]) == data["size"]
     assert "<|im_start|>" in data["template"]
+
+
+async def test_one_file_for_llama_server(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, trashed: list[str]
+) -> None:
+    """C5.1: sin Ollama, los trozos se unen en un .gguf con la huella del total."""
+    parts = [DATA[:4000], DATA[4000:]]
+    monkeypatch.setattr(brain, "manifest", lambda: fake_manifest(parts))
+    server = Server(parts)
+    path = await brain.ensure_file(noop, root=tmp_path, transport=httpx.MockTransport(server))
+    assert path == tmp_path / "nyx.gguf"
+    assert path.read_bytes() == DATA
+    assert server.created is None  # Ollama no interviene
+    assert len(trashed) == 2  # los trozos, a la papelera
+    # La segunda vez ya está: no se baja nada.
+    again = await brain.ensure_file(
+        noop, root=tmp_path, transport=httpx.MockTransport(Server(parts, published=False))
+    )
+    assert again == path
+
+
+async def test_a_wrong_total_is_not_used(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, trashed: list[str]
+) -> None:
+    parts = [DATA]
+    manifest = fake_manifest(parts)
+    manifest["sha256"] = "0" * 64  # los trozos están bien, el total no cuadra
+    monkeypatch.setattr(brain, "manifest", lambda: manifest)
+    with pytest.raises(brain.BrainError, match="D-221"):
+        await brain.ensure_file(noop, root=tmp_path, transport=httpx.MockTransport(Server(parts)))
+    assert not (tmp_path / "nyx.gguf").exists()
+
+
+def test_gguf_path_of_the_real_manifest(tmp_path: Path) -> None:
+    assert brain.gguf_path(tmp_path) == tmp_path / "nyx-r2-7b.gguf"

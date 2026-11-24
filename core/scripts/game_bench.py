@@ -11,6 +11,8 @@ Configuraciones (`--configs`):
 - `verificar` (C0, 2026-11-23): solo las comprobaciones de «Nyx» (Whisper con 2 s de audio,
   sin LLM), como las activaciones falsas de los registros. El LLM queda cargado, sin usarse.
 - `whisper`: solo la transcripción de una frase entera, sin LLM.
+- `llamacpp@gpu` / `llamacpp@cpu` (C5.1): como `<modelo>@gpu`, con llama-server en vez de
+  Ollama. Para comparar: `--configs sin nyx-r2:7b@gpu llamacpp@gpu`.
 
 Antes:
 1. Descarga PresentMon (la versión de consola, «PresentMon-…-x64.exe») de
@@ -54,6 +56,9 @@ from hwinfo import REPORTS_DIR, hardware, save_report
 
 from nyx.bench import locate
 from nyx.bench.resmon import ResourceMonitor
+from nyx.brain.base import ChatMessage
+from nyx.brain.llamacpp import LlamaCppEngine
+from nyx.brain.llamacpp_process import from_settings
 from nyx.brain.prompts import SYSTEM
 from nyx.settings.model import load_settings
 from nyx.stt.whisper_server import WhisperServer
@@ -65,6 +70,9 @@ OLLAMA = "http://127.0.0.1:11434"
 # descartaron): por defecto, el juego solo y el 7B en la gráfica. Se pueden pasar con --configs.
 DEFAULT_CONFIGS = ["sin", "verificar", "whisper", "qwen2.5:7b@gpu"]
 WHISPER_ONLY = {"verificar", "whisper"}  # sin LLM (el de los ajustes, cargado y quieto)
+# «llamacpp@gpu» / «llamacpp@cpu» (C5.1): el cerebro de los ajustes en llama-server en vez de
+# Ollama (el .gguf de `llm.model_path` o el bajado en el primer arranque).
+LLAMACPP = "llamacpp"
 QUESTION = "Explícame en dos frases qué es un agujero negro."
 PHRASE = "Nyx, ¿qué tiempo hace mañana en Valencia?"
 SPIKE = 2.0  # un fotograma que tarda más del doble que la mediana es un tirón
@@ -185,6 +193,19 @@ async def think(
     return time.perf_counter() - t0
 
 
+async def think_llama(
+    engine: LlamaCppEngine, stt: WhisperServer | None, pcm: Any, tools: list[dict[str, Any]]
+) -> float:
+    """Lo mismo que `think`, con el cerebro en llama-server (C5.1)."""
+    t0 = time.perf_counter()
+    if stt is not None:
+        await stt.transcribe(pcm)
+    messages = [ChatMessage("system", SYSTEM), ChatMessage("user", QUESTION)]
+    async for _ in engine.chat(messages, tools=tools):
+        pass
+    return time.perf_counter() - t0
+
+
 async def run_config(
     config: str,
     args: argparse.Namespace,
@@ -197,6 +218,7 @@ async def run_config(
 ) -> Result:
     result = Result(config)
     request: dict[str, Any] | None = None
+    engine: LlamaCppEngine | None = None
     if config in WHISPER_ONLY:
         if stt is None:
             result.note = "sin Whisper"
@@ -204,7 +226,17 @@ async def run_config(
         model, where = load_settings().llm.model, "gpu"
     else:
         model, _, where = config.partition("@")
-    if config != "sin":
+    if model == LLAMACPP:
+        server = from_settings(load_settings(), num_ctx=args.contexto, cpu=where == "cpu")
+        if not server.model.is_file() or not server.server.is_file():
+            result.note = f"falta llama-server o {server.model.name}"
+            print(f"  · {config}: {result.note}, se salta")
+            return result
+        engine = LlamaCppEngine(server, "llama.cpp", timeout_s=120.0)
+        print(f"  · {config}: cargando el modelo…")
+        await unload_all(client)
+        await think_llama(engine, None, pcm, tools)  # carga y calienta antes de medir
+    elif config != "sin":
         if model not in have and f"{model}:latest" not in have:
             result.note = f"no instalado (ollama pull {model})"
             print(f"  · {config}: {result.note}, se salta")
@@ -234,7 +266,7 @@ async def run_config(
     )
     end = time.monotonic() + args.seconds
     monitor = ResourceMonitor(include_self=False, interval_s=0.25).start()
-    if request is not None:
+    if request is not None or engine is not None:
         await asyncio.sleep(2)
         while time.monotonic() < end - 3:
             t0 = time.perf_counter()
@@ -242,7 +274,9 @@ async def run_config(
                 await stt.transcribe(pcm[-2 * 16_000 :], prompt="Nyx.")
             elif config == "whisper" and stt is not None:
                 await stt.transcribe(pcm)
-            else:
+            elif engine is not None:
+                await think_llama(engine, stt, pcm, tools)
+            elif request is not None:
                 await think(client, stt, pcm, request)
             took = time.perf_counter() - t0
             result.thinks += 1
@@ -250,6 +284,9 @@ async def run_config(
             await asyncio.sleep(max(0.0, args.every - took))
     await pm.wait()
     monitor.stop()
+    if engine is not None:
+        await engine.unload()  # para llama-server: la siguiente configuración empieza limpia
+        await engine.aclose()
     gpu = [g for name, st in monitor.procs.items() if name != "ollama.exe" for g in st.gpu]
     if gpu:
         result.nyx_gpu = f"{statistics.fmean(gpu):.1f} % / {max(gpu):.0f} %"

@@ -76,6 +76,15 @@ class LLMSettings(_Section):
     # 12.288 desde la 6.18: el prefijo (sistema + herramientas) ya ocupaba 5.467 de 8.192.
     num_ctx: int = Field(default=12288, ge=1024, le=32768)
     timeout_s: float = Field(default=8.0, ge=2.0, le=60.0)
+    # Motor (C5.1, 2026-11-24): «ollama» (programa aparte) o «llamacpp» (llama-server, que va
+    # con Nyx y lanza el núcleo). Ollama hasta que llama-server gane al medirlo.
+    engine: Literal["ollama", "llamacpp"] = "ollama"
+    # Solo con «llamacpp». None = el que va con Nyx (core\bin\llama) y el cerebro bajado en el
+    # primer arranque (%LOCALAPPDATA%\Nyx\models\cerebro\<nombre>.gguf).
+    server: Path | None = None
+    model_path: Path | None = None
+    # Parte del nombre de la GPU; None = la de whisper (stt.gpu) o la primera dedicada.
+    gpu: str | None = None
 
 
 class TTSSettings(_Section):

@@ -72,6 +72,8 @@ Apache-2.0 y MPL-2.0 son compatibles con GPL-3.0 (en el sentido de distribuirlas
 | qwen2.5:7b (Ollama, lo descarga el usuario) | Cerebro | Apache-2.0 | El LoRA ajustado se puede distribuir; incluir la licencia y el aviso de Qwen si se distribuye |
 | Whisper large-v3-turbo (ggml de whisper.cpp) | Voz a texto | MIT | — |
 | whisper-server (whisper.cpp) | Voz a texto | MIT | — |
+| llama-server (llama.cpp `b12240`, compilación oficial con Vulkan; C5.1, 2026-11-24) | Cerebro sin Ollama | MIT; su `libomp.dll`, Apache-2.0 con excepción LLVM | Llevar `LICENSE-llama.cpp.txt` y `LICENSE-LLVM-OpenMP` junto al programa (lo hace `fetch_llama.py`) y en los créditos |
+| Plantilla de chat de Qwen 2.5 (`core/nyx/brain/data/qwen2.5.jinja`, de su `tokenizer_config.json`) | Formato de las herramientas en llama-server | Apache-2.0 (la de Qwen 2.5) | Ya cubierta por el aviso de Qwen |
 | Silero VAD 5.1.2 | Detección de voz | MIT | — |
 | openWakeWord: melspectrogram y embedding_model | Rasgos para «Nyx» | Apache-2.0 (Google speech_embedding) | Los modelos de palabras de openWakeWord (CC BY-NC-SA) **no** se usan |
 | `nyx-v1.onnx` (propio, en el repositorio) | Activación «Nyx» | **CC BY-SA 4.0** (`core/nyx/wake/data/LICENSE-nyx-v1.md`) | Atribuir los datos de entrenamiento (en ese archivo) |
@@ -90,7 +92,8 @@ obra derivada de sus datos no está claro; lo prudente: **publicar `nyx-v1.onnx`
 sentido, así que puede ir con el código).
 
 **Herramientas de desarrollo** (no van en Nyx): Unsloth, TRL, transformers (Apache-2.0), PyTorch
-ROCm (BSD-3), bitsandbytes (MIT), llama.cpp (MIT).
+ROCm (BSD-3), bitsandbytes (MIT), llama.cpp (MIT; desde la C5.1, `llama-server` también va
+con Nyx: ver la tabla).
 
 ## Servicios en internet
 

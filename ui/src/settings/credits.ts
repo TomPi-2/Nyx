@@ -38,6 +38,13 @@ export const CREDITS: Credit[] = [
     url: "https://github.com/ollama/ollama",
   },
   {
+    what: "llama.cpp (llama-server)",
+    use: "Ejecuta el cerebro sin Ollama",
+    who: "Georgi Gerganov y colaboradores · LLVM OpenMP (Apache-2.0 con excepción LLVM)",
+    license: "MIT",
+    url: "https://github.com/ggml-org/llama.cpp",
+  },
+  {
     what: "Whisper large-v3-turbo y whisper.cpp",
     use: "El oído (voz a texto)",
     who: "OpenAI · Georgi Gerganov y colaboradores",

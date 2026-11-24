@@ -30,6 +30,7 @@ from typing import Any
 import httpx
 from send2trash import send2trash
 
+from nyx import errors
 from nyx.paths import models_dir
 
 log = logging.getLogger(__name__)
@@ -86,7 +87,57 @@ async def ensure(
     if await installed(host, name, transport):
         return name
     base = root or folder()
-    base.mkdir(parents=True, exist_ok=True)
+    files = await _download_parts(data, base, progress, transport)
+    await _give_to_ollama(host, data, files, transport)
+    _trash(files)
+    log.info("Cerebro de Nyx listo en Ollama: %s", name)
+    return name
+
+
+def gguf_path(root: Path | None = None) -> Path:
+    """Dónde queda el cerebro en un solo archivo para llama-server (C5.1): los trozos
+    «nyx-r2-7b.gguf.001»… se unen en «nyx-r2-7b.gguf»."""
+    data = manifest()
+    name = str(data["parts"][0]["file"]).rsplit(".", 1)[0] if data else "nyx.gguf"
+    return (root or folder()) / name
+
+
+async def ensure_file(
+    progress: Progress,
+    *,
+    root: Path | None = None,
+    transport: httpx.AsyncBaseTransport | None = None,
+) -> Path:
+    """Deja el cerebro de Nyx en un `.gguf` para llama-server (sin Ollama) y devuelve su ruta.
+
+    Se bajan los trozos (con reanudación y huella cada uno), se unen y se comprueba la huella
+    del total; los trozos van a la papelera. BrainError si no se puede."""
+    data = manifest()
+    if data is None:
+        raise BrainError("Esta versión no trae el cerebro de Nyx")
+    base = root or folder()
+    target = gguf_path(base)
+    size, sha = int(data["size"]), str(data["sha256"])
+    if await asyncio.to_thread(_size_of, target) == size:
+        return target  # ya estaba (la huella se comprobó al unirlo)
+    files = await _download_parts(data, base, progress, transport)
+    partial = target.with_name(target.name + ".part")
+    if await asyncio.to_thread(_join, files, partial) != sha:
+        send2trash(str(partial))
+        raise BrainError(f"{errors.BRAIN_JOIN} · El cerebro unido no coincide con su huella")
+    partial.replace(target)
+    _trash(files)
+    log.info("Cerebro de Nyx listo: %s", target)
+    return target
+
+
+async def _download_parts(
+    data: dict[str, Any],
+    base: Path,
+    progress: Progress,
+    transport: httpx.AsyncBaseTransport | None,
+) -> list[Path]:
+    await asyncio.to_thread(base.mkdir, parents=True, exist_ok=True)
     parts: list[dict[str, Any]] = list(data["parts"])
     total = sum(int(p["size"]) for p in parts)
     done = 0
@@ -99,14 +150,27 @@ async def ensure(
             await _download(http, url, path, part, done, total, progress)
             done += int(part["size"])
         await progress(total / MB, total / MB)
-    await _give_to_ollama(host, data, [base / str(p["file"]) for p in parts], transport)
-    for part in parts:
+    return [base / str(p["file"]) for p in parts]
+
+
+def _join(files: list[Path], target: Path) -> str:
+    """Une los trozos en `target` y devuelve la huella SHA-256 del total."""
+    h = hashlib.sha256()
+    with target.open("wb") as out:
+        for f in files:
+            with f.open("rb") as src:
+                while block := src.read(CHUNK * 4):
+                    h.update(block)
+                    out.write(block)
+    return h.hexdigest()
+
+
+def _trash(files: list[Path]) -> None:
+    for f in files:
         try:
-            send2trash(str(base / str(part["file"])))
+            send2trash(str(f))
         except OSError:
-            log.warning("No he podido llevar %s a la papelera", part["file"])
-    log.info("Cerebro de Nyx listo en Ollama: %s", name)
-    return name
+            log.warning("No he podido llevar %s a la papelera", f.name)
 
 
 async def _download(

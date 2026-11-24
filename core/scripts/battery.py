@@ -33,6 +33,8 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from nyx.brain.llamacpp import LlamaCppEngine
+from nyx.brain.llamacpp_process import from_settings
 from nyx.brain.ollama import OllamaEngine
 from nyx.brain.router import Miss, Route, refusal, route, written_command
 from nyx.brain.select import ToolSelector, tools_budget
@@ -249,6 +251,13 @@ async def main() -> int:
         "modelo con y sin LoRA)",
     )
     parser.add_argument(
+        "--motor",
+        choices=("ollama", "llamacpp"),
+        default=None,
+        help="motor del cerebro (C5.1); por defecto, `llm.engine` de los ajustes. Con "
+        "«llamacpp» se usa el .gguf de `llm.model_path` o el bajado en el primer arranque",
+    )
+    parser.add_argument(
         "--espera",
         type=float,
         default=60.0,
@@ -293,7 +302,14 @@ async def main() -> int:
     settings = load_settings()
     model = args.modelo or settings.llm.model
     host = args.host or settings.llm.host
-    llm = OllamaEngine(host, model, num_ctx=settings.llm.num_ctx, timeout_s=args.espera)
+    llm: OllamaEngine | LlamaCppEngine
+    if (args.motor or settings.llm.engine) == "llamacpp":
+        # C5.1: el cerebro con llama-server (lo lanza este script y lo para al acabar).
+        server = from_settings(settings)
+        model = f"llama.cpp: {server.model.name}"
+        llm = LlamaCppEngine(server, model, timeout_s=args.espera)
+    else:
+        llm = OllamaEngine(host, model, num_ctx=settings.llm.num_ctx, timeout_s=args.espera)
     if args.sin_grupos:
         brain = Brain(llm, tools=REGISTRY.schemas())
         how = "Herramientas: todas en cada petición (sin grupos)."
@@ -340,6 +356,8 @@ async def main() -> int:
             f"{mark} {outcome.ms:6.0f} ms  {outcome.path:13} {outcome.frase}  →  {outcome.got[:90]}"
             + (f"  [{outcome.why}]" if outcome.why else "")
         )
+    if isinstance(llm, LlamaCppEngine):
+        await llm.unload()  # para llama-server (con Ollama, el modelo se queda como estaba)
     await llm.aclose()
     index.close()
     text = report(outcomes, model, how)

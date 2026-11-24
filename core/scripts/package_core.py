@@ -12,6 +12,8 @@ Resultado (lo que va junto al ejecutable de la app, `core_process.rs` lo busca a
       bin/whisper/       whisper-server.exe compilado con Vulkan y sus DLL (MIT; `--whisper`
                          o NYX_WHISPER_DIR: la carpeta Release de whisper.cpp, compilada sin
                          GGML_NATIVE para que funcione en cualquier procesador)
+      bin/llama/         llama-server.exe oficial con Vulkan y sus DLL (MIT; `--llama` o
+                         NYX_LLAMA_DIR: la carpeta que deja scripts/fetch_llama.py; C5.1)
       build.json         versión de Python, huella del uv.lock y fecha
 
 - Las dependencias salen de `uv.lock` (las mismas versiones que en desarrollo) con sus huellas
@@ -133,6 +135,22 @@ def copy_whisper(source: Path, dest: Path) -> int:
     return len(files)
 
 
+def copy_llama(source: Path, dest: Path) -> int:
+    """llama-server.exe, sus DLL y licencias (C5.1; la carpeta que deja fetch_llama.py)."""
+    if not (source / "llama-server.exe").is_file():
+        raise SystemExit(f"No está llama-server.exe en {source}")
+    dest.mkdir(parents=True)
+    files = [
+        source / "llama-server.exe",
+        *sorted(source.glob("*.dll")),
+        *sorted(source.glob("LICENSE*")),
+        *sorted(source.glob("VERSION.txt")),
+    ]
+    for f in files:
+        shutil.copy2(f, dest / f.name)
+    return len(files)
+
+
 def copy_core(app: Path) -> None:
     shutil.copytree(
         CORE / "nyx",
@@ -183,6 +201,13 @@ def main(argv: list[str] | None = None) -> None:
         default=Path(os.environ["NYX_WHISPER_DIR"]) if "NYX_WHISPER_DIR" in os.environ else None,
         help="carpeta con whisper-server.exe y sus DLL (si no, el paquete va sin él)",
     )
+    parser.add_argument(
+        "--llama",
+        type=Path,
+        default=Path(os.environ["NYX_LLAMA_DIR"]) if "NYX_LLAMA_DIR" in os.environ else None,
+        help="carpeta con llama-server.exe (scripts/fetch_llama.py); si no, va sin él y el "
+        "cerebro solo funciona con Ollama",
+    )
     args = parser.parse_args(argv)
     out: Path = args.out.resolve()
     started = time.perf_counter()
@@ -202,6 +227,11 @@ def main(argv: list[str] | None = None) -> None:
         print(f"whisper-server: {count} archivos")
     else:
         print("Aviso: sin --whisper, el paquete no lleva whisper-server (no podrá oír)")
+    if args.llama is not None:
+        count = copy_llama(args.llama, out / "bin" / "llama")
+        print(f"llama-server: {count} archivos")
+    else:
+        print("Aviso: sin --llama, el paquete no lleva llama-server (solo cerebro con Ollama)")
     python_exe = python / "python.exe"
     compile_core(python_exe, app)
     smoke_out = smoke(python_exe)

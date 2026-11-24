@@ -18,14 +18,18 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from nyx import errors
 from nyx.alarms.ringer import AlarmRinger
 from nyx.alarms.scheduler import AlarmScheduler
 from nyx.alarms.store import AlarmStore
 from nyx.audio.capture import AudioCapture
 from nyx.audio.playback import Player
 from nyx.audio.vad import SileroVAD
+from nyx.brain import llamacpp_process as llama_process
 from nyx.brain.answers import Answers
 from nyx.brain.base import ChatMessage, LLMError
+from nyx.brain.llamacpp import LlamaCppEngine
+from nyx.brain.llamacpp_process import LlamaServer
 from nyx.brain.ollama import OllamaEngine, launch_ollama
 from nyx.brain.panel import tidy
 from nyx.brain.phrases import PhraseBook
@@ -113,11 +117,29 @@ def whisper_server_path(settings: Settings) -> Path:
     return local_dir() / "whisper" / "whisper-server.exe"
 
 
+def make_llm(settings: Settings) -> OllamaEngine | LlamaCppEngine:
+    """El motor del cerebro según `llm.engine` (C5.1)."""
+    if settings.llm.engine == "llamacpp":
+        return LlamaCppEngine(
+            llama_process.from_settings(settings),
+            settings.llm.model,
+            timeout_s=settings.llm.timeout_s,
+        )
+    return OllamaEngine(
+        settings.llm.host,
+        settings.llm.model,
+        keep_alive=settings.llm.keep_alive,
+        num_ctx=settings.llm.num_ctx,
+        timeout_s=settings.llm.timeout_s,
+        launcher=launch_ollama,
+    )
+
+
 class Services:
     def __init__(
         self,
         pipeline: Pipeline,
-        llm: OllamaEngine,
+        llm: OllamaEngine | LlamaCppEngine,
         stt: WhisperServer | None,
         index: SystemIndex,
         watcher: IndexWatcher | None,
@@ -342,14 +364,7 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
     t0 = time.perf_counter()
     problems: list[str] = []
 
-    llm = OllamaEngine(
-        settings.llm.host,
-        settings.llm.model,
-        keep_alive=settings.llm.keep_alive,
-        num_ctx=settings.llm.num_ctx,
-        timeout_s=settings.llm.timeout_s,
-        launcher=launch_ollama,
-    )
+    llm = make_llm(settings)
 
     registry = default_registry()
     # Si las herramientas no caben en su parte del contexto, se rotan por grupos (6.20b).
@@ -361,8 +376,12 @@ async def build(bus: EventBus, settings: Settings, *, voice: bool = True) -> Ser
             await brain.warmup()
         except LLMError as e:
             # No es fatal: Ollama puede abrirse después. Cada petición lo vuelve a intentar.
-            log.warning("Ollama no está listo (%s)", e)
-            problems.append("llm")
+            log.warning("El cerebro no está listo (%s)", e)
+            problems.append("llm" if isinstance(llm, OllamaEngine) else "llm_local")
+            return
+        server = llm.server if isinstance(llm, LlamaCppEngine) else None
+        if isinstance(server, LlamaServer) and server.on_cpu:
+            problems.append("llm_cpu")
 
     async def load_stt() -> WhisperServer:
         stt = WhisperServer(
@@ -669,6 +688,15 @@ _EXPLAINED: dict[str, tuple[str, str]] = {
     "wake": ("No respondo a «Nyx»", "Para hablarme, pulsa Win + Alt + H."),
     "tts": ("No puedo hablar", "Te respondo por escrito."),
     "llm": ("Aún no puedo pensar", "Ollama no está abierto: de momento solo hago cosas sencillas."),
+    # Con llama-server (C5.1) no hay nada que abrir: falta el cerebro o no arranca.
+    "llm_local": (
+        "Aún no puedo pensar",
+        f"{errors.LLM_START} · No consigo cargar mi cerebro: de momento solo hago cosas sencillas.",
+    ),
+    "llm_cpu": (
+        "Pienso despacio",
+        f"{errors.LLM_CPU} · No puedo usar la tarjeta gráfica para pensar: respondo más lenta.",
+    ),
 }
 
 
@@ -689,7 +717,7 @@ def startup_notice(problems: list[str]) -> tuple[str, str] | None:
             lines.append((f"No respondo a «{word}»", "Esa palabra no me sirve: respondo a «Nyx»."))
         elif key == "wake" and not deaf:
             lines.append(_EXPLAINED["wake"])
-        elif key in ("tts", "llm"):
+        elif key in ("tts", "llm", "llm_local", "llm_cpu"):
             lines.append(_EXPLAINED[key])
     if not lines:
         return None

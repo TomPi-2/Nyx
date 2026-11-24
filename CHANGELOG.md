@@ -6,6 +6,8 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
 
 ### Añadido
 
+- El cerebro puede funcionar sin Ollama (plan «Cerebro 2», C5.1, apagado hasta medirlo): Nyx lanza ella misma `llama-server` (llama.cpp, la compilación oficial con Vulkan y versión fija), con el cerebro en la tarjeta gráfica que elige sola, sin ventanas y cerrándose con ella. Si la gráfica no puede, piensa con el procesador y lo avisa (N-411). El primer arranque baja el cerebro a su carpeta y comprueba su huella. Se activa con `"llm": {"engine": "llamacpp"}`; la batería y `game_bench.py` comparan los dos motores.
+- Estudio de qué lenguaje conviene a cada parte de Nyx (`docs/LENGUAJES.md`): todo lo pesado ya va en código nativo; lo que más ganaría es que la voz propia de Nyx no use PyTorch.
 - Plan «Cerebro 2» (`docs/PLAN-CEREBRO-2.md`), fase C0: banco de pruebas de verdad.
   - Batería de audio: 394 frases para grabar con tu voz (órdenes, nombres difíciles, compuestas, con pausas, a medias, correcciones, preguntas, ambiguas, frases que no van para Nyx, dictado y fallos reales), una grabadora guiada por tandas que no empieza con Nyx abierto, y otra para grabar fondos (el micro mientras juegas y lo que suena por la salida de audio).
   - La batería pasa cada frase por la cadena real de Nyx al ritmo real, limpia y mezclada con cada fondo, sin ejecutar nada, y mide cada etapa: activación, fin de frase (cortes y esperas de más), errores de palabras de Whisper, qué hizo (bien, preguntó, mal o nada), latencias y recursos.
