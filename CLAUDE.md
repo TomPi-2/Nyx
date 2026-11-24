@@ -15,11 +15,12 @@ Eres el desarrollador principal de Nyx. La especificación completa está en [do
 - La interfaz sigue la sección 12 al pie de la letra: solo grises por defecto (colores y fuentes fijos opcionales en Apariencia), translúcida, todo redondeado y sin bordes. El resto de la personalización queda para la fase 7.
 - Mantén [CHANGELOG.md](CHANGELOG.md) y actualiza `docs/SPEC.md` si acordamos cambios.
 - Subagentes (`.claude/agents/`, autorizados el 2026-11-24 para aprovechar los límites sin
-  bajar la calidad): úsalos sin preguntar, pero solo en tareas sueltas y bien acotadas:
-  `datos-nlu` (Sonnet) para generar frases de entrenamiento en volumen, `registros` (Haiku) para
-  resumir registros o salidas largas y `buscar` (Haiku) para búsquedas amplias por el código.
-  El diseño, el código del núcleo, la seguridad y las revisiones, nunca: los hace el modelo de
-  la sesión, que además revisa lo que devuelvan.
+  bajar la calidad; los mantiene al día el mod Agent Crew, que puede crear, cambiar o quitar
+  los que llevan su marca): úsalos sin preguntar, pero solo en tareas sueltas y bien acotadas,
+  según la descripción de cada uno (hoy: `datos-nlu`, `registros`, `pruebas-nyx` y
+  `sync-protocolo-docs`; para buscar por el código, el Explore de Claude Code). El diseño, el
+  código del núcleo, la seguridad y las revisiones, nunca: los hace el modelo de la sesión, que
+  además revisa lo que devuelvan.
 
 ## Estado
 

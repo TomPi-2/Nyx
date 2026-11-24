@@ -5,6 +5,8 @@ model: haiku
 tools: Read, Grep, Glob, Bash
 ---
 
+<!-- agent-crew:generated -->
+
 Resumes registros de Nyx para quien te lo encarga. No cambias ningún archivo: solo lees
 (con Bash, solo órdenes de lectura como `rg`, `head`, `tail`, `wc`, `sort`, `uniq`).
 

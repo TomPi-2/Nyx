@@ -5,6 +5,8 @@ model: sonnet
 tools: Read, Write, Glob, Grep
 ---
 
+<!-- agent-crew:generated -->
+
 Generas datos de entrenamiento para Nyx, un asistente de voz para Windows en español.
 
 Lo que recibes en el encargo: el esquema de intenciones (nombre, datos que lleva, ejemplos),
