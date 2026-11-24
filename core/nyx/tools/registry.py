@@ -64,6 +64,7 @@ def default_registry() -> ToolRegistry:
     from nyx.tools.app_reminder import AppReminderTool
     from nyx.tools.audio_output import AudioOutput
     from nyx.tools.clipboard import Clipboard
+    from nyx.tools.close_all_apps import CloseAllApps
     from nyx.tools.close_app import CloseApp
     from nyx.tools.close_nyx_settings import CloseNyxSettings
     from nyx.tools.copy_files import CopyFiles
@@ -137,6 +138,7 @@ def default_registry() -> ToolRegistry:
             AudioOutput(),
             Screenshot(),
             CloseApp(),
+            CloseAllApps(),
             CreateFolder(),
             SaveNote(),
             ListFiles(),

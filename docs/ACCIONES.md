@@ -20,6 +20,8 @@ Todo lo que un usuario podría querer pedirle a Nyx, agrupado por áreas. La lis
 | Abrir apps, juegos, webs, carpetas y páginas de Configuración | «abre Spotify», «abre el lol», «abre marca.com» | Hecho | Verde |
 | Abrir en segundo plano | «abre Discord en segundo plano» | Hecho | Verde |
 | Cerrar una app (pregunta si hay cambios sin guardar) | «cierra el bloc de notas» | Hecho | Amarillo |
+| Cerrar varias apps a la vez | «cierra el Opera y el Spotify» | Hecho | Amarillo |
+| Cerrar todas las apps (no Nyx, el Explorador ni los juegos) | «cierra todo», «cierra todas las aplicaciones» | Hecho | Rojo |
 | Traer una ventana al frente | «ve a Chrome», «enséñame Discord» | Hecho | Verde |
 | Maximizar, minimizar, media pantalla, otro monitor | «pon Chrome a la izquierda», «manda esto al otro monitor» | Hecho | Verde |
 | Colocar varias ventanas a la vez | «Chrome a la izquierda y Discord a la derecha» | Hecho | Verde |

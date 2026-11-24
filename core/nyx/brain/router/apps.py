@@ -12,9 +12,11 @@ from nyx.brain.router.comun import (
     _window_name,
     rule,
 )
+from nyx.executor import ToolCall
 from nyx.index.aliases import normalize, strip_articles
-from nyx.index.model import Kind
-from nyx.index.service import SystemIndex
+from nyx.index.model import Entry, Kind
+from nyx.index.phonetic import best_by_sound
+from nyx.index.service import Match, SystemIndex
 from nyx.tools.open_url import to_url
 
 
@@ -41,8 +43,26 @@ def _close(m: re.Match[str], index: SystemIndex) -> Route | None:
         target,
     ):
         return _call("close", "close_app", name=f"carpeta {mf.group('f')}")
+    if _CLOSE_ALL.match(target):
+        return _call("close", "close_all_apps")  # roja: pregunta enumerando las apps
+    # «cierra el Opera y el Spotify» (arnés, 2026-11-23: buscaba una app «opera y el
+    # spotify»): una por app, salvo que el nombre entero sea una app («Fotos y vídeos»).
+    parts = [strip_articles(p.strip()) for p in _AND.split(target) if p.strip()]
+    if len(parts) > 1 and index.confident(index.resolve(target, {Kind.APP, Kind.GAME})) is None:
+        names = [_fix_typo(_window_name(p), index) for p in parts]
+        if all(names):
+            return Route([ToolCall("close_app", {"name": n}) for n in names], "close")
     name = _fix_typo(_window_name(target), index)  # «dis cord» (Whisper) → Discord (6.25)
     return _call("close", "close_app", name=name)
+
+
+_AND = re.compile(r"\s+y\s+(?:tambien\s+)?|\s*,\s*")
+# «cierra todo», «cierra todas las aplicaciones», «cierra todos los programas»…
+_CLOSE_ALL = re.compile(
+    r"^(?:todo|todas|todo lo (?:que (?:tengo|hay) )?abierto|todas? (?:las |mis )?"
+    r"(?:aplicaciones|apps|ventanas)(?: abiertas)?|todos? (?:los |mis )?(?:programas|apps)"
+    r"(?: abiertos)?)$"
+)
 
 
 # --- abrir por lo que se necesita (6.25): «necesito la calculadora», «vamos a jugar al lol» ---
@@ -206,6 +226,14 @@ _TOOL_FOR_KIND = {
 }
 
 
+def _installed_named(target: str, index: SystemIndex) -> str | None:
+    """La app o el juego cuyo nombre es exactamente `target` dicho como web («battle punto
+    net» → Battle.net), o None."""
+    bare = strip_articles(target.replace(" punto ", " ").strip())
+    best = index.confident(index.resolve(bare, {Kind.APP, Kind.GAME}))
+    return best.entry.name if best is not None and best.alias == bare else None
+
+
 @rule(
     "open",
     r"^(?:abre|abrir|abreme|abrime|lanza|lanzame|inicia|iniciame|ejecuta|arranca|entra en|ir a)\s+(?P<x>.+)$",
@@ -225,6 +253,10 @@ def _open(m: re.Match[str], index: SystemIndex) -> Route | Miss | None:
     elif _FOLDER_PREFIX.match(target):
         target, kinds = _FOLDER_PREFIX.sub("", target), {Kind.FOLDER}
     if to_url(target):
+        # «abre Battle.net» (arnés, 2026-11-23): si hay una app o un juego instalado que se
+        # llama así, es la app, no la web.
+        if kinds is None and (installed := _installed_named(target, index)) is not None:
+            return _call("open", "open_app", name=installed)
         return _call("open", "open_url", target=target)
     matches = index.resolve(target, kinds)
     best = index.confident(matches)
@@ -235,7 +267,45 @@ def _open(m: re.Match[str], index: SystemIndex) -> Route | Miss | None:
         if short and short != target:
             best = index.confident(index.resolve(short, kinds))
     if best is None:
-        return Miss(target, matches)
-    tool, arg = _TOOL_FOR_KIND[best.entry.kind]
-    value = best.entry.name if best.entry.kind is not Kind.FOLDER else best.entry.launch.value
+        return _by_sound(target, matches, kinds, index)
+    return _open_entry(best.entry)
+
+
+def _open_entry(entry: Entry) -> Route:
+    tool, arg = _TOOL_FOR_KIND[entry.kind]
+    value = entry.name if entry.kind is not Kind.FOLDER else entry.launch.value
     return _call("open", tool, **{arg: value})
+
+
+#: Parecido por sonido a partir del cual se abre sin preguntar.
+SOUND_SURE = 95.0
+#: Parecido letra a letra (y ventaja sobre el segundo) para ofrecer un nombre.
+OFFER_FUZZY = 75.0
+OFFER_MARGIN = 8.0
+
+
+def _by_sound(
+    target: str, matches: list[Match], kinds: set[Kind] | None, index: SystemIndex
+) -> Route | Miss:
+    """Corrector por sonido (C1.4): «espotifai» → Spotify. Si suena igual, se abre; si se
+    parece, se ofrece («¿Abrir Epic Games?»); si no, el Miss de siempre."""
+    entries = {e.key: e for e in index.entries(kinds or {Kind.APP, Kind.GAME})}
+    sound = best_by_sound(
+        target, ((k, a) for k, e in entries.items() for a in (e.name, *e.aliases))
+    )
+    if sound is None:
+        # Sin parecido por sonido, pero un único candidato claro letra a letra
+        # («applelepic games» → Epic Games, 77 %): también se ofrece.
+        top = [m for m in matches if m.entry.kind in (Kind.APP, Kind.GAME)]
+        if (
+            top
+            and top[0].score >= OFFER_FUZZY
+            and (len(top) == 1 or top[0].score - top[1].score >= OFFER_MARGIN)
+        ):
+            entry = top[0].entry
+            return Miss(target, matches, offer=_open_entry(entry), offer_name=entry.name)
+        return Miss(target, matches)
+    entry = entries[sound.name]
+    if sound.exact or sound.score >= SOUND_SURE:
+        return _open_entry(entry)
+    return Miss(target, matches, offer=_open_entry(entry), offer_name=entry.name)

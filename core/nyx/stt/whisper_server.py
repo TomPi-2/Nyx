@@ -21,13 +21,14 @@ import wave
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import httpx
 import numpy as np
 import numpy.typing as npt
 
 from nyx.audio.capture import SAMPLE_RATE
-from nyx.stt.base import STTError
+from nyx.stt.base import STTError, Transcript
 
 log = logging.getLogger(__name__)
 
@@ -64,6 +65,23 @@ def pick_device(devices: list[VulkanDevice], preferred: str | None) -> VulkanDev
                 return d
         log.warning("No encuentro la GPU «%s» para whisper.cpp", preferred)
     return next((d for d in devices if not d.integrated), devices[0])
+
+
+def parse_result(data: dict[str, Any]) -> Transcript:
+    """La respuesta de whisper-server (`json` o `verbose_json`) → Transcript.
+
+    De cada trozo: la mayor probabilidad de «no hay voz» y la media de `avg_logprob`
+    ponderada por su número de palabras (tokens)."""
+    text = str(data.get("text", "")).strip()
+    segments = [s for s in data.get("segments") or [] if isinstance(s, dict)]
+    if not segments:
+        return Transcript(text)
+    no_speech = max(float(s.get("no_speech_prob", 0.0)) for s in segments)
+    weights = [max(1, len(s.get("tokens") or [])) for s in segments]
+    logprob = sum(
+        float(s.get("avg_logprob", 0.0)) * w for s, w in zip(segments, weights, strict=True)
+    )
+    return Transcript(text, no_speech=no_speech, logprob=logprob / sum(weights))
 
 
 def to_wav(pcm: npt.NDArray[np.int16]) -> bytes:
@@ -242,7 +260,8 @@ class WhisperServer:
     async def transcribe(self, pcm: npt.NDArray[np.int16], prompt: str = "") -> str:
         client = await self._ensure_running()
         data = {
-            "response_format": "json",
+            # Con la confianza de cada trozo (no_speech_prob, avg_logprob): Transcript.
+            "response_format": "verbose_json",
             "language": self._language,
             "temperature": "0.0",
             "no_timestamps": "true",
@@ -256,9 +275,9 @@ class WhisperServer:
                 data=data,
             )
             resp.raise_for_status()
-            text = str(resp.json().get("text", ""))
+            result = parse_result(resp.json())
         except (httpx.HTTPError, ValueError) as e:
             self._failures += 1
             raise STTError(f"fallo al transcribir: {e}") from e
         self._failures = 0
-        return text.strip()
+        return result

@@ -44,6 +44,8 @@ class Confirmation:
     summary: str  # «Mandar a la papelera 3 archivos»
     detail: str  # «de Descargas: a.pdf, b.pdf, c.pdf»
     click_only: bool  # más de 50 elementos o fuera de las carpetas del usuario
+    # Lo que se dice en vez de «<summary>. ¿Confirmas?» («¿Querías decir Epic Games?»).
+    question: str = ""
 
 
 ConfirmFn = Callable[[Confirmation], Awaitable[bool]]
@@ -67,6 +69,7 @@ _NEEDS_WINDOW = {
     "wait_for_window",
     "send_hotkey",
     "app_action",
+    "type_text",  # «apunta en el bloc de notas…» tras abrirlo (2026-11-24)
 }
 
 
@@ -130,6 +133,7 @@ def with_waits(calls: list[ToolCall]) -> list[ToolCall]:
 _VERBS = {
     "open_app": "abrir",
     "close_app": "cerrar",
+    "close_all_apps": "cerrar todas las apps",
     "focus_window": "ir a",
     "window_layout": "colocar",
     "open_url": "abrir",

@@ -30,6 +30,10 @@ class Miss:
 
     target: str
     candidates: list[Match] = field(default_factory=list)
+    # Suena casi como algo del equipo («epic gueims» → Epic Games): se le pregunta al usuario
+    # «¿Abrir Epic Games?» y con un «sí» se hace (paso 2 de Cerebro 2).
+    offer: Route | None = None
+    offer_name: str = ""
 
 
 _TENS = {"sesenta": 60, "setenta": 70, "ochenta": 80, "noventa": 90, "cien": 100}

@@ -74,7 +74,7 @@ from nyx.learn.store import CorrectionStore
 from nyx.log import new_request_id, request_id
 from nyx.safety.undo import UNDO_TTL_S
 from nyx.settings.model import ListenSettings
-from nyx.stt.base import STTEngine, STTError
+from nyx.stt.base import STTEngine, STTError, Transcript, unsure
 from nyx.stt.normalize import addressed_by_name, is_echo, looks_foreign, normalize
 from nyx.tools.base import GamePolicy, ToolResult
 from nyx.tools.clipboard import write_clipboard_text
@@ -118,9 +118,19 @@ MISS_LLM_MIN = 70.0  # «abre X» sin coincidencia: se consulta al LLM solo si a
 # Pausa tras la que se transcribe lo dicho para ver si la petición ya está completa.
 EARLY_PAUSE_S = 0.4
 # Silencio para dar por terminada una frase que se ha quedado a medias en una pausa.
-UNFINISHED_SILENCE_MS = 1400
+# 2,5 s (antes 1,4): en el arnés (2026-11-23), una pausa de 1,5 s en «abre la carpeta de…
+# Descargas» cortaba la frase y Nyx decía «No encuentro de.».
+UNFINISHED_SILENCE_MS = 2500
+# Si aun así una orden queda a medias («abre la carpeta de»), Nyx pregunta lo que falta y une
+# la respuesta con lo anterior si llega antes de esto.
+UNFINISHED_ANSWER_S = 8.0
 # Ventana de seguimiento: silencio previo exigido para que una frase cuente como nueva.
 FOLLOWUP_QUIET_S = 0.25
+# En la ventana de seguimiento, una orden del router que no empieza por un verbo ni dice «Nyx»
+# solo se atiende si es corta («más alto», «la siguiente»).
+FOLLOWUP_ROUTE_MAX_WORDS = 4
+# Verificación de «Nyx»: por encima de esto, Whisper cree que no hay voz (ruido, música).
+VERIFY_NO_SPEECH = 0.8
 # Una «pregunta» que acaba así está a medias («¿cómo se dice … de?»).
 _INCOMPLETE = "a al de del el la los las en con por para que y o u un una mi tu su como"
 INCOMPLETE_ENDINGS = frozenset(_INCOMPLETE.split(" "))
@@ -195,6 +205,45 @@ _TO_YOU = frozenset(
 )
 
 
+_REST_NOUNS = {
+    "carpeta": "carpeta",
+    "archivo": "archivo",
+    "app": "app",
+    "aplicacion": "aplicación",
+    "juego": "juego",
+    "web": "web",
+    "pagina": "página",
+    "cancion": "canción",
+}
+
+
+def unfinished_command(text: str) -> bool:
+    """«abre la carpeta de», «cierra el»: una orden que acaba en una palabra de enlace."""
+    words = norm_words(text)
+    if len(words) < 2 or words[-1] not in INCOMPLETE_ENDINGS:
+        return False
+    return words[0] in COMMAND_VERBS or bool(_IMPERATIVE_CLITIC.match(words[0]))
+
+
+def rest_question(text: str) -> str:
+    """Lo que se pregunta para completar una orden a medias."""
+    words = norm_words(text)
+    for noun in words:
+        if (said := _REST_NOUNS.get(noun)) is not None:
+            return f"¿Qué {said}?"
+    first = words[0] if words else ""
+    return {"abre": "¿Qué abro?", "cierra": "¿Qué cierro?", "pon": "¿Qué pongo?"}.get(
+        first, "¿Cuál?"
+    )
+
+
+def _confidence(text: str) -> str:
+    """« (sin voz 0.12, confianza -0.31)» para el registro, si Whisper la dio."""
+    if not isinstance(text, Transcript):
+        return ""
+    return f" (sin voz {text.no_speech:.2f}, confianza {text.logprob:.2f})"
+
+
 def norm_words(text: str) -> list[str]:
     from nyx.index.aliases import normalize as plain
 
@@ -228,6 +277,8 @@ class _Listening:
     spec: asyncio.Task[None] | None = None
     spec_text: str | None = None
     spoke_since_spec: bool = True
+    # El silencio de siempre mientras dura una pausa a media frase con más margen.
+    normal_silence_ms: int | None = None
 
 
 @dataclass
@@ -431,6 +482,8 @@ class Pipeline:
         offset = activations.offset if activations is not None else 0.0
         self._wake_threshold0 = threshold - offset if isinstance(threshold, float) else None
         self._learned_last: tuple[str, float] | None = None  # (frase, cuándo) para olvidarla
+        # Orden a medias a la que se ha preguntado lo que falta: (frase, cuándo).
+        self._unfinished: tuple[str, float] | None = None
         self._clock = clock
         self.mode = Mode.IDLE
         self.state = NyxState.IDLE
@@ -625,7 +678,17 @@ class Pipeline:
                 await self._set_state(NyxState.LISTENING)
             return True
         ok = self.wake_phrase.heard(text)
-        log.info("Verificación de «Nyx» (%d ms): %r → %s", _ms(self._clock() - t0), text, ok)
+        if ok and isinstance(text, Transcript) and text.no_speech > VERIFY_NO_SPEECH:
+            # Whisper «oye» Nyx pero cree que no hay voz: casi siempre ruido o música.
+            log.info("«Nyx» descartado: Whisper cree que no hay voz (%.2f)", text.no_speech)
+            ok = False
+        log.info(
+            "Verificación de «Nyx» (%d ms): %r → %s%s",
+            _ms(self._clock() - t0),
+            text,
+            ok,
+            _confidence(text),
+        )
         self._record_activation(ok, text, clip)
         listening = self._listening
         if ok and listening is not None and self.mode is Mode.LISTENING:
@@ -700,6 +763,10 @@ class Pipeline:
         reason = endpointer.push(prob)
         if prob >= endpointer.start_threshold:
             listening.spoke_since_spec = True
+            if listening.normal_silence_ms is not None:
+                # Sigue hablando tras dudar: el margen extra era solo para la pausa.
+                endpointer.silence_ms = listening.normal_silence_ms
+                listening.normal_silence_ms = None
         if listening.key_held and reason in (EndReason.SILENCE, EndReason.NO_SPEECH):
             reason = None  # mientras se mantiene el atajo, las pausas no cortan
         if reason is not None:
@@ -743,6 +810,7 @@ class Pipeline:
             ep = listening.endpointer
             if ep.silence_ms < UNFINISHED_SILENCE_MS:
                 log.info("Frase a medias tras una pausa: %r; espero un poco más", raw)
+                listening.normal_silence_ms = ep.silence_ms
                 ep.silence_ms = UNFINISHED_SILENCE_MS
 
     def _is_unfinished(self, raw: str) -> bool:
@@ -947,6 +1015,12 @@ class Pipeline:
         # Con «Nyx, …» delante va a Nyx aunque sea en la ventana de seguimiento (ERRORES.md,
         # 2026-11-14: «Nix, ¿quién es tu creador?» se ignoraba).
         followup = listening is not None and listening.followup and not addressed_by_name(raw)
+        if followup and unsure(raw):
+            # Seguimiento sin «Nyx» y Whisper no está seguro: suele ser charla de fondo (otra
+            # persona, Discord, un vídeo). Arnés, 2026-11-23: actuaba sobre ella.
+            log.info("Seguimiento ignorado: transcripción dudosa %r%s", raw, _confidence(raw))
+            await self._go_idle()
+            return
         if looks_foreign(text):
             # Mal oído (música o ruido): en seguimiento se ignora; si se llamó a Nyx, que lo
             # repita en vez de contestar a algo inventado.
@@ -974,6 +1048,14 @@ class Pipeline:
         self, text: str, marks: _Marks, *, from_voice: bool, followup: bool = False
     ) -> None:
         """Router rápido primero (acciones sin LLM); si no encaja, el LLM."""
+        if self._unfinished is not None:
+            # La respuesta a «¿Qué carpeta?»: se une con lo que se dijo antes.
+            before, when = self._unfinished
+            self._unfinished = None
+            if self._clock() - when <= UNFINISHED_ANSWER_S:
+                text = f"{before.rstrip(' .,…')} {text.strip()}"
+                followup = False  # es la respuesta, no charla de fondo
+                log.info("Orden completada: %r", text)
         marks.phrase = text
         self._agent = AgentRun()
         if self.setup is not None and self.setup.active:
@@ -1017,9 +1099,22 @@ class Pipeline:
                 await self._say(thanks, marks)
             await self._go_idle()
             return
+        if unfinished_command(text):
+            await self._ask_rest(text, marks, from_voice=from_voice)
+            return
         if self.router is not None and self.executor is not None:
             routed = self.router(text)
             if isinstance(routed, Route):
+                if (
+                    followup
+                    and not self._clearly_for_nyx(text)
+                    and len(norm_words(text)) > FOLLOWUP_ROUTE_MAX_WORDS
+                ):
+                    # Una frase larga que no empieza por una orden ni dice «Nyx», en la ventana
+                    # de seguimiento: lo más probable es que hable con otra persona.
+                    log.info("Seguimiento ignorado: orden poco clara para Nyx (%r)", text)
+                    await self._go_idle()
+                    return
                 await self._act(routed, marks, from_voice=from_voice)
                 return
         else:
@@ -1051,6 +1146,10 @@ class Pipeline:
                 )
                 return
         hint = ""
+        if isinstance(routed, Miss) and routed.offer is not None:
+            # Suena casi como algo instalado («epic gueims»): mejor preguntar que fallar.
+            await self._offer(routed, marks, from_voice=from_voice)
+            return
         if isinstance(routed, Miss):
             if not routed.candidates or routed.candidates[0].score < MISS_LLM_MIN:
                 # Nada se parece de verdad: «No encuentro Spotify» directo (el LLM, sin una
@@ -1063,6 +1162,34 @@ class Pipeline:
                 "Si es uno de ellos, úsalo; si no, di que no lo encuentras."
             )
         await self._respond(text, marks, from_voice=from_voice, hint=hint)
+
+    async def _offer(self, miss: Miss, marks: _Marks, *, from_voice: bool) -> None:
+        """«¿Querías decir Epic Games?»: con un «sí» (voz o botón) se hace; si no, nada."""
+        assert miss.offer is not None
+        question = f"¿Querías decir {miss.offer_name}?"
+        log.info("Router: %r suena como %s; lo pregunto", miss.target, miss.offer_name)
+        self._from_voice = from_voice
+        yes = await self.confirm(Confirmation(question, "", False, question=question))
+        if yes:
+            await self._act(miss.offer, marks, from_voice=from_voice)
+            return
+        await self._hide_bubble()
+        await self._go_idle()
+
+    async def _ask_rest(self, text: str, marks: _Marks, *, from_voice: bool) -> None:
+        """«Abre la carpeta de…»: en vez de «No encuentro de.», «¿Qué carpeta?», y se escucha
+        la respuesta sin «Nyx»."""
+        question = rest_question(text)
+        log.info("Orden a medias: %r; pregunto %r", text, question)
+        self._unfinished = (text, self._clock())
+        speak = from_voice or self.speak_typed
+        await self._show_bubble(question, "", spoken=question if speak else "")
+        self._schedule_bubble_hide(UNFINISHED_ANSWER_S)
+        if speak and self.tts is not None:
+            await self._say(question, marks)
+        await self._go_idle()
+        if from_voice and self.voice_enabled and self.capture is not None:
+            await self.start_listening(followup=True, timeout_s=UNFINISHED_ANSWER_S)
 
     async def _act(self, routed: Route, marks: _Marks, *, from_voice: bool) -> list[ToolResult]:
         assert self.executor is not None
@@ -1926,7 +2053,9 @@ class Pipeline:
             if self._from_voice and self.tts is not None and self.player is not None:
                 with contextlib.suppress(TTSError):
                     self.player.enqueue(
-                        await self.tts.synthesize(f"{request.summary}. ¿Confirmas?")
+                        await self.tts.synthesize(
+                            request.question or f"{request.summary}. ¿Confirmas?"
+                        )
                     )
                     await self.player.drain()
             if by_voice and self.yesno is not None:

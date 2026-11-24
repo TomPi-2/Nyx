@@ -88,6 +88,22 @@ GROUPS: tuple[Group, ...] = (
         ),
     ),
     Group(
+        "cerrar_todo",
+        "cerrar todas las apps abiertas a la vez (pide confirmación)",
+        ("close_all_apps",),
+        (
+            r"cierra todo",
+            r"cierra(?:me)? todas",
+            r"cierra(?:me)? todos",
+            r"todas las (?:apps|aplicaciones|ventanas)",
+            r"todos los programas",
+            r"todo lo (?:que (?:tengo|hay) )?abierto",
+        ),
+        # A demanda: el router ya resuelve «cierra todo»; así no ocupa sitio en cada petición
+        # (con ella fija, las herramientas dejaban de caber todas a la vez).
+        lazy=True,
+    ),
+    Group(
         "teclado",
         "atajos y acciones dentro de una app (pestañas, guardar, zoom, micro), escribir texto y "
         "pulsar o leer un botón o texto por su nombre",

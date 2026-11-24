@@ -201,6 +201,7 @@ Unas 35 herramientas genéricas cubren miles de peticiones al combinarse. Cada u
 | --- | --- | --- | --- |
 | `open_app` | Abre una app o juego de la caché y le da el foco (salvo «en segundo plano») | Verde | Acceso directo, AppUserModelID o lanzador (Steam, Riot, Epic) |
 | `close_app` | Cierra una app | Amarillo (rojo si hay cambios sin guardar) | WM_CLOSE; nunca matar el proceso salvo confirmación |
+| `close_all_apps` | Cierra todas las apps abiertas («cierra todo»), salvo Nyx, el Explorador y los juegos | Rojo (la confirmación enumera las apps) | WM_CLOSE en cada ventana; deshacer las vuelve a abrir (2026-11-24) |
 | `focus_window` | Trae una ventana al frente | Verde | pywin32 |
 | `window_layout` | Maximizar, minimizar, mover a otro monitor, dividir pantalla | Verde | pywin32 + atajos de Windows |
 | `open_url` | Abre una web en el navegador por defecto | Verde | `os.startfile`; diccionario de sitios (YouTube, Claude…) |

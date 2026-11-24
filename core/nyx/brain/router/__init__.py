@@ -46,7 +46,7 @@ from nyx.brain.router.comun import (
     parse_number,
 )
 from nyx.brain.router.negativas import IN_GAME_REFUSAL, refusal
-from nyx.executor import ToolCall
+from nyx.executor import ToolCall, with_waits
 from nyx.index.service import SystemIndex
 
 __all__ = [
@@ -168,6 +168,7 @@ ORDER = (
     "read_selection",
     "read_document",
     "clipboard_read",
+    "note_in_notepad",
     "note_save",
     "clipboard_write",
     "paste",
@@ -290,7 +291,7 @@ def _route_several(clauses: list[str], index: SystemIndex) -> Route | None:
         if not isinstance(routed, Route) or any(c.name in _DEPENDENT for c in routed.calls):
             return None
         calls += routed.calls
-    return Route(calls, "several")
+    return Route(with_waits(calls), "several")  # «abre X y escribe Y»: espera a su ventana
 
 
 def written_command(

@@ -6,6 +6,12 @@ Todos los cambios relevantes de Nyx. Formato basado en [Keep a Changelog](https:
 
 ### Añadido
 
+- «Cierra todo» y «cierra todas las aplicaciones»: Nyx pregunta enumerando lo que va a cerrar («Cerrar Opera, Spotify y Discord. ¿Confirmas?»), cierra cada app como si pulsaras la X (las que tienen cambios sin guardar preguntan) y no toca Nyx, el Explorador ni los juegos. «Deshazlo» las vuelve a abrir.
+- «Cierra el Opera y el Spotify» cierra las dos (antes buscaba una app llamada «opera y el spotify»).
+- Nyx entiende los nombres por cómo suenan: «espotifai», «fortnait», «balorant», «o be ese» u «opera ge equis» abren Spotify, Fortnite, VALORANT, OBS u Opera GX. Si algo suena casi igual pero no seguro, pregunta «¿Querías decir Epic Games?» y con un «sí» lo abre, en vez de decir «No encuentro…».
+- «Apunta en el bloc de notas la lista de la compra» abre el Bloc de notas (si no estaba) y lo escribe; antes podía acabar abriendo los Ajustes de Nyx.
+- Si una orden se queda a medias («abre la carpeta de…»), Nyx espera más (2,5 s) y, si aun así no llega el resto, pregunta «¿Qué carpeta?» y une tu respuesta con lo anterior, en vez de decir «No encuentro de.».
+- Nyx usa la confianza de Whisper: una «Nyx» oída en ruido o música no la despierta, y en la ventana de seguimiento ignora lo que Whisper no tiene claro o las frases largas que no van para ella (charla de fondo, Discord).
 - El cerebro puede funcionar sin Ollama (plan «Cerebro 2», C5.1, apagado hasta medirlo): Nyx lanza ella misma `llama-server` (llama.cpp, la compilación oficial con Vulkan y versión fija), con el cerebro en la tarjeta gráfica que elige sola, sin ventanas y cerrándose con ella. Si la gráfica no puede, piensa con el procesador y lo avisa (N-411). El primer arranque baja el cerebro a su carpeta y comprueba su huella. Se activa con `"llm": {"engine": "llamacpp"}`; la batería y `game_bench.py` comparan los dos motores.
 - Estudio de qué lenguaje conviene a cada parte de Nyx (`docs/LENGUAJES.md`): todo lo pesado ya va en código nativo; lo que más ganaría es que la voz propia de Nyx no use PyTorch.
 - Plan «Cerebro 2» (`docs/PLAN-CEREBRO-2.md`), fase C0: banco de pruebas de verdad.

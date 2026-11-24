@@ -422,3 +422,23 @@ Desde `core/`, con Nyx cerrada (bandeja → Salir):
 **Se adopta si** la batería no baja (±2 frases), el primer token y la respuesta no son más
 lentos, en partida no pierde más FPS ni da más tirones, y el uso normal va bien. Entonces:
 quitar Ollama del instalador y del primer arranque, y el cambio en la SPEC §6.
+
+## 11. Paso 2 adelantado: arreglos del arnés, confianza de Whisper y corrector por sonido (hecho el 2026-11-24)
+
+Sin grabaciones, con lo que encontró el arnés (§9.1) y los registros (§0.1).
+
+| Qué | Dónde | Resultado |
+| --- | --- | --- |
+| «cierra X y Y» | `router/apps.py` | Una `close_app` por app, salvo que el nombre entero sea una app. |
+| «cierra todo» (opción 1 del usuario) | `tools/close_all_apps.py` (nueva, **roja**, bloqueada en partida) | La confirmación enumera las apps; WM_CLOSE en cada ventana; no toca Nyx, el Explorador ni los juegos; deshacer las reabre. Grupo de herramientas «a demanda» (`cerrar_todo`): con ella fija dejaban de caber todas. |
+| «abre Battle.net» | `router/apps.py` | Si hay una app o un juego instalado con ese nombre, la app, no la web. |
+| «apunta en el bloc de notas X» | `router/notas.py` (`note_in_notepad`) | Abre el Bloc de notas si hace falta, espera a su ventana y escribe X. `type_text` pasa a esperar a la ventana tras `open_app` (`executor._NEEDS_WINDOW`), también en «abre X y escribe Y». |
+| Pausa a media frase | `pipeline.py` | 2,5 s de margen (antes 1,4) solo mientras dura la pausa; si la orden acaba en «de», «el»…, pregunta «¿Qué carpeta?» y une la respuesta (8 s). |
+| Confianza de Whisper (C0b.4, C1.3 en parte) | `stt/base.py` (`Transcript`), `stt/whisper_server.py` (`verbose_json`) | «Nyx» con probabilidad de «no hay voz» > 0,8 se descarta. En seguimiento, se ignora lo dudoso (sin voz > 0,6 o confianza < −1) y las órdenes de más de 4 palabras que no empiezan por un verbo ni dicen «Nyx». Las cifras van al registro. |
+| Corrector por sonido (C1.4) | `index/phonetic.py` | «espotifai», «fortnait», «balorant», «o be ese», «opera ge equis»… Si suena igual, abre; si se parece, «¿Querías decir…?» con sí/no (voz o botón); también para un único candidato claro letra a letra («Applelepic Games»). |
+
+**Umbrales provisionales** (`NO_SPEECH_MAX`, `LOGPROB_MIN`, `VERIFY_NO_SPEECH`, `FOLLOWUP_ROUTE_MAX_WORDS`, `MIN_SCORE` y `MARGIN` del corrector, `OFFER_FUZZY`): se afinan con la batería de audio cuando esté grabada.
+
+Pruebas: `test_phonetic.py`, `test_close_all_apps.py`, `test_router_cerebro2.py` y `test_pipeline_cerebro2.py` (55). Toda la suite pasa en el portátil salvo las 4 que necesitan las voces instaladas (igual que antes).
+
+**Qué tiene que hacer el usuario (en el PC):** la batería de texto (`uv run python scripts/battery.py`) para ver que nada se ha roto, y probar con la voz: «cierra todo», «abre espotifai», «abre la carpeta de… Descargas» con una pausa, y hablar con alguien en la ventana de seguimiento.
